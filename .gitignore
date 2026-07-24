@@ -34,3 +34,6 @@ __pycache__/
 
 # Local AI / tool caches
 .trae/
+
+# Runtime scratch
+addons/timer/time.txt
