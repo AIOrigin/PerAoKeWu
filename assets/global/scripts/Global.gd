@@ -63,7 +63,7 @@ var runner_planet_id: String = "glass_desert"
 var exploration_planet_id: String = "glass_desert"
 var runner_location_id: String = "dome"
 ## 跑酷跑道外观（在主界面/地图外切换，进关读取）
-var runner_road_style: String = "alien_energy"
+var runner_road_style: String = "holographic"
 var selected_ship_id: String = "spark_moth"
 var mobile_home_tab: String = "home"
 var pending_location_showcase_id: String = ""
@@ -342,8 +342,9 @@ func set_selected_ship(ship_id: String) -> void:
 	save_mobile_progress()
 
 
-const RUNNER_ROAD_STYLE_ORDER: Array[String] = ["alien_energy", "energy_neon", "planet", "rust_metal", "void_crystal"]
+const RUNNER_ROAD_STYLE_ORDER: Array[String] = ["holographic", "alien_energy", "energy_neon", "planet", "rust_metal", "void_crystal"]
 const RUNNER_ROAD_STYLE_LABELS := {
+	"holographic": "全息能量轨",
 	"alien_energy": "异星能量轨",
 	"energy_neon": "能量霓虹",
 	"planet": "星球默认",
@@ -364,7 +365,7 @@ func get_runner_road_style_label(style_id: String = "") -> String:
 func normalize_runner_road_style(style_id: String) -> String:
 	if RUNNER_ROAD_STYLE_ORDER.has(style_id):
 		return style_id
-	return "alien_energy"
+	return "holographic"
 
 
 func set_runner_road_style(style_id: String) -> void:
@@ -459,7 +460,7 @@ func reset_mobile_progress() -> void:
 	messenger_mobility_level = 0
 	messenger_unlocked_stories.clear()
 	selected_ship_id = "spark_moth"
-	runner_road_style = "alien_energy"
+	runner_road_style = "holographic"
 	exploration_revealed_locations_by_planet.clear()
 	completed_runner_locations_by_planet.clear()
 	active_missions_by_planet.clear()

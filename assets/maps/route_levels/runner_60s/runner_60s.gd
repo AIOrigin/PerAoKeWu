@@ -5,9 +5,11 @@ const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_
 const HitFeedback = preload("res://assets/systems/hit_feedback/hit_feedback.gd")
 const ROAD_ENERGY_NEON_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_energy_neon.gdshader")
 const ROAD_ALIEN_ENERGY_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_alien_energy.gdshader")
+const ROAD_HOLOGRAPHIC_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_holographic.gdshader")
 
-const ROAD_STYLE_ORDER: Array[String] = ["alien_energy", "energy_neon", "planet", "rust_metal", "void_crystal"]
+const ROAD_STYLE_ORDER: Array[String] = ["holographic", "alien_energy", "energy_neon", "planet", "rust_metal", "void_crystal"]
 const ROAD_STYLE_LABELS := {
+	"holographic": "全息能量轨",
 	"alien_energy": "异星能量轨",
 	"planet": "星球默认",
 	"energy_neon": "能量霓虹",
@@ -124,7 +126,7 @@ var _world_ready := false
 var _side_dressing_root: Node3D
 var _road_root: Node3D
 var _world_environment: WorldEnvironment
-var _road_style_id := "alien_energy"
+var _road_style_id := "holographic"
 var _path_baked := false
 var _road_edge_particles: Array[GPUParticles3D] = []
 
@@ -1315,6 +1317,15 @@ func _attach_road(node: Node) -> void:
 func _make_road_style_kit(style_id: String) -> Dictionary:
 	var theme: Dictionary = LevelConfig.get_theme()
 	match style_id:
+		"holographic":
+			return {
+				"road": _make_holographic_road_material(),
+				"shoulder": _make_material(Color(0.02, 0.06, 0.12), Color(0.25, 0.7, 1.0), 0.35),
+				"curb": _make_material(Color(0.18, 0.06, 0.28), Color(0.95, 0.4, 1.0), 7.5),
+				"line": _make_material(Color(0.1, 0.35, 0.45), Color(0.4, 1.0, 1.0), 4.5),
+				"post": _make_material(Color(0.08, 0.04, 0.14), Color(0.7, 0.35, 1.0), 2.8),
+				"island": _make_material(Color(0.02, 0.05, 0.1), Color(0.2, 0.55, 0.75), 0.25),
+			}
 		"alien_energy":
 			return {
 				"road": _make_alien_energy_road_material(),
@@ -1377,6 +1388,28 @@ func _make_alien_energy_road_material() -> ShaderMaterial:
 	return mat
 
 
+func _make_holographic_road_material() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = ROAD_HOLOGRAPHIC_SHADER
+	var road_tex := load("res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png") as Texture2D
+	if road_tex:
+		mat.set_shader_parameter("road_tex", road_tex)
+	mat.set_shader_parameter("base_color", Color(0.02, 0.1, 0.18))
+	mat.set_shader_parameter("plasma_color", Color(0.3, 0.96, 1.0))
+	mat.set_shader_parameter("circuit_color", Color(0.5, 1.0, 1.0))
+	mat.set_shader_parameter("edge_color", Color(0.92, 0.36, 1.0))
+	mat.set_shader_parameter("roughness_val", 0.15)
+	mat.set_shader_parameter("metallic_val", 0.04)
+	mat.set_shader_parameter("tex_blend", 0.88)
+	mat.set_shader_parameter("plasma_energy", 2.9)
+	mat.set_shader_parameter("flow_energy", 1.9)
+	mat.set_shader_parameter("wave_speed", 1.2)
+	mat.set_shader_parameter("scroll_speed", 0.2)
+	mat.set_shader_parameter("road_half_width", 6.0)
+	mat.set_shader_parameter("tex_length_scale", 0.085)
+	return mat
+
+
 func _make_energy_neon_road_material() -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = ROAD_ENERGY_NEON_SHADER
@@ -1398,6 +1431,16 @@ func _apply_road_style_environment() -> void:
 	var env := _world_environment.environment
 	var theme: Dictionary = LevelConfig.get_theme()
 	match _road_style_id:
+		"holographic":
+			env.ambient_light_color = Color(0.08, 0.14, 0.24)
+			env.ambient_light_energy = 0.48
+			env.fog_light_color = Color(0.04, 0.07, 0.14)
+			env.fog_density = 0.0015
+			env.glow_enabled = true
+			env.glow_intensity = 0.95
+			env.glow_strength = 1.2
+			env.glow_bloom = 0.45
+			env.glow_hdr_threshold = 0.5
 		"alien_energy":
 			env.ambient_light_color = Color(0.06, 0.1, 0.16)
 			env.ambient_light_energy = 0.35
@@ -1475,8 +1518,10 @@ func _build_path_road_slice(
 
 	var road := MeshInstance3D.new()
 	var road_mesh := BoxMesh.new()
-	var road_h := 0.09 if _road_style_id == "alien_energy" else 0.16
-	var road_w := 11.8 if _road_style_id == "alien_energy" else 12.6
+	var thin_energy := _road_style_id == "alien_energy" or _road_style_id == "holographic"
+	var neon_edge := _road_style_id == "energy_neon" or _road_style_id == "holographic"
+	var road_h := 0.08 if _road_style_id == "holographic" else (0.09 if _road_style_id == "alien_energy" else 0.16)
+	var road_w := 12.0 if _road_style_id == "holographic" else (11.8 if _road_style_id == "alien_energy" else 12.6)
 	road_mesh.size = Vector3(road_w, road_h, segment_len + 1.0)
 	road_mesh.material = road_material
 	road.mesh = road_mesh
@@ -1485,7 +1530,8 @@ func _build_path_road_slice(
 	_attach_road(road)
 
 	for side in [-1.0, 1.0]:
-		if _road_style_id != "alien_energy":
+		# 全息轨贴地一体，不铺沥青路肩
+		if not thin_energy:
 			var shoulder := MeshInstance3D.new()
 			var shoulder_mesh := BoxMesh.new()
 			shoulder_mesh.size = Vector3(1.5, 0.14, segment_len + 1.0)
@@ -1500,35 +1546,38 @@ func _build_path_road_slice(
 		var curb_mesh := BoxMesh.new()
 		if _road_style_id == "alien_energy":
 			curb_mesh.size = Vector3(0.06, 0.04, segment_len + 1.0)
-		elif _road_style_id == "energy_neon":
-			curb_mesh.size = Vector3(0.12, 0.1, segment_len + 1.0)
+		elif neon_edge:
+			curb_mesh.size = Vector3(0.14, 0.08, segment_len + 1.0)
 		else:
 			curb_mesh.size = Vector3(0.16, 0.22, segment_len + 1.0)
 		curb_mesh.material = curb_material
 		curb.mesh = curb_mesh
-		var curb_x := 5.95 if _road_style_id == "alien_energy" else 6.35
-		if _road_style_id == "energy_neon":
+		var curb_x := 5.95 if _road_style_id == "alien_energy" else 6.05
+		if _road_style_id == "holographic":
+			curb_x = 6.05
+		elif _road_style_id == "energy_neon":
 			curb_x = 6.35
-		elif _road_style_id != "alien_energy":
+		elif not thin_energy:
 			curb_x = 6.45
 		curb.position = center + (sample["right"] as Vector3) * (curb_x * side)
-		curb.position.y = lane_y + (0.08 if _road_style_id == "alien_energy" else 0.12)
+		curb.position.y = lane_y + (0.06 if _road_style_id == "holographic" else (0.08 if _road_style_id == "alien_energy" else 0.12))
 		curb.rotation.y = yaw
 		_attach_road(curb)
-		# 能量霓虹双边；异星轨保持单细边
-		if _road_style_id == "energy_neon":
+		# 紫霓虹双边描边
+		if neon_edge:
 			var curb2 := MeshInstance3D.new()
 			var curb2_mesh := BoxMesh.new()
-			curb2_mesh.size = Vector3(0.08, 0.06, segment_len + 1.0)
+			curb2_mesh.size = Vector3(0.08, 0.05, segment_len + 1.0)
 			curb2_mesh.material = curb_material
 			curb2.mesh = curb2_mesh
-			curb2.position = center + (sample["right"] as Vector3) * (6.55 * side)
-			curb2.position.y = lane_y + 0.1
+			var curb2_x := 6.22 if _road_style_id == "holographic" else 6.55
+			curb2.position = center + (sample["right"] as Vector3) * (curb2_x * side)
+			curb2.position.y = lane_y + 0.08
 			curb2.rotation.y = yaw
 			_attach_road(curb2)
 
-	# 中线短划
-	if line_material and _road_style_id != "alien_energy" and int(distance / segment_len) % 2 == 0:
+	# 中线短划（全息贴图已含能量核，不再叠实体虚线）
+	if line_material and not thin_energy and int(distance / segment_len) % 2 == 0:
 		var dash := MeshInstance3D.new()
 		var dash_mesh := BoxMesh.new()
 		dash_mesh.size = Vector3(0.18, 0.04, 2.4)
@@ -1538,7 +1587,7 @@ func _build_path_road_slice(
 		dash.rotation.y = yaw
 		_attach_road(dash)
 
-	if post_material and _road_style_id != "alien_energy" and int(distance / segment_len) % 3 == 0:
+	if post_material and not thin_energy and int(distance / segment_len) % 3 == 0:
 		for side in [-1.0, 1.0]:
 			var post := MeshInstance3D.new()
 			var post_mesh := BoxMesh.new()
@@ -1675,12 +1724,16 @@ func _build_start_pad(
 	var foundation_mesh := BoxMesh.new()
 	foundation_mesh.size = Vector3(58.0, 0.36, START_PAD_LENGTH + 8.0)
 	var foundation_mat := (
-		_make_material(Color(0.02, 0.04, 0.07), Color(0.15, 0.45, 0.6), 0.15)
-		if _road_style_id == "alien_energy"
+		_make_material(Color(0.02, 0.05, 0.1), Color(0.35, 0.75, 1.0), 0.4)
+		if _road_style_id == "holographic"
 		else (
-			_make_material(Color(0.03, 0.06, 0.1), Color(0.15, 0.8, 1.0), 0.35)
-			if _road_style_id == "energy_neon"
-			else _make_material(Color(0.78, 0.45, 0.17), Color(1.0, 0.55, 0.18), 0.16)
+			_make_material(Color(0.02, 0.04, 0.07), Color(0.15, 0.45, 0.6), 0.15)
+			if _road_style_id == "alien_energy"
+			else (
+				_make_material(Color(0.03, 0.06, 0.1), Color(0.15, 0.8, 1.0), 0.35)
+				if _road_style_id == "energy_neon"
+				else _make_material(Color(0.78, 0.45, 0.17), Color(1.0, 0.55, 0.18), 0.16)
+			)
 		)
 	)
 	foundation_mesh.material = foundation_mat
@@ -1691,32 +1744,40 @@ func _build_start_pad(
 	var road := MeshInstance3D.new()
 	road.name = "StartRoadApron"
 	var road_mesh := BoxMesh.new()
-	road_mesh.size = Vector3(12.6, 0.16, START_PAD_LENGTH + 0.5)
+	var start_w := 12.0 if _road_style_id == "holographic" else 12.6
+	var start_h := 0.08 if _road_style_id == "holographic" else 0.16
+	road_mesh.size = Vector3(start_w, start_h, START_PAD_LENGTH + 0.5)
 	road_mesh.material = road_material
 	road.mesh = road_mesh
 	road.position = Vector3(0.0, lane_y, start_center_z)
 	_attach_road(road)
 
-	for x in [-7.25, 7.25]:
-		var shoulder := MeshInstance3D.new()
-		var shoulder_mesh := BoxMesh.new()
-		shoulder_mesh.size = Vector3(1.5, 0.14, START_PAD_LENGTH + 0.5)
-		shoulder_mesh.material = shoulder_material
-		shoulder.mesh = shoulder_mesh
-		shoulder.position = Vector3(x, lane_y - 0.01, start_center_z)
-		_attach_road(shoulder)
+	if _road_style_id != "holographic" and _road_style_id != "alien_energy":
+		for x in [-7.25, 7.25]:
+			var shoulder := MeshInstance3D.new()
+			var shoulder_mesh := BoxMesh.new()
+			shoulder_mesh.size = Vector3(1.5, 0.14, START_PAD_LENGTH + 0.5)
+			shoulder_mesh.material = shoulder_material
+			shoulder.mesh = shoulder_mesh
+			shoulder.position = Vector3(x, lane_y - 0.01, start_center_z)
+			_attach_road(shoulder)
 
-	for x in [-6.45, 6.45]:
+	var curb_xs: Array = [-6.05, 6.05] if _road_style_id == "holographic" else [-6.45, 6.45]
+	for x in curb_xs:
 		var curb := MeshInstance3D.new()
 		var curb_mesh := BoxMesh.new()
-		curb_mesh.size = Vector3(0.16, 0.22, START_PAD_LENGTH + 0.5)
+		if _road_style_id == "holographic":
+			curb_mesh.size = Vector3(0.14, 0.08, START_PAD_LENGTH + 0.5)
+		else:
+			curb_mesh.size = Vector3(0.16, 0.22, START_PAD_LENGTH + 0.5)
 		curb_mesh.material = curb_material
 		curb.mesh = curb_mesh
-		curb.position = Vector3(x, lane_y + 0.14, start_center_z)
+		curb.position = Vector3(x, lane_y + (0.06 if _road_style_id == "holographic" else 0.14), start_center_z)
 		_attach_road(curb)
 
-	_build_lane_dashes_segment(start_center_z, line_material)
-	_build_side_posts_segment(start_center_z, post_material)
+	if _road_style_id != "holographic" and _road_style_id != "alien_energy":
+		_build_lane_dashes_segment(start_center_z, line_material)
+		_build_side_posts_segment(start_center_z, post_material)
 
 
 func _build_lane_dashes_segment(seg_z: float, light_material: Material) -> void:
