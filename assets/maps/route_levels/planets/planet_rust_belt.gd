@@ -19,7 +19,7 @@ const MISSION := {
 }
 
 const EMBER_COIN_VALUE := 18
-const CARGO_DAMAGE_PER_HIT := 24.0
+const CARGO_DAMAGE_PER_HIT := 13.0
 const CHASER_NAME := "锈潮猎犬"
 
 const THEME := {

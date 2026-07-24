@@ -41,8 +41,8 @@ const CHASER_CATCH_DISTANCE := 0.5
 const STRIKE_RECOVERY_TIME := 4.5
 const HIT_SLOW_FACTOR := 0.52
 const HIT_SLOW_DURATION := 1.35
-const HIT_IFRAME_TIME := 0.55
-const LANE_HIT_HALF_WIDTH := LANE_WIDTH * 0.58
+const HIT_IFRAME_TIME := 0.85
+const LANE_HIT_HALF_WIDTH := LANE_WIDTH * 0.52
 const OBSTACLE_HALF_DEPTH := {
 	"jump": 0.55,
 	"low_barrier": 0.55,
@@ -54,18 +54,18 @@ const OBSTACLE_HALF_DEPTH := {
 	"block_right": 0.75,
 }
 const STRIKE_DAMAGE_TIER := {
-	"jump": 0.85,
-	"low_barrier": 0.85,
-	"slide": 1.0,
-	"high_bar": 1.0,
-	"block_left": 1.15,
-	"block_right": 1.15,
-	"train": 1.35,
-	"train_moving": 1.55,
+	"jump": 0.55,
+	"low_barrier": 0.55,
+	"slide": 0.7,
+	"high_bar": 0.7,
+	"block_left": 0.85,
+	"block_right": 0.85,
+	"train": 1.0,
+	"train_moving": 1.15,
 }
-const HEAT_HAZARD_DPS := 12.0
+const HEAT_HAZARD_DPS := 7.0
 const HEAT_HAZARD_HALF_LEN := 7.0
-const HEAT_HAZARD_TICK := 0.35
+const HEAT_HAZARD_TICK := 0.45
 const INTRO_DURATION := 3.0
 const PRE_RUN_LOADING_TIME := 0.45
 const PRE_RUN_COUNTDOWN_STEP := 1.0
@@ -1059,9 +1059,8 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 		if CHASER_ENABLED:
 			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
 		return
-	# HitFeedback 已有头顶飘字；Toast 仅作兜底，避免与飘字叠两套
-	if _hit_feedback == null:
-		_show_strike_warning(reason)
+	# HitFeedback 飘字 + Toast 完整度，双通道更可读
+	_show_strike_warning(reason)
 
 
 func _show_strike_warning(reason: String) -> void:
@@ -1290,19 +1289,28 @@ func _build_path_track() -> void:
 		while _road_root.get_child_count() > 0:
 			_road_root.get_child(0).free()
 	var kit := _make_road_style_kit(_road_style_id)
-	var lane_y := GROUND_Y - 0.09
-	_build_start_pad(
-		kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y
-	)
-	var segment_len := 8.0
-	var d := 0.0
-	while d <= maxf(_path_length, TRACK_LENGTH) + 24.0:
-		if not _is_in_fork_main_gap(d):
-			_build_path_road_slice(
-				d, segment_len, 0.0,
-				kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y
-			)
-		d += segment_len
+	var lane_y := GROUND_Y - 0.05
+	var track_end := maxf(_path_length, TRACK_LENGTH) + 28.0
+	var theme: Dictionary = LevelConfig.get_theme()
+	var sand_mat: Material = kit.get("island", kit["shoulder"])
+	if sand_mat == null:
+		sand_mat = _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1)
+
+	# 连续挤出：托底 / 路肩 / 主路 / 描边 —— 不再用分段 Box/Plane，从根上消横缝
+	_attach_path_strip(0.0, track_end, 21.0, GROUND_Y - 0.14, sand_mat, 2.5, 0.0, false)
+	_attach_path_strip(0.0, track_end, 9.2, lane_y - 0.012, kit["shoulder"], 2.0, 0.0, true)
+	var road_half := 6.0 if _road_style_id == "holographic" else (5.9 if _road_style_id == "alien_energy" else 6.3)
+	_attach_path_strip(0.0, track_end, road_half, lane_y, kit["road"], 1.75, 0.0, true)
+	# 紫/能量描边：贴在路缘的细条带
+	var curb_half := 0.07
+	var curb_lat := road_half - 0.02
+	_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, -curb_lat, true)
+	_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, curb_lat, true)
+	if _road_style_id == "holographic" or _road_style_id == "energy_neon":
+		_attach_path_strip(0.0, track_end, 0.045, lane_y + 0.01, kit["curb"], 1.75, -(curb_lat + 0.12), true)
+		_attach_path_strip(0.0, track_end, 0.045, lane_y + 0.01, kit["curb"], 1.75, curb_lat + 0.12, true)
+
+	_build_start_pad(kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y)
 	for zone in LevelConfig.JUNCTION_ZONES:
 		_build_fork_branch_roads(zone, kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["island"], lane_y)
 
@@ -1314,17 +1322,117 @@ func _attach_road(node: Node) -> void:
 		track_root.add_child(node)
 
 
+func _attach_path_strip(
+	start_d: float,
+	end_d: float,
+	half_width: float,
+	y: float,
+	material: Material,
+	step: float = 2.0,
+	lateral_bias: float = 0.0,
+	skip_fork_gaps: bool = false
+) -> void:
+	if end_d <= start_d + 0.05 or material == null:
+		return
+	if skip_fork_gaps and LevelConfig != null:
+		var cursor := start_d
+		var gaps: Array = []
+		for zone in LevelConfig.JUNCTION_ZONES:
+			var gs := float(zone["distance"])
+			var ge := gs + float(zone.get("length", 70.0))
+			gaps.append(Vector2(gs, ge))
+		gaps.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+		for gap in gaps:
+			var gs: float = gap.x
+			var ge: float = gap.y
+			if ge <= cursor or gs >= end_d:
+				continue
+			if cursor < gs:
+				_attach_path_strip_segment(cursor, minf(gs, end_d), half_width, y, material, step, lateral_bias)
+			cursor = maxf(cursor, ge)
+		if cursor < end_d:
+			_attach_path_strip_segment(cursor, end_d, half_width, y, material, step, lateral_bias)
+		return
+	_attach_path_strip_segment(start_d, end_d, half_width, y, material, step, lateral_bias)
+
+
+func _attach_path_strip_segment(
+	start_d: float,
+	end_d: float,
+	half_width: float,
+	y: float,
+	material: Material,
+	step: float,
+	lateral_bias: float
+) -> void:
+	if end_d <= start_d + 0.05:
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array[Dictionary] = []
+	var d := start_d
+	while d < end_d - 0.001:
+		pts.append(_path_strip_point(d, half_width, y, lateral_bias))
+		d += step
+	pts.append(_path_strip_point(end_d, half_width, y, lateral_bias))
+	if pts.size() < 2:
+		return
+	var uv_scale := 0.08
+	for i in range(pts.size() - 1):
+		var a: Dictionary = pts[i]
+		var b: Dictionary = pts[i + 1]
+		var v0 := float(a["d"]) * uv_scale
+		var v1 := float(b["d"]) * uv_scale
+		var L0: Vector3 = a["L"]
+		var R0: Vector3 = a["R"]
+		var L1: Vector3 = b["L"]
+		var R1: Vector3 = b["R"]
+		# 两三角拼成四边形，UV.x=0/1 表示路宽左右
+		st.set_normal(Vector3.UP)
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(L0)
+		st.set_uv(Vector2(1.0, v0))
+		st.add_vertex(R0)
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(R1)
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(L0)
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(R1)
+		st.set_uv(Vector2(0.0, v1))
+		st.add_vertex(L1)
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_attach_road(mi)
+
+
+func _path_strip_point(distance: float, half_width: float, y: float, lateral_bias: float) -> Dictionary:
+	var sample := _sample_path(distance)
+	var origin: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral_bias
+	var right: Vector3 = sample["right"]
+	var L: Vector3 = origin - right * half_width
+	var R: Vector3 = origin + right * half_width
+	L.y = y
+	R.y = y
+	return {"L": L, "R": R, "d": distance}
+
+
 func _make_road_style_kit(style_id: String) -> Dictionary:
 	var theme: Dictionary = LevelConfig.get_theme()
 	match style_id:
 		"holographic":
 			return {
 				"road": _make_holographic_road_material(),
-				"shoulder": _make_material(Color(0.02, 0.06, 0.12), Color(0.25, 0.7, 1.0), 0.35),
-				"curb": _make_material(Color(0.18, 0.06, 0.28), Color(0.95, 0.4, 1.0), 7.5),
-				"line": _make_material(Color(0.1, 0.35, 0.45), Color(0.4, 1.0, 1.0), 4.5),
-				"post": _make_material(Color(0.08, 0.04, 0.14), Color(0.7, 0.35, 1.0), 2.8),
-				"island": _make_material(Color(0.02, 0.05, 0.1), Color(0.2, 0.55, 0.75), 0.25),
+				"shoulder": _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1),
+				"curb": _make_material(Color(0.12, 0.06, 0.16), Color(0.4, 0.2, 0.48), 0.4),
+				"line": _make_material(Color(0.08, 0.16, 0.18), Color(0.3, 0.65, 0.7), 0.55),
+				"post": _make_material(Color(0.06, 0.05, 0.1), Color(0.4, 0.25, 0.5), 0.35),
+				"island": _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1),
 			}
 		"alien_energy":
 			return {
@@ -1394,19 +1502,19 @@ func _make_holographic_road_material() -> ShaderMaterial:
 	var road_tex := load("res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png") as Texture2D
 	if road_tex:
 		mat.set_shader_parameter("road_tex", road_tex)
-	mat.set_shader_parameter("base_color", Color(0.02, 0.1, 0.18))
-	mat.set_shader_parameter("plasma_color", Color(0.3, 0.96, 1.0))
-	mat.set_shader_parameter("circuit_color", Color(0.5, 1.0, 1.0))
-	mat.set_shader_parameter("edge_color", Color(0.92, 0.36, 1.0))
-	mat.set_shader_parameter("roughness_val", 0.15)
-	mat.set_shader_parameter("metallic_val", 0.04)
-	mat.set_shader_parameter("tex_blend", 0.88)
-	mat.set_shader_parameter("plasma_energy", 2.9)
-	mat.set_shader_parameter("flow_energy", 1.9)
-	mat.set_shader_parameter("wave_speed", 1.2)
-	mat.set_shader_parameter("scroll_speed", 0.2)
+	mat.set_shader_parameter("base_color", Color(0.04, 0.08, 0.1))
+	mat.set_shader_parameter("plasma_color", Color(0.25, 0.55, 0.6))
+	mat.set_shader_parameter("circuit_color", Color(0.32, 0.65, 0.68))
+	mat.set_shader_parameter("edge_color", Color(0.45, 0.22, 0.5))
+	mat.set_shader_parameter("roughness_val", 0.48)
+	mat.set_shader_parameter("metallic_val", 0.08)
+	mat.set_shader_parameter("tex_blend", 0.4)
+	mat.set_shader_parameter("tex_darken", 0.26)
+	mat.set_shader_parameter("plasma_energy", 0.5)
+	mat.set_shader_parameter("flow_energy", 0.35)
+	mat.set_shader_parameter("wave_speed", 0.5)
+	mat.set_shader_parameter("scroll_speed", 0.05)
 	mat.set_shader_parameter("road_half_width", 6.0)
-	mat.set_shader_parameter("tex_length_scale", 0.085)
 	return mat
 
 
@@ -1432,15 +1540,15 @@ func _apply_road_style_environment() -> void:
 	var theme: Dictionary = LevelConfig.get_theme()
 	match _road_style_id:
 		"holographic":
-			env.ambient_light_color = Color(0.08, 0.14, 0.24)
-			env.ambient_light_energy = 0.48
-			env.fog_light_color = Color(0.04, 0.07, 0.14)
-			env.fog_density = 0.0015
+			env.ambient_light_color = Color(0.16, 0.15, 0.14)
+			env.ambient_light_energy = 0.85
+			env.fog_light_color = Color(0.55, 0.4, 0.25)
+			env.fog_density = 0.0017
 			env.glow_enabled = true
-			env.glow_intensity = 0.95
-			env.glow_strength = 1.2
-			env.glow_bloom = 0.45
-			env.glow_hdr_threshold = 0.5
+			env.glow_intensity = 0.22
+			env.glow_strength = 0.75
+			env.glow_bloom = 0.06
+			env.glow_hdr_threshold = 1.05
 		"alien_energy":
 			env.ambient_light_color = Color(0.06, 0.1, 0.16)
 			env.ambient_light_energy = 0.35
@@ -1514,66 +1622,68 @@ func _build_path_road_slice(
 	var sample := _sample_path(distance)
 	var origin: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral_bias
 	var yaw := float(sample["yaw"])
+	# PlaneMesh 顶面即车道面，不再用厚盒子端面露缝
 	var center := origin + Vector3(0.0, lane_y, 0.0)
 
 	var road := MeshInstance3D.new()
-	var road_mesh := BoxMesh.new()
 	var thin_energy := _road_style_id == "alien_energy" or _road_style_id == "holographic"
 	var neon_edge := _road_style_id == "energy_neon" or _road_style_id == "holographic"
-	var road_h := 0.08 if _road_style_id == "holographic" else (0.09 if _road_style_id == "alien_energy" else 0.16)
 	var road_w := 12.0 if _road_style_id == "holographic" else (11.8 if _road_style_id == "alien_energy" else 12.6)
-	road_mesh.size = Vector3(road_w, road_h, segment_len + 1.0)
+	var road_mesh := PlaneMesh.new()
+	road_mesh.size = Vector2(road_w, segment_len)
+	road_mesh.orientation = PlaneMesh.FACE_Y
 	road_mesh.material = road_material
 	road.mesh = road_mesh
 	road.position = center
 	road.rotation.y = yaw
+	road.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_attach_road(road)
 
 	for side in [-1.0, 1.0]:
-		# 全息轨贴地一体，不铺沥青路肩
-		if not thin_energy:
-			var shoulder := MeshInstance3D.new()
-			var shoulder_mesh := BoxMesh.new()
-			shoulder_mesh.size = Vector3(1.5, 0.14, segment_len + 1.0)
-			shoulder_mesh.material = shoulder_material
-			shoulder.mesh = shoulder_mesh
-			shoulder.position = center + (sample["right"] as Vector3) * (7.25 * side)
-			shoulder.position.y = lane_y - 0.01
-			shoulder.rotation.y = yaw
-			_attach_road(shoulder)
+		# 沙色贴边肩：填满紫边外侧与地形之间的空隙
+		var shoulder := MeshInstance3D.new()
+		var shoulder_mesh := PlaneMesh.new()
+		shoulder_mesh.size = Vector2(3.2 if thin_energy else 1.8, segment_len)
+		shoulder_mesh.orientation = PlaneMesh.FACE_Y
+		shoulder_mesh.material = shoulder_material
+		shoulder.mesh = shoulder_mesh
+		var shoulder_x := 7.7 if thin_energy else 7.25
+		shoulder.position = center + (sample["right"] as Vector3) * (shoulder_x * side)
+		shoulder.position.y = lane_y - 0.008
+		shoulder.rotation.y = yaw
+		shoulder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_attach_road(shoulder)
 
 		var curb := MeshInstance3D.new()
 		var curb_mesh := BoxMesh.new()
 		if _road_style_id == "alien_energy":
-			curb_mesh.size = Vector3(0.06, 0.04, segment_len + 1.0)
+			curb_mesh.size = Vector3(0.08, 0.03, segment_len)
 		elif neon_edge:
-			curb_mesh.size = Vector3(0.14, 0.08, segment_len + 1.0)
+			curb_mesh.size = Vector3(0.12, 0.04, segment_len)
 		else:
-			curb_mesh.size = Vector3(0.16, 0.22, segment_len + 1.0)
+			curb_mesh.size = Vector3(0.16, 0.12, segment_len)
 		curb_mesh.material = curb_material
 		curb.mesh = curb_mesh
-		var curb_x := 5.95 if _road_style_id == "alien_energy" else 6.05
-		if _road_style_id == "holographic":
-			curb_x = 6.05
-		elif _road_style_id == "energy_neon":
+		var curb_x := road_w * 0.5 - 0.02
+		if _road_style_id == "energy_neon":
 			curb_x = 6.35
-		elif not thin_energy:
+		elif not thin_energy and _road_style_id != "holographic":
 			curb_x = 6.45
 		curb.position = center + (sample["right"] as Vector3) * (curb_x * side)
-		curb.position.y = lane_y + (0.06 if _road_style_id == "holographic" else (0.08 if _road_style_id == "alien_energy" else 0.12))
+		curb.position.y = lane_y + (0.02 if thin_energy else 0.06)
 		curb.rotation.y = yaw
+		curb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_attach_road(curb)
-		# 紫霓虹双边描边
 		if neon_edge:
 			var curb2 := MeshInstance3D.new()
 			var curb2_mesh := BoxMesh.new()
-			curb2_mesh.size = Vector3(0.08, 0.05, segment_len + 1.0)
+			curb2_mesh.size = Vector3(0.06, 0.025, segment_len)
 			curb2_mesh.material = curb_material
 			curb2.mesh = curb2_mesh
-			var curb2_x := 6.22 if _road_style_id == "holographic" else 6.55
-			curb2.position = center + (sample["right"] as Vector3) * (curb2_x * side)
-			curb2.position.y = lane_y + 0.08
+			curb2.position = center + (sample["right"] as Vector3) * ((curb_x + 0.14) * side)
+			curb2.position.y = lane_y + 0.015
 			curb2.rotation.y = yaw
+			curb2.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			_attach_road(curb2)
 
 	# 中线短划（全息贴图已含能量核，不再叠实体虚线）
@@ -1583,7 +1693,7 @@ func _build_path_road_slice(
 		dash_mesh.size = Vector3(0.18, 0.04, 2.4)
 		dash_mesh.material = line_material
 		dash.mesh = dash_mesh
-		dash.position = center + Vector3(0.0, 0.12, 0.0)
+		dash.position = center + Vector3(0.0, 0.04, 0.0)
 		dash.rotation.y = yaw
 		_attach_road(dash)
 
@@ -1612,84 +1722,132 @@ func _build_fork_branch_roads(
 	var start := float(zone["distance"])
 	var length := float(zone.get("length", 90.0))
 	var spread := float(zone.get("spread", 22.0))
-	# 与主路同宽，左右岔各保留三条跑道
-	var branch_width := 12.6
-	var step := 4.0
+	var branch_half := 6.3
+	# 中岛托底
+	_attach_fork_center_island(zone, island_material, lane_y - 0.02)
+	for side_f in [-1.0, 1.0]:
+		var side: float = float(side_f)
+		_attach_fork_branch_strip(start, length, spread, side, branch_half + 1.6, lane_y - 0.01, shoulder_material, 1.8)
+		_attach_fork_branch_strip(start, length, spread, side, branch_half, lane_y + 0.01, road_material, 1.6)
+		_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, branch_half - 0.05)
+		_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, -(branch_half - 0.05))
+	_build_fork_entry_wedge(zone, curb_material, lane_y)
+
+
+func _attach_fork_center_island(zone: Dictionary, material: Material, y: float) -> void:
+	var start := float(zone["distance"])
+	var length := float(zone.get("length", 90.0))
+	var spread := float(zone.get("spread", 22.0))
+	var step := 2.0
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array[Dictionary] = []
 	var d := start
 	while d <= start + length + 0.001:
-		var t: float = clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
-		var envelope: float = _fork_envelope(t)
-		var offset: float = spread * envelope
-		var t2: float = clampf(t + step / maxf(length, 0.001), 0.0, 1.0)
-		var offset2: float = spread * _fork_envelope(t2)
-		var sample := _sample_path(d)
-		var right: Vector3 = sample["right"]
-		var base_yaw := float(sample["yaw"])
-
-		# 分叉中岛：主路断开处铺沙地
-		if envelope > 0.35:
-			var island := MeshInstance3D.new()
-			var island_mesh := BoxMesh.new()
-			island_mesh.size = Vector3(maxf(offset * 1.1 - branch_width * 0.35, 2.0), 0.1, step + 0.6)
-			island_mesh.material = island_material
-			island.mesh = island_mesh
-			island.position = sample["pos"] + Vector3(0.0, lane_y - 0.02, 0.0)
-			island.rotation.y = base_yaw
-			_attach_road(island)
-
-		for side_f in [-1.0, 1.0]:
-			var side: float = float(side_f)
-			var lateral: float = offset * side
-			var d_lat: float = ((offset2 - offset) * side) / maxf(step, 0.001)
-			var branch_yaw: float = base_yaw + atan(d_lat) * 0.85
-			var origin: Vector3 = sample["pos"] + right * lateral
-			var center := origin + Vector3(0.0, lane_y + 0.03, 0.0)
-			var branch_right := Vector3(-sin(branch_yaw + PI * 0.5), 0.0, -cos(branch_yaw + PI * 0.5))
-
-			var road := MeshInstance3D.new()
-			var road_mesh := BoxMesh.new()
-			road_mesh.size = Vector3(branch_width, 0.16, step + 1.0)
-			road_mesh.material = road_material
-			road.mesh = road_mesh
-			road.position = center
-			road.rotation.y = branch_yaw
-			_attach_road(road)
-
-			# 三道分界虚线（左右各一道，夹出中道）
-			if int(d / step) % 2 == 0:
-				for lane_x in [-LANE_WIDTH * 0.5, LANE_WIDTH * 0.5]:
-					var dash := MeshInstance3D.new()
-					var dash_mesh := BoxMesh.new()
-					dash_mesh.size = Vector3(0.16, 0.04, 2.2)
-					dash_mesh.material = line_material
-					dash.mesh = dash_mesh
-					dash.position = center + branch_right * lane_x + Vector3(0.0, 0.12, 0.0)
-					dash.rotation.y = branch_yaw
-					_attach_road(dash)
-
-			for edge in [-1.0, 1.0]:
-				var curb := MeshInstance3D.new()
-				var curb_mesh := BoxMesh.new()
-				curb_mesh.size = Vector3(0.16, 0.22, step + 1.0)
-				curb_mesh.material = curb_material
-				curb.mesh = curb_mesh
-				curb.position = center + branch_right * (branch_width * 0.5 * edge)
-				curb.position.y = lane_y + 0.14
-				curb.rotation.y = branch_yaw
-				_attach_road(curb)
-
-				var shoulder := MeshInstance3D.new()
-				var shoulder_mesh := BoxMesh.new()
-				shoulder_mesh.size = Vector3(1.3, 0.12, step + 1.0)
-				shoulder_mesh.material = shoulder_material
-				shoulder.mesh = shoulder_mesh
-				shoulder.position = center + branch_right * (branch_width * 0.5 * edge + 0.75 * edge)
-				shoulder.position.y = lane_y + 0.01
-				shoulder.rotation.y = branch_yaw
-				_attach_road(shoulder)
+		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
+		var envelope := _fork_envelope(t)
+		if envelope > 0.25:
+			var half_w := maxf(spread * envelope * 0.55 - 2.0, 1.2)
+			pts.append(_path_strip_point(d, half_w, y, 0.0))
+		elif not pts.is_empty():
+			break
 		d += step
+	if pts.size() < 2:
+		return
+	var uv_scale := 0.08
+	for i in range(pts.size() - 1):
+		var a: Dictionary = pts[i]
+		var b: Dictionary = pts[i + 1]
+		var v0 := float(a["d"]) * uv_scale
+		var v1 := float(b["d"]) * uv_scale
+		st.set_normal(Vector3.UP)
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v0))
+		st.add_vertex(a["R"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v1))
+		st.add_vertex(b["L"])
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_attach_road(mi)
 
-	_build_fork_entry_wedge(zone, curb_material, lane_y)
+
+func _attach_fork_branch_strip(
+	start: float,
+	length: float,
+	spread: float,
+	side: float,
+	half_width: float,
+	y: float,
+	material: Material,
+	step: float,
+	extra_lateral: float = 0.0
+) -> void:
+	if material == null:
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array[Dictionary] = []
+	var d := start
+	while d <= start + length + 0.001:
+		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
+		var envelope := _fork_envelope(t)
+		var lateral := side * spread * envelope + extra_lateral * side
+		var sample := _sample_path(d)
+		var origin: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral
+		# 岔路朝向略偏：用相邻采样估 right
+		var t2 := clampf(t + step / maxf(length, 0.001), 0.0, 1.0)
+		var offset := spread * envelope
+		var offset2 := spread * _fork_envelope(t2)
+		var d_lat := ((offset2 - offset) * side) / maxf(step, 0.001)
+		var branch_yaw := float(sample["yaw"]) + atan(d_lat) * 0.85
+		var branch_right := Vector3(cos(branch_yaw), 0.0, -sin(branch_yaw))
+		var L: Vector3 = origin - branch_right * half_width
+		var R: Vector3 = origin + branch_right * half_width
+		L.y = y
+		R.y = y
+		pts.append({"L": L, "R": R, "d": d})
+		d += step
+	if pts.size() < 2:
+		return
+	var uv_scale := 0.08
+	for i in range(pts.size() - 1):
+		var a: Dictionary = pts[i]
+		var b: Dictionary = pts[i + 1]
+		var v0 := float(a["d"]) * uv_scale
+		var v1 := float(b["d"]) * uv_scale
+		st.set_normal(Vector3.UP)
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v0))
+		st.add_vertex(a["R"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v1))
+		st.add_vertex(b["L"])
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_attach_road(mi)
 
 
 func _build_fork_entry_wedge(zone: Dictionary, curb_material: Material, lane_y: float) -> void:
@@ -1723,8 +1881,9 @@ func _build_start_pad(
 	foundation.name = "StartSandFoundation"
 	var foundation_mesh := BoxMesh.new()
 	foundation_mesh.size = Vector3(58.0, 0.36, START_PAD_LENGTH + 8.0)
+	var theme: Dictionary = LevelConfig.get_theme() if LevelConfig != null and LevelConfig.has_method("get_theme") else {}
 	var foundation_mat := (
-		_make_material(Color(0.02, 0.05, 0.1), Color(0.35, 0.75, 1.0), 0.4)
+		_make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.08)
 		if _road_style_id == "holographic"
 		else (
 			_make_material(Color(0.02, 0.04, 0.07), Color(0.15, 0.45, 0.6), 0.15)
@@ -1743,36 +1902,40 @@ func _build_start_pad(
 
 	var road := MeshInstance3D.new()
 	road.name = "StartRoadApron"
-	var road_mesh := BoxMesh.new()
 	var start_w := 12.0 if _road_style_id == "holographic" else 12.6
-	var start_h := 0.08 if _road_style_id == "holographic" else 0.16
-	road_mesh.size = Vector3(start_w, start_h, START_PAD_LENGTH + 0.5)
+	var road_mesh := PlaneMesh.new()
+	road_mesh.size = Vector2(start_w, START_PAD_LENGTH + 2.0)
+	road_mesh.orientation = PlaneMesh.FACE_Y
 	road_mesh.material = road_material
 	road.mesh = road_mesh
 	road.position = Vector3(0.0, lane_y, start_center_z)
+	road.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_attach_road(road)
 
-	if _road_style_id != "holographic" and _road_style_id != "alien_energy":
-		for x in [-7.25, 7.25]:
-			var shoulder := MeshInstance3D.new()
-			var shoulder_mesh := BoxMesh.new()
-			shoulder_mesh.size = Vector3(1.5, 0.14, START_PAD_LENGTH + 0.5)
-			shoulder_mesh.material = shoulder_material
-			shoulder.mesh = shoulder_mesh
-			shoulder.position = Vector3(x, lane_y - 0.01, start_center_z)
-			_attach_road(shoulder)
+	# 起点两侧沙肩，与路径托底衔接
+	for x in [-7.8, 7.8]:
+		var shoulder := MeshInstance3D.new()
+		var shoulder_mesh := PlaneMesh.new()
+		shoulder_mesh.size = Vector2(3.4, START_PAD_LENGTH + 2.0)
+		shoulder_mesh.orientation = PlaneMesh.FACE_Y
+		shoulder_mesh.material = shoulder_material
+		shoulder.mesh = shoulder_mesh
+		shoulder.position = Vector3(x, lane_y - 0.008, start_center_z)
+		shoulder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_attach_road(shoulder)
 
-	var curb_xs: Array = [-6.05, 6.05] if _road_style_id == "holographic" else [-6.45, 6.45]
+	var curb_xs: Array = [-start_w * 0.5, start_w * 0.5]
 	for x in curb_xs:
 		var curb := MeshInstance3D.new()
 		var curb_mesh := BoxMesh.new()
 		if _road_style_id == "holographic":
-			curb_mesh.size = Vector3(0.14, 0.08, START_PAD_LENGTH + 0.5)
+			curb_mesh.size = Vector3(0.12, 0.04, START_PAD_LENGTH + 2.0)
 		else:
-			curb_mesh.size = Vector3(0.16, 0.22, START_PAD_LENGTH + 0.5)
+			curb_mesh.size = Vector3(0.16, 0.12, START_PAD_LENGTH + 2.0)
 		curb_mesh.material = curb_material
 		curb.mesh = curb_mesh
-		curb.position = Vector3(x, lane_y + (0.06 if _road_style_id == "holographic" else 0.14), start_center_z)
+		curb.position = Vector3(x, lane_y + (0.02 if _road_style_id == "holographic" else 0.06), start_center_z)
+		curb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_attach_road(curb)
 
 	if _road_style_id != "holographic" and _road_style_id != "alien_energy":
@@ -1942,7 +2105,7 @@ func _build_path_side_dressing(theme: Dictionary) -> void:
 			var side: float = float(side_f)
 			var lateral: float = side * (rng.randf_range(17.5, 24.0) + fork_push)
 			_place_path_sand_ribbon(d, lateral, rng.randf_range(10.0, 16.0), 18.0, sand_material)
-		d += 18.0
+		d += 28.0
 
 	if not _side_prop_paths.is_empty():
 		d = 28.0
@@ -2245,13 +2408,44 @@ func _build_runner() -> void:
 
 
 func _add_player_light() -> void:
-	var light := OmniLight3D.new()
-	light.name = "PlayerGlow"
-	light.position = Vector3(0, 1.1, -0.4)
-	light.light_color = Color(1.0, 0.72, 0.28)
-	light.light_energy = 1.6
-	light.omni_range = 6.0
-	player.add_child(light)
+	# 暖光主体 + 跑道反光青边，让角色融入能量轨
+	var key := OmniLight3D.new()
+	key.name = "PlayerKeyLight"
+	key.position = Vector3(0.0, 1.35, -0.2)
+	key.light_color = Color(1.0, 0.82, 0.62)
+	key.light_energy = 1.35
+	key.omni_range = 5.5
+	key.shadow_enabled = false
+	player.add_child(key)
+	var rim := OmniLight3D.new()
+	rim.name = "PlayerRunwayRim"
+	rim.position = Vector3(0.0, 0.35, 0.8)
+	rim.light_color = Color(0.45, 0.85, 0.95) if _road_style_id == "holographic" else Color(0.7, 0.85, 1.0)
+	rim.light_energy = 0.85 if _road_style_id == "holographic" else 0.55
+	rim.omni_range = 4.2
+	rim.shadow_enabled = false
+	player.add_child(rim)
+
+
+func _add_ground_contact_shadow(parent: Node3D, width: float, depth: float) -> void:
+	var shadow := MeshInstance3D.new()
+	shadow.name = "ContactShadow"
+	var mesh := SphereMesh.new()
+	mesh.radius = maxf(width, depth) * 0.28
+	mesh.height = 0.04
+	mesh.radial_segments = 12
+	mesh.rings = 4
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.02, 0.015, 0.01, 0.28)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mesh.material = mat
+	shadow.mesh = mesh
+	shadow.scale = Vector3(1.35, 0.15, maxf(depth / maxf(width, 0.01), 0.55))
+	shadow.position = Vector3(0.0, 0.01, 0.0)
+	shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(shadow)
 
 
 func _build_player_visual() -> void:
@@ -2766,22 +2960,6 @@ func _add_road_span_gate(
 	model.position.y -= 0.04
 	_add_ground_contact_shadow(parent, bounds.size.x * 0.95, maxf(bounds.size.z, 1.1))
 	return model
-
-
-func _add_ground_contact_shadow(parent: Node3D, width: float, depth: float) -> void:
-	var shadow := MeshInstance3D.new()
-	shadow.name = "ContactShadow"
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(maxf(width, 2.0), 0.025, maxf(depth, 0.9))
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.02, 0.015, 0.01, 0.48)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mesh.material = mat
-	shadow.mesh = mesh
-	shadow.position = Vector3(0.0, 0.015, 0.0)
-	parent.add_child(shadow)
 
 
 func _add_slide_obstacle_visual(parent: Node3D, model_name: String, local_position: Vector3, target_height: float) -> Node3D:

@@ -224,7 +224,7 @@ const LOCATION_MISSIONS := [
 ]
 
 const EMBER_COIN_VALUE := 15
-const CARGO_DAMAGE_PER_HIT := 22.0
+const CARGO_DAMAGE_PER_HIT := 12.0
 const CHASER_NAME := "零潮追猎"
 
 const THEME := {
@@ -419,34 +419,34 @@ static func get_location_missions() -> Array:
 
 static func build_obstacles() -> Array:
 	return [
-		{"lane": 0, "distance": 55.0, "type": "jump"},
-		{"lane": -1, "distance": 95.0, "type": "slide"},
-		{"lane": 1, "distance": 130.0, "type": "jump"},
-		{"lane": 0, "distance": 165.0, "type": "train"},
-		{"lane": 0, "distance": 220.0, "type": "block_left"},
-		{"lane": 1, "distance": 260.0, "type": "jump"},
-		{"lane": -1, "distance": 300.0, "type": "slide"},
+		{"lane": 0, "distance": 95.0, "type": "jump"},
+		{"lane": -1, "distance": 145.0, "type": "slide"},
+		{"lane": 1, "distance": 190.0, "type": "jump"},
+		{"lane": 0, "distance": 250.0, "type": "train"},
+		{"lane": 0, "distance": 310.0, "type": "block_left"},
+		{"lane": 1, "distance": 360.0, "type": "jump"},
+		{"lane": -1, "distance": 400.0, "type": "slide"},
 		{"lane": 1, "distance": 100.0, "type": "turn_left"},
 		{"lane": -1, "distance": 100.0, "type": "turn_right"},
-		{"lane": 0, "distance": 250.0, "type": "train_moving", "move_speed": -10.0},
-		{"lane": 1, "distance": 310.0, "type": "jump"},
-		{"lane": -1, "distance": 350.0, "type": "jump"},
-		{"lane": 0, "distance": 400.0, "type": "slide"},
+		{"lane": 0, "distance": 350.0, "type": "train_moving", "move_speed": -10.0},
+		{"lane": 1, "distance": 430.0, "type": "jump"},
+		{"lane": -1, "distance": 480.0, "type": "jump"},
+		{"lane": 0, "distance": 540.0, "type": "slide"},
 		{"lane": 1, "distance": 410.0, "type": "turn_left"},
 		{"lane": -1, "distance": 410.0, "type": "turn_right"},
-		{"lane": 1, "distance": 540.0, "type": "block_right"},
-		{"lane": -1, "distance": 580.0, "type": "jump"},
-		{"lane": 0, "distance": 640.0, "type": "train_moving", "move_speed": 11.0},
-		{"lane": 1, "distance": 680.0, "type": "jump"},
+		{"lane": 1, "distance": 620.0, "type": "block_right"},
+		{"lane": -1, "distance": 680.0, "type": "jump"},
+		{"lane": 0, "distance": 740.0, "type": "train_moving", "move_speed": 11.0},
+		{"lane": 1, "distance": 800.0, "type": "jump"},
 		{"lane": -1, "distance": 710.0, "type": "turn_left"},
 		{"lane": 1, "distance": 710.0, "type": "turn_right"},
-		{"lane": -1, "distance": 760.0, "type": "slide"},
-		{"lane": 0, "distance": 820.0, "type": "train"},
-		{"lane": 1, "distance": 860.0, "type": "block_left"},
-		{"lane": 0, "distance": 920.0, "type": "jump"},
-		{"lane": -1, "distance": 980.0, "type": "train_moving", "move_speed": -12.0},
-		{"lane": 1, "distance": 1040.0, "type": "slide"},
-		{"lane": 0, "distance": 1100.0, "type": "jump"},
+		{"lane": -1, "distance": 860.0, "type": "slide"},
+		{"lane": 0, "distance": 920.0, "type": "train"},
+		{"lane": 1, "distance": 980.0, "type": "block_left"},
+		{"lane": 0, "distance": 1040.0, "type": "jump"},
+		{"lane": -1, "distance": 1100.0, "type": "train_moving", "move_speed": -12.0},
+		{"lane": 1, "distance": 1160.0, "type": "slide"},
+		{"lane": 0, "distance": 1220.0, "type": "jump"},
 	]
 
 

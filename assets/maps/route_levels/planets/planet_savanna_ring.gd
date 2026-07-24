@@ -19,7 +19,7 @@ const MISSION := {
 }
 
 const EMBER_COIN_VALUE := 20
-const CARGO_DAMAGE_PER_HIT := 20.0
+const CARGO_DAMAGE_PER_HIT := 11.0
 const CHASER_NAME := "环带掠影"
 
 const THEME := {
