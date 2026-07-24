@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://do4gwahoqqikd"]
+
+[ext_resource type="Script" uid="uid://cgr5haubao66g" path="res://assets/maps/route_levels/runner_60s/runner_60s.gd" id="1_runner"]
+
+[node name="RouteRunner60s" type="Node3D" groups=["RunnerGameScene"]]
+script = ExtResource("1_runner")

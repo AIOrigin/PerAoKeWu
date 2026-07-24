@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3 uid="uid://7x8w60i2a5pu"]
+
+[ext_resource type="PackedScene" uid="uid://1ma6ldadgmhj" path="res://assets/danmaku/emitter/danmaku_emitter.tscn" id="1_x5j1l"]
+[ext_resource type="PackedScene" uid="uid://34f26nn5pmjo" path="res://assets/danmaku/bullet/bullet_pellet_texture.tscn" id="2_pkq64"]
+[ext_resource type="Script" uid="uid://1k18qi3ugc05" path="res://assets/danmaku/shooting_scenes/test_1.tres.gd" id="2_tpj4i"]
+
+[node name="DanmakuEmitter" instance=ExtResource("1_x5j1l")]
+script = ExtResource("2_tpj4i")
+bullet_scene = ExtResource("2_pkq64")
+fire_rate = 1
+stripe_count = 8
+stripe_radius = 1.0
+bullet_lifetime = 999.0
+bullet_speed = 5.0
+disk_debug_display = false
+stripe_debug_display = false

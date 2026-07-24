@@ -1,0 +1,81 @@
+[gd_scene load_steps=13 format=3 uid="uid://1ma6ldadgmhj"]
+
+[ext_resource type="Script" uid="uid://mv4ps6p0g7qp" path="res://assets/danmaku/emitter/danmaku_emitter.gd" id="2_cwfce"]
+[ext_resource type="Script" uid="uid://ccqqsgs2ctotb" path="res://assets/danmaku/emitter/emitter_mesh_display.gd" id="3_cwfce"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_cwfce"]
+radius = 0.1
+height = 0.2
+radial_segments = 8
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cwfce"]
+transparency = 4
+cull_mode = 2
+shading_mode = 2
+diffuse_mode = 2
+albedo_color = Color(1, 0.55, 0.1, 0.3)
+
+[sub_resource type="ImmediateMesh" id="ImmediateMesh_qtapo"]
+
+[sub_resource type="MultiMesh" id="MultiMesh_cwfce"]
+transform_format = 1
+mesh = SubResource("ImmediateMesh_qtapo")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i1atn"]
+transparency = 4
+shading_mode = 2
+albedo_color = Color(0.3, 0.3, 1, 0.698039)
+
+[sub_resource type="BoxMesh" id="BoxMesh_cwfce"]
+size = Vector3(0.02, 0.02, 1)
+
+[sub_resource type="MultiMesh" id="MultiMesh_ldqey"]
+transform_format = 1
+use_colors = true
+mesh = SubResource("BoxMesh_cwfce")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xdepa"]
+transparency = 4
+shading_mode = 2
+albedo_color = Color(1, 0.2, 0.2, 0.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_xdepa"]
+size = Vector3(0.02, 0.02, 0.02)
+
+[sub_resource type="MultiMesh" id="MultiMesh_xdepa"]
+transform_format = 1
+mesh = SubResource("BoxMesh_xdepa")
+
+[node name="DanmakuEmitter" type="MeshInstance3D" node_paths=PackedStringArray("bullet_ware", "emitter_mesh_display")]
+process_mode = 1
+cast_shadow = 0
+mesh = SubResource("SphereMesh_cwfce")
+script = ExtResource("2_cwfce")
+bullet_ware = NodePath("BulletWare")
+emitter_mesh_display = NodePath("EmitterMeshDisplay")
+disk_count = 3
+stripe_count = 3
+
+[node name="EmitterMeshDisplay" type="Node3D" parent="."]
+script = ExtResource("3_cwfce")
+
+[node name="DiskMMI3D" type="MultiMeshInstance3D" parent="EmitterMeshDisplay"]
+physics_interpolation_mode = 2
+material_override = SubResource("StandardMaterial3D_cwfce")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_cwfce")
+
+[node name="StripeMMI3D" type="MultiMeshInstance3D" parent="EmitterMeshDisplay"]
+physics_interpolation_mode = 2
+material_override = SubResource("StandardMaterial3D_i1atn")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_ldqey")
+
+[node name="SphericalMMI3D" type="MultiMeshInstance3D" parent="EmitterMeshDisplay"]
+physics_interpolation_mode = 2
+material_override = SubResource("StandardMaterial3D_xdepa")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_xdepa")
+
+[node name="BulletWare" type="Node3D" parent="."]

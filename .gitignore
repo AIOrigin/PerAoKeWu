@@ -1,0 +1,36 @@
+# Godot
+.godot/
+.godot_backup/
+export_presets.cfg
+*.translation
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.user
+*.userprefs
+mono_crash.*.json
+
+# Build / C#
+bin/
+obj/
+.mono/
+data_*/
+HYPERLUNATIC.csproj.old
+
+# Local demos / scratch (not part of game)
+/demo
+/examples_dd3d
+
+# Python / local helpers
+__pycache__/
+*.pyc
+.venv/
+
+# Local AI / tool caches
+.trae/

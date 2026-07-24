@@ -1,0 +1,138 @@
+{
+  "source": "Home页_顶部信息栏修订版.png",
+  "canvas_px": {
+    "width": 1440,
+    "height": 2560
+  },
+  "scale": "2x design export; use 0.5x for 720x1280 runtime baseline",
+  "assets": [
+    {
+      "file": "00_home_ui_reference_1440x2560.png",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 2560,
+      "type": "reference_crop"
+    },
+    {
+      "file": "01_hud_topbar_reference.png",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 150,
+      "type": "reference_crop"
+    },
+    {
+      "file": "02_hud_elsa_entry_reference.png",
+      "x": 18,
+      "y": 10,
+      "width": 472,
+      "height": 132,
+      "type": "reference_crop"
+    },
+    {
+      "file": "03_hud_ember_coin_reference.png",
+      "x": 980,
+      "y": 10,
+      "width": 280,
+      "height": 132,
+      "type": "reference_crop"
+    },
+    {
+      "file": "04_hud_settings_reference.png",
+      "x": 1260,
+      "y": 10,
+      "width": 170,
+      "height": 132,
+      "type": "reference_crop"
+    },
+    {
+      "file": "05_map_panel_reference.png",
+      "x": 170,
+      "y": 1525,
+      "width": 1100,
+      "height": 530,
+      "type": "reference_crop"
+    },
+    {
+      "file": "06_current_map_label_reference.png",
+      "x": 510,
+      "y": 1550,
+      "width": 420,
+      "height": 100,
+      "type": "reference_crop"
+    },
+    {
+      "file": "07_outpost_mission_label_reference.png",
+      "x": 370,
+      "y": 1735,
+      "width": 710,
+      "height": 110,
+      "type": "reference_crop"
+    },
+    {
+      "file": "08_delivery_objective_row_reference.png",
+      "x": 250,
+      "y": 1845,
+      "width": 940,
+      "height": 120,
+      "type": "reference_crop"
+    },
+    {
+      "file": "09_repair_progress_reference.png",
+      "x": 250,
+      "y": 1965,
+      "width": 940,
+      "height": 80,
+      "type": "reference_crop"
+    },
+    {
+      "file": "10_start_transport_button_reference.png",
+      "x": 80,
+      "y": 2090,
+      "width": 1280,
+      "height": 230,
+      "type": "reference_crop"
+    },
+    {
+      "file": "11_bottom_tab_bar_reference.png",
+      "x": 0,
+      "y": 2310,
+      "width": 1440,
+      "height": 250,
+      "type": "reference_crop"
+    },
+    {
+      "file": "12_tab_home_active_reference.png",
+      "x": 0,
+      "y": 2310,
+      "width": 360,
+      "height": 250,
+      "type": "reference_crop"
+    },
+    {
+      "file": "13_tab_map_idle_reference.png",
+      "x": 360,
+      "y": 2310,
+      "width": 360,
+      "height": 250,
+      "type": "reference_crop"
+    },
+    {
+      "file": "14_tab_tasks_idle_reference.png",
+      "x": 720,
+      "y": 2310,
+      "width": 360,
+      "height": 250,
+      "type": "reference_crop"
+    },
+    {
+      "file": "15_tab_runner_idle_reference.png",
+      "x": 1080,
+      "y": 2310,
+      "width": 360,
+      "height": 250,
+      "type": "reference_crop"
+    }
+  ]
+}

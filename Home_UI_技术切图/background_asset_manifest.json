@@ -1,0 +1,45 @@
+{
+  "asset_group": "Home Main Background",
+  "source_design_canvas_px": {
+    "width": 1440,
+    "height": 2560
+  },
+  "runtime_baseline_px": {
+    "width": 720,
+    "height": 1280
+  },
+  "assets": [
+    {
+      "file": "2x_runtime_png/ui_home_bg_main_1440x2560.png",
+      "scale": "2x",
+      "width": 1440,
+      "height": 2560,
+      "role": "full_screen_main_background",
+      "has_alpha": false,
+      "usage": "Home页全屏主背景。无任何HUD、标题、任务卡、CTA或底部导航；先铺设，再叠加所有运行时UI。"
+    },
+    {
+      "file": "1x_runtime_png/ui_home_bg_main_720x1280.png",
+      "scale": "1x",
+      "width": 720,
+      "height": 1280,
+      "role": "full_screen_main_background",
+      "has_alpha": false,
+      "usage": "720×1280逻辑基准下的主背景版本。"
+    }
+  ],
+  "implementation_rules": {
+    "fit_mode": "cover",
+    "anchor": "center",
+    "tiling": "disabled",
+    "layer_order": [
+      "ui_home_bg_main",
+      "top_hud",
+      "title_overlay_optional",
+      "current_map_panel",
+      "start_transport_cta",
+      "bottom_tab_bar"
+    ],
+    "safe_area_note": "背景可延伸至异形屏边缘；HUD与底部导航必须单独避让安全区。"
+  }
+}

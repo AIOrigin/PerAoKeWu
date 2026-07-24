@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://gsp62dau1jt1"
+path.s3tc="res://.godot/imported/cyberpunk+armor+3d+model_副本_cyberpunk_armor_3d_model_normal.jpg-e92f363d7899e26983c74eb5255b836a.s3tc.ctex"
+path.etc2="res://.godot/imported/cyberpunk+armor+3d+model_副本_cyberpunk_armor_3d_model_normal.jpg-e92f363d7899e26983c74eb5255b836a.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "0579033a45eef566c2df98efae9eaf4f"
+}
+
+[deps]
+
+source_file="res://3d素材/cyberpunk+armor+3d+model_副本_cyberpunk_armor_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/cyberpunk+armor+3d+model_副本_cyberpunk_armor_3d_model_normal.jpg-e92f363d7899e26983c74eb5255b836a.s3tc.ctex", "res://.godot/imported/cyberpunk+armor+3d+model_副本_cyberpunk_armor_3d_model_normal.jpg-e92f363d7899e26983c74eb5255b836a.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://3d素材/cyberpunk+armor+3d+model_副本_cyberpunk_armor_3d_model_normal.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0
