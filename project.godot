@@ -18,49 +18,21 @@ config/name="HYPERLUNATIC"
 config/version="v0.1.0-dev.2"
 config/tags=PackedStringArray("master")
 run/main_scene="res://assets/maps/route_levels/mobile_home/mobile_home.tscn"
-config/features=PackedStringArray("4.4", "Forward Plus", "Mobile")
+config/features=PackedStringArray("4.6", "Forward Plus", "Mobile")
 config/icon="res://icon.svg"
 
 [audio]
 
 buses/default_bus_layout="uid://cyvwaefw3t2aa"
-manager/sound/bus="Sound"
-manager/sound/pool_1D_size=16
-manager/sound/pool_2D_size=16
-manager/sound/pool_3D_size=16
-manager/sound/max_polyphony=32
-manager/music/bus="Music"
 
 [autoload]
 
-DebugDraw="*res://assets/global/debug_draw.tscn"
 FreezeTickManager="*res://assets/global/scripts/FreezeTickManager.gd"
-BeehaveGlobalMetrics="*res://addons/beehave/metrics/beehave_global_metrics.gd"
-BeehaveGlobalDebugger="*res://addons/beehave/debug/global_debugger.gd"
 Global="*res://assets/global/global.tscn"
-SettingsConfigManager="*res://assets/global/scripts/settings_config_manager.gd"
-goat_audio_bus="res://addons/goat/autoload/audio_bus.gd"
-goat_locale="*res://addons/goat/autoload/locale.gd"
-goat_utils="*res://addons/goat/globals/goat_utils.gd"
-goat="*res://addons/goat/globals/goat.gd"
-goat_state="*res://addons/goat/globals/goat_state.gd"
-goat_inventory="*res://addons/goat/globals/goat_inventory.gd"
-goat_interaction="*res://addons/goat/globals/goat_interaction.gd"
-goat_voice="*res://addons/goat/globals/goat_voice.gd"
-goat_settings="*res://addons/goat/globals/goat_settings.gd"
-Console="*res://addons/console/console.gd"
-DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
-Signal_Debugger="*res://addons/SignalVisualizer/Debugger/SignalDebugger.gd"
-IndieBlueprintObjectPoolManager="*res://addons/ninetailsrabbit.indie_blueprint_pool/src/object_pool_manager.gd"
-CoreSystem="*res://addons/godot_core_system/source/core_system.gd"
 
 [debug]
 
 settings/physics_interpolation/enable_warnings=false
-
-[debug_draw_3d]
-
-settings/addon_root_folder="res://addons/debug_draw_3d"
 
 [display]
 
@@ -77,7 +49,7 @@ project/assembly_name="HYPERLUNATIC"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/DragNDropNodes/plugin.cfg", "res://addons/SignalVisualizer/plugin.cfg", "res://addons/Todo_Manager/plugin.cfg", "res://addons/beehave/plugin.cfg", "res://addons/boujie_water_shader/plugin.cfg", "res://addons/console/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/goat/plugin.cfg", "res://addons/godot-polyliner/plugin.cfg", "res://addons/godot4-graph2d-main/graph_2d/plugin.cfg", "res://addons/godot_3d_auto_collision_generator/plugin.cfg", "res://addons/godot_core_system/plugin.cfg", "res://addons/namespace_linker/plugin.cfg", "res://addons/ninetailsrabbit.indie_blueprint_pool/plugin.cfg", "res://addons/proton_trail-master/plugin.cfg", "res://addons/ridiculous_coding/plugin.cfg", "res://addons/script-ide/plugin.cfg", "res://addons/terrain_3d/plugin.cfg", "res://addons/theme_gen_save_sync/plugin.cfg", "res://addons/timer/plugin.cfg")
+enabled=PackedStringArray("res://addons/Todo_Manager/plugin.cfg", "res://addons/namespace_linker/plugin.cfg", "res://addons/script-ide/plugin.cfg")
 
 [file_customization]
 
@@ -118,10 +90,6 @@ Sign="告示牌一类"
 Probe="探针"
 BeStandBody=""
 danmaku="弹幕"
-
-[godot_core_system]
-
-config_system/auto_save=false
 
 [gui]
 
@@ -343,7 +311,7 @@ goat_rotate_inventory={
 [internationalization]
 
 locale/translation_remaps={}
-locale/translations=PackedStringArray("res://assets/localization/localizations.en.translation", "res://assets/localization/localizations.zh_CN.translation")
+locale/translations=PackedStringArray()
 
 [layer_names]
 
@@ -375,8 +343,8 @@ textures/vram_compression/import_etc2_astc=true
 reflections/sky_reflections/fast_filter_high_quality=true
 anti_aliasing/quality/msaa_2d=1
 anti_aliasing/quality/msaa_3d=1
+anti_aliasing/quality/use_debanding=true
 textures/decals/filter=4
 textures/light_projectors/filter=4
 anti_aliasing/quality/screen_space_aa=1
-anti_aliasing/quality/use_debanding=true
 occlusion_culling/use_occlusion_culling=true

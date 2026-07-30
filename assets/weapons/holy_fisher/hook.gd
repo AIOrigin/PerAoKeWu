@@ -1,1 +1,0 @@
-extends HL.ForceControlCharacterBody3D

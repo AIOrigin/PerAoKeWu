@@ -111,9 +111,7 @@ func _apply_payload(payload: Dictionary) -> void:
 	_story_button.visible = false
 	_runner_button.disabled = not revealed
 	_runner_button.text = String(payload.get("runner_label", "开始运输"))
-	var style_value := find_child("RoadStyleValue", true, false) as Label
-	if style_value:
-		style_value.text = Global.get_runner_road_style_label()
+	_sync_runner_style_options()
 
 
 func _ensure_ui() -> void:
@@ -206,38 +204,8 @@ func _build_ui() -> void:
 	footer_box.add_theme_constant_override("separation", 8)
 	footer_margin.add_child(footer_box)
 
-	var style_row := HBoxContainer.new()
-	style_row.add_theme_constant_override("separation", 10)
-	footer_box.add_child(style_row)
-
-	var style_info := VBoxContainer.new()
-	style_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	style_info.add_theme_constant_override("separation", 2)
-	style_row.add_child(style_info)
-
-	var style_title := Label.new()
-	style_title.text = "跑道外观"
-	style_title.add_theme_font_size_override("font_size", 13)
-	style_title.add_theme_color_override("font_color", MUTED)
-	style_info.add_child(style_title)
-
-	var style_value := Label.new()
-	style_value.name = "RoadStyleValue"
-	style_value.text = Global.get_runner_road_style_label()
-	style_value.add_theme_font_size_override("font_size", 18)
-	style_value.add_theme_color_override("font_color", Color(0.45, 0.9, 1.0))
-	style_info.add_child(style_value)
-
-	var style_btn := Button.new()
-	style_btn.text = "切换"
-	style_btn.focus_mode = Control.FOCUS_NONE
-	style_btn.custom_minimum_size = Vector2(120, 52)
-	_style_flat_button(style_btn, Color(0.10, 0.12, 0.16), PANEL_BORDER, MUTED, 16)
-	style_btn.pressed.connect(func():
-		Global.cycle_runner_road_style()
-		style_value.text = Global.get_runner_road_style_label()
-	)
-	style_row.add_child(style_btn)
+	footer_box.add_child(_build_runner_style_row("跑道外观", "RoadStyleOption", true))
+	footer_box.add_child(_build_runner_style_row("场景背景", "BackgroundStyleOption", false))
 
 	_runner_button = Button.new()
 	_runner_button.text = "开始运输"
@@ -602,7 +570,17 @@ func _build_mission_card(mission: Dictionary, border_color: Color) -> Control:
 	text_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	text_box.add_theme_constant_override("separation", 2)
 	row.add_child(text_box)
-	text_box.add_child(_make_label(String(mission.get("type", "Supply Run")), 14, TEXT))
+	text_box.add_child(_make_label(
+		"%s · %ds" % [
+			String(mission.get("type", "补给")),
+			int(mission.get("duration", 60)),
+		],
+		14,
+		TEXT
+	))
+	var hint := String(mission.get("hint", ""))
+	if hint != "":
+		text_box.add_child(_make_label(hint, 11, MUTED))
 	text_box.add_child(_make_label(String(mission.get("cargo_text", "")), 12, MUTED))
 
 	var reward_box := VBoxContainer.new()
@@ -698,6 +676,66 @@ func _style_gold_button(button: Button) -> void:
 	button.add_theme_font_size_override("font_size", 22)
 	button.add_theme_color_override("font_color", Color(0.08, 0.05, 0.02))
 	button.add_theme_color_override("font_disabled_color", Color(0.28, 0.22, 0.16))
+
+
+func _build_runner_style_row(title_text: String, option_name: String, is_road: bool) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+
+	var title := Label.new()
+	title.text = title_text
+	title.custom_minimum_size = Vector2(88, 0)
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_color_override("font_color", MUTED)
+	row.add_child(title)
+
+	var option := OptionButton.new()
+	option.name = option_name
+	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	option.custom_minimum_size = Vector2(0, 52)
+	option.focus_mode = Control.FOCUS_NONE
+	if is_road:
+		Global.populate_runner_road_style_option(option)
+		option.item_selected.connect(_on_road_style_option_selected)
+	else:
+		Global.populate_runner_background_style_option(option)
+		option.item_selected.connect(_on_background_style_option_selected)
+	_style_option_button(option)
+	row.add_child(option)
+	return row
+
+
+func _style_option_button(option: OptionButton) -> void:
+	var fill := Color(0.10, 0.12, 0.16)
+	var border := PANEL_BORDER
+	option.add_theme_stylebox_override("normal", _panel_style(fill, border, 6, 1))
+	option.add_theme_stylebox_override("hover", _panel_style(fill.lightened(0.05), border, 6, 1))
+	option.add_theme_stylebox_override("pressed", _panel_style(fill.darkened(0.06), border, 6, 1))
+	option.add_theme_stylebox_override("focus", _panel_style(fill, border, 6, 1))
+	option.add_theme_font_size_override("font_size", 16)
+	option.add_theme_color_override("font_color", Color(0.45, 0.9, 1.0))
+
+
+func _sync_runner_style_options() -> void:
+	var road_option := find_child("RoadStyleOption", true, false) as OptionButton
+	if road_option:
+		Global.populate_runner_road_style_option(road_option)
+	var bg_option := find_child("BackgroundStyleOption", true, false) as OptionButton
+	if bg_option:
+		Global.populate_runner_background_style_option(bg_option)
+
+
+func _on_road_style_option_selected(index: int) -> void:
+	if index < 0 or index >= Global.RUNNER_ROAD_STYLE_ORDER.size():
+		return
+	Global.set_runner_road_style(Global.RUNNER_ROAD_STYLE_ORDER[index])
+
+
+func _on_background_style_option_selected(index: int) -> void:
+	if index < 0 or index >= Global.RUNNER_BACKGROUND_STYLE_ORDER.size():
+		return
+	Global.set_runner_background_style(Global.RUNNER_BACKGROUND_STYLE_ORDER[index])
 
 
 func _close() -> void:

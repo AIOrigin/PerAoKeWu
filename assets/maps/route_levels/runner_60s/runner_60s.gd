@@ -1,32 +1,38 @@
 extends Node3D
 
 const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.gd")
+const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
+const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const CharacterRoster = preload("res://assets/maps/route_levels/character_roster.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
 const HitFeedback = preload("res://assets/systems/hit_feedback/hit_feedback.gd")
 const ROAD_ENERGY_NEON_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_energy_neon.gdshader")
 const ROAD_ALIEN_ENERGY_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_alien_energy.gdshader")
 const ROAD_HOLOGRAPHIC_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_holographic.gdshader")
 
-const ROAD_STYLE_ORDER: Array[String] = ["holographic", "alien_energy", "energy_neon", "planet", "rust_metal", "void_crystal"]
+const ROAD_STYLE_ORDER: Array[String] = ["holographic", "alien_energy", "energy_neon", "planet", "coarse_desert", "rust_metal", "void_crystal"]
 const ROAD_STYLE_LABELS := {
 	"holographic": "全息能量轨",
 	"alien_energy": "异星能量轨",
 	"planet": "星球默认",
+	"coarse_desert": "粗粝沙漠",
 	"energy_neon": "能量霓虹",
 	"rust_metal": "锈蚀金属",
 	"void_crystal": "虚空晶体",
 }
+# 概念资产 holographic_energy_runway.png → 全息能量轨 / 能量霓虹
+# 异星能量轨 = 固态能量 shader；星球默认 = 晶砂实心路；粗粝沙漠 = 砾石沙面 shader
 
 const LANE_WIDTH := 4.0
 const LANES := [-1, 0, 1]
-const RUN_TIME := 60.0
 const RUN_SPEED := 14.0
 const RUN_SPEED_MAX := 24.0
-const TRACK_LENGTH := RUN_TIME * (RUN_SPEED + RUN_SPEED_MAX) * 0.5
+const DEFAULT_RUN_TIME := MissionTypes.BASE_DURATION
+const DEFAULT_TRACK_LENGTH := MissionTypes.BASE_TRACK_LENGTH
 const LANE_CHANGE_EASE := 12.0
 const GRAVITY := 28.0
 const JUMP_SPEED := 12.5
-const SLIDE_TIME := 0.75
+const SLIDE_TIME := 0.85
 const MAGNET_RADIUS := 5.5
 const MAGNET_SPEED := 18.0
 
@@ -43,8 +49,11 @@ const HIT_SLOW_FACTOR := 0.52
 const HIT_SLOW_DURATION := 1.35
 const HIT_IFRAME_TIME := 0.85
 const LANE_HIT_HALF_WIDTH := LANE_WIDTH * 0.52
+const LANE_HIT_HALF_WIDTH_JUMP := LANE_WIDTH * 0.42
+# 封道时仅最外侧车道可过（左封=右道安全，右封=左道安全）
+const LANE_BLOCK_SAFE_EDGE := LANE_WIDTH * 0.35
 const OBSTACLE_HALF_DEPTH := {
-	"jump": 0.55,
+	"jump": 0.42,
 	"low_barrier": 0.55,
 	"slide": 0.72,
 	"high_bar": 0.72,
@@ -69,7 +78,8 @@ const HEAT_HAZARD_TICK := 0.45
 const INTRO_DURATION := 3.0
 const PRE_RUN_LOADING_TIME := 0.45
 const PRE_RUN_COUNTDOWN_STEP := 1.0
-const CHASER_ENABLED := false
+# 追击默认关闭；Ignition Run 等任务类型会在开局打开 _chaser_enabled
+const CHASER_ENABLED_DEFAULT := false
 const GROUND_Y := 0.85
 const CAMERA_BEHIND := 7.8
 const CAMERA_HEIGHT := 2.35
@@ -127,6 +137,7 @@ var _side_dressing_root: Node3D
 var _road_root: Node3D
 var _world_environment: WorldEnvironment
 var _road_style_id := "holographic"
+var _background_style_id := "desert_crystal"
 var _path_baked := false
 var _road_edge_particles: Array[GPUParticles3D] = []
 
@@ -137,6 +148,7 @@ var player_slide_pose_root: Node3D
 var player_pose_models: Dictionary = {}
 var player_animation_player: AnimationPlayer
 var player_animation_name := ""
+var _skeletal_run_enabled := false
 var camera_pivot: Node3D
 var camera: Camera3D
 var trail_particles: GPUParticles3D
@@ -161,6 +173,10 @@ var total_collectibles := 0
 var run_score := 0
 var cargo_integrity := 100.0
 var mission: Dictionary = {}
+var _mission_profile: Dictionary = {}
+var _run_time := DEFAULT_RUN_TIME
+var _track_length := DEFAULT_TRACK_LENGTH
+var _chaser_enabled := CHASER_ENABLED_DEFAULT
 var obstacles: Array[Dictionary] = []
 var collectibles: Array[Dictionary] = []
 var track_distance := 0.0
@@ -237,6 +253,7 @@ func _ready() -> void:
 	mission = LevelConfig.get_mission_for_location(Global.runner_location_id).duplicate()
 	if mission.is_empty():
 		mission = LevelConfig.MISSION.duplicate()
+	_apply_mission_type_profile()
 	lane_change_ease = LANE_CHANGE_EASE + Global.get_lane_change_ease_bonus()
 	cargo_integrity = 100.0
 	track_root = Node3D.new()
@@ -253,11 +270,25 @@ func _ready() -> void:
 	call_deferred("_bootstrap_runner_world")
 
 
+func _apply_mission_type_profile() -> void:
+	mission = MissionTypes.enrich_mission(mission)
+	_mission_profile = MissionTypes.resolve(mission)
+	_run_time = float(_mission_profile.get("duration", DEFAULT_RUN_TIME))
+	_track_length = MissionTypes.track_length_for(_run_time)
+	_chaser_enabled = bool(_mission_profile.get("enable_chaser", false))
+	mission["duration"] = _run_time
+	mission["task_type"] = String(_mission_profile.get("task_type", "Supply Run"))
+	mission["task_type_zh"] = String(_mission_profile.get("name_zh", "补给"))
+	mission["task_hint"] = String(_mission_profile.get("hint", ""))
+	mission["base_reward"] = int(_mission_profile.get("base_reward", 0))
+
+
 func _bootstrap_runner_world() -> void:
 	_load_planet_assets()
 	_build_world()
 	await get_tree().process_frame
 	_build_runner()
+	_apply_road_style_environment()
 	_build_chaser()
 	await get_tree().process_frame
 	_build_content()
@@ -270,6 +301,8 @@ func _bootstrap_runner_world() -> void:
 	_setup_hit_feedback()
 	if _road_style_id == "alien_energy":
 		_spawn_alien_energy_edge_particles()
+	elif _road_style_id in ["holographic", "energy_neon"]:
+		_spawn_holographic_edge_particles()
 	_update_hud()
 	_world_ready = true
 
@@ -313,9 +346,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("move_left"):
-		_set_lane(lane_index - 1)
+		_try_lane_change(lane_index - 1)
 	elif event.is_action_pressed("move_right"):
-		_set_lane(lane_index + 1)
+		_try_lane_change(lane_index + 1)
 	elif event.is_action_pressed("jump") and _is_on_ground():
 		_try_jump()
 	elif event.is_action_pressed("move_backward") and _is_on_ground():
@@ -366,7 +399,7 @@ func _apply_swipe(touch_delta: Vector2) -> bool:
 		return false
 
 	if absf(touch_delta.x) > absf(touch_delta.y):
-		_set_lane(lane_index + (1 if touch_delta.x > 0.0 else -1))
+		_try_lane_change(lane_index + (1 if touch_delta.x > 0.0 else -1))
 	elif touch_delta.y < 0.0:
 		_try_jump()
 	else:
@@ -413,7 +446,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	elapsed += delta
-	current_speed = lerpf(RUN_SPEED, RUN_SPEED_MAX, clampf(elapsed / RUN_TIME, 0.0, 1.0))
+	current_speed = lerpf(RUN_SPEED, RUN_SPEED_MAX, clampf(elapsed / _run_time, 0.0, 1.0))
 	if speed_penalty_timer > 0.0:
 		speed_penalty_timer = maxf(speed_penalty_timer - delta, 0.0)
 		if speed_penalty_timer == 0.0:
@@ -433,7 +466,8 @@ func _physics_process(delta: float) -> void:
 	_update_chaser(delta)
 	_check_fork_approach()
 	_check_junctions()
-	current_lateral = lerpf(current_lateral, target_lane_x, 1.0 - exp(-lane_change_ease * delta))
+	if not _is_sliding():
+		current_lateral = lerpf(current_lateral, target_lane_x, 1.0 - exp(-lane_change_ease * delta))
 
 	vertical_velocity -= GRAVITY * delta
 	var ground_y := _layer_height(track_layer)
@@ -464,8 +498,13 @@ func _physics_process(delta: float) -> void:
 	_update_env_hazards(delta)
 	_check_chaser_caught()
 
-	if elapsed >= RUN_TIME or track_distance >= TRACK_LENGTH:
+	if track_distance >= _track_length:
 		_finish_run()
+	elif elapsed >= _run_time:
+		if bool(_mission_profile.get("timed_fail", false)):
+			_fail_run("限时到达失败")
+		else:
+			_finish_run()
 
 	_update_camera()
 	_update_hud()
@@ -491,6 +530,24 @@ func _set_lane(next_lane_index: int) -> void:
 	target_lane_x = LANES[lane_index] * LANE_WIDTH
 
 
+func _try_lane_change(next_lane_index: int) -> void:
+	if _is_sliding():
+		_end_slide()
+	_set_lane(next_lane_index)
+
+
+func _nearest_lane_index(lateral: float) -> int:
+	var best_index := 0
+	var best_dist := INF
+	for i in LANES.size():
+		var lane_x := float(LANES[i]) * LANE_WIDTH
+		var dist := absf(lateral - lane_x)
+		if dist < best_dist:
+			best_dist = dist
+			best_index = i
+	return best_index
+
+
 func _layer_height(layer: int) -> float:
 	return LAYER_HEIGHTS[clampi(layer, 0, LAYER_HEIGHTS.size() - 1)]
 
@@ -510,7 +567,7 @@ func _bake_track_path() -> void:
 	if LevelConfig.has_method("get_track_segments"):
 		segments = LevelConfig.get_track_segments()
 	if segments.is_empty():
-		segments = [{"length": TRACK_LENGTH + 80.0, "turn": 0.0}]
+		segments = [{"length": _track_length + 80.0, "turn": 0.0}]
 
 	var pos := Vector3.ZERO
 	var yaw := 0.0
@@ -532,9 +589,9 @@ func _bake_track_path() -> void:
 			dist += ds
 			_path_samples.append({"d": dist, "pos": pos, "yaw": yaw})
 	_path_length = dist
-	if _path_length < TRACK_LENGTH:
+	if _path_length < _track_length:
 		# 不足时直线补齐到终点
-		var remain := TRACK_LENGTH + 40.0 - _path_length
+		var remain := _track_length + 40.0 - _path_length
 		var steps2 := maxi(1, int(ceil(remain / step)))
 		var ds2 := remain / float(steps2)
 		var forward2 := Vector3(-sin(yaw), 0.0, -cos(yaw))
@@ -795,7 +852,7 @@ func _check_obstacles(dist_from: float, dist_to: float) -> void:
 	var span_min := minf(dist_from, dist_to)
 	var span_max := maxf(dist_from, dist_to)
 	# 按速度加厚判定带，高速时避免“穿模漏检”
-	var speed_pad := maxf(absf(dist_to - dist_from) * 0.5, 0.12)
+	var speed_pad := maxf(absf(dist_to - dist_from) * 0.32, 0.08)
 	var scan_ahead := span_max + 6.0
 	var i := _obstacle_scan_index
 	var n := obstacles.size()
@@ -858,13 +915,17 @@ func _player_in_obstacle_lateral(obstacle: Dictionary) -> bool:
 	# 横跨全路的滑铲/高杆屏障
 	if obstacle_type in ["slide", "high_bar", "ramp"]:
 		return true
-	# 堵左/右：用连续横向位置，换道途中也公平
+	# 封左：左道+中道有障，只有右道 (≈+LANE_WIDTH) 可过
 	if obstacle_type == "block_left":
-		return current_lateral < LANE_WIDTH * 0.55
+		return current_lateral < LANE_WIDTH - LANE_BLOCK_SAFE_EDGE
+	# 封右：中道+右道有障，只有左道 (≈-LANE_WIDTH) 可过
 	if obstacle_type == "block_right":
-		return current_lateral > -LANE_WIDTH * 0.55
+		return current_lateral > -LANE_WIDTH + LANE_BLOCK_SAFE_EDGE
 	var lane_x := float(obstacle["lane"]) * LANE_WIDTH
-	return absf(current_lateral - lane_x) <= LANE_HIT_HALF_WIDTH
+	var half_w := LANE_HIT_HALF_WIDTH_JUMP if obstacle_type in ["jump", "low_barrier"] else LANE_HIT_HALF_WIDTH
+	if bool(obstacle.get("float_orb", false)):
+		half_w = LANE_HIT_HALF_WIDTH_JUMP * 0.92
+	return absf(current_lateral - lane_x) <= half_w
 
 
 func _check_collectibles() -> void:
@@ -932,51 +993,118 @@ func _place_obstacle_node(obstacle: Dictionary) -> void:
 func _finish_run() -> void:
 	is_finished = true
 	_play_player_animation("celebrate")
-	var first_clear := not Global.get_completed_runner_locations(Global.runner_planet_id).has(Global.runner_location_id)
-	Global.mark_runner_location_completed(Global.runner_planet_id, Global.runner_location_id)
-	_apply_mission_unlocks()
 	var cargo_load := int(mission.get("cargo_load", 100))
+	# 据点进度贡献按设计固定装载量 100 × 完整度%
+	var progress_cargo_load := 100
+	var repair_total := Global.DEFAULT_OUTPOST_REPAIR_TOTAL
+	var light_reward_coins := 0
+	if LevelConfig.has_method("get_outpost_meta"):
+		var outpost_meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
+		repair_total = maxi(1, int(outpost_meta.get("repair_total", repair_total)))
+		light_reward_coins = maxi(0, int(outpost_meta.get("reward_coins", 0)))
+	var progress_result: Dictionary = Global.apply_runner_delivery_progress(
+		Global.runner_planet_id,
+		Global.runner_location_id,
+		progress_cargo_load,
+		cargo_integrity,
+		repair_total
+	)
+	var newly_lit := bool(progress_result.get("newly_lit", false))
+	var already_lit := bool(progress_result.get("already_lit", false))
+	var contribution := int(progress_result.get("contribution", 0))
+	var progress_after := int(progress_result.get("progress_after", 0))
+	var progress_total := int(progress_result.get("repair_total", repair_total))
+	if newly_lit:
+		_apply_mission_unlocks()
+		if light_reward_coins > 0:
+			Global.add_ember_coins(light_reward_coins)
+		Global.pending_location_showcase_id = Global.runner_location_id
+	else:
+		Global.pending_location_showcase_id = ""
 	var delivered := int(float(cargo_load) * cargo_integrity * 0.01)
 	var grade: String = LevelConfig.integrity_grade(cargo_integrity)
 	var grade_label: String = LevelConfig.integrity_grade_label(cargo_integrity) if LevelConfig.has_method("integrity_grade_label") else grade
 	var base_coins := collected_count * int(LevelConfig.EMBER_COIN_VALUE)
 	var grade_mult: float = LevelConfig.grade_coin_multiplier(grade) if LevelConfig.has_method("grade_coin_multiplier") else 1.0
-	var coin_bonus := int(round(float(base_coins) * Global.get_coin_yield_multiplier() * grade_mult))
-	run_score += delivered + coin_bonus
-	Global.add_ember_coins(coin_bonus)
+	var time_mult := MissionTypes.time_bonus_multiplier(_mission_profile, elapsed, _run_time)
+	var type_reward := int(_mission_profile.get("base_reward", mission.get("base_reward", 0)))
+	var coin_bonus := int(round(float(base_coins) * Global.get_coin_yield_multiplier() * grade_mult * time_mult))
+	var type_reward_paid := int(round(float(type_reward) * time_mult))
+	run_score += delivered + coin_bonus + type_reward_paid
+	Global.add_ember_coins(coin_bonus + type_reward_paid)
 	var xp_result: Dictionary = Global.grant_messenger_runner_rewards(
 		grade,
 		int(mission.get("difficulty", 1)),
-		first_clear
+		newly_lit
 	)
-	Global.pending_location_showcase_id = Global.runner_location_id
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var level_text := "Lv.%d" % int(xp_result["new_level"])
 	if bool(xp_result["level_up"]):
 		level_text = "升级！Lv.%d" % int(xp_result["new_level"])
-	var settlement_body := "MISSION COMPLETE / 任务完成\n\n货物完整度：%0.0f%%\n评级：%s\n\n基础奖励 %d × 评级倍率 %0.2f = 星火币 +%d\n经验 +%d（%s）\n\n相邻区域已可继续探索" % [
+	var progress_line := "据点进度 +%d（%d / %d）" % [contribution, progress_after, progress_total]
+	var unlock_line := "继续运输以点亮据点"
+	var batch_just_unlocked := bool(progress_result.get("batch_just_unlocked", false))
+	var unlocked_batch := int(progress_result.get("unlocked_batch", 1))
+	if newly_lit:
+		unlock_line = "据点已点亮！星火币 +%d\n相邻区域已可继续探索" % light_reward_coins
+	elif already_lit:
+		unlock_line = "据点此前已点亮（复跑结算）"
+		progress_line = "据点进度 %d / %d（已满）" % [progress_after, progress_total]
+	if batch_just_unlocked:
+		unlock_line += "\n新批次解锁：%s" % MissionDispatch.batch_unlock_summary(Global.runner_planet_id, unlocked_batch)
+	var type_zh := String(mission.get("task_type_zh", _mission_profile.get("name_zh", "补给")))
+	var type_line := "任务类型：%s（%s）· %0.0f 秒" % [
+		type_zh,
+		String(mission.get("task_type", "Supply Run")),
+		_run_time,
+	]
+	var time_line := ""
+	if bool(_mission_profile.get("time_bonus", false)):
+		time_line = "\n限时倍率 ×%0.2f（剩余 %0.1f 秒）" % [time_mult, maxf(_run_time - elapsed, 0.0)]
+	var settlement_body := "MISSION COMPLETE / 任务完成\n\n%s\n货物完整度：%0.0f%%\n评级：%s\n%s\n%s%s\n\n采集奖励 %d × 评级 %0.2f × 限时 %0.2f = 星火币 +%d\n类型奖励 +%d\n经验 +%d（%s）" % [
+		type_line,
 		cargo_integrity,
 		grade_label,
+		progress_line,
+		unlock_line,
+		time_line,
 		base_coins,
 		grade_mult,
+		time_mult,
 		coin_bonus,
+		type_reward_paid,
 		int(xp_result["xp_gain"]),
 		level_text,
 	]
 	_show_state("MISSION COMPLETE / 任务完成", settlement_body)
 	if state_restart_button:
-		state_restart_button.visible = false
+		if newly_lit:
+			state_restart_button.visible = false
+		else:
+			state_restart_button.visible = true
+			state_restart_button.text = "再次运输" if already_lit else "继续运输"
 
 
 func _apply_mission_unlocks() -> void:
-	var revealed := Global.get_revealed_exploration_locations(Global.runner_planet_id, ["dome"])
+	# 点亮后的揭示与任务板由批次派发统一处理
+	Global.sync_mission_dispatch(Global.runner_planet_id)
+	var revealed := Global.get_revealed_exploration_locations(
+		Global.runner_planet_id,
+		MissionDispatch.get_batch1_location_ids(Global.runner_planet_id)
+	)
 	if not revealed.has(Global.runner_location_id):
 		revealed.append(Global.runner_location_id)
 	for linked_id in mission.get("unlock_ids", []):
 		var location_id := String(linked_id)
-		if location_id != "" and not revealed.has(location_id):
+		# 仅揭示已解锁批次内的相邻点，避免提前开下一批
+		if location_id == "":
+			continue
+		if not MissionDispatch.is_location_batch_unlocked(Global.runner_planet_id, location_id):
+			continue
+		if not revealed.has(location_id):
 			revealed.append(location_id)
 	Global.set_revealed_exploration_locations(Global.runner_planet_id, revealed)
+	Global.sync_mission_dispatch(Global.runner_planet_id)
 
 
 func _fail_run(reason: String = "被零潮捕获") -> void:
@@ -986,7 +1114,7 @@ func _fail_run(reason: String = "被零潮捕获") -> void:
 	var fail_reason := reason
 	if cargo_integrity <= 0.0:
 		fail_reason = "货物损毁"
-	elif reason.contains("零潮") and not CHASER_ENABLED:
+	elif reason.contains("零潮") and not _chaser_enabled:
 		fail_reason = "时间耗尽"
 	_show_state(
 		"MISSION FAILED / 任务失败",
@@ -1026,6 +1154,9 @@ func _setup_pause_overlay() -> void:
 
 
 func _strike_reason_for_obstacle(obstacle: Dictionary) -> String:
+	var custom := String(obstacle.get("strike_label", ""))
+	if custom != "":
+		return "撞上%s" % custom
 	var obstacle_type := String(obstacle["type"])
 	if obstacle_type in LevelConfig.OBSTACLE_TYPES:
 		return "撞上%s" % LevelConfig.OBSTACLE_TYPES[obstacle_type]
@@ -1056,7 +1187,7 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 	if is_failed:
 		return
 	if chaser_distance <= CHASER_CATCH_DISTANCE:
-		if CHASER_ENABLED:
+		if _chaser_enabled:
 			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
 		return
 	# HitFeedback 飘字 + Toast 完整度，双通道更可读
@@ -1067,7 +1198,7 @@ func _show_strike_warning(reason: String) -> void:
 	if not gameplay_active:
 		return
 	intro_panel.visible = false
-	if CHASER_ENABLED:
+	if _chaser_enabled:
 		strike_toast_label.text = "⚠ %s  |  %s %0.0fm  |  完整度 %0.0f%%" % [
 			reason, LevelConfig.CHASER_NAME, chaser_distance, cargo_integrity
 		]
@@ -1078,6 +1209,8 @@ func _show_strike_warning(reason: String) -> void:
 
 
 func _update_chaser(delta: float) -> void:
+	if not _chaser_enabled:
+		return
 	chaser_distance = maxf(chaser_distance - CHASER_BASE_CREEP * delta, CHASER_CATCH_DISTANCE)
 	if strike_count > 0:
 		strike_recovery_timer += delta
@@ -1089,7 +1222,7 @@ func _update_chaser(delta: float) -> void:
 
 
 func _check_chaser_caught() -> void:
-	if not CHASER_ENABLED:
+	if not _chaser_enabled:
 		return
 	if chaser_distance <= CHASER_CATCH_DISTANCE:
 		_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
@@ -1109,7 +1242,9 @@ func _update_pre_run(delta: float) -> void:
 	if pre_run_phase == "countdown":
 		countdown_timer += delta
 		intro_title.text = str(countdown_step)
-		intro_body.text = "准备出发"
+		var type_zh := String(mission.get("task_type_zh", "补给"))
+		var hint := String(mission.get("task_hint", _mission_profile.get("hint", "")))
+		intro_body.text = "%s · %0.0f 秒\n%s" % [type_zh, _run_time, hint]
 		if countdown_timer >= PRE_RUN_COUNTDOWN_STEP:
 			countdown_timer = 0.0
 			countdown_step -= 1
@@ -1134,6 +1269,9 @@ func _sync_chaser_from_track() -> void:
 
 func _start_slide() -> void:
 	slide_timer = SLIDE_TIME
+	# 滑铲期间锁定在当前横向位置，避免换道 lerp 悄悄进行
+	lane_index = _nearest_lane_index(current_lateral)
+	target_lane_x = current_lateral
 	player_body.scale = Vector3.ONE
 	player_body.position.y = 0.0
 	camera_shake = maxf(camera_shake, 0.06)
@@ -1202,12 +1340,110 @@ func _load_planet_assets() -> void:
 	var slide_path := _slide_obstacle_paths[0] if not _slide_obstacle_paths.is_empty() else String(assets.get("slide_obstacle", "res://3d素材/障碍物-需滑铲.glb"))
 	_slide_obstacle_scene = _load_runner_scene(slide_path, false)
 	_hearth_scene_path = LevelConfig.get_location_hearth_model(Global.runner_location_id) if LevelConfig.has_method("get_location_hearth_model") else String(assets.get("hearth", "res://3d素材/居民穹顶据点 3d model.glb"))
-	_player_scene_paths = assets.get("player", {}) if assets.get("player") is Dictionary else {}
+	_player_scene_paths = _resolve_player_scene_paths(assets)
+
+
+func _resolve_player_scene_paths(assets: Dictionary) -> Dictionary:
+	var character_id := Global.get_selected_character_id()
+	var snapshot: Dictionary = Global.get_messenger_snapshot()
+	var unlocked: Array = snapshot.get("unlocked_stories", [])
+	if not CharacterRoster.is_unlocked(character_id, unlocked):
+		character_id = CharacterRoster.CHAR_ELSA
+	if LevelConfig.has_method("get_player_assets"):
+		var configured: Variant = LevelConfig.get_player_assets(character_id)
+		if configured is Dictionary and not configured.is_empty():
+			return configured
+	var players: Variant = assets.get("players", {})
+	if players is Dictionary and players.has(character_id):
+		return (players[character_id] as Dictionary).duplicate(true)
+	if assets.get("player") is Dictionary:
+		return (assets["player"] as Dictionary).duplicate(true)
+	return {}
 
 
 func _player_asset_path(key: String, fallback: String) -> String:
 	var path := String(_player_scene_paths.get(key, ""))
 	return path if path != "" else fallback
+
+
+func _player_run_anim_name() -> String:
+	return _player_asset_path("run_anim", ANIMATED_PLAYER_RUN_ANIM)
+
+
+func _player_run_anim_speed_mult() -> float:
+	if _player_scene_paths.has("run_anim_speed"):
+		return float(_player_scene_paths["run_anim_speed"])
+	return 1.0
+
+
+func _player_surface_texture_path() -> String:
+	return _player_asset_path("surface_texture", "")
+
+
+func _apply_player_surface_textures(model: Node3D) -> void:
+	var tex_path := _player_surface_texture_path()
+	if tex_path == "" or not ResourceLoader.exists(tex_path):
+		return
+	var tex := load(tex_path) as Texture2D
+	if tex == null:
+		return
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := node as MeshInstance3D
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = tex
+		mat.albedo_color = Color.WHITE
+		mat.metallic = 0.0
+		mat.roughness = 0.9
+		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		mesh_instance.material_override = mat
+
+
+func _uses_skeletal_run() -> bool:
+	return _skeletal_run_enabled and player_animation_player != null
+
+
+func _hide_air_pose_models() -> void:
+	for key in ["jump_start", "jump_peak", "landing", "slide"]:
+		var model := player_pose_models.get(key) as Node3D
+		if model:
+			model.visible = false
+
+
+func _show_air_pose_model(pose_name: String) -> void:
+	_hide_air_pose_models()
+	var model := player_pose_models.get(pose_name) as Node3D
+	if model:
+		model.visible = true
+
+
+func _apply_skeletal_player_pose(pose_name: String) -> void:
+	var logical := pose_name
+	if pose_name in ["run_left", "run_right"]:
+		logical = "run"
+	if player_pose_name == logical:
+		return
+	player_pose_name = logical
+
+	match logical:
+		"slide":
+			if player_pose_root:
+				player_pose_root.visible = false
+			if player_slide_pose_root:
+				player_slide_pose_root.visible = true
+			_hide_air_pose_models()
+		"jump_start", "jump_peak", "landing":
+			if player_pose_root:
+				player_pose_root.visible = false
+			if player_slide_pose_root:
+				player_slide_pose_root.visible = false
+			_show_air_pose_model(logical)
+		_:
+			if player_pose_root:
+				player_pose_root.visible = true
+			if player_slide_pose_root:
+				player_slide_pose_root.visible = false
+			_hide_air_pose_models()
+			_play_player_animation("idle" if logical == "idle" else "run")
 
 
 func _player_yaw_degrees(key: String, fallback: float) -> float:
@@ -1232,41 +1468,23 @@ func _load_cargo_icon() -> void:
 func _build_world() -> void:
 	var theme: Dictionary = LevelConfig.get_theme()
 	_road_style_id = Global.get_runner_road_style()
+	_background_style_id = Global.get_runner_background_style()
 	var world := WorldEnvironment.new()
 	var environment := Environment.new()
-	if _road_style_id == "alien_energy":
-		environment.background_mode = Environment.BG_COLOR
-		environment.background_color = Color(0.008, 0.012, 0.025)
-	else:
-		environment.background_mode = Environment.BG_SKY
-		environment.background_color = theme.get("background", Color(0.14, 0.09, 0.05))
-		var sky := Sky.new()
-		var panorama := PanoramaSkyMaterial.new()
-		panorama.panorama = _world_panorama
-		sky.sky_material = panorama
-		environment.sky = sky
+	_configure_runner_sky(environment, theme)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = theme.get("ambient", Color(0.92, 0.68, 0.44))
-	environment.ambient_light_energy = float(theme.get("ambient_energy", 1.35))
 	environment.fog_enabled = true
-	environment.fog_light_color = theme.get("fog_color", Color(0.82, 0.48, 0.2))
-	environment.fog_density = float(theme.get("fog_density", 0.0022))
-	environment.fog_aerial_perspective = 0.55
 	environment.glow_enabled = false
 	world.environment = environment
 	_world_environment = world
 	add_child(world)
-	if _road_style_id != "alien_energy":
+	if _background_uses_starfield():
 		_build_starfield()
 
 	var sun := DirectionalLight3D.new()
+	sun.name = "RunnerSun"
 	sun.rotation_degrees = Vector3(-52, 35, 0)
-	if _road_style_id == "alien_energy":
-		sun.light_color = Color(0.55, 0.75, 1.0)
-		sun.light_energy = 0.65
-	else:
-		sun.light_color = theme.get("sun_color", Color(1.0, 0.82, 0.55))
-		sun.light_energy = float(theme.get("sun_energy", 2.4))
+	_configure_runner_sun(sun, theme)
 	add_child(sun)
 
 	_build_path_track()
@@ -1274,7 +1492,114 @@ func _build_world() -> void:
 		_build_choice_gate(float(zone["distance"]), zone)
 	_build_planet_surroundings(theme)
 	_build_finish_gate()
+	_apply_background_environment()
 	_apply_road_style_environment()
+
+
+func _background_uses_sky_panorama() -> bool:
+	return _background_style_id in ["desert_crystal", "industrial_ruin", "savanna"]
+
+
+func _background_uses_starfield() -> bool:
+	return _background_style_id in ["desert_crystal", "industrial_ruin", "savanna", "starfield"]
+
+
+func _configure_runner_sky(environment: Environment, theme: Dictionary) -> void:
+	if _background_uses_sky_panorama():
+		environment.background_mode = Environment.BG_SKY
+		environment.background_color = theme.get("background", Color(0.14, 0.09, 0.05))
+		var sky := Sky.new()
+		if _world_panorama != null:
+			var panorama := PanoramaSkyMaterial.new()
+			panorama.panorama = _world_panorama
+			panorama.energy_multiplier = 1.25
+			sky.sky_material = panorama
+		else:
+			var proc := ProceduralSkyMaterial.new()
+			proc.sky_top_color = Color(0.55, 0.42, 0.28)
+			proc.sky_horizon_color = Color(0.92, 0.68, 0.42)
+			proc.ground_bottom_color = Color(0.28, 0.16, 0.08)
+			proc.ground_horizon_color = Color(0.72, 0.48, 0.28)
+			proc.sun_angle_max = 30.0
+			proc.energy_multiplier = 1.2
+			sky.sky_material = proc
+		environment.sky = sky
+		environment.sky_rotation = Vector3.ZERO
+	elif _background_style_id == "starfield":
+		environment.background_mode = Environment.BG_COLOR
+		environment.background_color = Color(0.006, 0.01, 0.022)
+	else:
+		environment.background_mode = Environment.BG_COLOR
+		environment.background_color = Color(0.01, 0.018, 0.032)
+
+
+func _configure_runner_sun(sun: DirectionalLight3D, theme: Dictionary) -> void:
+	if _background_style_id in ["void_dark", "starfield"]:
+		sun.light_color = Color(0.62, 0.82, 1.0)
+		sun.light_energy = 0.55
+	else:
+		sun.light_color = theme.get("sun_color", Color(1.0, 0.82, 0.55))
+		sun.light_energy = float(theme.get("sun_energy", 2.4))
+
+
+func _apply_background_environment() -> void:
+	if _world_environment == null or _world_environment.environment == null:
+		return
+	var env := _world_environment.environment
+	var theme: Dictionary = LevelConfig.get_theme()
+	match _background_style_id:
+		"void_dark":
+			env.ambient_light_color = Color(0.14, 0.22, 0.32)
+			env.ambient_light_energy = 0.95
+			env.fog_light_color = Color(0.08, 0.14, 0.22)
+			env.fog_density = 0.0012
+			env.fog_aerial_perspective = 0.38
+			env.glow_enabled = false
+			env.tonemap_exposure = 1.08
+			_boost_runner_lights(Color(0.62, 0.82, 1.0), 0.55, 0.95)
+		"starfield":
+			env.ambient_light_color = Color(0.12, 0.18, 0.28)
+			env.ambient_light_energy = 0.82
+			env.fog_light_color = Color(0.06, 0.1, 0.18)
+			env.fog_density = 0.0008
+			env.fog_aerial_perspective = 0.32
+			env.glow_enabled = true
+			env.glow_intensity = 0.35
+			env.glow_strength = 0.9
+			env.glow_bloom = 0.18
+			env.tonemap_exposure = 1.1
+			_boost_runner_lights(Color(0.58, 0.78, 1.0), 0.48, 0.85)
+		"industrial_ruin":
+			env.ambient_light_color = Color(0.72, 0.68, 0.62)
+			env.ambient_light_energy = 1.15
+			env.fog_light_color = Color(0.55, 0.48, 0.38)
+			env.fog_density = 0.0024
+			env.fog_aerial_perspective = 0.5
+			env.glow_enabled = false
+			env.tonemap_exposure = 1.0
+			_boost_runner_lights(Color(0.92, 0.78, 0.55), 2.1, 0.58)
+		"savanna":
+			env.ambient_light_color = Color(0.94, 0.78, 0.48)
+			env.ambient_light_energy = 1.38
+			env.fog_light_color = Color(0.86, 0.62, 0.32)
+			env.fog_density = 0.0028
+			env.fog_aerial_perspective = 0.58
+			env.glow_enabled = false
+			env.tonemap_exposure = 1.02
+			_boost_runner_lights(Color(1.0, 0.82, 0.52), 2.5, 0.6)
+		_:
+			env.ambient_light_color = theme.get("ambient", Color(0.92, 0.68, 0.44))
+			env.ambient_light_energy = float(theme.get("ambient_energy", 1.35))
+			env.fog_light_color = theme.get("fog_color", Color(0.82, 0.48, 0.2))
+			env.fog_density = float(theme.get("fog_density", 0.0022))
+			env.fog_aerial_perspective = 0.55
+			env.glow_enabled = false
+			env.tonemap_exposure = 1.0
+			_boost_runner_lights(
+				theme.get("sun_color", Color(1.0, 0.82, 0.55)),
+				float(theme.get("sun_energy", 2.4)),
+				0.55
+			)
 
 
 func _build_path_track() -> void:
@@ -1290,25 +1615,58 @@ func _build_path_track() -> void:
 			_road_root.get_child(0).free()
 	var kit := _make_road_style_kit(_road_style_id)
 	var lane_y := GROUND_Y - 0.05
-	var track_end := maxf(_path_length, TRACK_LENGTH) + 28.0
+	var track_end := maxf(_path_length, _track_length) + 28.0
 	var theme: Dictionary = LevelConfig.get_theme()
+	# 全息轨：托底也用暗砂，别用高亮橙沙把赛道「架空」
 	var sand_mat: Material = kit.get("island", kit["shoulder"])
-	if sand_mat == null:
+	if _road_style_id == "holographic":
+		sand_mat = kit["island"]
+	elif _road_style_id == "energy_neon":
+		sand_mat = kit["island"]
+	elif _road_style_id == "coarse_desert":
+		sand_mat = kit["shoulder"]
+	elif sand_mat == null:
 		sand_mat = _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1)
 
-	# 连续挤出：托底 / 路肩 / 主路 / 描边 —— 不再用分段 Box/Plane，从根上消横缝
-	_attach_path_strip(0.0, track_end, 21.0, GROUND_Y - 0.14, sand_mat, 2.5, 0.0, false)
-	_attach_path_strip(0.0, track_end, 9.2, lane_y - 0.012, kit["shoulder"], 2.0, 0.0, true)
-	var road_half := 6.0 if _road_style_id == "holographic" else (5.9 if _road_style_id == "alien_energy" else 6.3)
-	_attach_path_strip(0.0, track_end, road_half, lane_y, kit["road"], 1.75, 0.0, true)
-	# 紫/能量描边：贴在路缘的细条带
-	var curb_half := 0.07
-	var curb_lat := road_half - 0.02
-	_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, -curb_lat, true)
-	_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, curb_lat, true)
-	if _road_style_id == "holographic" or _road_style_id == "energy_neon":
-		_attach_path_strip(0.0, track_end, 0.045, lane_y + 0.01, kit["curb"], 1.75, -(curb_lat + 0.12), true)
-		_attach_path_strip(0.0, track_end, 0.045, lane_y + 0.01, kit["curb"], 1.75, curb_lat + 0.12, true)
+	# 连续挤出：托底 / 路肩 / 主路 / 描边（岔口段交给分支 mesh，避免主路+岔路叠出断崖）
+	if _road_style_id in ["holographic", "energy_neon"]:
+		var road_half := 6.4 if _road_style_id == "energy_neon" else 6.0
+		var shoulder_half := 1.6
+		var shoulder_lat := road_half + shoulder_half
+		var apron_half := shoulder_lat + shoulder_half + 0.2
+		var underlay := _make_material(Color(0.02, 0.06, 0.1), Color(0.15, 0.45, 0.62), 0.55)
+		if _road_style_id == "energy_neon":
+			underlay = _make_material(Color(0.01, 0.02, 0.04), Color(0.08, 0.28, 0.42), 0.35)
+		# 托底略宽于主路，路肩填满主路外侧与 void 托底之间的缝
+		_attach_path_strip(0.0, track_end, apron_half, lane_y - 0.018, underlay, 1.75, 0.0, true)
+		_attach_path_strip(0.0, track_end, road_half, lane_y, kit["road"], 1.75, 0.0, true)
+		_attach_path_strip(0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], 1.75, -shoulder_lat, true)
+		_attach_path_strip(0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], 1.75, shoulder_lat, true)
+		if _road_style_id == "holographic":
+			var curb_half := 0.07
+			var curb_lat := road_half - 0.02
+			_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, -curb_lat, true)
+			_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, curb_lat, true)
+			_attach_path_strip(0.0, track_end, 0.055, lane_y + 0.01, kit["line"], 1.75, -(curb_lat + 0.14), true)
+			_attach_path_strip(0.0, track_end, 0.055, lane_y + 0.01, kit["line"], 1.75, curb_lat + 0.14, true)
+	else:
+		var foundation_half := 14.0 if _road_style_id == "planet" else (16.0 if _road_style_id == "coarse_desert" else 21.0)
+		var foundation_mat: Material = kit["island"] if _road_style_id in ["planet", "coarse_desert"] else sand_mat
+		var foundation_y := lane_y - 0.012 if _road_style_id in ["planet", "coarse_desert"] else GROUND_Y - 0.14
+		_attach_path_strip(0.0, track_end, foundation_half, foundation_y, foundation_mat, 2.5, 0.0, true)
+		var shoulder_half := 9.2 if _road_style_id != "coarse_desert" else (foundation_half - 6.5)
+		_attach_path_strip(0.0, track_end, shoulder_half, lane_y - 0.012, kit["shoulder"], 2.0, 0.0, true)
+		var road_half := 6.0 if _road_style_id == "alien_energy" else (6.5 if _road_style_id == "coarse_desert" else 6.3)
+		if _road_style_id in ["alien_energy", "planet", "coarse_desert"]:
+			var opaque_road := _make_opaque_road_base_material(_road_style_id)
+			_attach_path_strip(0.0, track_end, road_half, lane_y - 0.03 if _road_style_id == "coarse_desert" else lane_y - 0.02, opaque_road, 1.75, 0.0, true)
+		_attach_path_strip(0.0, track_end, road_half, lane_y, kit["road"], 1.75, 0.0, true)
+		var curb_half := 0.07
+		var curb_lat := road_half - 0.02
+		_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, -curb_lat, true)
+		_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, curb_lat, true)
+		if _road_style_id == "alien_energy":
+			_attach_path_strip(0.0, track_end, 0.05, lane_y + 0.008, kit["line"], 1.75, 0.0, true)
 
 	_build_start_pad(kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y)
 	for zone in LevelConfig.JUNCTION_ZONES:
@@ -1377,7 +1735,7 @@ func _attach_path_strip_segment(
 	pts.append(_path_strip_point(end_d, half_width, y, lateral_bias))
 	if pts.size() < 2:
 		return
-	var uv_scale := 0.08
+	var uv_scale := 0.14 if _road_style_id == "holographic" else (0.2 if _road_style_id == "energy_neon" else (0.11 if _road_style_id == "coarse_desert" else 0.08))
 	for i in range(pts.size() - 1):
 		var a: Dictionary = pts[i]
 		var b: Dictionary = pts[i + 1]
@@ -1428,29 +1786,29 @@ func _make_road_style_kit(style_id: String) -> Dictionary:
 		"holographic":
 			return {
 				"road": _make_holographic_road_material(),
-				"shoulder": _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1),
-				"curb": _make_material(Color(0.12, 0.06, 0.16), Color(0.4, 0.2, 0.48), 0.4),
-				"line": _make_material(Color(0.08, 0.16, 0.18), Color(0.3, 0.65, 0.7), 0.55),
-				"post": _make_material(Color(0.06, 0.05, 0.1), Color(0.4, 0.25, 0.5), 0.35),
-				"island": _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1),
+				"shoulder": _make_material(Color(0.02, 0.05, 0.08), Color(0.1, 0.4, 0.5), 0.2),
+				"curb": _make_material(Color(0.08, 0.04, 0.14), Color(0.75, 0.35, 0.95), 1.6),
+				"line": _make_material(Color(0.06, 0.14, 0.18), Color(0.45, 0.92, 1.0), 1.4),
+				"post": _make_material(Color(0.03, 0.05, 0.08), Color(0.35, 0.7, 0.85), 0.5),
+				"island": _make_material(Color(0.01, 0.03, 0.06), Color(0.06, 0.28, 0.38), 0.25),
 			}
 		"alien_energy":
 			return {
 				"road": _make_alien_energy_road_material(),
-				"shoulder": _make_material(Color(0.03, 0.07, 0.11), Color(0.2, 0.55, 0.7), 0.2),
-				"curb": _make_material(Color(0.05, 0.12, 0.16), Color(0.45, 0.9, 1.0), 1.1),
-				"line": _make_material(Color(0.08, 0.16, 0.22), Color(0.4, 0.85, 1.0), 0.7),
-				"post": _make_material(Color(0.04, 0.08, 0.12), Color(0.35, 0.8, 1.0), 0.45),
-				"island": _make_material(Color(0.02, 0.04, 0.07), Color(0.15, 0.4, 0.55), 0.12),
+				"shoulder": _make_material(Color(0.04, 0.09, 0.14), Color(0.28, 0.62, 0.78), 0.28),
+				"curb": _make_material(Color(0.06, 0.14, 0.2), Color(0.5, 0.95, 1.0), 2.2),
+				"line": _make_material(Color(0.1, 0.22, 0.3), Color(0.45, 0.95, 1.0), 2.4),
+				"post": _make_material(Color(0.05, 0.1, 0.15), Color(0.4, 0.85, 1.0), 0.75),
+				"island": _make_material(Color(0.03, 0.06, 0.1), Color(0.2, 0.48, 0.62), 0.18),
 			}
 		"energy_neon":
 			return {
 				"road": _make_energy_neon_road_material(),
-				"shoulder": _make_material(Color(0.01, 0.02, 0.04), Color(0.05, 0.35, 0.5), 0.25),
-				"curb": _make_material(Color(0.02, 0.08, 0.12), Color(0.25, 0.98, 1.0), 6.5),
-				"line": _make_material(Color(0.05, 0.2, 0.28), Color(0.35, 1.0, 1.0), 4.0),
-				"post": _make_material(Color(0.02, 0.03, 0.05), Color(1.0, 0.5, 0.15), 3.5),
-				"island": _make_material(Color(0.02, 0.03, 0.05), Color(0.1, 0.4, 0.55), 0.2),
+				"shoulder": _make_material(Color(0.01, 0.03, 0.06), Color(0.1, 0.38, 0.52), 0.22),
+				"curb": _make_material(Color(0.1, 0.04, 0.18), Color(0.78, 0.32, 0.98), 2.6),
+				"line": _make_material(Color(0.08, 0.2, 0.28), Color(0.35, 0.98, 1.0), 3.2),
+				"post": _make_material(Color(0.03, 0.05, 0.08), Color(0.35, 0.85, 1.0), 0.55),
+				"island": _make_material(Color(0.008, 0.02, 0.04), Color(0.08, 0.32, 0.48), 0.2),
 			}
 		"rust_metal":
 			return {
@@ -1470,66 +1828,172 @@ func _make_road_style_kit(style_id: String) -> Dictionary:
 				"post": _make_material(Color(0.08, 0.06, 0.14), Color(0.4, 0.9, 1.0), 1.4),
 				"island": _make_material(Color(0.07, 0.05, 0.12), Color(0.5, 0.3, 0.9), 0.25),
 			}
-		_:
+		"planet":
 			return {
-				"road": _make_material(theme.get("road", Color(0.32, 0.34, 0.32)), Color(0.72, 0.63, 0.42), 0.08),
-				"shoulder": _make_material(theme.get("shoulder", Color(0.78, 0.44, 0.15)), Color(1.0, 0.62, 0.2), 0.45),
-				"curb": _make_material(theme.get("curb", Color(0.95, 0.67, 0.25)), Color(1.0, 0.74, 0.28), 1.2),
-				"line": _make_material(theme.get("lane_line", Color(1.0, 0.86, 0.42)), Color(1.0, 0.78, 0.28), 2.0),
+				"road": _make_planet_road_material(),
+				"shoulder": _make_material(Color(0.34, 0.24, 0.16), Color(0.42, 0.3, 0.18), 0.08),
+				"curb": _make_material(Color(0.4, 0.3, 0.18), Color(0.72, 0.52, 0.26), 0.42),
+				"line": _make_material(theme.get("lane_line", Color(1.0, 0.86, 0.42)), Color(1.0, 0.78, 0.28), 1.15),
 				"post": _make_material(Color(0.18, 0.18, 0.16), Color(0.85, 0.62, 0.34), 0.35),
-				"island": _make_material(theme.get("sand", Color(0.72, 0.42, 0.16)), Color(1.0, 0.55, 0.2), 0.12),
+				"island": _make_material(Color(0.2, 0.14, 0.1), Color(0.32, 0.22, 0.14), 0.06),
 			}
+		"coarse_desert":
+			return {
+				"road": _make_coarse_desert_road_material(),
+				"shoulder": _make_opaque_desert_surface_material(Color(0.5, 0.32, 0.17)),
+				"curb": _make_opaque_desert_surface_material(Color(0.42, 0.27, 0.14)),
+				"line": _make_opaque_desert_surface_material(Color(0.72, 0.56, 0.32), Color(0.85, 0.66, 0.36), 0.08),
+				"post": _make_opaque_desert_surface_material(Color(0.34, 0.22, 0.13)),
+				"island": _make_opaque_desert_surface_material(Color(0.46, 0.3, 0.15)),
+			}
+		_:
+			# 星球默认：路面要能看见；路肩/托底降饱和，避免「悬空橙板」抢戏
+			return {
+				"road": _make_material(theme.get("road", Color(0.28, 0.26, 0.22)), Color(0.55, 0.48, 0.32), 0.12),
+				"shoulder": _make_material(Color(0.28, 0.2, 0.14), Color(0.4, 0.28, 0.16), 0.06),
+				"curb": _make_material(Color(0.42, 0.32, 0.18), Color(0.7, 0.5, 0.22), 0.35),
+				"line": _make_material(theme.get("lane_line", Color(1.0, 0.86, 0.42)), Color(1.0, 0.78, 0.28), 1.2),
+				"post": _make_material(Color(0.18, 0.18, 0.16), Color(0.85, 0.62, 0.34), 0.35),
+				"island": _make_material(Color(0.24, 0.17, 0.12), Color(0.35, 0.22, 0.12), 0.04),
+			}
+
+
+func _make_opaque_road_base_material(style_id: String) -> StandardMaterial3D:
+	match style_id:
+		"alien_energy":
+			return _make_material(Color(0.1, 0.16, 0.22), Color(0.22, 0.48, 0.58), 0.12)
+		"energy_neon":
+			return _make_material(Color(0.04, 0.06, 0.1), Color(0.08, 0.28, 0.38), 0.12)
+		"planet":
+			return _make_material(Color(0.2, 0.15, 0.11), Color(0.28, 0.2, 0.14), 0.05)
+		"coarse_desert":
+			return _make_opaque_desert_surface_material(Color(0.38, 0.24, 0.12))
+		_:
+			return _make_material(Color(0.015, 0.04, 0.08), Color(0.1, 0.38, 0.48), 0.18)
 
 
 func _make_alien_energy_road_material() -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = ROAD_ALIEN_ENERGY_SHADER
-	mat.set_shader_parameter("base_color", Color(0.035, 0.08, 0.125))
-	mat.set_shader_parameter("vein_color", Color(0.55, 0.9, 1.0))
-	mat.set_shader_parameter("particle_color", Color(0.4, 0.96, 1.0))
-	mat.set_shader_parameter("roughness_val", 0.4)
-	mat.set_shader_parameter("metallic_val", 0.1)
-	mat.set_shader_parameter("vein_energy", 1.05)
-	mat.set_shader_parameter("particle_energy", 0.75)
-	mat.set_shader_parameter("flow_speed", 0.5)
-	mat.set_shader_parameter("detail_scale", 0.13)
-	return mat
-
-
-func _make_holographic_road_material() -> ShaderMaterial:
-	var mat := ShaderMaterial.new()
-	mat.shader = ROAD_HOLOGRAPHIC_SHADER
-	var road_tex := load("res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png") as Texture2D
-	if road_tex:
-		mat.set_shader_parameter("road_tex", road_tex)
-	mat.set_shader_parameter("base_color", Color(0.04, 0.08, 0.1))
-	mat.set_shader_parameter("plasma_color", Color(0.25, 0.55, 0.6))
-	mat.set_shader_parameter("circuit_color", Color(0.32, 0.65, 0.68))
-	mat.set_shader_parameter("edge_color", Color(0.45, 0.22, 0.5))
-	mat.set_shader_parameter("roughness_val", 0.48)
+	mat.set_shader_parameter("base_color", Color(0.12, 0.2, 0.28))
+	mat.set_shader_parameter("vein_color", Color(0.55, 0.92, 1.0))
+	mat.set_shader_parameter("particle_color", Color(0.42, 0.98, 1.0))
+	mat.set_shader_parameter("roughness_val", 0.34)
 	mat.set_shader_parameter("metallic_val", 0.08)
-	mat.set_shader_parameter("tex_blend", 0.4)
-	mat.set_shader_parameter("tex_darken", 0.26)
-	mat.set_shader_parameter("plasma_energy", 0.5)
-	mat.set_shader_parameter("flow_energy", 0.35)
-	mat.set_shader_parameter("wave_speed", 0.5)
-	mat.set_shader_parameter("scroll_speed", 0.05)
-	mat.set_shader_parameter("road_half_width", 6.0)
+	mat.set_shader_parameter("vein_energy", 2.35)
+	mat.set_shader_parameter("particle_energy", 1.3)
+	mat.set_shader_parameter("flow_speed", 0.55)
+	mat.set_shader_parameter("detail_scale", 0.12)
 	return mat
 
 
-func _make_energy_neon_road_material() -> ShaderMaterial:
-	var mat := ShaderMaterial.new()
-	mat.shader = ROAD_ENERGY_NEON_SHADER
-	mat.set_shader_parameter("base_color", Color(0.008, 0.012, 0.025))
-	mat.set_shader_parameter("vein_color", Color(0.25, 0.96, 1.0))
-	mat.set_shader_parameter("seam_color", Color(1.0, 0.52, 0.18))
-	mat.set_shader_parameter("roughness_val", 0.24)
-	mat.set_shader_parameter("metallic_val", 0.06)
-	mat.set_shader_parameter("vein_energy", 5.2)
-	mat.set_shader_parameter("seam_energy", 2.4)
-	mat.set_shader_parameter("scroll_speed", 0.07)
-	mat.set_shader_parameter("crack_scale", 0.11)
+func _make_planet_road_material() -> StandardMaterial3D:
+	# 星球默认：实心晶砂路面，贴地不透明，避免沙漠从下方「透出来」
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.4, 0.36, 0.3)
+	mat.roughness = 0.78
+	mat.metallic = 0.06
+	mat.emission_enabled = true
+	mat.emission = Color(0.48, 0.38, 0.26)
+	mat.emission_energy_multiplier = 0.15
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	return mat
+
+
+func _make_coarse_desert_road_material() -> StandardMaterial3D:
+	# 实心沙石路面：与星球默认同样强制不透明，避免沙漠从下方透出
+	var mat := StandardMaterial3D.new()
+	var tex_path := "res://assets/maps/route_levels/runner_60s/textures/white_sandstone_blocks_02_diff_1k.jpg"
+	if ResourceLoader.exists(tex_path):
+		mat.albedo_texture = load(tex_path) as Texture2D
+	mat.albedo_color = Color(0.78, 0.58, 0.36)
+	mat.roughness = 0.94
+	mat.metallic = 0.02
+	mat.emission_enabled = false
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	return mat
+
+
+func _make_opaque_desert_surface_material(
+	color: Color,
+	emission: Color = Color.BLACK,
+	emission_energy: float = 0.0
+) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.9
+	mat.metallic = 0.02
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	if emission_energy > 0.0:
+		mat.emission_enabled = true
+		mat.emission = emission
+		mat.emission_energy_multiplier = emission_energy
+	return mat
+
+
+func _load_holographic_runway_texture(prefer_topdown: bool = true) -> Texture2D:
+	# 路径 mesh 用俯视图贴图平铺；透视概念图仅作展示，直接平铺会采到大量黑边
+	var tex_paths: Array[String] = []
+	if prefer_topdown:
+		tex_paths = [
+			"res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png",
+			"res://assets/maps/route_levels/runner_60s/holographic_energy_runway.png",
+		]
+	else:
+		tex_paths = [
+			"res://assets/maps/route_levels/runner_60s/holographic_energy_runway.png",
+			"res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png",
+		]
+	for tex_path in tex_paths:
+		if ResourceLoader.exists(tex_path):
+			var tex := load(tex_path) as Texture2D
+			if tex:
+				return tex
+	return null
+
+
+func _make_holographic_road_material() -> StandardMaterial3D:
+	# 全息能量轨：俯视图贴图平铺，青绿电路纹理 + 紫边由 curb/line 条带承担
+	var mat := StandardMaterial3D.new()
+	var tex := _load_holographic_runway_texture(true)
+	if tex:
+		mat.albedo_texture = tex
+		mat.emission_texture = tex
+	mat.albedo_color = Color(0.28, 0.68, 0.78)
+	mat.emission_enabled = true
+	mat.emission = Color(0.38, 0.92, 1.0)
+	mat.emission_energy_multiplier = 2.2
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	return mat
+
+
+func _load_energy_neon_runway_texture() -> Texture2D:
+	var tex_path := "res://assets/maps/route_levels/runner_60s/energy_neon_runway.png"
+	if ResourceLoader.exists(tex_path):
+		return load(tex_path) as Texture2D
+	return null
+
+
+func _make_energy_neon_road_material() -> StandardMaterial3D:
+	# 能量霓虹：概念图底图（青裂纹 + 青/橙边轨），unshaded 强发光保证 void 里可见
+	var mat := StandardMaterial3D.new()
+	var tex := _load_energy_neon_runway_texture()
+	if tex:
+		mat.albedo_texture = tex
+		mat.emission_texture = tex
+	mat.albedo_color = Color(0.42, 0.82, 0.92)
+	mat.emission_enabled = true
+	mat.emission = Color(0.32, 0.95, 1.0)
+	mat.emission_energy_multiplier = 3.2
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	return mat
 
 
@@ -1537,57 +2001,41 @@ func _apply_road_style_environment() -> void:
 	if _world_environment == null or _world_environment.environment == null:
 		return
 	var env := _world_environment.environment
-	var theme: Dictionary = LevelConfig.get_theme()
 	match _road_style_id:
-		"holographic":
-			env.ambient_light_color = Color(0.16, 0.15, 0.14)
-			env.ambient_light_energy = 0.85
-			env.fog_light_color = Color(0.55, 0.4, 0.25)
-			env.fog_density = 0.0017
+		"holographic", "energy_neon", "alien_energy":
 			env.glow_enabled = true
-			env.glow_intensity = 0.22
-			env.glow_strength = 0.75
-			env.glow_bloom = 0.06
-			env.glow_hdr_threshold = 1.05
-		"alien_energy":
-			env.ambient_light_color = Color(0.06, 0.1, 0.16)
-			env.ambient_light_energy = 0.35
-			env.fog_light_color = Color(0.02, 0.04, 0.08)
-			env.fog_density = 0.0028
-			env.glow_enabled = true
-			env.glow_intensity = 0.28
-			env.glow_strength = 0.9
-			env.glow_bloom = 0.12
-			env.glow_hdr_threshold = 0.85
-		"energy_neon":
-			# 压掉沙漠橙雾，否则再好的黑轨也会被环境光染成橙水
-			env.ambient_light_color = Color(0.12, 0.18, 0.28)
-			env.ambient_light_energy = 0.55
-			env.fog_light_color = Color(0.05, 0.08, 0.14)
-			env.fog_density = 0.0014
-			env.glow_enabled = true
-			env.glow_intensity = 0.85
-			env.glow_strength = 1.15
-			env.glow_bloom = 0.4
-			env.glow_hdr_threshold = 0.55
+			env.glow_intensity = 0.55 if _road_style_id != "alien_energy" else 0.52
+			env.glow_strength = 1.1 if _road_style_id != "alien_energy" else 1.05
+			env.glow_bloom = 0.22 if _road_style_id != "energy_neon" else 0.28
+			env.glow_hdr_threshold = 0.58 if _road_style_id != "alien_energy" else 0.62
+			env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+			env.tonemap_exposure = maxf(env.tonemap_exposure, 1.12)
 		"void_crystal":
-			env.ambient_light_color = Color(0.16, 0.12, 0.28)
-			env.ambient_light_energy = 0.7
-			env.fog_light_color = Color(0.1, 0.06, 0.18)
-			env.fog_density = 0.0016
 			env.glow_enabled = true
 			env.glow_intensity = 0.55
 			env.glow_strength = 1.05
 			env.glow_bloom = 0.3
 			env.glow_hdr_threshold = 0.65
-		_:
-			env.ambient_light_color = theme.get("ambient", Color(0.92, 0.68, 0.44))
-			env.ambient_light_energy = float(theme.get("ambient_energy", 1.35))
-			env.fog_light_color = theme.get("fog_color", Color(0.82, 0.48, 0.2))
-			env.fog_density = float(theme.get("fog_density", 0.0022))
+			env.tonemap_exposure = maxf(env.tonemap_exposure, 1.1)
+		"coarse_desert":
 			env.glow_enabled = false
-			env.glow_intensity = 0.0
-			env.glow_bloom = 0.0
+			env.tonemap_exposure = maxf(env.tonemap_exposure, 1.02)
+
+
+func _boost_runner_lights(sun_color: Color, sun_energy: float, rim_energy: float) -> void:
+	var sun := get_node_or_null("RunnerSun") as DirectionalLight3D
+	if sun:
+		sun.light_color = sun_color
+		sun.light_energy = sun_energy
+	if player == null:
+		return
+	var key := player.get_node_or_null("PlayerKeyLight") as OmniLight3D
+	if key:
+		key.light_color = sun_color.lerp(Color.WHITE, 0.25)
+		key.light_energy = maxf(1.6, sun_energy * 0.65)
+	var rim := player.get_node_or_null("PlayerRunwayRim") as OmniLight3D
+	if rim:
+		rim.light_energy = maxf(rim_energy, 1.0)
 
 
 func _is_in_fork_main_gap(distance: float) -> bool:
@@ -1626,9 +2074,9 @@ func _build_path_road_slice(
 	var center := origin + Vector3(0.0, lane_y, 0.0)
 
 	var road := MeshInstance3D.new()
-	var thin_energy := _road_style_id == "alien_energy" or _road_style_id == "holographic"
-	var neon_edge := _road_style_id == "energy_neon" or _road_style_id == "holographic"
-	var road_w := 12.0 if _road_style_id == "holographic" else (11.8 if _road_style_id == "alien_energy" else 12.6)
+	var thin_energy := _road_style_id in ["alien_energy", "holographic", "energy_neon"]
+	var neon_edge := _road_style_id in ["energy_neon", "holographic"]
+	var road_w := 12.6 if _road_style_id == "energy_neon" else (12.0 if _road_style_id == "holographic" else (11.8 if _road_style_id == "alien_energy" else 12.6))
 	var road_mesh := PlaneMesh.new()
 	road_mesh.size = Vector2(road_w, segment_len)
 	road_mesh.orientation = PlaneMesh.FACE_Y
@@ -1722,15 +2170,19 @@ func _build_fork_branch_roads(
 	var start := float(zone["distance"])
 	var length := float(zone.get("length", 90.0))
 	var spread := float(zone.get("spread", 22.0))
-	var branch_half := 6.3
-	# 中岛托底
+	var branch_half := 6.3 if _road_style_id == "energy_neon" else (6.0 if _road_style_id == "holographic" else 6.3)
+	var lead := 10.0
+	_attach_fork_underlay(zone, island_material, lane_y - 0.03)
 	_attach_fork_center_island(zone, island_material, lane_y - 0.02)
 	for side_f in [-1.0, 1.0]:
 		var side: float = float(side_f)
-		_attach_fork_branch_strip(start, length, spread, side, branch_half + 1.6, lane_y - 0.01, shoulder_material, 1.8)
-		_attach_fork_branch_strip(start, length, spread, side, branch_half, lane_y + 0.01, road_material, 1.6)
-		_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, branch_half - 0.05)
-		_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, -(branch_half - 0.05))
+		_attach_fork_branch_strip(start, length, spread, side, branch_half + 2.4, lane_y - 0.01, shoulder_material, 1.6, 0.0, lead)
+		_attach_fork_branch_strip(start, length, spread, side, branch_half, lane_y + 0.01, road_material, 1.6, 0.0, lead)
+		if _road_style_id == "holographic":
+			_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, branch_half - 0.05, lead)
+			_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, -(branch_half - 0.05), lead)
+		if line_material and _road_style_id == "alien_energy":
+			_attach_fork_branch_strip(start, length, spread, side, 0.045, lane_y + 0.012, line_material, 1.6, 0.0, lead)
 	_build_fork_entry_wedge(zone, curb_material, lane_y)
 
 
@@ -1738,6 +2190,7 @@ func _attach_fork_center_island(zone: Dictionary, material: Material, y: float) 
 	var start := float(zone["distance"])
 	var length := float(zone.get("length", 90.0))
 	var spread := float(zone.get("spread", 22.0))
+	var branch_half := 6.3 if _road_style_id == "energy_neon" else (6.0 if _road_style_id == "holographic" else 6.3)
 	var step := 2.0
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -1746,11 +2199,10 @@ func _attach_fork_center_island(zone: Dictionary, material: Material, y: float) 
 	while d <= start + length + 0.001:
 		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
 		var envelope := _fork_envelope(t)
-		if envelope > 0.25:
-			var half_w := maxf(spread * envelope * 0.55 - 2.0, 1.2)
-			pts.append(_path_strip_point(d, half_w, y, 0.0))
-		elif not pts.is_empty():
-			break
+		# 两岔之间的分隔岛：随 Y 形张开/收拢，全程不断带
+		var gap_half := maxf(spread * envelope - branch_half * 1.05, 0.35)
+		var half_w := maxf(0.45, gap_half * 0.48)
+		pts.append(_path_strip_point(d, half_w, y, 0.0))
 		d += step
 	if pts.size() < 2:
 		return
@@ -1792,14 +2244,15 @@ func _attach_fork_branch_strip(
 	y: float,
 	material: Material,
 	step: float,
-	extra_lateral: float = 0.0
+	extra_lateral: float = 0.0,
+	lead: float = 0.0
 ) -> void:
 	if material == null:
 		return
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var pts: Array[Dictionary] = []
-	var d := start
+	var d := start - lead
 	while d <= start + length + 0.001:
 		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
 		var envelope := _fork_envelope(t)
@@ -1851,21 +2304,73 @@ func _attach_fork_branch_strip(
 
 
 func _build_fork_entry_wedge(zone: Dictionary, curb_material: Material, lane_y: float) -> void:
+	# 入口导向条：与跑道材质一致，替代突兀的绿/橙方块
 	var start := float(zone["distance"])
-	var sample := _sample_path(start + 6.0)
-	var accent_l := _make_material(Color(0.12, 0.45, 0.28), Color(0.25, 0.95, 0.55), 1.8)
-	var accent_r := _make_material(Color(0.45, 0.22, 0.08), Color(1.0, 0.62, 0.2), 1.8)
-	for side_data in [[-1.0, accent_l], [1.0, accent_r]]:
-		var side: float = float(side_data[0])
-		var mat: Material = side_data[1]
-		var wedge := MeshInstance3D.new()
+	var spread := float(zone.get("spread", 22.0))
+	var sample := _sample_path(start + 2.0)
+	for side_f in [-1.0, 1.0]:
+		var side: float = float(side_f)
+		var guide := MeshInstance3D.new()
 		var mesh := BoxMesh.new()
-		mesh.size = Vector3(2.4, 0.08, 5.5)
-		mesh.material = mat
-		wedge.mesh = mesh
-		wedge.position = sample["pos"] + (sample["right"] as Vector3) * (3.2 * side) + Vector3(0.0, lane_y + 0.06, 0.0)
-		wedge.rotation.y = float(sample["yaw"]) + (-0.38 if side < 0.0 else 0.38)
-		_attach_road(wedge)
+		mesh.size = Vector3(0.12, 0.03, 6.5)
+		mesh.material = curb_material
+		guide.mesh = mesh
+		guide.position = (sample["pos"] as Vector3) + (sample["right"] as Vector3) * (2.8 * side)
+		guide.position.y = lane_y + 0.025
+		guide.rotation.y = float(sample["yaw"]) + (-0.22 if side < 0.0 else 0.22)
+		_attach_road(guide)
+
+
+func _attach_fork_underlay(zone: Dictionary, material: Material, y: float) -> void:
+	# 岔路区暗色托底，填满主路挖空后的空隙
+	if material == null:
+		return
+	var start := float(zone["distance"])
+	var length := float(zone.get("length", 90.0))
+	var spread := float(zone.get("spread", 22.0))
+	var branch_half := 6.3 if _road_style_id == "energy_neon" else (6.0 if _road_style_id == "holographic" else 6.3)
+	var lead := 10.0
+	var step := 2.0
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array[Dictionary] = []
+	var d := start - lead
+	while d <= start + length + 0.001:
+		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
+		var envelope := _fork_envelope(t)
+		var outer := spread * envelope + branch_half + 3.2
+		outer = maxf(outer, 8.0)
+		pts.append(_path_strip_point(d, outer, y, 0.0))
+		d += step
+	if pts.size() < 2:
+		return
+	var uv_scale := 0.06
+	for i in range(pts.size() - 1):
+		var a: Dictionary = pts[i]
+		var b: Dictionary = pts[i + 1]
+		var v0 := float(a["d"]) * uv_scale
+		var v1 := float(b["d"]) * uv_scale
+		st.set_normal(Vector3.UP)
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v0))
+		st.add_vertex(a["R"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v1))
+		st.add_vertex(b["L"])
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_attach_road(mi)
 
 
 func _build_start_pad(
@@ -1877,32 +2382,51 @@ func _build_start_pad(
 	lane_y: float
 ) -> void:
 	var start_center_z := START_PAD_LENGTH * 0.5
+	var start_w := 12.6 if _road_style_id == "energy_neon" else (12.0 if _road_style_id == "holographic" else (13.0 if _road_style_id == "coarse_desert" else 12.6))
 	var foundation := MeshInstance3D.new()
 	foundation.name = "StartSandFoundation"
 	var foundation_mesh := BoxMesh.new()
-	foundation_mesh.size = Vector3(58.0, 0.36, START_PAD_LENGTH + 8.0)
 	var theme: Dictionary = LevelConfig.get_theme() if LevelConfig != null and LevelConfig.has_method("get_theme") else {}
 	var foundation_mat := (
-		_make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.08)
-		if _road_style_id == "holographic"
+		_make_material(Color(0.01, 0.03, 0.06), Color(0.08, 0.32, 0.42), 0.22)
+		if _road_style_id in ["holographic", "energy_neon"]
 		else (
 			_make_material(Color(0.02, 0.04, 0.07), Color(0.15, 0.45, 0.6), 0.15)
 			if _road_style_id == "alien_energy"
 			else (
-				_make_material(Color(0.03, 0.06, 0.1), Color(0.15, 0.8, 1.0), 0.35)
-				if _road_style_id == "energy_neon"
-				else _make_material(Color(0.78, 0.45, 0.17), Color(1.0, 0.55, 0.18), 0.16)
+				_make_opaque_desert_surface_material(Color(0.46, 0.3, 0.15))
+				if _road_style_id == "coarse_desert"
+				else _make_material(Color(0.62, 0.4, 0.2), Color(0.85, 0.5, 0.2), 0.12)
 			)
 		)
 	)
 	foundation_mesh.material = foundation_mat
 	foundation.mesh = foundation_mesh
-	foundation.position = Vector3(0.0, lane_y - 0.18, start_center_z)
+	if _road_style_id in ["holographic", "energy_neon"]:
+		foundation_mesh.size = Vector3(start_w + 0.4, 0.04, START_PAD_LENGTH + 1.5)
+		foundation.position = Vector3(0.0, lane_y - 0.03, start_center_z)
+	elif _road_style_id == "alien_energy":
+		foundation_mesh.size = Vector3(start_w + 2.0, 0.08, START_PAD_LENGTH + 2.0)
+		foundation.position = Vector3(0.0, lane_y - 0.06, start_center_z)
+	else:
+		foundation_mesh.size = Vector3(58.0, 0.36, START_PAD_LENGTH + 8.0)
+		foundation.position = Vector3(0.0, lane_y - 0.18, start_center_z)
 	_attach_road(foundation)
+
+	if _road_style_id in ["alien_energy", "planet", "coarse_desert"]:
+		var opaque_apron := MeshInstance3D.new()
+		opaque_apron.name = "StartRoadOpaqueBase"
+		var opaque_mesh := PlaneMesh.new()
+		opaque_mesh.size = Vector2(start_w, START_PAD_LENGTH + 2.0)
+		opaque_mesh.orientation = PlaneMesh.FACE_Y
+		opaque_mesh.material = _make_opaque_road_base_material(_road_style_id)
+		opaque_apron.mesh = opaque_mesh
+		opaque_apron.position = Vector3(0.0, lane_y - 0.02, start_center_z)
+		opaque_apron.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_attach_road(opaque_apron)
 
 	var road := MeshInstance3D.new()
 	road.name = "StartRoadApron"
-	var start_w := 12.0 if _road_style_id == "holographic" else 12.6
 	var road_mesh := PlaneMesh.new()
 	road_mesh.size = Vector2(start_w, START_PAD_LENGTH + 2.0)
 	road_mesh.orientation = PlaneMesh.FACE_Y
@@ -1912,31 +2436,44 @@ func _build_start_pad(
 	road.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_attach_road(road)
 
-	# 起点两侧沙肩，与路径托底衔接
-	for x in [-7.8, 7.8]:
-		var shoulder := MeshInstance3D.new()
-		var shoulder_mesh := PlaneMesh.new()
-		shoulder_mesh.size = Vector2(3.4, START_PAD_LENGTH + 2.0)
-		shoulder_mesh.orientation = PlaneMesh.FACE_Y
-		shoulder_mesh.material = shoulder_material
-		shoulder.mesh = shoulder_mesh
-		shoulder.position = Vector3(x, lane_y - 0.008, start_center_z)
-		shoulder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_attach_road(shoulder)
+	if _road_style_id not in ["holographic", "energy_neon"]:
+		# 起点两侧沙肩，与路径托底衔接
+		for x in [-7.8, 7.8]:
+			var shoulder := MeshInstance3D.new()
+			var shoulder_mesh := PlaneMesh.new()
+			shoulder_mesh.size = Vector2(3.4, START_PAD_LENGTH + 2.0)
+			shoulder_mesh.orientation = PlaneMesh.FACE_Y
+			shoulder_mesh.material = shoulder_material
+			shoulder.mesh = shoulder_mesh
+			shoulder.position = Vector3(x, lane_y - 0.008, start_center_z)
+			shoulder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_attach_road(shoulder)
+	else:
+		var road_half := 6.4 if _road_style_id == "energy_neon" else 6.0
+		var shoulder_half := 1.6
+		var shoulder_x := road_half + shoulder_half
+		for x in [-shoulder_x, shoulder_x]:
+			var shoulder := MeshInstance3D.new()
+			var shoulder_mesh := PlaneMesh.new()
+			shoulder_mesh.size = Vector2(shoulder_half * 2.0, START_PAD_LENGTH + 2.0)
+			shoulder_mesh.orientation = PlaneMesh.FACE_Y
+			shoulder_mesh.material = shoulder_material
+			shoulder.mesh = shoulder_mesh
+			shoulder.position = Vector3(x, lane_y - 0.008, start_center_z)
+			shoulder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_attach_road(shoulder)
 
 	var curb_xs: Array = [-start_w * 0.5, start_w * 0.5]
-	for x in curb_xs:
-		var curb := MeshInstance3D.new()
-		var curb_mesh := BoxMesh.new()
-		if _road_style_id == "holographic":
+	if _road_style_id == "holographic":
+		for x in curb_xs:
+			var curb := MeshInstance3D.new()
+			var curb_mesh := BoxMesh.new()
 			curb_mesh.size = Vector3(0.12, 0.04, START_PAD_LENGTH + 2.0)
-		else:
-			curb_mesh.size = Vector3(0.16, 0.12, START_PAD_LENGTH + 2.0)
-		curb_mesh.material = curb_material
-		curb.mesh = curb_mesh
-		curb.position = Vector3(x, lane_y + (0.02 if _road_style_id == "holographic" else 0.06), start_center_z)
-		curb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_attach_road(curb)
+			curb_mesh.material = curb_material
+			curb.mesh = curb_mesh
+			curb.position = Vector3(x, lane_y + 0.02, start_center_z)
+			curb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_attach_road(curb)
 
 	if _road_style_id != "holographic" and _road_style_id != "alien_energy":
 		_build_lane_dashes_segment(start_center_z, line_material)
@@ -1979,37 +2516,48 @@ func _build_side_posts_segment(seg_z: float, post_material: Material) -> void:
 
 
 func _build_planet_surroundings(theme: Dictionary) -> void:
-	if _road_style_id == "alien_energy":
-		# 提示词要求：孤立能量轨，无沙漠/建筑环绕
-		_build_void_surroundings_for_energy_road()
-		return
-	match String(theme.get("surroundings", "desert_crystal")):
+	match _background_style_id:
+		"void_dark", "starfield":
+			_build_void_surroundings_for_energy_road()
 		"industrial_ruin":
 			_build_industrial_surroundings(theme)
 		"savanna":
 			_build_savanna_surroundings(theme)
 		_:
 			_build_desert_surroundings(theme)
-	_build_path_side_dressing(theme)
+	if _background_style_id in ["desert_crystal", "industrial_ruin", "savanna"]:
+		_build_path_side_dressing(theme)
 
 
 func _build_void_surroundings_for_energy_road() -> void:
-	# 仅极暗地面托底，突出单一连续跑道
+	# 极暗地面托底：顶面贴近路肩下沿，避免两侧露出垂直缝
 	var mat := _make_material(Color(0.015, 0.02, 0.035), Color(0.05, 0.12, 0.2), 0.05)
+	var lane_y := GROUND_Y - 0.05
+	var pad_y := lane_y - 0.055
 	var d := 0.0
-	var track_end := maxf(_path_length, TRACK_LENGTH) + 40.0
+	var track_end := maxf(_path_length, _track_length) + 40.0
 	while d < track_end:
 		var sample := _sample_path(d)
 		var pad := MeshInstance3D.new()
 		var mesh := BoxMesh.new()
-		mesh.size = Vector3(48.0, 0.05, 20.0)
+		mesh.size = Vector3(56.0, 0.05, 20.0)
 		mesh.material = mat
 		pad.mesh = mesh
 		pad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		pad.position = (sample["pos"] as Vector3) + Vector3(0.0, GROUND_Y - 0.28, 0.0)
+		pad.position = (sample["pos"] as Vector3) + Vector3(0.0, pad_y, 0.0)
 		pad.rotation.y = float(sample["yaw"])
 		track_root.add_child(pad)
 		d += 18.0
+
+
+func _surroundings_foundation_half() -> float:
+	match _road_style_id:
+		"coarse_desert":
+			return 16.0
+		"planet":
+			return 14.0
+		_:
+			return 21.0
 
 
 func _spawn_alien_energy_edge_particles() -> void:
@@ -2054,26 +2602,42 @@ func _spawn_alien_energy_edge_particles() -> void:
 		_road_edge_particles.append(fx)
 
 
+func _spawn_holographic_edge_particles() -> void:
+	_spawn_alien_energy_edge_particles()
+
+
 func _build_desert_surroundings(theme: Dictionary = {}) -> void:
-	var sand_material := _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.18)
-	var cracked_material := _make_material(Color(0.36, 0.27, 0.18), Color(0.18, 0.85, 1.0), 0.55)
-	var silhouette_material := _make_material(Color(0.09, 0.075, 0.065), Color(0.45, 0.25, 0.12), 0.2)
+	# 环境沙地：能看清沙漠，但不发霓虹橙光
+	var sand_material := _make_material(Color(0.58, 0.38, 0.22), Color(0.7, 0.45, 0.22), 0.1)
+	var cracked_material := _make_material(Color(0.36, 0.27, 0.18), Color(0.2, 0.7, 0.85), 0.35)
+	var silhouette_material := _make_material(Color(0.12, 0.09, 0.07), Color(0.45, 0.25, 0.12), 0.2)
 	var crystal_material := _make_crystal_material(theme.get("crystal", Color(0.13, 0.62, 1.0)), Color(0.08, 0.9, 1.0))
 	var segment_len := 96.0
-	var segment_count := int(ceil((TRACK_LENGTH + 120.0) / segment_len))
+	var segment_count := int(ceil((_track_length + 120.0) / segment_len))
+	var sand_half_w := 23.0
+	var sand_center := _surroundings_foundation_half() + sand_half_w
+	var sand_y := GROUND_Y - 0.05 - 0.062
 
 	for segment_index in segment_count:
-		var seg_z := -segment_index * segment_len - segment_len * 0.5
-		for x in [-32.0, 32.0]:
+		# 沿路径铺两侧沙地，不再假设赛道永远沿 -Z
+		var d := float(segment_index) * segment_len + segment_len * 0.5
+		var sample := _sample_path(minf(d, maxf(_path_length, _track_length)))
+		var origin: Vector3 = sample["pos"]
+		var right: Vector3 = sample["right"]
+		var yaw: float = float(sample["yaw"])
+		for side in [-1.0, 1.0]:
 			var sand := MeshInstance3D.new()
 			var sand_mesh := BoxMesh.new()
-			sand_mesh.size = Vector3(46.0, 0.08, segment_len + 0.5)
+			sand_mesh.size = Vector3(sand_half_w * 2.0, 0.08, segment_len + 0.5)
 			sand_mesh.material = sand_material
 			sand.mesh = sand_mesh
 			sand.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			sand.position = Vector3(x, GROUND_Y - 0.18, seg_z)
+			sand.position = origin + right * (side * sand_center)
+			sand.position.y = sand_y
+			sand.rotation.y = yaw
 			track_root.add_child(sand)
 
+		var seg_z := float(origin.z)
 		if segment_index % 2 == 0:
 			_add_background_ruins(seg_z, -22.0, silhouette_material)
 		else:
@@ -2090,14 +2654,14 @@ func _build_path_side_dressing(theme: Dictionary) -> void:
 	_side_dressing_root.name = "PathSideDressing"
 	track_root.add_child(_side_dressing_root)
 
-	var sand_material := _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.14)
+	var sand_material := _make_material(Color(0.55, 0.36, 0.2), Color(0.65, 0.42, 0.2), 0.08)
 	var rng := RandomNumberGenerator.new()
 	var planet_key := "runner"
 	if LevelConfig.has_method("get_planet_id"):
 		planet_key = String(LevelConfig.get_planet_id())
 	rng.seed = hash(planet_key + "_side_dressing")
 
-	var track_end := maxf(_path_length, TRACK_LENGTH) + 48.0
+	var track_end := maxf(_path_length, _track_length) + 48.0
 	var d := 12.0
 	while d < track_end:
 		var fork_push := 12.0 if _is_in_fork_main_gap(d) else 0.0
@@ -2108,7 +2672,7 @@ func _build_path_side_dressing(theme: Dictionary) -> void:
 		d += 28.0
 
 	if not _side_prop_paths.is_empty():
-		d = 28.0
+		d = 45.0
 		var prop_i := 0
 		while d < track_end - 40.0:
 			var side: float = 1.0 if prop_i % 2 == 0 else -1.0
@@ -2180,7 +2744,7 @@ func _place_path_sand_ribbon(
 	sand.mesh = sand_mesh
 	sand.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sand.position = (sample["pos"] as Vector3) + (sample["right"] as Vector3) * lateral
-	sand.position.y = GROUND_Y - 0.17
+	sand.position.y = GROUND_Y - 0.05 - 0.062
 	sand.rotation.y = float(sample["yaw"])
 	_side_dressing_root.add_child(sand)
 
@@ -2208,7 +2772,8 @@ func _spawn_path_side_prop(
 		"SidePropModel",
 		target_height,
 		rng.randf_range(-25.0, 25.0),
-		Vector3.ZERO
+		Vector3.ZERO,
+		clampf(target_height * 1.75, 2.5, 8.0)
 	)
 	_disable_mesh_shadows(root)
 
@@ -2223,7 +2788,7 @@ func _build_industrial_surroundings(theme: Dictionary) -> void:
 	var rust_material := _make_material(Color(0.28, 0.18, 0.12), theme.get("crystal", Color(0.85, 0.42, 0.12)), 0.45)
 	var silhouette_material := _make_material(Color(0.08, 0.07, 0.06), Color(0.35, 0.22, 0.12), 0.18)
 	var segment_len := 96.0
-	var segment_count := int(ceil((TRACK_LENGTH + 120.0) / segment_len))
+	var segment_count := int(ceil((_track_length + 120.0) / segment_len))
 	for segment_index in segment_count:
 		var seg_z := -segment_index * segment_len - segment_len * 0.5
 		for x in [-32.0, 32.0]:
@@ -2244,7 +2809,7 @@ func _build_savanna_surroundings(theme: Dictionary) -> void:
 	var tree_material := _make_material(Color(0.22, 0.34, 0.14), theme.get("crystal", Color(0.35, 0.78, 0.42)), 0.35)
 	var bush_material := _make_material(Color(0.18, 0.28, 0.12), Color(0.45, 0.82, 0.28), 0.28)
 	var segment_len := 96.0
-	var segment_count := int(ceil((TRACK_LENGTH + 120.0) / segment_len))
+	var segment_count := int(ceil((_track_length + 120.0) / segment_len))
 	for segment_index in segment_count:
 		var seg_z := -segment_index * segment_len - segment_len * 0.5
 		for x in [-32.0, 32.0]:
@@ -2413,16 +2978,16 @@ func _add_player_light() -> void:
 	key.name = "PlayerKeyLight"
 	key.position = Vector3(0.0, 1.35, -0.2)
 	key.light_color = Color(1.0, 0.82, 0.62)
-	key.light_energy = 1.35
-	key.omni_range = 5.5
+	key.light_energy = 2.0 if _road_style_id in ["holographic", "energy_neon"] else 1.35
+	key.omni_range = 6.5
 	key.shadow_enabled = false
 	player.add_child(key)
 	var rim := OmniLight3D.new()
 	rim.name = "PlayerRunwayRim"
 	rim.position = Vector3(0.0, 0.35, 0.8)
-	rim.light_color = Color(0.45, 0.85, 0.95) if _road_style_id == "holographic" else Color(0.7, 0.85, 1.0)
-	rim.light_energy = 0.85 if _road_style_id == "holographic" else 0.55
-	rim.omni_range = 4.2
+	rim.light_color = Color(0.45, 0.85, 0.95) if _road_style_id in ["holographic", "energy_neon"] else Color(0.7, 0.85, 1.0)
+	rim.light_energy = 1.25 if _road_style_id in ["holographic", "energy_neon"] else 0.55
+	rim.omni_range = 5.0
 	rim.shadow_enabled = false
 	player.add_child(rim)
 
@@ -2462,9 +3027,53 @@ func _build_player_visual() -> void:
 	player_slide_pose_root = null
 	player_animation_player = null
 	player_animation_name = ""
+	_skeletal_run_enabled = false
 
 	var model_yaw := _player_yaw_degrees("model_yaw", PLAYER_MODEL_YAW)
 	var slide_yaw := _player_yaw_degrees("slide_yaw", PLAYER_SLIDE_MODEL_YAW)
+
+	var animated_path := _player_asset_path("animated_model", "")
+	if animated_path != "":
+		var run_anim := _player_run_anim_name()
+		var animated_scene := _load_runner_scene(animated_path, false)
+		if animated_scene:
+			var skeletal_yaw := _player_yaw_degrees("animated_model_yaw", model_yaw + 180.0)
+			player_pose_root = _add_scaled_model_visual(
+				player_body,
+				animated_scene,
+				"MixamoRunner",
+				PLAYER_MODEL_HEIGHT,
+				skeletal_yaw,
+				Vector3.ZERO,
+				-1.0,
+				-1.0
+			)
+			_apply_player_surface_textures(player_pose_root)
+			player_animation_player = _find_animation_player(player_pose_root)
+			if player_animation_player and player_animation_player.has_animation(run_anim):
+				_skeletal_run_enabled = true
+				_configure_player_animations()
+				player_slide_pose_root = _add_scaled_model_visual(
+					player_body,
+					_load_runner_scene(_player_asset_path("slide", PLAYER_SLIDE_SCENE_PATH)),
+					"SlidePoseModel",
+					PLAYER_SLIDE_MODEL_HEIGHT,
+					slide_yaw
+				)
+				player_slide_pose_root.visible = false
+				_add_player_pose_model("jump_start", _load_runner_scene(_player_asset_path("jump_start", PLAYER_JUMP_START_SCENE_PATH)), PLAYER_MODEL_HEIGHT, model_yaw)
+				_add_player_pose_model("jump_peak", _load_runner_scene(_player_asset_path("jump_peak", PLAYER_JUMP_PEAK_SCENE_PATH)), PLAYER_MODEL_HEIGHT, model_yaw)
+				_add_player_pose_model("landing", _load_runner_scene(_player_asset_path("landing", PLAYER_LANDING_SCENE_PATH)), PLAYER_MODEL_HEIGHT, model_yaw)
+				_set_player_pose("idle")
+				return
+		push_warning("Mixamo runner is missing animation '%s'; falling back to pose models." % run_anim)
+		if player_pose_root:
+			player_pose_root.queue_free()
+		player_pose_root = null
+		player_animation_player = null
+		player_animation_name = ""
+		_skeletal_run_enabled = false
+
 	var use_config_player := _player_scene_paths.has("model")
 	var animated_scene: PackedScene = null
 	if not use_config_player:
@@ -2511,6 +3120,9 @@ func _build_player_visual() -> void:
 func _load_runner_scene(path: String, warn_if_missing: bool = true) -> PackedScene:
 	if path == "":
 		return null
+	# 2.5D PNG 障碍：运行时打成透明 Quad 场景
+	if path.ends_with(".png") or path.ends_with(".webp") or path.ends_with(".jpg") or path.ends_with(".jpeg"):
+		return _get_or_create_sprite_obstacle_scene(path, warn_if_missing)
 	if _scene_cache.has(path):
 		return _scene_cache[path] as PackedScene
 
@@ -2534,9 +3146,116 @@ func _load_runner_scene(path: String, warn_if_missing: bool = true) -> PackedSce
 	return null
 
 
+func _get_or_create_sprite_obstacle_scene(path: String, warn_if_missing: bool = true) -> PackedScene:
+	if _scene_cache.has(path):
+		return _scene_cache[path] as PackedScene
+	var tex: Texture2D = null
+	# 优先从磁盘读最新 PNG，避免编辑器缓存到未抠透明的旧图
+	var abs_path := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(abs_path):
+		var img := Image.new()
+		if img.load(abs_path) == OK:
+			tex = ImageTexture.create_from_image(img)
+	if tex == null and ResourceLoader.exists(path):
+		tex = load(path) as Texture2D
+	if tex == null:
+		if warn_if_missing:
+			push_warning("Runner sprite obstacle missing: %s" % path)
+		return null
+
+	var root := Node3D.new()
+	root.name = "SpriteObstacle"
+	root.set_meta("sprite_obstacle_path", path)
+
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = "SpriteQuad"
+	var quad := QuadMesh.new()
+	var tw := maxf(float(tex.get_width()), 1.0)
+	var th := maxf(float(tex.get_height()), 1.0)
+	var aspect := tw / th
+	# 单位高度 1，后续再按玩法缩放；光幕用宽扁比例
+	if "phase_curtain" in path:
+		quad.size = Vector2(1.0, 1.0 / maxf(aspect, 0.01))  # 先按宽度=1，后面拉到路宽
+		root.set_meta("sprite_fit", "road_width")
+		root.set_meta("sprite_aspect", aspect)
+	else:
+		quad.size = Vector2(aspect, 1.0)
+		root.set_meta("sprite_fit", "height")
+		root.set_meta("sprite_aspect", aspect)
+
+	var mat := StandardMaterial3D.new()
+	# 刀口透明：棋盘格残留也不会糊成白板
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.12
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_texture = tex
+	mat.albedo_color = Color.WHITE
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	if "phase_curtain" in path:
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	else:
+		# 跳跃/漂浮类 2.5D：始终面向相机，避免侧对玩家时「看不见却判撞」
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+	mat.emission_enabled = true
+	# 不用 emission_texture：透明区 RGB 残留会「烧」出棋盘格
+	if "phase_curtain" in path:
+		mat.emission = Color(0.35, 0.75, 1.0)
+		mat.emission_energy_multiplier = 0.55
+	elif "orb" in path:
+		mat.emission = Color(0.45, 0.85, 1.0)
+		mat.emission_energy_multiplier = 0.7
+	else:
+		mat.emission = Color(0.4, 0.7, 0.95)
+		mat.emission_energy_multiplier = 0.4
+	mat.no_depth_test = false
+	quad.material = mat
+	mesh_instance.mesh = quad
+	mesh_instance.rotation_degrees.y = 180.0 if "phase_curtain" in path else 0.0
+	mesh_instance.position.y = 0.0 if "phase_curtain" in path else 0.5
+	root.add_child(mesh_instance)
+	mesh_instance.owner = root
+
+	var packed := PackedScene.new()
+	var err := packed.pack(root)
+	root.free()
+	if err != OK:
+		if warn_if_missing:
+			push_warning("Failed to pack sprite obstacle: %s" % path)
+		return null
+	_scene_cache[path] = packed
+	return packed
+
+
 func _get_slide_obstacle_scene(index: int) -> PackedScene:
 	if not _slide_obstacle_paths.is_empty():
 		return _load_runner_scene(_slide_obstacle_paths[index % _slide_obstacle_paths.size()])
+	return _slide_obstacle_scene
+
+
+func _get_slide_obstacle_scene_glb_fallback() -> PackedScene:
+	# 滑铲横杆：优先锈蚀水管，与封道/列车区分
+	return _get_slide_obstacle_scene_by_hint(["锈蚀水管", "rust", "pipe"], 1)
+
+
+func _get_train_obstacle_scene() -> PackedScene:
+	return _get_slide_obstacle_scene_by_hint(["坍塌广告牌", "billboard"], 2)
+
+
+func _get_lane_block_scene() -> PackedScene:
+	return _get_slide_obstacle_scene_by_hint(["能量裂缝", "crack"], 3)
+
+
+func _get_slide_obstacle_scene_by_hint(hints: Array, fallback_index: int) -> PackedScene:
+	for path in _slide_obstacle_paths:
+		var path_text := String(path)
+		if path_text.ends_with(".png") or path_text.ends_with(".webp"):
+			continue
+		for hint in hints:
+			if String(hint) in path_text:
+				return _load_runner_scene(path_text)
+	if not _slide_obstacle_paths.is_empty():
+		return _get_slide_obstacle_scene(fallback_index)
 	return _slide_obstacle_scene
 
 
@@ -2544,6 +3263,36 @@ func _get_jump_obstacle_scene(index: int) -> PackedScene:
 	if _jump_obstacle_paths.is_empty():
 		return null
 	return _load_runner_scene(_jump_obstacle_paths[index % _jump_obstacle_paths.size()])
+
+
+func _build_train(root: Node3D, moving: bool) -> void:
+	var visual := _add_scaled_model_visual(
+		root,
+		_get_train_obstacle_scene(),
+		"SlideRoadBlockAsset",
+		2.35,
+		0.0,
+		Vector3.ZERO,
+		LANE_WIDTH * 3.2
+	)
+	if moving:
+		visual.rotation_degrees.y += 6.0
+
+
+func _build_lane_block(root: Node3D, side: String) -> void:
+	# 左封：左道+中道；右封：中道+右道（须换到外侧车道，滑铲无效）
+	var blocked_x := [-LANE_WIDTH, 0.0] if side == "left" else [0.0, LANE_WIDTH]
+	for i in blocked_x.size():
+		var visual := _add_scaled_model_visual(
+			root,
+			_get_lane_block_scene(),
+			"LaneBlockAsset_%d" % i,
+			2.15,
+			0.0,
+			Vector3(blocked_x[i], 0.0, 0.0),
+			LANE_WIDTH * 1.55
+		)
+		visual.position.z += -0.35 if i == 0 else 0.35
 
 
 func _find_animation_player(root: Node) -> AnimationPlayer:
@@ -2556,9 +3305,14 @@ func _find_animation_player(root: Node) -> AnimationPlayer:
 
 func _configure_player_animations() -> void:
 	if not player_animation_player:
-		push_warning("Cyberpunk armor player has no AnimationPlayer.")
+		push_warning("Runner skeletal model has no AnimationPlayer.")
 		return
+	var run_anim := _player_run_anim_name()
+	if player_animation_player.has_animation(run_anim):
+		player_animation_player.get_animation(run_anim).loop_mode = Animation.LOOP_LINEAR
 	for anim_name in [ANIMATED_PLAYER_IDLE_ANIM, ANIMATED_PLAYER_RUN_ANIM]:
+		if anim_name == run_anim:
+			continue
 		if player_animation_player.has_animation(anim_name):
 			player_animation_player.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
 	if player_animation_player.has_animation(ANIMATED_PLAYER_CELEBRATE_ANIM):
@@ -2568,18 +3322,22 @@ func _configure_player_animations() -> void:
 func _play_player_animation(state_name: String) -> void:
 	if not player_animation_player:
 		return
-	var anim_name := ANIMATED_PLAYER_IDLE_ANIM
+	var anim_name := _player_run_anim_name()
 	match state_name:
 		"run", "slide", "jump", "landing":
-			anim_name = ANIMATED_PLAYER_RUN_ANIM
+			anim_name = _player_run_anim_name()
 		"celebrate":
-			anim_name = ANIMATED_PLAYER_CELEBRATE_ANIM
-	if player_animation_name == anim_name:
+			anim_name = ANIMATED_PLAYER_CELEBRATE_ANIM if player_animation_player.has_animation(ANIMATED_PLAYER_CELEBRATE_ANIM) else _player_run_anim_name()
+		"idle":
+			anim_name = _player_run_anim_name()
+	if player_animation_name == anim_name and state_name != "idle":
 		return
 	if not player_animation_player.has_animation(anim_name):
 		push_warning("Missing player animation: %s" % anim_name)
 		return
 	player_animation_name = anim_name
+	if state_name == "idle":
+		player_animation_player.speed_scale = 0.0
 	player_animation_player.play(anim_name, 0.12)
 
 
@@ -2597,6 +3355,9 @@ func _add_player_pose_model(
 
 
 func _set_player_pose(pose_name: String) -> void:
+	if _uses_skeletal_run():
+		_apply_skeletal_player_pose(pose_name)
+		return
 	if player_animation_player:
 		if player_pose_root:
 			player_pose_root.visible = pose_name != "slide"
@@ -2625,11 +3386,18 @@ func _set_player_pose(pose_name: String) -> void:
 		player_pose_root.visible = true
 
 
-func _set_player_intro_facing(_enabled: bool) -> void:
+func _set_player_intro_facing(intro_active: bool) -> void:
 	if player_body == null:
 		return
-	# 开场与跑酷全程保持背对镜头，沿跑道 -Z 方向
-	player_body.rotation_degrees.y = 0.0
+	# Mixamo 骨骼跑：开场与正式跑同向（仅 animated_model_yaw），不再叠 intro_body_yaw
+	if _player_asset_path("animated_model", "") != "":
+		player_body.rotation_degrees.y = 0.0
+		return
+	# 静态姿势 GLB：开场 idle 需额外转 body 展示正面
+	if intro_active:
+		player_body.rotation_degrees.y = _player_yaw_degrees("intro_body_yaw", PLAYER_INTRO_BODY_YAW)
+	else:
+		player_body.rotation_degrees.y = 0.0
 
 
 func _add_scaled_model_visual(
@@ -2638,7 +3406,9 @@ func _add_scaled_model_visual(
 	model_name: String,
 	target_height: float,
 	yaw_degrees: float = 0.0,
-	local_position: Vector3 = Vector3.ZERO
+	local_position: Vector3 = Vector3.ZERO,
+	max_footprint: float = -1.0,
+	max_scale_cap: float = 12.0
 ) -> Node3D:
 	if not scene:
 		return _add_missing_model_visual(parent, model_name, target_height, yaw_degrees, local_position)
@@ -2650,12 +3420,24 @@ func _add_scaled_model_visual(
 	model.rotation_degrees.y = yaw_degrees
 
 	var bounds := _compute_node_aabb(model)
-	if bounds.size.y <= 0.001:
-		push_warning("%s bounds invalid, leaving model at source scale." % model_name)
-		return model
+	var characteristic := maxf(bounds.size.x, maxf(bounds.size.y, bounds.size.z))
+	if characteristic <= 0.001:
+		push_warning("%s bounds invalid, using fallback scale." % model_name)
+		model.scale = Vector3.ONE * (target_height / 2.0)
+	else:
+		var scale_factor := target_height / characteristic
+		# Mixamo 绑骨后 mesh AABB 常只有几厘米，需要放大；普通道具仍限制上限
+		if max_scale_cap > 0.0:
+			scale_factor = minf(scale_factor, max_scale_cap)
+		model.scale = Vector3.ONE * scale_factor
 
-	model.scale = Vector3.ONE * (target_height / bounds.size.y)
 	bounds = _compute_node_aabb(model)
+	if max_footprint > 0.0:
+		var footprint := maxf(bounds.size.x, bounds.size.z)
+		if footprint > max_footprint and footprint > 0.001:
+			model.scale *= max_footprint / footprint
+			bounds = _compute_node_aabb(model)
+
 	model.position += Vector3(
 		-(bounds.position.x + bounds.size.x * 0.5),
 		-bounds.position.y,
@@ -2804,7 +3586,12 @@ func _update_chaser_visuals(delta: float) -> void:
 
 
 func _build_content() -> void:
-	for item in LevelConfig.build_obstacles():
+	var obstacle_items: Array = MissionTypes.adapt_obstacles(
+		LevelConfig.build_obstacles(),
+		_mission_profile,
+		_track_length
+	)
+	for item in obstacle_items:
 		_register_obstacle(item)
 	obstacles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a["distance"]) < float(b["distance"])
@@ -2812,7 +3599,12 @@ func _build_content() -> void:
 	_obstacle_scan_index = 0
 
 	var coin_index := 0
-	for dist in LevelConfig.build_coin_distances():
+	var coin_dists: Array = MissionTypes.adapt_coin_distances(
+		LevelConfig.build_coin_distances(),
+		_track_length,
+		float(_mission_profile.get("obstacle_density", 1.0))
+	)
+	for dist in coin_dists:
 		var lane: int = int(LANES[coin_index % LANES.size()])
 		var layer: int = 0
 		var y: float = _layer_height(layer) + (0.35 if coin_index % 5 != 2 else 1.2)
@@ -2835,7 +3627,16 @@ func _register_obstacle(item: Dictionary) -> Node3D:
 	var dist: float = float(item["distance"])
 	var layer: int = 0
 	var node := _make_obstacle(lane, dist, obstacle_type, layer, item)
+	var asset_path := String(node.get_meta("obstacle_asset_path", ""))
+	var is_float_orb := node.has_meta("float_orb") and bool(node.get_meta("float_orb"))
 	var default_clear := 1.55 if obstacle_type in ["slide", "high_bar"] else 1.35
+	if is_float_orb:
+		default_clear = GROUND_Y + 1.02
+	elif "energy_sprigs" in asset_path:
+		default_clear = GROUND_Y + 0.45
+	var strike_label := ""
+	if LevelConfig.has_method("get_jump_obstacle_label") and asset_path != "":
+		strike_label = LevelConfig.get_jump_obstacle_label(asset_path)
 	var entry := {
 		"node": node,
 		"lane": lane,
@@ -2846,6 +3647,8 @@ func _register_obstacle(item: Dictionary) -> Node3D:
 		"half_depth": float(item.get("half_depth", _obstacle_half_depth(obstacle_type))),
 		"hit": false,
 		"heat_hazard": node.has_meta("heat_hazard") and bool(node.get_meta("heat_hazard")),
+		"float_orb": is_float_orb,
+		"strike_label": strike_label,
 		"moving": obstacle_type == "train_moving",
 		"move_speed": float(item.get("move_speed", 0.0)),
 		"move_offset": 0.0,
@@ -2866,7 +3669,7 @@ func _make_obstacle(lane: int, distance: float, obstacle_type: String, layer: in
 		"slide", "high_bar":
 			_build_high_bar(root)
 		"jump", "low_barrier":
-			_build_low_barrier(root)
+			_build_low_barrier(root, item)
 		"train", "train_moving":
 			_build_train(root, obstacle_type == "train_moving")
 		"block_left":
@@ -2878,44 +3681,83 @@ func _make_obstacle(lane: int, distance: float, obstacle_type: String, layer: in
 		"turn_left", "turn_right":
 			_build_turn_sign(root, obstacle_type)
 		_:
-			_build_low_barrier(root)
+			_build_low_barrier(root, item)
 
 	return root
 
 
-func _build_low_barrier(root: Node3D) -> void:
-	var scene_index := root.get_index() % maxi(_jump_obstacle_paths.size(), 1)
+func _build_low_barrier(root: Node3D, item: Dictionary = {}) -> void:
+	var path_count := maxi(_jump_obstacle_paths.size(), 1)
+	var scene_index := int(item.get("visual_index", -1))
+	if scene_index < 0:
+		var lane := int(item.get("lane", 0))
+		var dist_key := int(float(item.get("distance", 0.0)))
+		scene_index = absi(lane * 17 + dist_key) % path_count
+	var asset_path := ""
 	if not _jump_obstacle_paths.is_empty():
-		var asset_path := _jump_obstacle_paths[scene_index % _jump_obstacle_paths.size()]
+		asset_path = _jump_obstacle_paths[scene_index % _jump_obstacle_paths.size()]
+		root.set_meta("obstacle_asset_path", asset_path)
 		if "热浪" in asset_path:
 			root.set_meta("heat_hazard", true)
+	var target_h := 1.05
+	if "energy_orb" in asset_path:
+		target_h = 1.45
+	elif "energy_sprigs" in asset_path:
+		target_h = 1.2
 	var visual := _add_scaled_model_visual(
 		root,
 		_get_jump_obstacle_scene(scene_index),
 		"JumpObstacleModel",
-		1.05,
-		180.0,
-		Vector3(0.0, 0.0, 0.0)
+		target_h,
+		0.0 if asset_path.ends_with(".png") else 180.0,
+		Vector3.ZERO,
+		LANE_WIDTH * 1.65
 	)
-	visual.rotation_degrees.y += 8.0 if scene_index == 0 else -8.0
+	if "energy_orb" in asset_path:
+		# 漂浮在胸口高度，换道躲避为主，跳也可蹭过
+		visual.position.y += 0.75
+		root.set_meta("float_orb", true)
+	elif not asset_path.ends_with(".png"):
+		visual.rotation_degrees.y += 8.0 if scene_index == 0 else -8.0
 
 
 func _build_high_bar(root: Node3D) -> void:
-	# 锈蚀水管：比跑道（12.6）略宽，贴地横跨，可滑铲或跳过
-	_add_road_span_gate(root, "SlideObstacleModel", _get_slide_obstacle_scene(0), 1.95, 14.8)
-
-
-func _build_train(root: Node3D, moving: bool) -> void:
-	var visual := _add_slide_obstacle_visual(root, "SlideRoadBlockAsset", Vector3.ZERO, 2.35)
-	if moving:
-		visual.rotation_degrees.y += 6.0
-
-
-func _build_lane_block(root: Node3D, side: String) -> void:
-	var blocked_x := [-LANE_WIDTH, 0.0] if side == "left" else [0.0, LANE_WIDTH]
-	for i in blocked_x.size():
-		var visual := _add_slide_obstacle_visual(root, "LaneBlockAsset_%d" % i, Vector3(blocked_x[i], 0.0, 0.0), 2.15)
-		visual.position.z += -0.35 if i == 0 else 0.35
+	var slide_path := _slide_obstacle_paths[0] if not _slide_obstacle_paths.is_empty() else ""
+	if slide_path.ends_with(".png") and "phase_curtain" in slide_path:
+		# 光幕拉满路宽；高度单独控制，底边贴跑道（根节点已在 GROUND_Y）
+		var scene := _get_slide_obstacle_scene(0)
+		if scene == null:
+			_add_road_span_gate(root, "SlideObstacleModel", null, 1.95, 14.8)
+			return
+		var model := scene.instantiate() as Node3D
+		model.name = "SlideObstacleModel"
+		root.add_child(model)
+		var target_w := 13.5
+		var target_h := 2.05
+		var bounds := _compute_node_aabb(model)
+		var sx := target_w / maxf(bounds.size.x, 0.001)
+		var sy := target_h / maxf(bounds.size.y, 0.001)
+		model.scale = Vector3(sx, sy, 1.0)
+		bounds = _compute_node_aabb(model)
+		model.position = Vector3(
+			-(bounds.position.x + bounds.size.x * 0.5),
+			-bounds.position.y,
+			-(bounds.position.z + bounds.size.z * 0.5)
+		)
+		_add_ground_contact_shadow(root, 11.0, 1.0)
+	elif slide_path.ends_with(".png"):
+		var visual := _add_scaled_model_visual(
+			root,
+			_get_slide_obstacle_scene(0),
+			"SlideObstacleModel",
+			2.2,
+			0.0,
+			Vector3.ZERO
+		)
+		visual.position.y += 0.4
+		_add_ground_contact_shadow(root, 10.0, 1.2)
+	else:
+		_add_road_span_gate(root, "SlideObstacleModel", _get_slide_obstacle_scene(0), 1.95, 14.8)
 
 
 func _add_road_span_gate(
@@ -3141,7 +3983,7 @@ func _build_ui() -> void:
 	danger_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
 	danger_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	danger_vignette.color = Color(0.45, 0.1, 0.04, 0.0)
-	danger_vignette.visible = CHASER_ENABLED
+	danger_vignette.visible = _chaser_enabled
 	ui.add_child(danger_vignette)
 
 	var chaser_hint_wrap := MarginContainer.new()
@@ -3150,7 +3992,7 @@ func _build_ui() -> void:
 	chaser_hint_wrap.offset_top = 132.0
 	chaser_hint_wrap.offset_right = -28.0
 	chaser_hint_wrap.offset_bottom = 248.0
-	chaser_hint_wrap.visible = CHASER_ENABLED
+	chaser_hint_wrap.visible = _chaser_enabled
 	shell.add_child(chaser_hint_wrap)
 
 	chaser_hint_panel = PanelContainer.new()
@@ -3323,7 +4165,11 @@ func _update_runner_letterboxes() -> void:
 
 
 func _update_hud() -> void:
-	time_label.text = "时间 %0.1f / 60.0" % elapsed
+	var type_zh := String(mission.get("task_type_zh", _mission_profile.get("name_zh", "补给")))
+	if bool(_mission_profile.get("timed_fail", false)):
+		time_label.text = "剩余 %0.1f · %s" % [maxf(_run_time - elapsed, 0.0), type_zh]
+	else:
+		time_label.text = "时间 %0.1f / %0.0f · %s" % [elapsed, _run_time, type_zh]
 	var speed_text := "速度 %0.1f m/s" % (current_speed * speed_penalty_mult)
 	if speed_penalty_timer > 0.0:
 		speed_text += " (减速)"
@@ -3416,8 +4262,15 @@ func _update_runner_feedback(delta: float) -> void:
 	elif body_squash_timer > 0.0:
 		_set_player_pose("landing")
 	else:
-		var run_step := int(floor(elapsed * 8.0)) % 2
-		_set_player_pose("run_left" if run_step == 0 else "run_right")
+		if _uses_skeletal_run():
+			_set_player_pose("run")
+		else:
+			var run_step := int(floor(elapsed * 8.0)) % 2
+			_set_player_pose("run_left" if run_step == 0 else "run_right")
+
+	if _uses_skeletal_run() and player_pose_root and player_pose_root.visible and player_animation_player:
+		var speed_mult := _player_run_anim_speed_mult()
+		player_animation_player.speed_scale = maxf(current_speed / RUN_SPEED, 0.45) * speed_mult
 
 	var x_error := target_lane_x - current_lateral
 	body_tilt = lerpf(body_tilt, clampf(-x_error * 0.18, -0.45, 0.45), 1.0 - exp(-10.0 * delta))
@@ -3518,7 +4371,7 @@ func _make_particle_mesh(radius: float) -> SphereMesh:
 
 
 func _build_finish_gate() -> void:
-	var hearth_placed := _world_on_path(TRACK_LENGTH + 26.0, 0.0, GROUND_Y)
+	var hearth_placed := _world_on_path(_track_length + 26.0, 0.0, GROUND_Y)
 	var dome := _add_scaled_model_visual(
 		track_root,
 		_load_runner_scene(_hearth_scene_path),
@@ -3531,7 +4384,7 @@ func _build_finish_gate() -> void:
 
 	var gate := Node3D.new()
 	gate.name = "HearthGate"
-	var gate_placed := _world_on_path(TRACK_LENGTH, 0.0, 2.5)
+	var gate_placed := _world_on_path(_track_length, 0.0, 2.5)
 	gate.position = gate_placed["pos"]
 	gate.rotation.y = float(gate_placed["yaw"])
 	track_root.add_child(gate)
@@ -3576,7 +4429,7 @@ func _build_starfield() -> void:
 		mesh.rings = 4
 		mesh.material = material
 		star.mesh = mesh
-		star.position = Vector3(randf_range(-60.0, 60.0), randf_range(7.0, 26.0), randf_range(-TRACK_LENGTH, 20.0))
+		star.position = Vector3(randf_range(-60.0, 60.0), randf_range(7.0, 26.0), randf_range(-_track_length, 20.0))
 		add_child(star)
 
 
@@ -3598,6 +4451,7 @@ func _make_material(color: Color, emission: Color = Color.BLACK, emission_energy
 	material.albedo_color = color
 	material.metallic = 0.15
 	material.roughness = 0.65
+	material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	if emission_energy > 0.0:
 		material.emission_enabled = true
 		material.emission = emission

@@ -1,6 +1,6 @@
 shader_type spatial;
 // 全息能量轨：连续挤出网格 + 克制青绿能量。UV.x=路宽，UV.y=沿路距离。
-render_mode cull_back, diffuse_burley, specular_schlick_ggx, ambient_light_disabled;
+render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D road_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec3 base_color : source_color = vec3(0.04, 0.08, 0.1);
@@ -70,31 +70,30 @@ void fragment() {
 	float lateral_x = (u - 0.5) * road_half_width * 2.0;
 
 	vec4 tex = texture(road_tex, vec2(u, v));
-	vec3 tex_col = tex.rgb * tex_darken;
-	float tex_luma = dot(tex_col, vec3(0.299, 0.587, 0.114));
-	tex_col = mix(tex_col, plasma_color * 0.18, smoothstep(0.3, 0.7, tex_luma) * 0.7);
-	tex_col = min(tex_col, vec3(0.32));
+	// 贴图黑底 + 电路线：整体偏青，避免被环境染成沙漠黄
+	vec3 tex_col = mix(base_color * 0.85, tex.rgb * vec3(0.55, 0.95, 1.05), max(tex.a, 0.35));
+	tex_col = mix(tex_col, plasma_color * 0.35, smoothstep(0.15, 0.85, dot(tex.rgb, vec3(0.299, 0.587, 0.114))));
 
 	vec2 flow_uv = vec2(u, v) * vec2(1.2, 2.6);
 	float veins = soft_vein(flow_uv);
-	veins = max(veins * 0.7, soft_vein(flow_uv * vec2(2.1, 0.85) + 4.2) * 0.5);
+	veins = max(veins * 0.85, soft_vein(flow_uv * vec2(2.1, 0.85) + 4.2) * 0.55);
 
 	float particles = micro_particles(flow_uv * vec2(22.0, 48.0) + vec2(0.0, TIME * wave_speed));
 	particles += micro_particles(flow_uv * vec2(30.0, 18.0) - vec2(TIME * wave_speed * 0.35, 0.0)) * 0.6;
 
 	float wave = pow(0.5 + 0.5 * sin(world_pos.z * 0.28 - TIME * wave_speed), 3.8);
-	float core = pow(smoothstep(1.5, 0.0, abs(lateral_x)), 2.8) * 0.4;
+	float core = pow(smoothstep(1.5, 0.0, abs(lateral_x)), 2.8) * 0.55;
 	float edge = smoothstep(road_half_width * 0.9, road_half_width * 1.02, abs(lateral_x));
 	float edge_soft = smoothstep(road_half_width * 0.75, road_half_width * 0.98, abs(lateral_x));
 
 	vec3 solid = base_color;
-	solid = mix(solid, plasma_color * 0.16, veins * 0.5 + core * 0.2);
-	solid = mix(solid, edge_color * 0.08, edge_soft * 0.3);
-	solid += circuit_color * particles * 0.05;
+	solid = mix(solid, plasma_color * 0.32, veins * 0.65 + core * 0.35);
+	solid = mix(solid, edge_color * 0.14, edge_soft * 0.45);
+	solid += circuit_color * particles * 0.12;
 
-	vec3 albedo = mix(solid, tex_col, tex_blend * tex.a);
-	albedo = mix(albedo, plasma_color * 0.1, wave * 0.06);
-	albedo = min(albedo, vec3(0.34));
+	vec3 albedo = mix(solid, tex_col, tex_blend);
+	albedo = mix(albedo, plasma_color * 0.16, wave * 0.12);
+	albedo = max(albedo, base_color * 0.72);
 
 	ALBEDO = albedo;
 	ALPHA = 1.0;
@@ -104,7 +103,7 @@ void fragment() {
 
 	EMISSION = plasma_color * veins * plasma_energy
 		+ circuit_color * particles * flow_energy
-		+ plasma_color * core * 0.22
-		+ plasma_color * wave * 0.08
-		+ edge_color * edge * 0.28;
+		+ plasma_color * core * 0.45
+		+ plasma_color * wave * 0.15
+		+ edge_color * edge * 0.55;
 }

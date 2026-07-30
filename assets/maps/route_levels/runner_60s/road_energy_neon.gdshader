@@ -1,6 +1,6 @@
 shader_type spatial;
 // 参考：黑亮能量轨道。关闭环境光，避免沙漠橙雾把路面染成「熔岩水」。
-render_mode cull_back, diffuse_burley, specular_schlick_ggx, ambient_light_disabled;
+render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 uniform vec3 base_color : source_color = vec3(0.01, 0.015, 0.03);
 uniform vec3 vein_color : source_color = vec3(0.2, 0.95, 1.0);

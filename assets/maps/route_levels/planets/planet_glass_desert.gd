@@ -1,5 +1,7 @@
 extends "res://assets/maps/route_levels/runner_planet_config.gd"
 
+const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+
 ## 星球一 · 无尽晶砂漠
 
 const PLANET_ID := "glass_desert"
@@ -15,6 +17,7 @@ const MISSION := {
 	"cargo_load": 100,
 	"target_hearth": "水源据点",
 	"task_type": "Supply Run",
+	"duration": 52.0,
 }
 
 const EXPLORE_CONNECTIONS := [
@@ -40,12 +43,11 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Mira",
 		"manager_title": "净水系统工程师",
 		"manager_quote": "只要水还在流动，荒原就还有明天。",
-		"reward_coins": 1000,
+		"reward_coins": 300,
 		"repair_total": 400,
-		"repair_current": 240,
 		"needs": [
-			{"name": "净水包", "current": 140, "total": 200, "cargo_icon": "净水"},
-			{"name": "能源包", "current": 100, "total": 200, "cargo_icon": "能源包"},
+			{"name": "净水包", "current": 0, "total": 200, "cargo_icon": "净水"},
+			{"name": "能源包", "current": 0, "total": 200, "cargo_icon": "能源包"},
 		],
 	},
 	{
@@ -62,12 +64,12 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Owen",
 		"manager_title": "聚居地负责人",
 		"manager_quote": "这里是最后的家园，也是重建的起点。",
-		"reward_coins": 1200,
+		"reward_coins": 300,
 		"unlock_character": "Rook",
 		"repair_total": 400,
 		"needs": [
-			{"name": "建设包", "current": 180, "total": 200, "cargo_icon": "建设"},
-			{"name": "能源包", "current": 80, "total": 200, "cargo_icon": "能源包"},
+			{"name": "建设包", "current": 0, "total": 200, "cargo_icon": "建设"},
+			{"name": "能源包", "current": 0, "total": 200, "cargo_icon": "能源包"},
 		],
 	},
 	{
@@ -84,11 +86,11 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Iris",
 		"manager_title": "医疗主管",
 		"manager_quote": "每一份药剂，都是把一个人拉回黎明。",
-		"reward_coins": 1500,
-		"repair_total": 300,
+		"reward_coins": 300,
+		"repair_total": 400,
 		"needs": [
-			{"name": "医疗包", "current": 120, "total": 200, "cargo_icon": "医疗"},
-			{"name": "净水包", "current": 80, "total": 150, "cargo_icon": "净水"},
+			{"name": "医疗包", "current": 0, "total": 200, "cargo_icon": "医疗"},
+			{"name": "净水包", "current": 0, "total": 150, "cargo_icon": "净水"},
 		],
 	},
 	{
@@ -105,11 +107,11 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Kane",
 		"manager_title": "防线指挥官",
 		"manager_quote": "防线还在，家园就不会失守。",
-		"reward_coins": 1500,
-		"repair_total": 300,
+		"reward_coins": 300,
+		"repair_total": 400,
 		"needs": [
-			{"name": "防御包", "current": 130, "total": 200, "cargo_icon": "防御"},
-			{"name": "建设包", "current": 100, "total": 200, "cargo_icon": "建设"},
+			{"name": "防御包", "current": 0, "total": 200, "cargo_icon": "防御"},
+			{"name": "建设包", "current": 0, "total": 200, "cargo_icon": "建设"},
 		],
 	},
 	{
@@ -126,13 +128,19 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Nova",
 		"manager_title": "中继站信号员",
 		"manager_quote": "只要信号抵达，希望就不会熄灭。",
-		"reward_coins": 2000,
-		"repair_total": 300,
+		"reward_coins": 1000,
+		"repair_total": 400,
 		"needs": [
-			{"name": "能源包", "current": 160, "total": 200, "cargo_icon": "能源包"},
-			{"name": "星火核心", "current": 20, "total": 100, "cargo_icon": "星火核心"},
+			{"name": "能源包", "current": 0, "total": 200, "cargo_icon": "能源包"},
+			{"name": "星火核心", "current": 0, "total": 100, "cargo_icon": "星火核心"},
 		],
 	},
+]
+
+const MISSION_BATCHES := [
+	{"id": 1, "name": "生存基础", "locations": ["dome", "reservoir"]},
+	{"id": 2, "name": "危机应对", "locations": ["medical", "gate"]},
+	{"id": 3, "name": "网络核心", "locations": ["relay"]},
 ]
 
 const LOCATION_MISSIONS := [
@@ -145,9 +153,10 @@ const LOCATION_MISSIONS := [
 		"source_hearth": "居民穹顶",
 		"target_hearth": "水源据点",
 		"task_type": "Supply Run",
+		"duration": 52.0,
 		"order": 10,
 		"difficulty": 1,
-		"runner_rhythm": "0-20 秒熟悉换道与跳跃，20-40 秒引入选择门，40-60 秒零潮追击。",
+		"runner_rhythm": "补给跑约 52 秒：障碍偏少，前段熟悉换道与跳跃，中段引入选择门。",
 		"environment_factor": "低强度晶砂风，视野清晰。",
 		"unlock_ids": ["reservoir", "medical"],
 		"unlocks": ["水源据点", "医疗据点"],
@@ -161,10 +170,11 @@ const LOCATION_MISSIONS := [
 		"cargo_load": 90,
 		"source_hearth": "水源据点",
 		"target_hearth": "医疗据点",
-		"task_type": "Supply Run",
+		"task_type": "Repair Run",
+		"duration": 65.0,
 		"order": 20,
 		"difficulty": 1,
-		"runner_rhythm": "前段障碍少，中段奖励币密集，末段强调完整度保护。",
+		"runner_rhythm": "抢修跑约 65 秒：障碍更密，时间相对宽裕，末段强调完整度保护。",
 		"environment_factor": "水库盐雾会降低远景对比。",
 		"unlock_ids": [],
 		"unlocks": [],
@@ -179,9 +189,10 @@ const LOCATION_MISSIONS := [
 		"source_hearth": "医疗据点",
 		"target_hearth": "星火中继站",
 		"task_type": "Emergency Run",
+		"duration": 40.0,
 		"order": 30,
 		"difficulty": 2,
-		"runner_rhythm": "节奏较稳，但完整度惩罚更敏感。",
+		"runner_rhythm": "紧急跑强制 40 秒限时：超时失败；越早送达，限时奖励倍率越高。",
 		"environment_factor": "医疗站附近低能见度，奖励币路线更分散。",
 		"unlock_ids": ["relay"],
 		"unlocks": ["星火中继站"],
@@ -195,10 +206,11 @@ const LOCATION_MISSIONS := [
 		"cargo_load": 95,
 		"source_hearth": "星火中继站",
 		"target_hearth": "防御哨站",
-		"task_type": "Relay Run",
+		"task_type": "Ignition Run",
+		"duration": 80.0,
 		"order": 40,
 		"difficulty": 3,
-		"runner_rhythm": "高压段提前，连续滑铲和跳跃组合更多。",
+		"runner_rhythm": "点火跑约 80 秒：高压障碍 + 零潮追击开启，需兼顾完整度与逃逸距离。",
 		"environment_factor": "中继站外有强沙暴，障碍轮廓更晚显现。",
 		"unlock_ids": ["gate"],
 		"unlocks": ["防御哨站"],
@@ -212,11 +224,12 @@ const LOCATION_MISSIONS := [
 		"cargo_load": 110,
 		"source_hearth": "防御哨站",
 		"target_hearth": "居民穹顶",
-		"task_type": "Repair Run",
+		"task_type": "Relay Run",
+		"duration": 75.0,
 		"order": 50,
 		"difficulty": 3,
-		"runner_rhythm": "前 20 秒建立速度，20-40 秒加入移动车，40-60 秒连续选择门。",
-		"environment_factor": "防御哨站外有强沙暴，追猎距离恢复更慢。",
+		"runner_rhythm": "中继跑约 75 秒：长距运输，分叉选择更多，连续滑铲与跳跃组合更密。",
+		"environment_factor": "防御哨站外有强沙暴，岔路更晚显现。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "防御哨站重启后，防御包回运能稳定穹顶外围的防线。",
@@ -244,19 +257,55 @@ const THEME := {
 	"surroundings": "desert_crystal",
 }
 
+const ELSA_ACTION_ROOT := "res://elsa动作/"
+const MVP_ROOT := "res://mvp素材第一批/"
+const MVP2_ROOT := "res://mvp素材第二批/"
+const MVP2_CARGO_ROOT := MVP2_ROOT + "运输包2d/"
+
+const PLAYER_ELSA := {
+	"model": ELSA_ACTION_ROOT + "elsa正面.glb",
+	"run_left": ELSA_ACTION_ROOT + "elsa奔跑左腿前.glb",
+	"run_right": ELSA_ACTION_ROOT + "elsa奔跑右腿前.glb",
+	"jump_start": ELSA_ACTION_ROOT + "elsa起跳.glb",
+	"jump_peak": ELSA_ACTION_ROOT + "elsa跳跃高点.glb",
+	"landing": ELSA_ACTION_ROOT + "跳跃落地.glb",
+	"slide": ELSA_ACTION_ROOT + "滑铲.glb",
+	"animated_model": ELSA_ACTION_ROOT + "Running.fbx",
+	"run_anim": "mixamo_com",
+	"run_anim_speed": 1.0,
+	"surface_texture": ELSA_ACTION_ROOT + "elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg",
+	"portrait": "res://assets/maps/route_levels/mobile_home/ui_character/elsa_fullbody.png",
+	"model_yaw": 0.0,
+	"animated_model_yaw": 180.0,
+	"slide_yaw": 0.0,
+	"intro_body_yaw": 180.0,
+}
+
+const PLAYER_ROOK := {
+	"model": MVP2_ROOT + "rook/rook立体.glb",
+	"run_left": MVP2_ROOT + "rook/rook跑步1 左腿蹬地右腿在前.glb",
+	"run_right": MVP2_ROOT + "rook/rook跑步2 右腿前踩地左腿空中.glb",
+	"run_alt": MVP2_ROOT + "rook/rook跑步3.glb",
+	"jump_start": MVP2_ROOT + "rook/rook起跳.glb",
+	"jump_peak": MVP2_ROOT + "rook/rook跳跃高点.glb",
+	"landing": MVP2_ROOT + "rook/rook跳跃落地.glb",
+	"slide": MVP2_ROOT + "rook/rook滑铲.glb",
+	"portrait": MVP2_ROOT + "rook/rook正面.jpg",
+	"model_yaw": 180.0,
+	"slide_yaw": 180.0,
+	"intro_body_yaw": 0.0,
+}
+
 const ASSETS := {
 	"panorama": "res://3d素材/三拼地图.png",
 	"jump_obstacles": [
-		"res://mvp素材第二批/障碍物/高墙.glb",
-		"res://mvp素材第二批/障碍物/高墙2.glb",
-		"res://mvp素材第二批/障碍物/晶砂倒刺1.glb",
-		"res://mvp素材第二批/障碍物/晶砂倒刺2.glb",
-		"res://mvp素材第二批/障碍物/热浪喷口1（跳跃，热量侵蚀）.glb",
-		"res://mvp素材第二批/障碍物/热浪喷口2.glb",
-		"res://mvp素材第二批/障碍物/热浪喷口3.glb",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_sprigs_2_5d.png",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
 	],
-	"slide_obstacle": "res://mvp素材第二批/障碍物/锈蚀水管1.glb",
+	"slide_obstacle": "res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
 	"slide_obstacles": [
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
 		"res://mvp素材第二批/障碍物/锈蚀水管1.glb",
 		"res://mvp素材第二批/障碍物/坍塌广告牌.glb",
 		"res://mvp素材第二批/障碍物/能量裂缝.glb",
@@ -280,25 +329,12 @@ const ASSETS := {
 		"res://mvp素材第一批/防御哨站3d.glb",
 	],
 	"hearth": "res://mvp素材第一批/居民穹顶3d.glb",
-	"player": {
-		"model": "res://mvp素材第二批/rook/rook立体.glb",
-		"run_left": "res://mvp素材第二批/rook/rook跑步1 左腿蹬地右腿在前.glb",
-		"run_right": "res://mvp素材第二批/rook/rook跑步2 右腿前踩地左腿空中.glb",
-		"run_alt": "res://mvp素材第二批/rook/rook跑步3.glb",
-		"jump_start": "res://mvp素材第二批/rook/rook起跳.glb",
-		"jump_peak": "res://mvp素材第二批/rook/rook跳跃高点.glb",
-		"landing": "res://mvp素材第二批/rook/rook跳跃落地.glb",
-		"slide": "res://mvp素材第二批/rook/rook滑铲.glb",
-		"portrait": "res://mvp素材第二批/rook/rook正面.jpg",
-		"model_yaw": 180.0,
-		"slide_yaw": 180.0,
-		"intro_body_yaw": 0.0,
+	"players": {
+		"elsa": PLAYER_ELSA,
+		"rook": PLAYER_ROOK,
 	},
+	"player": PLAYER_ELSA,
 }
-
-const MVP_ROOT := "res://mvp素材第一批/"
-const MVP2_ROOT := "res://mvp素材第二批/"
-const MVP2_CARGO_ROOT := MVP2_ROOT + "运输包2d/"
 
 const MVP_MAPS := {
 	"explore_zh": MVP_ROOT + "晶砂荒原中文地图9：16.webp",
@@ -357,29 +393,29 @@ const JUNCTION_ZONES := [
 	{
 		"distance": 110.0,
 		"length": 100.0,
-		"spread": 24.0,
+		"spread": 15.0,
 		"lane_a": 0, "label_a": "安全岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "速通岔路", "effect_b": "fast",
 	},
 	{
 		"distance": 420.0,
 		"length": 100.0,
-		"spread": 24.0,
+		"spread": 15.0,
 		"lane_a": 0, "label_a": "修复岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "奖励岔路", "effect_b": "bonus",
 	},
 	{
 		"distance": 720.0,
 		"length": 100.0,
-		"spread": 24.0,
+		"spread": 15.0,
 		"lane_a": 0, "label_a": "安全岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "速通岔路", "effect_b": "fast",
 	},
 ]
 
 const OBSTACLE_TYPES := {
-	"jump": "晶砂高墙",
-	"slide": "锈蚀水管",
+	"jump": "跳跃障碍",
+	"slide": "相位光幕",
 	"train": "坍塌广告牌",
 	"train_moving": "失控运输车",
 	"block_left": "能量裂缝",
@@ -409,12 +445,27 @@ static func get_track_segments() -> Array:
 static func get_mission_for_location(location_id: String) -> Dictionary:
 	for item in LOCATION_MISSIONS:
 		if String(item["location_id"]) == location_id:
-			return item
-	return MISSION
+			return MissionTypes.enrich_mission(item)
+	return MissionTypes.enrich_mission(MISSION)
 
 
 static func get_location_missions() -> Array:
-	return LOCATION_MISSIONS.duplicate(true)
+	var out: Array = []
+	for item in LOCATION_MISSIONS:
+		out.append(MissionTypes.enrich_mission(item))
+	return out
+
+
+static func get_mission_batches() -> Array:
+	return MISSION_BATCHES.duplicate(true)
+
+
+static func get_jump_obstacle_label(asset_path: String) -> String:
+	if "energy_orb" in asset_path:
+		return "漂浮能量球"
+	if "energy_sprigs" in asset_path:
+		return "能量棱芽"
+	return OBSTACLE_TYPES.get("jump", "跳跃障碍")
 
 
 static func build_obstacles() -> Array:
@@ -535,8 +586,18 @@ static func get_cargo_icon_path(mission: Dictionary) -> String:
 	return MVP2_CARGO_ROOT + icon_key + ".webp"
 
 
-static func get_runner_portrait_path() -> String:
-	var player_assets: Dictionary = ASSETS.get("player", {})
+static func get_player_assets(character_id: String = "elsa") -> Dictionary:
+	var players: Variant = ASSETS.get("players", {})
+	if players is Dictionary and players.has(character_id):
+		return (players[character_id] as Dictionary).duplicate(true)
+	var fallback: Variant = ASSETS.get("player", PLAYER_ELSA)
+	if fallback is Dictionary:
+		return (fallback as Dictionary).duplicate(true)
+	return PLAYER_ELSA.duplicate(true)
+
+
+static func get_runner_portrait_path(character_id: String = "elsa") -> String:
+	var player_assets: Dictionary = get_player_assets(character_id)
 	return String(player_assets.get("portrait", ""))
 
 
@@ -599,22 +660,23 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 	if outpost.is_empty():
 		return {}
 	var mission: Dictionary = get_mission_for_location(location_id) if revealed else {}
-	var repair_total := int(outpost.get("repair_total", 300))
-	var repair_current := int(outpost.get("repair_current", -1))
-	if repair_current < 0:
-		repair_current = repair_total if completed else int(repair_total * 0.45)
+	var repair_total := maxi(1, int(outpost.get("repair_total", 400)))
+	var repair_current := 0
 	if completed:
 		repair_current = repair_total
-	elif not revealed:
-		repair_current = 0
-	var repair_percent := 100 if completed else int(round(float(repair_current) / float(maxi(repair_total, 1)) * 100.0))
+	elif revealed:
+		repair_current = clampi(Global.get_outpost_progress(PLANET_ID, location_id), 0, repair_total)
+	var repair_percent := int(round(float(repair_current) / float(repair_total) * 100.0))
 	var needs: Array = []
 	for need in outpost.get("needs", []):
 		var item: Dictionary = need.duplicate(true)
+		var need_total := maxi(1, int(item.get("total", 1)))
 		if completed:
-			item["current"] = int(item.get("total", 0))
+			item["current"] = need_total
 		elif not revealed:
 			item["current"] = 0
+		else:
+			item["current"] = clampi(int(round(float(need_total) * float(repair_current) / float(repair_total))), 0, need_total)
 		if item.has("cargo_icon"):
 			item["icon_path"] = get_cargo_icon_path({"cargo_icon": String(item["cargo_icon"])})
 		needs.append(item)
@@ -622,24 +684,35 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 	if revealed and not mission.is_empty():
 		transport_missions.append({
 			"index": "01",
-			"type": String(mission.get("task_type", "Supply Run")),
+			"type": String(mission.get("task_type_zh", mission.get("task_type", "补给"))),
+			"type_en": String(mission.get("task_type", "Supply Run")),
+			"duration": int(mission.get("duration", 60)),
 			"cargo_text": "%s×%d" % [String(mission.get("cargo_name", "物资")), int(mission.get("cargo_load", 1))],
-			"coins": 100 + int(mission.get("difficulty", 1)) * 10,
+			"coins": int(mission.get("base_reward", 100 + int(mission.get("difficulty", 1)) * 10)),
 			"xp": 20 + int(mission.get("difficulty", 1)) * 5,
+			"hint": String(mission.get("task_hint", "")),
 		})
 		if needs.size() > 1:
 			var second_need: Dictionary = needs[1]
 			transport_missions.append({
 				"index": "02",
-				"type": "Supply Run",
+				"type": "补给",
+				"type_en": "Supply Run",
+				"duration": 52,
 				"cargo_text": "%s×15" % String(second_need.get("name", "物资")),
 				"coins": 110 + int(mission.get("difficulty", 1)) * 10,
 				"xp": 25 + int(mission.get("difficulty", 1)) * 5,
+				"hint": "障碍较少 · 熟悉换道与跳跃",
 			})
 	var status_text := "状态：Lit（已点亮）" if completed else ("状态：修复中" if revealed else "状态：未开放")
 	var runner_label := "还没轮到这个据点的任务哦"
 	if revealed:
-		runner_label = "再次运输" if completed else "开始运输"
+		if completed:
+			runner_label = "再次运输"
+		elif repair_current > 0:
+			runner_label = "继续运输"
+		else:
+			runner_label = "开始运输"
 	var locked_hint := ""
 	if not revealed:
 		locked_hint = "\n主要奖励：角色 ??? · 星火币 ???"

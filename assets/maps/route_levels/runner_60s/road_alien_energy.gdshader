@@ -1,14 +1,14 @@
 shader_type spatial;
 // 异星固态能量轨：不透明、低发光、内嵌青白静脉与内部微粒流动。无玻璃/透明。
-render_mode cull_back, diffuse_burley, specular_schlick_ggx, ambient_light_disabled;
+render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-uniform vec3 base_color : source_color = vec3(0.04, 0.09, 0.14);
+uniform vec3 base_color : source_color = vec3(0.1, 0.18, 0.26);
 uniform vec3 vein_color : source_color = vec3(0.55, 0.88, 1.0);
 uniform vec3 particle_color : source_color = vec3(0.35, 0.95, 1.0);
-uniform float roughness_val : hint_range(0.0, 1.0) = 0.38;
-uniform float metallic_val : hint_range(0.0, 1.0) = 0.12;
-uniform float vein_energy : hint_range(0.0, 4.0) = 1.15;
-uniform float particle_energy : hint_range(0.0, 3.0) = 0.85;
+uniform float roughness_val : hint_range(0.0, 1.0) = 0.32;
+uniform float metallic_val : hint_range(0.0, 1.0) = 0.1;
+uniform float vein_energy : hint_range(0.0, 6.0) = 2.4;
+uniform float particle_energy : hint_range(0.0, 4.0) = 1.35;
 uniform float flow_speed = 0.55;
 uniform float detail_scale = 0.14;
 
@@ -79,11 +79,17 @@ void fragment() {
 	// 边缘轻微能量收束（不做成强霓虹条）
 	float edge = smoothstep(5.2, 6.1, abs(local_pos.x));
 
-	// 不透明固态能量体：偏青灰，略提亮静脉处
+	// 不透明固态能量体：青灰底 + 可见静脉/微粒
 	vec3 albedo = base_color;
-	albedo = mix(albedo, vein_color * 0.22, veins * 0.55);
-	albedo = mix(albedo, vein_color * 0.18, seam * 0.35);
-	albedo += particle_color * particles * 0.08;
+	albedo = mix(albedo, vein_color * 0.38, veins * 0.72);
+	albedo = mix(albedo, vein_color * 0.28, seam * 0.45);
+	albedo += particle_color * particles * 0.16;
+	albedo = max(albedo, base_color * 0.82);
+
+	// 中央能量脊线
+	float center_line = smoothstep(0.22, 0.0, abs(local_pos.x));
+	center_line *= 0.55 + veins * 0.35;
+	albedo = mix(albedo, vein_color * 0.55, center_line * 0.65);
 
 	ALBEDO = albedo;
 	ALPHA = 1.0;
@@ -91,9 +97,10 @@ void fragment() {
 	ROUGHNESS = mix(roughness_val, 0.28, veins * 0.4);
 	SPECULAR = 0.22;
 
-	// 低强度内嵌发光：静脉在表层下，粒子更细
+	// 内嵌发光：表层下青白能量流动
 	EMISSION = vein_color * veins * vein_energy
 		+ particle_color * particles * particle_energy
-		+ vein_color * seam * 0.35
-		+ particle_color * edge * 0.25;
+		+ vein_color * seam * 0.55
+		+ particle_color * edge * 0.55
+		+ vein_color * center_line * 1.35;
 }

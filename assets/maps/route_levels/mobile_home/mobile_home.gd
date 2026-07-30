@@ -1,10 +1,13 @@
 extends Control
 
 const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.gd")
+const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
+const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
 const CharacterProgression = preload("res://assets/maps/route_levels/character_progression.gd")
 const CharacterRoster = preload("res://assets/maps/route_levels/character_roster.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
-const CharacterBook = preload("res://assets/maps/route_levels/mobile_home/character_book/character_book.gd")
+const HomeFrameOverlay = preload("res://assets/maps/route_levels/mobile_home/home_frame_overlay.gd")
+const MapFrameOverlay = preload("res://assets/maps/route_levels/mobile_home/map_frame_overlay.gd")
 
 const MAP_PREVIEW_FALLBACK := "res://assets/ddddd.png"
 const TAB_HOME := "home"
@@ -19,26 +22,31 @@ const TAB_LABELS := {
 	TAB_CHARACTER: "RUNNER",
 }
 const MOBILE_VIEWPORT_SIZE := Vector2(1080, 1920)
+# 标注稿基准（home/星火信使-主界面UI.html spec）
+const HOME_DESIGN_SIZE := Vector2(682.0, 1228.0)
 
-# 深蓝科技风（与据点详情页统一）
-const UI_BG := Color(0.03, 0.05, 0.08, 0.98)
-const UI_FRAME := Color(0.06, 0.08, 0.12, 0.98)
-const UI_FRAME_BORDER := Color(0.34, 0.52, 0.68, 0.92)
-const UI_PANEL := Color(0.08, 0.10, 0.14, 0.96)
-const UI_PANEL_BORDER := Color(0.24, 0.38, 0.52, 0.72)
-const UI_TEXT := Color(0.90, 0.93, 0.98)
-const UI_MUTED := Color(0.58, 0.64, 0.72)
-const UI_STATUS := Color(0.98, 0.74, 0.30)
-const UI_CYAN := Color(0.42, 0.86, 0.98)
-const UI_REWARD := Color(0.78, 0.62, 0.98)
-const UI_GOLD := Color(0.94, 0.72, 0.22)
-const UI_GOLD_BORDER := Color(0.98, 0.84, 0.42)
+# 晶莹蓝白体系（home/星火信使-主界面UI.html）
+const UI_BG := Color(0.016, 0.027, 0.051, 0.98)
+const UI_FRAME := Color(0.027, 0.063, 0.114, 0.62)
+const UI_FRAME_BORDER := Color(0.667, 0.902, 1.0, 0.55)
+const UI_PANEL := Color(0.027, 0.063, 0.114, 0.45)
+const UI_PANEL_BORDER := Color(0.588, 0.843, 1.0, 0.4)
+const UI_TEXT := Color(0.957, 0.984, 1.0)
+const UI_MUTED := Color(0.576, 0.639, 0.71)
+const UI_STATUS := Color(0.710, 0.941, 1.0)
+const UI_CYAN := Color(0.557, 0.882, 0.969)
+const UI_CYAN_SOFT := Color(0.635, 0.925, 0.976)
+const UI_ICE := Color(0.902, 0.988, 1.0)
+const UI_NAV_ACTIVE := Color(0.435, 0.839, 1.0)  # #6FD6FF 标注激活色
+const UI_REWARD := Color(0.557, 0.882, 0.969)
+const UI_GOLD := Color(0.557, 0.882, 0.969)
+const UI_GOLD_BORDER := Color(0.682, 0.914, 0.961)
 const UI_GREEN := Color(0.42, 0.86, 0.58)
-const UI_ORANGE := Color(0.98, 0.62, 0.18)
-const UI_ORANGE_BORDER := Color(1.0, 0.78, 0.36)
-const UI_HEADER := Color(0.05, 0.055, 0.07, 0.98)
-const UI_METAL := Color(0.10, 0.09, 0.08, 0.98)
-const UI_METAL_BORDER := Color(0.62, 0.50, 0.30, 0.92)
+const UI_ORANGE := Color(0.557, 0.882, 0.969)
+const UI_ORANGE_BORDER := Color(0.435, 0.839, 1.0)
+const UI_HEADER := Color(0.027, 0.063, 0.114, 0.62)
+const UI_METAL := Color(0.027, 0.063, 0.114, 0.62)
+const UI_METAL_BORDER := Color(0.627, 0.784, 0.922, 0.18)
 
 const HEADER_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_header/"
 const HEADER_ICON_ENERGY := HEADER_UI_ROOT + "icon_energy.png"
@@ -46,7 +54,10 @@ const HEADER_ICON_GOLD := HEADER_UI_ROOT + "icon_gold.png"
 const HEADER_ICON_EMBER := HEADER_UI_ROOT + "icon_ember.png"
 const HEADER_ICON_SETTINGS := HEADER_UI_ROOT + "icon_settings.png"
 const HOME_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_home/"
-const HOME_BG_PATH := HOME_UI_ROOT + "background.png"
+const HOME_BG_PATH := HOME_UI_ROOT + "background_dawnline.webp"
+const HOME_AVATAR_PATH := HOME_UI_ROOT + "avatar_default.png"
+const HOME_MISSION_THUMB_PATH := HOME_UI_ROOT + "mission_thumb_water_station.webp"
+const HOME_CIRCULAR_AVATAR_SHADER := HOME_UI_ROOT + "circular_avatar.gdshader"
 const FINAL_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_final/"
 const FINAL_TOPBAR := FINAL_UI_ROOT + "ui_topbar_container.png"
 const FINAL_MAP_FRAME := FINAL_UI_ROOT + "ui_map_panel_frame.png"
@@ -80,6 +91,11 @@ const CHAR_STORY_PANEL_BG := CHAR_UI_ROOT + "story_panel_bg.png"
 const CHAR_STORY_PANEL_BORDER := CHAR_UI_ROOT + "story_panel_border.png"
 const MAPLIST_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_maplist/"
 const MAPLIST_PREVIEW_01 := MAPLIST_UI_ROOT + "map01_preview.png"
+const MAPLIST_MAP_CRYSTAL := MAPLIST_UI_ROOT + "map_crystal.jpg"
+const MAPLIST_MAP_VENOM := MAPLIST_UI_ROOT + "map_venom.jpg"
+const MAPLIST_MAP_GRAVITY := MAPLIST_UI_ROOT + "map_gravity.jpg"
+const MAPLIST_MAP_REDSTORM := MAPLIST_UI_ROOT + "map_redstorm.jpg"
+const MAPLIST_BG := MAPLIST_UI_ROOT + "map_list_background.webp"
 const MAPLIST_ICON_OUTPOST := MAPLIST_UI_ROOT + "icon_outpost.png"
 const MAPLIST_ICON_PURIFY := MAPLIST_UI_ROOT + "icon_purify.png"
 const MAPLIST_ICON_CHAPTER := MAPLIST_UI_ROOT + "icon_chapter.png"
@@ -98,7 +114,7 @@ const GUIDE_STEPS := [
 	{
 		"tab": TAB_MAP,
 		"title": "从这里开始",
-		"body": "点击 MAP 进入据点地图，选择运输任务并开始跑酷。相邻区域会在完成任务后点亮。",
+		"body": "点击 MAP 进入据点地图，或从 TASKS 任务板接取运输。批次逐步解锁，任务板常驻 3 槽并按缺口优先补发。",
 		"next": "知道了",
 	},
 ]
@@ -132,8 +148,18 @@ var _guide_title_label: Label
 var _guide_body_label: Label
 var _guide_next_button: Button
 var _root_margin: MarginContainer
+var _content_host: Control
+var _status_bar_root: Control
+var _bottom_nav_root: Control
 var _ui_root: Control
 var _home_background: TextureRect
+var _home_overlay: Control
+var _map_overlay: Control
+var _map_title_host: Control
+var _map_list_scroll: ScrollContainer
+var _map_list_box: VBoxContainer
+var _home_mission_host: Control
+var _home_start_host: Control
 var _page_scrim: ColorRect
 var _home_title_box: Control
 var _selected_tab := TAB_HOME
@@ -145,6 +171,7 @@ var _energy_tick := 0.0
 
 func _ready() -> void:
 	add_to_group("MobileHomeScene")
+	_sync_selected_character_from_global()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
 		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
@@ -196,20 +223,26 @@ func _setup_pause_overlay() -> void:
 
 func _on_viewport_resized() -> void:
 	_apply_mobile_layout()
+	_sync_map_list_width()
 	_update_guide_layout()
 	_position_toast()
 
 
-func _apply_mobile_layout() -> void:
-	if _root_margin == null:
+func _sync_map_list_width() -> void:
+	if _map_list_scroll == null or _map_list_box == null:
 		return
+	var w := _map_list_scroll.size.x
+	if w > 1.0:
+		_map_list_box.custom_minimum_size.x = w
+
+
+func _apply_mobile_layout() -> void:
 	var frame_size := get_viewport().get_visible_rect().size
 	if _ui_root != null and _ui_root.size.x > 1.0 and _ui_root.size.y > 1.0:
 		frame_size = _ui_root.size
 	var scale := maxf(frame_size.x / MOBILE_VIEWPORT_SIZE.x, 0.75)
 	var side_margin := int(maxf(24.0, 28.0 * scale))
-	var top_margin := int(maxf(16.0, 22.0 * scale))
-	# 设计稿底栏贴底，默认不加空隙；仅在有底部安全区时抬高
+	var top_margin := 0
 	var bottom_margin := 0
 	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
 		var safe := DisplayServer.get_display_safe_area()
@@ -217,20 +250,32 @@ func _apply_mobile_layout() -> void:
 			side_margin = maxi(side_margin, safe.position.x)
 			top_margin = maxi(top_margin, safe.position.y)
 			bottom_margin = maxi(bottom_margin, maxi(0, int(frame_size.y) - safe.end.y))
-	_root_margin.add_theme_constant_override("margin_left", side_margin)
-	_root_margin.add_theme_constant_override("margin_right", side_margin)
-	_root_margin.add_theme_constant_override("margin_top", top_margin)
-	_root_margin.add_theme_constant_override("margin_bottom", bottom_margin)
+	if _content_host:
+		_content_host.offset_left = side_margin
+		_content_host.offset_right = -side_margin
+		_content_host.offset_top = _home_spec_h(112) + top_margin
+		_content_host.offset_bottom = -_home_spec_h(1228 - 1110) - bottom_margin
+	elif _root_margin:
+		_root_margin.add_theme_constant_override("margin_left", side_margin)
+		_root_margin.add_theme_constant_override("margin_right", side_margin)
+		_root_margin.add_theme_constant_override("margin_top", top_margin)
+		_root_margin.add_theme_constant_override("margin_bottom", bottom_margin)
 	if _page_title:
 		_page_title.add_theme_font_size_override("font_size", 34)
 	for button in _nav_buttons.values():
-		button.custom_minimum_size = Vector2(0, 96)
-		button.add_theme_font_size_override("font_size", 15)
+		button.custom_minimum_size = Vector2(0, _home_spec_h(98))
+		var tab_label := button.find_child("TabLabel", true, false) as Label
+		if tab_label:
+			tab_label.add_theme_font_size_override("font_size", _home_spec_fs(22))
+		var tab_icon := button.find_child("TabIcon", true, false) as TextureRect
+		if tab_icon:
+			var icon_sz := _home_spec_fs(42)
+			tab_icon.custom_minimum_size = Vector2(icon_sz, icon_sz)
 
 
 func _build_ui() -> void:
 	var letterbox := ColorRect.new()
-	letterbox.color = Color(0.01, 0.02, 0.04)
+	letterbox.color = Color(0.016, 0.027, 0.051)
 	letterbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	letterbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(letterbox)
@@ -267,33 +312,58 @@ func _build_ui() -> void:
 	shell.add_child(background)
 	_home_background = background
 
+	var bg_scrim := ColorRect.new()
+	bg_scrim.name = "BackgroundScrim"
+	bg_scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg_scrim.color = Color(0.016, 0.027, 0.051, 0.08)
+	bg_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(bg_scrim)
+
+	var bg_top := ColorRect.new()
+	bg_top.name = "BackgroundTopFade"
+	bg_top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	bg_top.offset_bottom = 268.0
+	bg_top.color = Color(0.016, 0.027, 0.051, 0.42)
+	bg_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(bg_top)
+
+	var bg_bottom := ColorRect.new()
+	bg_bottom.name = "BackgroundBottomFade"
+	bg_bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bg_bottom.offset_top = -690.0
+	bg_bottom.color = Color(0.016, 0.027, 0.051, 0.55)
+	bg_bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(bg_bottom)
+
+	var bg_bottom_deep := ColorRect.new()
+	bg_bottom_deep.name = "BackgroundBottomDeep"
+	bg_bottom_deep.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bg_bottom_deep.offset_top = -154.0
+	bg_bottom_deep.color = Color(0.016, 0.027, 0.051, 0.85)
+	bg_bottom_deep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(bg_bottom_deep)
+
 	_page_scrim = ColorRect.new()
 	_page_scrim.name = "PageScrim"
-	_page_scrim.color = Color(0.02, 0.03, 0.05, 0.78)
+	_page_scrim.color = Color(0.016, 0.027, 0.051, 0.55)
 	_page_scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_page_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_page_scrim.visible = false
 	shell.add_child(_page_scrim)
 
-	var margin := MarginContainer.new()
-	margin.name = "RootMargin"
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_top", 22)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_bottom", 0)
-	shell.add_child(margin)
-	_root_margin = margin
+	_content_host = Control.new()
+	_content_host.name = "ContentHost"
+	_content_host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_content_host.anchor_top = 0.0912
+	_content_host.anchor_bottom = 0.9055
+	_content_host.offset_left = 28
+	_content_host.offset_right = -28
+	shell.add_child(_content_host)
 
 	var root := VBoxContainer.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 12)
-	margin.add_child(root)
-
-	root.add_child(_build_status_bar())
-	_home_title_box = _build_home_title_overlay()
-	root.add_child(_home_title_box)
+	_content_host.add_child(root)
 
 	_page_title = Label.new()
 	_page_title.add_theme_font_size_override("font_size", 32)
@@ -317,36 +387,155 @@ func _build_ui() -> void:
 	_page_box.add_theme_constant_override("separation", 16)
 	scroll.add_child(_page_box)
 
-	root.add_child(_build_bottom_nav())
 	_ensure_toast_layer()
+
+	_home_overlay = Control.new()
+	_home_overlay.name = "HomeOverlay"
+	_home_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_home_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(_home_overlay)
+
+	_home_title_box = _build_home_title_overlay()
+	_home_title_box.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_home_title_box.offset_top = float(_home_spec_h(140))
+	_home_title_box.offset_bottom = float(_home_spec_h(345))
+	_home_overlay.add_child(_home_title_box)
+
+	_home_mission_host = Control.new()
+	_home_mission_host.name = "HomeMissionHost"
+	_home_mission_host.anchor_left = 0.1246
+	_home_mission_host.anchor_top = 0.6563
+	_home_mission_host.anchor_right = 0.8783
+	_home_mission_host.anchor_bottom = 0.7842
+	_home_mission_host.mouse_filter = Control.MOUSE_FILTER_PASS
+	_home_overlay.add_child(_home_mission_host)
+
+	_home_start_host = Control.new()
+	_home_start_host.name = "HomeStartHost"
+	_home_start_host.anchor_left = 0.1393
+	_home_start_host.anchor_top = 0.794
+	_home_start_host.anchor_right = 0.8651
+	_home_start_host.anchor_bottom = 0.8876
+	_home_start_host.mouse_filter = Control.MOUSE_FILTER_PASS
+	_home_overlay.add_child(_home_start_host)
+
+	_map_overlay = Control.new()
+	_map_overlay.name = "MapOverlay"
+	_map_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_map_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_overlay.visible = false
+	shell.add_child(_map_overlay)
+
+	_map_title_host = Control.new()
+	_map_title_host.name = "MapTitleHost"
+	_map_title_host.anchor_left = 0.0
+	_map_title_host.anchor_top = 0.106
+	_map_title_host.anchor_right = 1.0
+	_map_title_host.anchor_bottom = 0.206
+	_map_title_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_overlay.add_child(_map_title_host)
+
+	_map_list_scroll = ScrollContainer.new()
+	_map_list_scroll.name = "MapListScroll"
+	_map_list_scroll.anchor_left = 0.065
+	_map_list_scroll.anchor_top = 0.206
+	_map_list_scroll.anchor_right = 0.935
+	_map_list_scroll.anchor_bottom = 0.9055
+	_map_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_map_overlay.add_child(_map_list_scroll)
+
+	_map_list_box = VBoxContainer.new()
+	_map_list_box.name = "MapListBox"
+	_map_list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_map_list_scroll.add_child(_map_list_box)
+
+	_status_bar_root = Control.new()
+	_status_bar_root.name = "StatusBarRoot"
+	_status_bar_root.anchor_left = 0.0411
+	_status_bar_root.anchor_top = 0.0228
+	_status_bar_root.anchor_right = 0.9589
+	_status_bar_root.anchor_bottom = 0.0912
+	_status_bar_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(_status_bar_root)
+	_status_bar_root.add_child(_build_status_bar())
+
+	_bottom_nav_root = Control.new()
+	_bottom_nav_root.name = "BottomNavRoot"
+	_bottom_nav_root.anchor_left = 0.0367
+	_bottom_nav_root.anchor_top = 0.9055
+	_bottom_nav_root.anchor_right = 0.9633
+	_bottom_nav_root.anchor_bottom = 0.9853
+	shell.add_child(_bottom_nav_root)
+	_bottom_nav_root.add_child(_build_bottom_nav())
 
 
 func _build_home_title_overlay() -> Control:
 	var box := VBoxContainer.new()
 	box.name = "HomeTitle"
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 2)
+	box.add_theme_constant_override("separation", 6)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.custom_minimum_size = Vector2.ZERO
 
-	var title := Label.new()
-	title.text = "星火信使"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 56)
-	title.add_theme_color_override("font_color", Color(0.98, 0.97, 0.94))
-	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.55))
-	title.add_theme_constant_override("shadow_offset_x", 2)
-	title.add_theme_constant_override("shadow_offset_y", 2)
-	box.add_child(title)
+	var l1 := Label.new()
+	l1.text = "EMBER"
+	l1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l1.add_theme_font_size_override("font_size", _home_spec_fs(86))
+	l1.add_theme_color_override("font_color", Color(0.96, 0.98, 1.0))
+	l1.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.55))
+	l1.add_theme_constant_override("shadow_offset_x", 0)
+	l1.add_theme_constant_override("shadow_offset_y", 0)
+	l1.add_theme_constant_override("shadow_outline_size", 10)
+	l1.add_theme_constant_override("letter_spacing", _home_spec_em(86, 0.04))
+	box.add_child(l1)
+
+	var l2 := Label.new()
+	l2.text = "RUNNERS:"
+	l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l2.add_theme_font_size_override("font_size", _home_spec_fs(86))
+	l2.add_theme_color_override("font_color", Color(0.89, 0.95, 0.99))
+	l2.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.45))
+	l2.add_theme_constant_override("shadow_offset_x", 0)
+	l2.add_theme_constant_override("shadow_offset_y", 0)
+	l2.add_theme_constant_override("shadow_outline_size", 10)
+	l2.add_theme_constant_override("letter_spacing", _home_spec_em(86, 0.04))
+	box.add_child(l2)
+
+	var sub_row := HBoxContainer.new()
+	sub_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	sub_row.add_theme_constant_override("separation", _home_spec_w(18))
+	box.add_child(sub_row)
+
+	var line_l := ColorRect.new()
+	line_l.custom_minimum_size = Vector2(_home_spec_w(82), 1)
+	line_l.color = Color(0.624, 0.847, 0.961, 0.85)
+	line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sub_row.add_child(line_l)
 
 	var subtitle := Label.new()
-	subtitle.text = "黎明线"
+	subtitle.text = "DAWNLINE"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 26)
-	subtitle.add_theme_color_override("font_color", Color(0.92, 0.88, 0.78, 0.92))
-	subtitle.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.45))
-	subtitle.add_theme_constant_override("shadow_offset_x", 1)
-	subtitle.add_theme_constant_override("shadow_offset_y", 1)
-	box.add_child(subtitle)
+	subtitle.add_theme_font_size_override("font_size", _home_spec_fs(40))
+	subtitle.add_theme_color_override("font_color", Color(0.894, 0.969, 0.996))
+	subtitle.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.65))
+	subtitle.add_theme_constant_override("shadow_offset_x", 0)
+	subtitle.add_theme_constant_override("shadow_offset_y", 0)
+	subtitle.add_theme_constant_override("shadow_outline_size", 6)
+	subtitle.add_theme_constant_override("letter_spacing", _home_spec_em(40, 0.62))
+	sub_row.add_child(subtitle)
+
+	var line_r := ColorRect.new()
+	line_r.custom_minimum_size = Vector2(_home_spec_w(82), 1)
+	line_r.color = Color(0.624, 0.847, 0.961, 0.85)
+	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sub_row.add_child(line_r)
+
+	var chev := Label.new()
+	chev.text = "▽"
+	chev.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	chev.add_theme_font_size_override("font_size", _home_spec_fs(22))
+	chev.add_theme_color_override("font_color", Color(0.710, 0.941, 1.0, 0.75))
+	box.add_child(chev)
 	return box
 
 
@@ -358,56 +547,49 @@ func _on_avatar_input(event: InputEvent) -> void:
 
 
 func _build_status_bar() -> Control:
-	# 简洁顶栏：左头像+名+等级，右星火币+设置；深底+金底边
-	var bar := Panel.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.059, 0.082, 0.125, 0.98) # #0F1520
-	style.set_border_width_all(0)
-	style.border_width_bottom = 2
-	style.border_color = Color(0.831, 0.647, 0.455, 0.85) # #D4A574
-	style.set_content_margin_all(0)
-	bar.add_theme_stylebox_override("panel", style)
-	bar.custom_minimum_size = Vector2(0, 88)
+	var bar := Control.new()
+	bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	bar.add_child(margin)
+	bar.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	var row := HBoxContainer.new()
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	margin.add_child(row)
+	row.add_theme_constant_override("separation", 18)
+	bar.add_child(row)
 
-	# —— 左侧：圆形头像 + 名 + 等级 ——
+	var left_pill := PanelContainer.new()
+	left_pill.add_theme_stylebox_override("panel", _style_glass(48, 10, 18, 10))
+	row.add_child(left_pill)
+
+	var left_margin := MarginContainer.new()
+	left_margin.add_theme_constant_override("margin_left", 6)
+	left_margin.add_theme_constant_override("margin_right", 20)
+	left_margin.add_theme_constant_override("margin_top", 4)
+	left_margin.add_theme_constant_override("margin_bottom", 4)
+	left_pill.add_child(left_margin)
+
 	var left := HBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.alignment = BoxContainer.ALIGNMENT_BEGIN
-	left.add_theme_constant_override("separation", 12)
-	row.add_child(left)
+	left.add_theme_constant_override("separation", 14)
+	left_margin.add_child(left)
 
+	var avatar_sz := _home_spec_w(70)
 	var avatar_wrap := Control.new()
-	avatar_wrap.custom_minimum_size = Vector2(56, 56)
+	avatar_wrap.custom_minimum_size = Vector2(avatar_sz, avatar_sz)
 	avatar_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
 	avatar_wrap.gui_input.connect(_on_avatar_input)
 	left.add_child(avatar_wrap)
 
-	var avatar_clip := Panel.new()
-	avatar_clip.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	avatar_clip.clip_contents = true
-	avatar_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var clip_style := StyleBoxFlat.new()
-	clip_style.bg_color = Color(0.10, 0.09, 0.08)
-	clip_style.set_corner_radius_all(28)
-	clip_style.set_border_width_all(2)
-	clip_style.border_color = Color(0.831, 0.647, 0.455, 0.95)
-	clip_style.set_content_margin_all(0)
-	avatar_clip.add_theme_stylebox_override("panel", clip_style)
-	avatar_wrap.add_child(avatar_clip)
+	var avatar_bg := Panel.new()
+	avatar_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	avatar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg_style := StyleBoxFlat.new()
+	bg_style.bg_color = Color(0.04, 0.08, 0.14)
+	bg_style.set_corner_radius_all(avatar_sz / 2)
+	bg_style.set_content_margin_all(0)
+	avatar_bg.add_theme_stylebox_override("panel", bg_style)
+	avatar_wrap.add_child(avatar_bg)
 
 	_status_avatar_icon = TextureRect.new()
 	_status_avatar_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -415,17 +597,36 @@ func _build_status_bar() -> Control:
 	_status_avatar_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_status_avatar_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_status_avatar_icon.visible = false
-	avatar_clip.add_child(_status_avatar_icon)
+	var avatar_shader := load(HOME_CIRCULAR_AVATAR_SHADER) as Shader
+	if avatar_shader:
+		var avatar_mat := ShaderMaterial.new()
+		avatar_mat.shader = avatar_shader
+		_status_avatar_icon.material = avatar_mat
+	avatar_wrap.add_child(_status_avatar_icon)
 
 	_status_avatar_fallback = Label.new()
 	_status_avatar_fallback.text = "E"
 	_status_avatar_fallback.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_status_avatar_fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_avatar_fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_status_avatar_fallback.add_theme_font_size_override("font_size", 22)
-	_status_avatar_fallback.add_theme_color_override("font_color", Color(0.92, 0.84, 0.62))
+	_status_avatar_fallback.add_theme_font_size_override("font_size", _home_spec_fs(24))
+	_status_avatar_fallback.add_theme_color_override("font_color", UI_CYAN_SOFT)
 	_status_avatar_fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	avatar_clip.add_child(_status_avatar_fallback)
+	avatar_wrap.add_child(_status_avatar_fallback)
+
+	var avatar_ring := Panel.new()
+	avatar_ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	avatar_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ring_style := StyleBoxFlat.new()
+	ring_style.bg_color = Color.TRANSPARENT
+	ring_style.set_corner_radius_all(avatar_sz / 2)
+	ring_style.set_border_width_all(2)
+	ring_style.border_color = Color(0.588, 0.784, 0.941, 0.55)
+	ring_style.shadow_color = Color(0.435, 0.839, 1.0, 0.28)
+	ring_style.shadow_size = 6
+	ring_style.set_content_margin_all(0)
+	avatar_ring.add_theme_stylebox_override("panel", ring_style)
+	avatar_wrap.add_child(avatar_ring)
 
 	_status_level_badge = Label.new()
 	_status_level_badge.visible = false
@@ -434,75 +635,80 @@ func _build_status_bar() -> Control:
 	_status_xp_bar.visible = false
 	avatar_wrap.add_child(_status_xp_bar)
 
-	var name_col := HBoxContainer.new()
+	var name_col := VBoxContainer.new()
 	name_col.alignment = BoxContainer.ALIGNMENT_CENTER
-	name_col.add_theme_constant_override("separation", 8)
+	name_col.add_theme_constant_override("separation", 2)
 	name_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	left.add_child(name_col)
 
 	_status_name = Label.new()
 	_status_name.text = "Elsa"
-	_status_name.add_theme_font_size_override("font_size", 24)
-	_status_name.add_theme_color_override("font_color", Color(0.98, 0.97, 0.95))
-	_status_name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_status_name.add_theme_font_size_override("font_size", _home_spec_fs(30))
+	_status_name.add_theme_color_override("font_color", UI_TEXT)
 	name_col.add_child(_status_name)
 
+	var level_row := HBoxContainer.new()
+	level_row.add_theme_constant_override("separation", 8)
+	name_col.add_child(level_row)
+
 	_status_level_label = Label.new()
-	_status_level_label.text = "Lv.1"
-	_status_level_label.add_theme_font_size_override("font_size", 18)
-	_status_level_label.add_theme_color_override("font_color", Color(0.90, 0.78, 0.55))
-	_status_level_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	name_col.add_child(_status_level_label)
+	_status_level_label.text = "Lv. 1"
+	_status_level_label.add_theme_font_size_override("font_size", _home_spec_fs(24))
+	_status_level_label.add_theme_color_override("font_color", UI_MUTED)
+	level_row.add_child(_status_level_label)
 
-	# —— 右侧：星火币 + 分隔 + 设置 ——
-	var right := HBoxContainer.new()
-	right.alignment = BoxContainer.ALIGNMENT_END
-	right.add_theme_constant_override("separation", 14)
-	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(right)
+	var level_diamond := Label.new()
+	level_diamond.text = "◆"
+	level_diamond.add_theme_font_size_override("font_size", 10)
+	level_diamond.add_theme_color_override("font_color", UI_CYAN)
+	level_diamond.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	level_row.add_child(level_diamond)
 
-	var coin_wrap := HBoxContainer.new()
-	coin_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
-	coin_wrap.add_theme_constant_override("separation", 8)
-	right.add_child(coin_wrap)
+	var divider := ColorRect.new()
+	divider.custom_minimum_size = Vector2(1, _home_spec_h(44))
+	divider.color = Color(0.627, 0.784, 0.922, 0.25)
+	divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(divider)
 
-	var coin_icon := TextureRect.new()
-	coin_icon.custom_minimum_size = Vector2(32, 32)
-	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var row_spacer := Control.new()
+	row_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(row_spacer)
+
+	var credits_wrap := HBoxContainer.new()
+	credits_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+	credits_wrap.add_theme_constant_override("separation", 12)
+	row.add_child(credits_wrap)
+
+	var coin_icon := Label.new()
+	coin_icon.text = "★"
+	coin_icon.add_theme_font_size_override("font_size", _home_spec_fs(28))
+	coin_icon.add_theme_color_override("font_color", UI_NAV_ACTIVE)
+	coin_icon.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.55))
+	coin_icon.add_theme_constant_override("shadow_outline_size", 6)
 	coin_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var coin_tex := _load_header_texture(FINAL_ICON_EMBER)
-	if coin_tex == null:
-		coin_tex = _load_header_texture(HEADER_ICON_EMBER)
-	if coin_tex:
-		coin_icon.texture = coin_tex
-	coin_wrap.add_child(coin_icon)
+	credits_wrap.add_child(coin_icon)
 
 	_status_ember_label = Label.new()
 	_status_ember_label.text = "0"
-	_status_ember_label.add_theme_font_size_override("font_size", 22)
-	_status_ember_label.add_theme_color_override("font_color", Color(0.90, 0.78, 0.55))
-	coin_wrap.add_child(_status_ember_label)
-
-	var divider := ColorRect.new()
-	divider.custom_minimum_size = Vector2(1, 28)
-	divider.color = Color(0.55, 0.48, 0.36, 0.45)
-	divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	right.add_child(divider)
+	_status_ember_label.add_theme_font_size_override("font_size", _home_spec_fs(28))
+	_status_ember_label.add_theme_color_override("font_color", UI_TEXT)
+	_status_ember_label.add_theme_constant_override("letter_spacing", 2)
+	credits_wrap.add_child(_status_ember_label)
 
 	var settings_button := Button.new()
 	settings_button.focus_mode = Control.FOCUS_NONE
 	settings_button.flat = true
-	settings_button.custom_minimum_size = Vector2(40, 40)
-	settings_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-	settings_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-	settings_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	var settings_sz := _home_spec_w(76)
+	settings_button.custom_minimum_size = Vector2(settings_sz, settings_sz)
+	settings_button.add_theme_stylebox_override("normal", _style_glass(_home_spec_w(22), 10, 10, 10))
+	settings_button.add_theme_stylebox_override("hover", _style_glass(_home_spec_w(22), 10, 10, 10))
+	settings_button.add_theme_stylebox_override("pressed", _style(Color(0.02, 0.05, 0.09, 0.82), UI_PANEL_BORDER, 1, _home_spec_w(22)))
 	settings_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	settings_button.pressed.connect(func(): _show_toast("设置功能开发中"))
-	right.add_child(settings_button)
+	row.add_child(settings_button)
 
 	var settings_icon := TextureRect.new()
-	settings_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 4)
+	settings_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 16)
 	settings_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	settings_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	settings_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -511,6 +717,7 @@ func _build_status_bar() -> Control:
 		settings_tex = _load_header_texture(HEADER_ICON_SETTINGS)
 	if settings_tex:
 		settings_icon.texture = settings_tex
+		settings_icon.modulate = UI_TEXT
 	settings_button.add_child(settings_icon)
 
 	_status_energy_label = null
@@ -572,63 +779,54 @@ func _style_header_metal_button(button: Button, icon_path: String, label: String
 
 
 func _build_bottom_nav() -> Control:
-	var nav := PanelContainer.new()
-	var tabbar_tex := _load_header_texture(FINAL_TABBAR)
-	if tabbar_tex:
-		# 顶边金线与指示条对齐：顶部 content margin 压到最小
-		nav.add_theme_stylebox_override("panel", _style_texture(tabbar_tex, 64, 36, 64, 36, 4, 0, 4, 10))
-	else:
-		nav.add_theme_stylebox_override("panel", _style(Color(0.05, 0.05, 0.06, 0.94), Color(0.28, 0.24, 0.18, 0.55), 1, 0))
-	nav.custom_minimum_size = Vector2(0, 120)
+	var nav_host := PanelContainer.new()
+	nav_host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	nav_host.add_theme_stylebox_override("panel", _style_nav_bar())
 
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 6)
-	margin.add_theme_constant_override("margin_right", 6)
-	margin.add_theme_constant_override("margin_top", 0)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	nav.add_child(margin)
+	var nav := MarginContainer.new()
+	nav.add_theme_constant_override("margin_left", 10)
+	nav.add_theme_constant_override("margin_right", 10)
+	nav.add_theme_constant_override("margin_top", 4)
+	nav.add_theme_constant_override("margin_bottom", 6)
+	nav_host.add_child(nav)
 
 	var row := HBoxContainer.new()
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 0)
-	margin.add_child(row)
+	nav.add_child(row)
 
 	_add_nav_button(row, TAB_HOME, String(TAB_LABELS[TAB_HOME]))
 	_add_nav_button(row, TAB_MAP, String(TAB_LABELS[TAB_MAP]))
 	_add_nav_button(row, TAB_TASKS, String(TAB_LABELS[TAB_TASKS]))
 	_add_nav_button(row, TAB_CHARACTER, String(TAB_LABELS[TAB_CHARACTER]))
-	return nav
+	return nav_host
 
 
 func _add_nav_button(parent: Control, tab_id: String, label: String) -> void:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(0, 100)
+	button.custom_minimum_size = Vector2(0, _home_spec_h(98))
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.flat = true
 	button.pressed.connect(_show_tab.bind(tab_id))
 
-	# 指示条贴顶、左右等距内缩，避免和底栏顶金线错位成「双线」
-	var indicator := NinePatchRect.new()
+	# 激活指示条：HTML .nav-item.active::before
+	var indicator := ColorRect.new()
 	indicator.name = "ActiveIndicator"
 	indicator.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	indicator.offset_left = 22
 	indicator.offset_right = -22
-	indicator.offset_top = 2
-	indicator.offset_bottom = 10
-	indicator.patch_margin_left = 12
-	indicator.patch_margin_right = 12
-	indicator.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_STRETCH
+	indicator.offset_top = 0
+	indicator.offset_bottom = 2
+	indicator.color = UI_NAV_ACTIVE
 	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	indicator.visible = false
-	var ind_tex := _load_header_texture(FINAL_TAB_INDICATOR)
-	if ind_tex:
-		indicator.texture = ind_tex
 	button.add_child(indicator)
 
 	var col := VBoxContainer.new()
 	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	col.offset_top = 14
+	col.offset_top = _home_spec_h(12)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_theme_constant_override("separation", 4)
@@ -636,7 +834,8 @@ func _add_nav_button(parent: Control, tab_id: String, label: String) -> void:
 
 	var icon := TextureRect.new()
 	icon.name = "TabIcon"
-	icon.custom_minimum_size = Vector2(40, 40)
+	var nav_icon_sz := _home_spec_fs(42)
+	icon.custom_minimum_size = Vector2(nav_icon_sz, nav_icon_sz)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -651,8 +850,9 @@ func _add_nav_button(parent: Control, tab_id: String, label: String) -> void:
 	text.name = "TabLabel"
 	text.text = label
 	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	text.add_theme_font_size_override("font_size", 15)
-	text.add_theme_color_override("font_color", Color(0.62, 0.66, 0.72))
+	text.add_theme_font_size_override("font_size", _home_spec_fs(22))
+	text.add_theme_color_override("font_color", UI_MUTED)
+	text.add_theme_constant_override("letter_spacing", 3)
 	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(text)
 
@@ -670,15 +870,15 @@ func _update_nav_buttons() -> void:
 		button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		button.add_theme_stylebox_override("disabled", StyleBoxEmpty.new())
 
-		var indicator := button.find_child("ActiveIndicator", true, false) as NinePatchRect
+		var indicator := button.find_child("ActiveIndicator", true, false) as ColorRect
 		var label := button.find_child("TabLabel", true, false) as Label
 		var icon := button.find_child("TabIcon", true, false) as TextureRect
 		if indicator:
 			indicator.visible = selected
 		if label:
-			label.add_theme_color_override("font_color", UI_ORANGE_BORDER if selected else Color(0.62, 0.66, 0.72))
+			label.add_theme_color_override("font_color", UI_NAV_ACTIVE if selected else UI_MUTED)
 		if icon:
-			icon.modulate = Color(1.0, 0.92, 0.72) if selected else Color(0.75, 0.78, 0.82)
+			icon.modulate = UI_NAV_ACTIVE if selected else Color(0.58, 0.64, 0.71)
 
 
 func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -> void:
@@ -693,16 +893,34 @@ func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -
 		_scroll_page_to_top()
 	_clear_page()
 	var is_home := tab_id == TAB_HOME
+	var is_map := tab_id == TAB_MAP
 	if _page_scrim:
 		_page_scrim.visible = not is_home
+		_page_scrim.color = Color(0.016, 0.027, 0.051, 0.40) if is_map else Color(0.016, 0.027, 0.051, 0.55)
+	if _home_overlay:
+		_home_overlay.visible = is_home
 	if _home_title_box:
 		_home_title_box.visible = is_home
+	if _map_overlay:
+		_map_overlay.visible = is_map
 	if _page_scroll:
-		# 首页固定一屏，禁止滚动；其他页允许滚动
+		_page_scroll.visible = not is_home and not is_map
 		_page_scroll.vertical_scroll_mode = (
 			ScrollContainer.SCROLL_MODE_DISABLED if is_home else ScrollContainer.SCROLL_MODE_AUTO
 		)
 		_page_scroll.scroll_vertical = 0
+	if _home_background:
+		if is_map:
+			var map_bg := _load_header_texture(MAPLIST_BG)
+			if map_bg:
+				_home_background.texture = map_bg
+		elif is_home:
+			var home_bg := _load_header_texture(HOME_BG_PATH)
+			if home_bg:
+				_home_background.texture = home_bg
+	if _content_host:
+		_content_host.visible = not is_home and not is_map
+	_clear_home_hosts()
 	match tab_id:
 		TAB_MAP:
 			_page_title.text = ""
@@ -752,7 +970,7 @@ func _refresh_status_bar() -> void:
 	var char_name := String(character.get("name", snapshot.get("character_name", "Elsa")))
 	_status_name.text = char_name
 	if _status_level_label:
-		_status_level_label.text = "Lv.%d" % level
+		_status_level_label.text = "Lv. %d" % level
 	if _status_level_badge:
 		_status_level_badge.text = str(level)
 	if _status_ember_label:
@@ -761,6 +979,8 @@ func _refresh_status_bar() -> void:
 		_status_avatar_fallback.text = String(character.get("badge", char_name.left(1)))
 
 	var portrait := CharacterRoster.load_texture(String(character.get("portrait_path", "")))
+	if portrait == null:
+		portrait = _load_header_texture(HOME_AVATAR_PATH)
 	if portrait == null:
 		portrait = _load_runner_portrait("glass_desert")
 	if portrait and _status_avatar_icon:
@@ -814,65 +1034,81 @@ func _clear_page() -> void:
 	_page_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
+func _clear_home_hosts() -> void:
+	if _home_mission_host == null or _home_start_host == null:
+		return
+	for child in _home_mission_host.get_children():
+		child.queue_free()
+	for child in _home_start_host.get_children():
+		child.queue_free()
+
+
 func _build_home_page() -> void:
-	# 设计稿：一屏固定布局，不滚动；任务卡贴底部
-	_page_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_page_box.custom_minimum_size = Vector2.ZERO
-	_page_box.add_theme_constant_override("separation", 14)
-
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_page_box.add_child(spacer)
-
+	_clear_home_hosts()
 	var next_entry := _find_next_mission_entry()
 	if next_entry.is_empty():
-		_page_box.add_child(_build_home_mission_panel(
+		_mount_home_mission_panel(
 			_home_map_display_name("glass_desert"),
-			"当前据点任务 · 已全部完成",
-			"运送：—",
+			"Water Station",
+			"Supply run",
+			"",
 			0,
 			1
-		))
-		_add_home_road_style_picker(_page_box)
-		_add_home_start_button(_page_box, "查看地图", _show_tab.bind(TAB_MAP))
+		)
+		_mount_home_start_button("VIEW MAP", _show_tab.bind(TAB_MAP))
 		return
 
 	var planet_id := String(next_entry["planet_id"])
 	var location_id := String(next_entry["location_id"])
 	var mission: Dictionary = next_entry["mission"]
+	var is_replay := bool(next_entry.get("replay", false))
 	var map_name := _home_map_display_name(planet_id)
 	var outpost_status := _home_outpost_status(planet_id, location_id)
-
-	var mission_code := "M-%02d" % maxi(1, int(mission.get("order", 10)) / 10)
-	var mission_title := _home_mission_short_title(mission, location_id)
-	var source_name := String(mission.get("source_hearth", outpost_status.get("title", "据点")))
-	var cargo_name := String(mission.get("cargo_name", "物资"))
-	var cargo_load := int(mission.get("cargo_load", 1))
-	var display_qty := maxi(1, int(round(float(cargo_load) * 0.2)))
-	var target_name := String(mission.get("target_hearth", "据点"))
-	var objective := "运送：%s × %d → %s" % [cargo_name, display_qty, target_name]
-
+	var source_name := _home_outpost_display_name(
+		location_id,
+		String(mission.get("source_hearth", outpost_status.get("title", "Water Station")))
+	)
 	var repair := _home_repair_progress(planet_id, location_id)
-	var mission_line := "当前据点任务 · %s %s · %s（%s）" % [
-		mission_code,
-		mission_title,
-		source_name,
-		String(outpost_status.get("status_short", "修复中")),
-	]
-	_page_box.add_child(_build_home_mission_panel(
+	var mission_type := "Supply run"
+	if is_replay:
+		mission_type = "Replay run"
+	_mount_home_mission_panel(
 		map_name,
-		mission_line,
-		objective,
+		source_name,
+		mission_type,
+		location_id,
 		int(repair["current"]),
 		int(repair["total"])
-	))
-	_add_home_road_style_picker(_page_box)
-	_add_home_start_button(
-		_page_box,
-		"开始运输",
+	)
+	var start_label := "START RUN" if not is_replay else "REPLAY RUN"
+	_mount_home_start_button(
+		start_label,
 		_start_runner_for_location.bind(planet_id, location_id)
 	)
+
+
+func _mount_home_mission_panel(
+	map_name: String,
+	outpost_name: String,
+	mission_type: String,
+	location_id: String,
+	repair_current: int,
+	repair_total: int
+) -> void:
+	if _home_mission_host == null:
+		return
+	var panel := _build_home_mission_panel(
+		map_name, outpost_name, mission_type, location_id, repair_current, repair_total
+	)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_home_mission_host.add_child(panel)
+
+
+func _mount_home_start_button(text: String, callback: Callable) -> void:
+	if _home_start_host == null:
+		return
+	var button := _add_home_start_button(_home_start_host, text, callback)
+	button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
 func _home_map_display_name(planet_id: String) -> String:
@@ -880,8 +1116,22 @@ func _home_map_display_name(planet_id: String) -> String:
 	var name := String(meta.get("name", ""))
 	# 设计稿显示名；配置 MAP_NAME 为「无尽晶砂漠」
 	if planet_id == "glass_desert":
-		return "晶砂荒原"
-	return name if name != "" else "未知地图"
+		return "Crystal Waste"
+	return name if name != "" else "Unknown Map"
+
+
+func _home_outpost_display_name(location_id: String, fallback: String) -> String:
+	match location_id:
+		"reservoir", "dome":
+			return "Water Station"
+		"medical":
+			return "Medical Outpost"
+		"relay":
+			return "Relay Station"
+		"gate":
+			return "Gate Fortress"
+		_:
+			return fallback if fallback != "" else "Outpost"
 
 
 func _home_outpost_status(planet_id: String, location_id: String) -> Dictionary:
@@ -898,6 +1148,19 @@ func _home_outpost_status(planet_id: String, location_id: String) -> Dictionary:
 		"repair_current": int(payload.get("repair_current", 0)),
 		"repair_total": int(payload.get("repair_total", 1)),
 	}
+
+
+func _home_all_missions_complete(planet_id: String) -> bool:
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
+	if cfg == null or not cfg.has_method("get_location_missions"):
+		return false
+	for mission in cfg.get_location_missions():
+		var location_id := String(mission.get("location_id", ""))
+		if location_id == "":
+			continue
+		if not Global.get_completed_runner_locations(planet_id).has(location_id):
+			return false
+	return true
 
 
 func _home_mission_short_title(mission: Dictionary, location_id: String) -> String:
@@ -926,166 +1189,108 @@ func _home_repair_progress(planet_id: String, location_id: String) -> Dictionary
 	}
 
 
+func _home_mission_thumb(location_id: String) -> Texture2D:
+	if location_id in ["dome", "reservoir", "medical", "relay", "gate"]:
+		return _load_header_texture(HOME_MISSION_THUMB_PATH)
+	return _load_header_texture(HOME_MISSION_THUMB_PATH)
+
+
 func _build_home_mission_panel(
 	map_name: String,
-	mission_line: String,
-	objective: String,
+	outpost_name: String,
+	mission_type: String,
+	location_id: String,
 	repair_current: int,
 	repair_total: int
 ) -> Control:
-	# 设计稿约 825×398（1080 基准）；外框 + 半透明底 + 内容层
-	const PANEL_H := 400.0
-	var panel := Control.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(0, PANEL_H)
+	var wrap := Control.new()
 
-	var fill := Panel.new()
-	fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	fill.add_theme_stylebox_override(
-		"panel",
-		_style(Color(0.05, 0.05, 0.06, 0.78), Color(0, 0, 0, 0), 0, 8)
-	)
-	panel.add_child(fill)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.add_theme_stylebox_override("panel", _style_mission_frame())
+	wrap.add_child(panel)
 
-	var map_frame := _load_header_texture(FINAL_MAP_FRAME)
-	if map_frame:
-		var frame := NinePatchRect.new()
-		frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		frame.texture = map_frame
-		frame.patch_margin_left = 80
-		frame.patch_margin_top = 80
-		frame.patch_margin_right = 80
-		frame.patch_margin_bottom = 80
-		frame.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_STRETCH
-		frame.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_STRETCH
-		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		panel.add_child(frame)
-	else:
-		fill.add_theme_stylebox_override(
-			"panel",
-			_style(Color(0.06, 0.06, 0.07, 0.82), Color(0.72, 0.62, 0.38, 0.75), 2, 8)
-		)
+	var frame := HomeFrameOverlay.ChamferBorderOverlay.new()
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(frame)
+	frame.resized.connect(frame.queue_redraw)
 
 	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 40)
-	margin.add_theme_constant_override("margin_right", 40)
-	margin.add_theme_constant_override("margin_top", 32)
-	margin.add_theme_constant_override("margin_bottom", 30)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 12)
 	panel.add_child(margin)
 
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	margin.add_child(box)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	margin.add_child(row)
+
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", 5)
+	row.add_child(left)
+
+	var tag_row := HBoxContainer.new()
+	tag_row.add_theme_constant_override("separation", 6)
+	left.add_child(tag_row)
+
+	var tag_icon := Label.new()
+	tag_icon.text = "◎"
+	tag_icon.add_theme_font_size_override("font_size", _home_spec_fs(14))
+	tag_icon.add_theme_color_override("font_color", UI_CYAN_SOFT)
+	tag_row.add_child(tag_icon)
 
 	var tag := Label.new()
-	tag.text = "当前地图"
-	tag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tag.add_theme_font_size_override("font_size", 18)
-	tag.add_theme_color_override("font_color", Color(0.90, 0.78, 0.42))
-	box.add_child(tag)
+	tag.text = "CURRENT MISSION"
+	tag.add_theme_font_size_override("font_size", _home_spec_fs(20))
+	tag.add_theme_color_override("font_color", Color(0.710, 0.941, 1.0))
+	tag.add_theme_constant_override("letter_spacing", 4)
+	tag.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.35))
+	tag.add_theme_constant_override("shadow_outline_size", 3)
+	tag_row.add_child(tag)
 
-	var map_label := Label.new()
-	map_label.text = map_name
-	map_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	map_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	map_label.add_theme_font_size_override("font_size", 44)
-	map_label.add_theme_color_override("font_color", Color(0.98, 0.97, 0.94))
-	box.add_child(map_label)
+	var map_title := Label.new()
+	map_title.text = "%s -\n%s" % [map_name, outpost_name]
+	map_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	map_title.add_theme_font_size_override("font_size", _home_spec_fs(30))
+	map_title.add_theme_color_override("font_color", UI_TEXT)
+	left.add_child(map_title)
 
-	var mission_label := Label.new()
-	mission_label.text = mission_line
-	mission_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mission_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mission_label.add_theme_font_size_override("font_size", 20)
-	mission_label.add_theme_color_override("font_color", Color(0.86, 0.88, 0.92))
-	mission_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(mission_label)
+	var type_label := Label.new()
+	type_label.text = mission_type
+	type_label.add_theme_font_size_override("font_size", _home_spec_fs(22))
+	type_label.add_theme_color_override("font_color", UI_CYAN)
+	type_label.add_theme_constant_override("letter_spacing", 2)
+	type_label.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.3))
+	type_label.add_theme_constant_override("shadow_outline_size", 3)
+	left.add_child(type_label)
 
-	# mission_frame 九宫格角标约 48px，行高过低会压扁；给足最小高度
-	var objective_panel := PanelContainer.new()
-	objective_panel.custom_minimum_size = Vector2(0, 108)
-	var mission_frame := _load_header_texture(FINAL_MISSION_FRAME)
-	if mission_frame:
-		objective_panel.add_theme_stylebox_override(
-			"panel",
-			_style_texture(mission_frame, 48, 40, 48, 40, 28, 18, 28, 18)
-		)
-	else:
-		objective_panel.add_theme_stylebox_override(
-			"panel",
-			_style(Color(0.04, 0.04, 0.05, 0.72), Color(0.78, 0.66, 0.32, 0.85), 1, 6)
-		)
-	box.add_child(objective_panel)
+	var thumb_w := _home_spec_w(238)
+	var thumb_h := _home_spec_h(112)
+	var thumb_wrap := PanelContainer.new()
+	thumb_wrap.custom_minimum_size = Vector2(thumb_w, thumb_h)
+	thumb_wrap.add_theme_stylebox_override("panel", _style(Color(0.02, 0.05, 0.09, 0.6), UI_PANEL_BORDER, 1, 2))
+	row.add_child(thumb_wrap)
 
-	# 图标+文案作为一组在框内水平/垂直居中（勿给 Label 开 EXPAND_FILL，否则会贴左）
-	var obj_center := CenterContainer.new()
-	obj_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	obj_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	objective_panel.add_child(obj_center)
+	var thumb := TextureRect.new()
+	thumb.custom_minimum_size = Vector2(thumb_w - 8, thumb_h - 8)
+	thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var thumb_tex := _home_mission_thumb(location_id)
+	if thumb_tex:
+		thumb.texture = thumb_tex
+	thumb_wrap.add_child(thumb)
 
-	var obj_row := HBoxContainer.new()
-	obj_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	obj_row.add_theme_constant_override("separation", 12)
-	obj_center.add_child(obj_row)
-
-	var cargo_icon := TextureRect.new()
-	cargo_icon.custom_minimum_size = Vector2(40, 40)
-	cargo_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	cargo_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	cargo_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	cargo_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var cargo_tex := _load_header_texture(FINAL_ICON_CARGO)
-	if cargo_tex:
-		cargo_icon.texture = cargo_tex
-	obj_row.add_child(cargo_icon)
-
-	var obj_label := Label.new()
-	obj_label.text = objective
-	obj_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	obj_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	obj_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	obj_label.add_theme_font_size_override("font_size", 22)
-	obj_label.add_theme_color_override("font_color", Color(0.96, 0.95, 0.92))
-	obj_row.add_child(obj_label)
-
-	var progress_row := HBoxContainer.new()
-	progress_row.add_theme_constant_override("separation", 12)
-	box.add_child(progress_row)
-
-	var progress_tag := Label.new()
-	progress_tag.text = "修复进度"
-	progress_tag.add_theme_font_size_override("font_size", 18)
-	progress_tag.add_theme_color_override("font_color", Color(0.80, 0.82, 0.86))
-	progress_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	progress_row.add_child(progress_tag)
-
-	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 20)
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	bar.show_percentage = false
-	bar.max_value = float(maxi(repair_total, 1))
-	bar.value = float(clampi(repair_current, 0, repair_total))
-	_apply_final_progress_bar(bar)
-	progress_row.add_child(bar)
-
-	var progress_value := Label.new()
-	progress_value.text = "%d / %d" % [repair_current, repair_total]
-	progress_value.add_theme_font_size_override("font_size", 18)
-	progress_value.add_theme_color_override("font_color", Color(0.94, 0.90, 0.78))
-	progress_value.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	progress_row.add_child(progress_value)
-
-	return panel
+	return wrap
 
 
 func _add_home_road_style_picker(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _style(UI_PANEL, UI_FRAME_BORDER, 1, 10))
+	panel.add_theme_stylebox_override("panel", _style_glass(10, 12, 12, 12))
 	parent.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -1095,108 +1300,114 @@ func _add_home_road_style_picker(parent: Control) -> void:
 	margin.add_theme_constant_override("margin_bottom", 12)
 	panel.add_child(margin)
 
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	margin.add_child(box)
+
+	box.add_child(_build_runner_style_dropdown_row("跑道外观", true))
+	box.add_child(_build_runner_style_dropdown_row("场景背景", false))
+
+
+func _build_runner_style_dropdown_row(title_text: String, is_road: bool) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	margin.add_child(row)
-
-	var info := VBoxContainer.new()
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_theme_constant_override("separation", 4)
-	row.add_child(info)
 
 	var title := Label.new()
-	title.text = "跑道外观"
+	title.text = title_text
+	title.custom_minimum_size = Vector2(120, 0)
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 16)
 	title.add_theme_color_override("font_color", UI_MUTED)
-	info.add_child(title)
+	row.add_child(title)
 
-	var value := Label.new()
-	value.name = "RoadStyleValue"
-	value.text = Global.get_runner_road_style_label()
-	value.add_theme_font_size_override("font_size", 22)
-	value.add_theme_color_override("font_color", UI_CYAN)
-	info.add_child(value)
+	var option := OptionButton.new()
+	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	option.custom_minimum_size = Vector2(0, 56)
+	option.focus_mode = Control.FOCUS_NONE
+	if is_road:
+		Global.populate_runner_road_style_option(option)
+		option.item_selected.connect(func(index: int) -> void:
+			if index >= 0 and index < Global.RUNNER_ROAD_STYLE_ORDER.size():
+				Global.set_runner_road_style(Global.RUNNER_ROAD_STYLE_ORDER[index])
+				_show_toast("跑道：%s" % Global.get_runner_road_style_label())
+		)
+	else:
+		Global.populate_runner_background_style_option(option)
+		option.item_selected.connect(func(index: int) -> void:
+			if index >= 0 and index < Global.RUNNER_BACKGROUND_STYLE_ORDER.size():
+				Global.set_runner_background_style(Global.RUNNER_BACKGROUND_STYLE_ORDER[index])
+				_show_toast("背景：%s" % Global.get_runner_background_style_label())
+		)
+	_style_home_option_button(option)
+	row.add_child(option)
+	return row
 
-	var btn := Button.new()
-	btn.text = "切换"
-	btn.focus_mode = Control.FOCUS_NONE
-	btn.custom_minimum_size = Vector2(140, 64)
-	btn.add_theme_font_size_override("font_size", 20)
-	btn.pressed.connect(func():
-		Global.cycle_runner_road_style()
-		value.text = Global.get_runner_road_style_label()
-		_show_toast("跑道外观：%s" % Global.get_runner_road_style_label())
-	)
-	row.add_child(btn)
+
+func _style_home_option_button(option: OptionButton) -> void:
+	option.add_theme_stylebox_override("normal", _style_glass(8, 10, 10, 10))
+	option.add_theme_stylebox_override("hover", _style_glass(8, 10, 10, 10))
+	option.add_theme_stylebox_override("pressed", _style(Color(0.02, 0.05, 0.09, 0.82), UI_PANEL_BORDER, 1, 8))
+	option.add_theme_stylebox_override("focus", _style_glass(8, 10, 10, 10))
+	option.add_theme_font_size_override("font_size", 18)
+	option.add_theme_color_override("font_color", UI_CYAN)
 
 
 func _add_home_start_button(parent: Control, text: String, callback: Callable) -> Button:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size = Vector2(0, 112)
-	# flat=true 会隐藏底板，导致只剩深色字贴在背景上
+	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	button.flat = false
-
-	var normal_tex := _load_header_texture(FINAL_BTN_NORMAL)
-	var pressed_tex := _load_header_texture(FINAL_BTN_PRESSED)
-	var disabled_tex := _load_header_texture(FINAL_BTN_DISABLED)
-	if normal_tex:
-		button.add_theme_stylebox_override("normal", _style_texture(normal_tex, 100, 36, 100, 36, 24, 16, 24, 16))
-		button.add_theme_stylebox_override("hover", _style_texture(normal_tex, 100, 36, 100, 36, 24, 16, 24, 16))
-		button.add_theme_stylebox_override(
-			"pressed",
-			_style_texture(pressed_tex if pressed_tex else normal_tex, 100, 36, 100, 36, 24, 16, 24, 16)
-		)
-		button.add_theme_stylebox_override(
-			"disabled",
-			_style_texture(disabled_tex if disabled_tex else normal_tex, 100, 36, 100, 36, 24, 16, 24, 16)
-		)
-	else:
-		button.add_theme_stylebox_override("normal", _style(Color(0.86, 0.62, 0.22), Color(0.96, 0.82, 0.42), 2, 10))
-		button.add_theme_stylebox_override("hover", _style(Color(0.92, 0.70, 0.28), Color(0.98, 0.88, 0.52), 2, 10))
-		button.add_theme_stylebox_override("pressed", _style(Color(0.72, 0.48, 0.14), Color(0.88, 0.70, 0.32), 2, 10))
+	button.text = ""
+	var normal := _style_home_start_button(false)
+	var hover := _style_home_start_button(true)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.078, 0.137, 0.216, 0.72)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	button.add_theme_color_override("font_color", Color(0, 0, 0, 0))
-	button.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
-	button.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
+	button.add_theme_stylebox_override("disabled", normal)
 
 	var row := HBoxContainer.new()
 	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 6)
 	button.add_child(row)
 
-	var run_icon := TextureRect.new()
-	run_icon.custom_minimum_size = Vector2(40, 40)
-	run_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	run_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	run_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var run_tex := _load_header_texture(FINAL_ICON_RUN)
-	if run_tex:
-		run_icon.texture = run_tex
-	row.add_child(run_icon)
-
 	var label := Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 30)
-	label.add_theme_color_override("font_color", Color(0.12, 0.08, 0.04))
+	label.text = text.to_upper()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", _home_spec_fs(48))
+	label.add_theme_color_override("font_color", UI_ICE)
+	label.add_theme_constant_override("letter_spacing", _home_spec_em(48, 0.34))
+	label.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.4))
+	label.add_theme_constant_override("shadow_outline_size", 6)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
 
-	var arrow_icon := TextureRect.new()
-	arrow_icon.custom_minimum_size = Vector2(36, 36)
-	arrow_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	arrow_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	arrow_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var arrow_tex := _load_header_texture(FINAL_ICON_ARROW)
-	if arrow_tex:
-		arrow_icon.texture = arrow_tex
-	row.add_child(arrow_icon)
+	var arrow := Label.new()
+	arrow.text = "›"
+	arrow.add_theme_font_size_override("font_size", _home_spec_fs(52))
+	arrow.add_theme_color_override("font_color", Color(0.784, 0.949, 0.992))
+	arrow.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.45))
+	arrow.add_theme_constant_override("shadow_outline_size", 4)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(arrow)
+
+	var brackets := HomeFrameOverlay.StartBracketOverlay.new()
+	brackets.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	brackets.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(brackets)
 
 	button.pressed.connect(callback)
 	parent.add_child(button)
+
+	var pulse := create_tween()
+	pulse.set_loops()
+	pulse.tween_property(button, "modulate", Color(1.0, 1.0, 1.0, 1.0), 1.3)
+	pulse.tween_property(button, "modulate", Color(0.94, 0.99, 1.0, 1.0), 1.3)
 	return button
 
 
@@ -1237,439 +1448,443 @@ func _style_texture(
 	return style
 
 
+func _clear_map_page() -> void:
+	if _map_title_host != null:
+		for child in _map_title_host.get_children():
+			child.queue_free()
+	if _map_list_box != null:
+		for child in _map_list_box.get_children():
+			child.queue_free()
+
+
 func _build_map_page() -> void:
-	_add_map_list_header()
-	var progress := _get_planet_mission_progress("glass_desert")
-	var purify_pct := _get_purification_percent("glass_desert")
-	_add_map_list_card({
+	_clear_map_page()
+	_map_list_box.add_theme_constant_override("separation", _home_spec_h(27))
+	_add_map_archive_header()
+	_add_map_archive_card({
 		"index": "01",
 		"planet_id": "glass_desert",
-		"title": "Map 1 — Endless Glass Desert",
-		"chapter": "Chapter 1: Endless Glass Desert",
+		"name": "CRYSTAL WASTE",
+		"preview": MAPLIST_MAP_CRYSTAL,
 		"unlocked": true,
-		"progress": progress,
-		"purify_pct": purify_pct,
-		"tint": UI_ORANGE,
 	})
-	_add_map_list_card({
+	_add_map_archive_card({
 		"index": "02",
 		"planet_id": "",
-		"title": "Map 2 — Ashwind Corridor",
-		"chapter": "Chapter 2",
+		"name": "VENOM MIRE",
+		"preview": MAPLIST_MAP_VENOM,
 		"unlocked": false,
-		"lock_hint": "Unlock after fully exploring\nEndless Glass Desert",
-		"tint": Color(0.28, 0.48, 0.36),
 	})
-	_add_map_list_card({
+	_add_map_archive_card({
 		"index": "03",
 		"planet_id": "",
-		"title": "Map 3 — Ember Deep",
-		"chapter": "Chapter 3",
+		"name": "GRAVITY-SHATTERED CITY",
+		"preview": MAPLIST_MAP_GRAVITY,
 		"unlocked": false,
-		"lock_hint": "Unlock after clearing Ashwind Corridor",
-		"tint": Color(0.42, 0.30, 0.55),
+		"long_name": true,
 	})
-	_add_muted_label(_page_box, "ⓘ  Complete the current map to unlock the next region")
+	_add_map_archive_card({
+		"index": "04",
+		"planet_id": "",
+		"name": "REDSTORM BELT",
+		"preview": MAPLIST_MAP_REDSTORM,
+		"unlocked": false,
+	})
+	call_deferred("_sync_map_list_width")
 
 
-func _add_map_list_header() -> void:
+func _add_map_archive_header() -> void:
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_title_host.add_child(center)
+
 	var header := VBoxContainer.new()
-	header.add_theme_constant_override("separation", 6)
-	_page_box.add_child(header)
-
-	var title_row := HBoxContainer.new()
-	title_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	title_row.add_theme_constant_override("separation", 10)
-	header.add_child(title_row)
-
-	var compass := Label.new()
-	compass.text = "🧭"
-	compass.add_theme_font_size_override("font_size", 28)
-	title_row.add_child(compass)
+	header.add_theme_constant_override("separation", _home_spec_h(7))
+	header.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	center.add_child(header)
 
 	var title := Label.new()
-	title.text = "MAP LIST"
-	title.add_theme_font_size_override("font_size", 34)
-	title.add_theme_color_override("font_color", UI_TEXT)
-	title_row.add_child(title)
+	title.text = "MAP ARCHIVE"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", _home_spec_fs(48))
+	title.add_theme_color_override("font_color", Color(0.965, 0.984, 1.0))
+	title.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.55))
+	title.add_theme_constant_override("shadow_outline_size", 8)
+	title.add_theme_constant_override("letter_spacing", _home_spec_em(48, 0.16))
+	header.add_child(title)
 
-	var choose_row := HBoxContainer.new()
-	choose_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	choose_row.add_theme_constant_override("separation", 10)
-	header.add_child(choose_row)
-	choose_row.add_child(_make_rule_line())
-	var choose := Label.new()
-	choose.text = "Choose a Region"
-	choose.add_theme_font_size_override("font_size", 14)
-	choose.add_theme_color_override("font_color", UI_MUTED)
-	choose_row.add_child(choose)
-	choose_row.add_child(_make_rule_line())
+	var line_wrap := Control.new()
+	line_wrap.custom_minimum_size = Vector2(_home_spec_w(286), _home_spec_h(10))
+	line_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(line_wrap)
 
-	var series := Label.new()
-	series.text = "EMBER RUNNERS — DAWNLINE"
-	series.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	series.add_theme_font_size_override("font_size", 13)
-	series.add_theme_color_override("font_color", UI_ORANGE)
-	header.add_child(series)
-
-
-func _make_rule_line() -> ColorRect:
 	var line := ColorRect.new()
-	line.custom_minimum_size = Vector2(48, 1)
-	line.color = Color(0.42, 0.38, 0.32, 0.75)
-	line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	return line
+	line.set_anchors_preset(Control.PRESET_CENTER)
+	line.offset_left = -_home_spec_w(143)
+	line.offset_right = _home_spec_w(143)
+	line.offset_top = -1
+	line.offset_bottom = 1
+	line.color = Color(0.627, 0.863, 0.98, 0.65)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line_wrap.add_child(line)
+
+	var diamond := Label.new()
+	diamond.text = "◆"
+	diamond.set_anchors_preset(Control.PRESET_CENTER)
+	diamond.offset_left = -_home_spec_w(8)
+	diamond.offset_right = _home_spec_w(8)
+	diamond.offset_top = -_home_spec_h(8)
+	diamond.offset_bottom = _home_spec_h(8)
+	diamond.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	diamond.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	diamond.add_theme_font_size_override("font_size", _home_spec_fs(10))
+	diamond.add_theme_color_override("font_color", UI_ICE)
+	diamond.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.65))
+	diamond.add_theme_constant_override("shadow_outline_size", 4)
+	diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line_wrap.add_child(diamond)
+
+	var sub_row := HBoxContainer.new()
+	sub_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	sub_row.add_theme_constant_override("separation", _home_spec_w(15))
+	header.add_child(sub_row)
+
+	var sub_line_l := ColorRect.new()
+	sub_line_l.custom_minimum_size = Vector2(_home_spec_w(38), 1)
+	sub_line_l.color = Color(0.561, 0.663, 0.753, 0.85)
+	sub_line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sub_row.add_child(sub_line_l)
+
+	var sub := Label.new()
+	sub.text = "— SELECT A REGION —"
+	sub.add_theme_font_size_override("font_size", _home_spec_fs(20))
+	sub.add_theme_color_override("font_color", Color(0.624, 0.698, 0.776))
+	sub.add_theme_constant_override("letter_spacing", _home_spec_em(20, 0.34))
+	sub_row.add_child(sub)
+
+	var sub_line_r := ColorRect.new()
+	sub_line_r.custom_minimum_size = Vector2(_home_spec_w(38), 1)
+	sub_line_r.color = Color(0.561, 0.663, 0.753, 0.85)
+	sub_line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sub_row.add_child(sub_line_r)
 
 
-func _add_map_list_card(data: Dictionary) -> void:
+func _add_map_archive_card(data: Dictionary) -> void:
 	var unlocked := bool(data.get("unlocked", false))
-	var tint: Color = UI_ORANGE
-	if data.has("tint") and data["tint"] is Color:
-		tint = data["tint"] as Color
-	var border := Color(0.98, 0.62, 0.18, 0.95) if unlocked else Color(0.35, 0.32, 0.28, 0.85)
-	var fill := Color(0.07, 0.06, 0.05, 0.98)
+	var card_h := _home_spec_h(169)
+	var thumb_w := _home_spec_w(273)
+	var inner_h := card_h - _home_spec_h(17) * 2
+	var pad_v := _home_spec_h(17)
+	var pad_l := _home_spec_w(20)
+	var pad_r := _home_spec_w(20)
+
+	var wrap := Control.new()
+	wrap.custom_minimum_size = Vector2(0, card_h)
+	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrap.clip_contents = true
+	wrap.mouse_filter = Control.MOUSE_FILTER_STOP
+	if unlocked:
+		wrap.gui_input.connect(func(event: InputEvent) -> void:
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				_open_planet_map(String(data.get("planet_id", "glass_desert")))
+			elif event is InputEventScreenTouch and event.pressed:
+				_open_planet_map(String(data.get("planet_id", "glass_desert")))
+		)
+	_map_list_box.add_child(wrap)
+
+	var frame := MapFrameOverlay.MapCardFrameOverlay.new()
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	frame.z_index = 4
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(frame)
 
 	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(0, 248)
-	var frame := _style(fill, border, 3 if unlocked else 1, 4)
-	frame.shadow_color = Color(0.98, 0.55, 0.12, 0.28) if unlocked else Color(0, 0, 0, 0.35)
-	frame.shadow_size = 8 if unlocked else 2
-	frame.content_margin_left = 0
-	frame.content_margin_right = 0
-	frame.content_margin_top = 0
-	frame.content_margin_bottom = 0
-	panel.add_theme_stylebox_override("panel", frame)
-	_page_box.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.z_index = 1
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel", _style_map_card_glass())
+	wrap.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", pad_l)
+	margin.add_theme_constant_override("margin_right", pad_r)
+	margin.add_theme_constant_override("margin_top", pad_v)
+	margin.add_theme_constant_override("margin_bottom", pad_v)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(margin)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 0)
-	panel.add_child(row)
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.add_theme_constant_override("separation", _home_spec_w(22))
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(row)
 
-	# —— 左侧预览 ——
-	var thumb := Control.new()
-	thumb.custom_minimum_size = Vector2(300, 248)
-	thumb.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	thumb.clip_contents = true
-	row.add_child(thumb)
+	var thumb_wrap := PanelContainer.new()
+	thumb_wrap.custom_minimum_size = Vector2(thumb_w, inner_h)
+	thumb_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	thumb_wrap.clip_contents = true
+	thumb_wrap.add_theme_stylebox_override("panel", _style_map_thumb_frame())
+	thumb_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(thumb_wrap)
 
-	var thumb_fill := ColorRect.new()
-	thumb_fill.set_anchors_preset(Control.PRESET_FULL_RECT)
-	thumb_fill.color = Color(0.08, 0.07, 0.06)
-	thumb_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	thumb.add_child(thumb_fill)
+	var thumb_inner := Control.new()
+	thumb_inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	thumb_inner.clip_contents = true
+	thumb_inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	thumb_wrap.add_child(thumb_inner)
 
-	var preview_path := ""
+	var preview_path := String(data.get("preview", ""))
+	if preview_path == "" or not ResourceLoader.exists(preview_path):
+		preview_path = MAPLIST_PREVIEW_01
+	if ResourceLoader.exists(preview_path):
+		var image := TextureRect.new()
+		image.texture = load(preview_path) as Texture2D
+		image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if not unlocked:
+			image.modulate = Color(0.72, 0.72, 0.78, 0.88)
+		thumb_inner.add_child(image)
+
 	if unlocked:
-		if ResourceLoader.exists(MAPLIST_PREVIEW_01) and String(data.get("planet_id", "")) in ["", "glass_desert"]:
-			preview_path = MAPLIST_PREVIEW_01
-		else:
-			var cfg: Script = PlanetDatabase.get_runner_config(String(data.get("planet_id", "glass_desert")))
-			if cfg.has_method("get_home_map_preview_path"):
-				preview_path = String(cfg.get_home_map_preview_path())
-		if preview_path == "" or not ResourceLoader.exists(preview_path):
-			preview_path = MAP_PREVIEW_FALLBACK
-		if ResourceLoader.exists(preview_path):
-			var image := TextureRect.new()
-			image.texture = load(preview_path) as Texture2D
-			image.set_anchors_preset(Control.PRESET_FULL_RECT)
-			image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			thumb.add_child(image)
+		var avail_bar := MarginContainer.new()
+		avail_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		avail_bar.add_theme_constant_override("margin_left", _home_spec_w(17))
+		avail_bar.add_theme_constant_override("margin_bottom", _home_spec_h(12))
+		avail_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		thumb_inner.add_child(avail_bar)
+
+		var avail_stack := VBoxContainer.new()
+		avail_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		avail_stack.alignment = BoxContainer.ALIGNMENT_END
+		avail_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		avail_bar.add_child(avail_stack)
+
+		var avail := HBoxContainer.new()
+		avail.add_theme_constant_override("separation", _home_spec_w(8))
+		avail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		avail_stack.add_child(avail)
+
+		var dot := PanelContainer.new()
+		dot.custom_minimum_size = Vector2(_home_spec_w(11), _home_spec_w(11))
+		var dot_style := StyleBoxFlat.new()
+		dot_style.bg_color = UI_CYAN_SOFT
+		dot_style.set_corner_radius_all(_home_spec_w(6))
+		dot_style.shadow_color = Color(0.557, 0.882, 0.969, 0.55)
+		dot_style.shadow_size = 6
+		dot.add_theme_stylebox_override("panel", dot_style)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		avail.add_child(dot)
+
+		var avail_label := Label.new()
+		avail_label.text = "AVAILABLE"
+		avail_label.add_theme_font_size_override("font_size", _home_spec_fs(18))
+		avail_label.add_theme_color_override("font_color", UI_CYAN_SOFT)
+		avail_label.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.45))
+		avail_label.add_theme_constant_override("shadow_outline_size", 4)
+		avail_label.add_theme_constant_override("letter_spacing", _home_spec_em(18, 0.18))
+		avail_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		avail.add_child(avail_label)
 	else:
-		var dim := ColorRect.new()
-		dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-		dim.color = Color(0.04, 0.04, 0.05, 0.72)
-		dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		thumb.add_child(dim)
-		var lock_mark := Label.new()
-		lock_mark.text = "LOCKED"
-		lock_mark.set_anchors_preset(Control.PRESET_CENTER)
-		lock_mark.offset_left = -60
-		lock_mark.offset_right = 60
-		lock_mark.offset_top = -16
-		lock_mark.offset_bottom = 16
-		lock_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		lock_mark.add_theme_font_size_override("font_size", 22)
-		lock_mark.add_theme_color_override("font_color", tint.lightened(0.15))
-		lock_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		thumb.add_child(lock_mark)
+		var veil := ColorRect.new()
+		veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		veil.color = Color(0.016, 0.031, 0.055, 0.22)
+		veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		thumb_inner.add_child(veil)
 
-	# 顶部：菱形序号 + UNLOCKED 横幅
-	var badge_row := HBoxContainer.new()
-	badge_row.position = Vector2(10, 10)
-	badge_row.add_theme_constant_override("separation", 0)
-	badge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	thumb.add_child(badge_row)
+		var lock_center := CenterContainer.new()
+		lock_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		lock_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		thumb_inner.add_child(lock_center)
 
-	var index_wrap := Control.new()
-	index_wrap.custom_minimum_size = Vector2(44, 44)
-	index_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge_row.add_child(index_wrap)
+		var lock_ring := PanelContainer.new()
+		lock_ring.custom_minimum_size = Vector2(_home_spec_w(61), _home_spec_w(61))
+		var lock_style := StyleBoxFlat.new()
+		lock_style.bg_color = Color(0.031, 0.063, 0.11, 0.75)
+		lock_style.border_color = Color(0.667, 0.902, 1.0, 0.5)
+		lock_style.set_border_width_all(2)
+		lock_style.set_corner_radius_all(_home_spec_w(31))
+		lock_style.shadow_color = Color(0.557, 0.882, 0.969, 0.28)
+		lock_style.shadow_size = 10
+		lock_ring.add_theme_stylebox_override("panel", lock_style)
+		lock_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_center.add_child(lock_ring)
 
-	var diamond_tex := _load_header_texture(MAPLIST_BADGE_DIAMOND)
-	if diamond_tex:
-		var diamond := TextureRect.new()
-		diamond.texture = diamond_tex
-		diamond.set_anchors_preset(Control.PRESET_FULL_RECT)
-		diamond.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		diamond.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		index_wrap.add_child(diamond)
+		var lock_icon := Label.new()
+		lock_icon.text = "🔒"
+		lock_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		lock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lock_icon.add_theme_font_size_override("font_size", _home_spec_fs(24))
+		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_ring.add_child(lock_icon)
+
+	var info_wrap := MarginContainer.new()
+	if unlocked:
+		info_wrap.custom_minimum_size.x = _home_spec_w(191)
+		info_wrap.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	else:
-		var diamond_bg := PanelContainer.new()
-		diamond_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-		diamond_bg.add_theme_stylebox_override("panel", _style(UI_ORANGE, UI_ORANGE_BORDER, 1, 4))
-		diamond_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		index_wrap.add_child(diamond_bg)
-
-	var index_badge := Label.new()
-	index_badge.text = String(data.get("index", "01"))
-	index_badge.set_anchors_preset(Control.PRESET_FULL_RECT)
-	index_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	index_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	index_badge.add_theme_font_size_override("font_size", 15)
-	index_badge.add_theme_color_override("font_color", Color(1.0, 0.92, 0.55) if unlocked else UI_MUTED)
-	index_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	index_wrap.add_child(index_badge)
-
-	var state_badge := Label.new()
-	state_badge.text = "  UNLOCKED  " if unlocked else "  LOCKED  "
-	state_badge.custom_minimum_size = Vector2(0, 28)
-	state_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	state_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	state_badge.add_theme_font_size_override("font_size", 12)
-	state_badge.add_theme_color_override("font_color", UI_ORANGE_BORDER if unlocked else UI_MUTED)
-	var state_style := _style(Color(0.05, 0.04, 0.03, 0.82), border, 1, 0)
-	state_style.content_margin_left = 10
-	state_style.content_margin_right = 14
-	state_style.content_margin_top = 4
-	state_style.content_margin_bottom = 4
-	state_badge.add_theme_stylebox_override("normal", state_style)
-	state_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge_row.add_child(state_badge)
-
-	# —— 右侧信息面板 ——
-	var info_panel := PanelContainer.new()
-	info_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var info_style := _style(Color(0.08, 0.07, 0.06, 0.98), Color(0.28, 0.22, 0.14, 0.55), 0, 0)
-	info_style.content_margin_left = 16
-	info_style.content_margin_right = 16
-	info_style.content_margin_top = 14
-	info_style.content_margin_bottom = 14
-	info_panel.add_theme_stylebox_override("panel", info_style)
-	row.add_child(info_panel)
+		info_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_wrap.add_theme_constant_override("margin_top", _home_spec_h(20))
+	info_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(info_wrap)
 
 	var info := VBoxContainer.new()
-	info.add_theme_constant_override("separation", 10)
-	info_panel.add_child(info)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_theme_constant_override("separation", _home_spec_h(4))
+	info.modulate = Color(1, 1, 1, 1.0 if unlocked else 0.55)
+	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_wrap.add_child(info)
 
-	var title_row := HBoxContainer.new()
-	title_row.add_theme_constant_override("separation", 8)
-	info.add_child(title_row)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", _home_spec_w(16))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info.add_child(head)
 
-	var title := Label.new()
-	title.text = String(data.get("title", "Map"))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 20)
-	title.add_theme_color_override("font_color", Color(0.96, 0.86, 0.58) if unlocked else UI_MUTED)
-	title_row.add_child(title)
+	var num := Label.new()
+	num.text = String(data.get("index", "01"))
+	num.add_theme_font_size_override("font_size", _home_spec_fs(25))
+	num.add_theme_color_override("font_color", UI_CYAN)
+	num.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.45))
+	num.add_theme_constant_override("shadow_outline_size", 4)
+	num.add_theme_constant_override("letter_spacing", _home_spec_em(25, 0.08))
+	num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(num)
+
+	var name := Label.new()
+	name.text = String(data.get("name", "MAP"))
+	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if bool(data.get("long_name", false)) else TextServer.AUTOWRAP_OFF
+	name.add_theme_font_size_override(
+		"font_size",
+		_home_spec_fs(23) if bool(data.get("long_name", false)) else _home_spec_fs(24)
+	)
+	name.add_theme_color_override("font_color", UI_TEXT)
+	name.add_theme_constant_override("letter_spacing", _home_spec_em(24, 0.06))
+	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(name)
 
 	if unlocked:
-		var open_badge := Label.new()
-		open_badge.text = " OPEN › "
-		open_badge.add_theme_font_size_override("font_size", 12)
-		open_badge.add_theme_color_override("font_color", UI_OPEN_GREEN)
-		var open_style := _style(UI_OPEN_GREEN_BG, Color(0.30, 0.55, 0.28, 0.9), 1, 3)
-		open_style.content_margin_left = 8
-		open_style.content_margin_right = 8
-		open_style.content_margin_top = 4
-		open_style.content_margin_bottom = 4
-		open_badge.add_theme_stylebox_override("normal", open_style)
-		open_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		title_row.add_child(open_badge)
-
-	var divider := ColorRect.new()
-	divider.custom_minimum_size = Vector2(0, 1)
-	divider.color = Color(0.45, 0.34, 0.18, 0.55)
-	info.add_child(divider)
-
-	if unlocked:
-		var progress: Dictionary = {}
-		if data.get("progress") is Dictionary:
-			progress = data["progress"] as Dictionary
-		var purify_pct := int(data.get("purify_pct", 0))
-
-		var stats := HBoxContainer.new()
-		stats.add_theme_constant_override("separation", 0)
-		stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.add_child(stats)
-
-		stats.add_child(_build_map_stat_block(
-			MAPLIST_ICON_OUTPOST,
-			"OUTPOSTS LIT",
-			"%d/%d" % [int(progress.get("completed", 0)), int(progress.get("total", 0))]
-		))
-
-		var vline := ColorRect.new()
-		vline.custom_minimum_size = Vector2(1, 48)
-		vline.color = Color(0.45, 0.34, 0.18, 0.45)
-		vline.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		stats.add_child(vline)
-
-		stats.add_child(_build_map_stat_block(
-			MAPLIST_ICON_PURIFY,
-			"PURIFICATION",
-			"%d%%" % purify_pct
-		))
-
-		var chapter_row := HBoxContainer.new()
-		chapter_row.add_theme_constant_override("separation", 8)
-		info.add_child(chapter_row)
-
-		var chapter_icon := TextureRect.new()
-		chapter_icon.custom_minimum_size = Vector2(22, 22)
-		chapter_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		chapter_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		chapter_icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		var chapter_tex := _load_header_texture(MAPLIST_ICON_CHAPTER)
-		if chapter_tex:
-			chapter_icon.texture = chapter_tex
-		chapter_row.add_child(chapter_icon)
-
-		var chapter_box := VBoxContainer.new()
-		chapter_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		chapter_box.add_theme_constant_override("separation", 1)
-		chapter_row.add_child(chapter_box)
-
-		var chapter_label := Label.new()
-		chapter_label.text = "CHAPTER PROGRESS"
-		chapter_label.add_theme_font_size_override("font_size", 11)
-		chapter_label.add_theme_color_override("font_color", UI_MUTED)
-		chapter_box.add_child(chapter_label)
-
-		var chapter_name := Label.new()
-		chapter_name.text = String(data.get("chapter", ""))
-		chapter_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		chapter_name.add_theme_font_size_override("font_size", 14)
-		chapter_name.add_theme_color_override("font_color", UI_ORANGE)
-		chapter_box.add_child(chapter_name)
-
-		var spacer := Control.new()
-		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		info.add_child(spacer)
-
+		# 切角框右下为斜切，需比标注稿 3.2cqw/1.1cqh 再多留一点空
+		var enter_pad_r := _home_spec_w(36)
+		var enter_pad_b := _home_spec_h(26)
+		var enter_btn_w := _home_spec_w(118)
+		var enter_btn_h := _home_spec_h(34)
 		var enter := Button.new()
-		enter.text = "ENTER MAP  >"
+		enter.text = "ENTER  »"
 		enter.focus_mode = Control.FOCUS_NONE
-		enter.custom_minimum_size = Vector2(0, 52)
-		enter.add_theme_font_size_override("font_size", 18)
-		enter.add_theme_color_override("font_color", Color(1.0, 0.86, 0.45))
-		enter.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.65))
-		enter.add_theme_color_override("font_pressed_color", UI_ORANGE)
-		var enter_n := _style(Color(0.14, 0.09, 0.04, 0.98), Color(0.98, 0.62, 0.18), 2, 4)
-		var enter_h := _style(Color(0.20, 0.12, 0.05, 0.98), Color(1.0, 0.78, 0.36), 2, 4)
-		var enter_p := _style(Color(0.10, 0.06, 0.03, 0.98), UI_ORANGE, 2, 4)
-		enter_n.shadow_color = Color(0.98, 0.50, 0.10, 0.35)
-		enter_n.shadow_size = 6
+		enter.z_index = 5
+		enter.custom_minimum_size = Vector2(enter_btn_w, enter_btn_h)
+		enter.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		enter.offset_left = -enter_pad_r - enter_btn_w
+		enter.offset_top = -enter_pad_b - enter_btn_h
+		enter.offset_right = -enter_pad_r
+		enter.offset_bottom = -enter_pad_b
+		enter.add_theme_font_size_override("font_size", _home_spec_fs(23))
+		enter.add_theme_color_override("font_color", UI_ICE)
+		enter.add_theme_constant_override("letter_spacing", _home_spec_em(23, 0.22))
+		var enter_n := _style_map_enter_button(false)
+		var enter_h := _style_map_enter_button(true)
 		enter.add_theme_stylebox_override("normal", enter_n)
 		enter.add_theme_stylebox_override("hover", enter_h)
-		enter.add_theme_stylebox_override("pressed", enter_p)
+		enter.add_theme_stylebox_override("pressed", enter_h)
 		enter.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		enter.pressed.connect(_open_planet_map.bind(String(data.get("planet_id", "glass_desert"))))
-		info.add_child(enter)
-	else:
-		var spacer := Control.new()
-		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		info.add_child(spacer)
-		var lock_hint := Label.new()
-		lock_hint.text = String(data.get("lock_hint", "Locked"))
-		lock_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lock_hint.add_theme_font_size_override("font_size", 15)
-		lock_hint.add_theme_color_override("font_color", tint.lightened(0.2))
-		info.add_child(lock_hint)
-		var spacer2 := Control.new()
-		spacer2.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		info.add_child(spacer2)
+		wrap.add_child(enter)
 
 
-func _build_map_stat_block(icon_path: String, label_text: String, value_text: String) -> Control:
-	var wrap := HBoxContainer.new()
-	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wrap.add_theme_constant_override("separation", 8)
-	wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+func _style_map_card_glass() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.047, 0.094, 0.165, 0.0)
+	style.border_width_left = 0
+	style.border_width_top = 0
+	style.border_width_right = 0
+	style.border_width_bottom = 0
+	style.set_content_margin_all(0)
+	return style
 
-	var pad := MarginContainer.new()
-	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad.add_theme_constant_override("margin_left", 8)
-	pad.add_theme_constant_override("margin_right", 8)
-	pad.add_theme_constant_override("margin_top", 2)
-	pad.add_theme_constant_override("margin_bottom", 2)
-	wrap.add_child(pad)
 
-	var inner := HBoxContainer.new()
-	inner.add_theme_constant_override("separation", 8)
-	pad.add_child(inner)
+func _style_map_thumb_frame() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.02, 0.04, 0.07, 0.35)
+	style.border_color = Color(0.667, 0.902, 1.0, 0.5)
+	style.set_border_width_all(1)
+	style.set_content_margin_all(0)
+	style.shadow_color = Color(0.557, 0.882, 0.969, 0.28)
+	style.shadow_size = 8
+	return style
 
-	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(28, 28)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var tex := _load_header_texture(icon_path)
-	if tex:
-		icon.texture = tex
-	inner.add_child(icon)
 
-	var box := VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 0)
-	inner.add_child(box)
-
-	var label := Label.new()
-	label.text = label_text
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", UI_MUTED)
-	box.add_child(label)
-
-	var value := Label.new()
-	value.text = value_text
-	value.add_theme_font_size_override("font_size", 22)
-	value.add_theme_color_override("font_color", Color(0.98, 0.84, 0.42))
-	box.add_child(value)
-	return wrap
+func _style_map_enter_button(hover: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.118, 0.216, 0.314, 0.72) if hover else Color(0.157, 0.275, 0.392, 0.58)
+	style.border_color = Color(0.745, 0.933, 0.996, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(_home_spec_w(15))
+	style.shadow_color = Color(0.557, 0.882, 0.969, 0.45)
+	style.shadow_size = 12
+	style.content_margin_left = _home_spec_w(18)
+	style.content_margin_right = _home_spec_w(18)
+	style.content_margin_top = _home_spec_h(8)
+	style.content_margin_bottom = _home_spec_h(8)
+	return style
 
 
 func _build_tasks_page() -> void:
-	var missions: Array[Dictionary] = []
-	for planet in _get_playable_planets():
-		var planet_id := String(planet["id"])
-		var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
-		for mission in cfg.get_location_missions():
-			missions.append({"planet": planet, "mission": mission})
-	missions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return int(a["mission"].get("order", 999)) < int(b["mission"].get("order", 999))
-	)
-	var completed_count := 0
-	var available_count := 0
-	for entry in missions:
-		var planet_id := String(entry["planet"]["id"])
-		var location_id := String(entry["mission"].get("location_id", ""))
-		if Global.get_completed_runner_locations(planet_id).has(location_id):
-			completed_count += 1
-		elif Global.get_revealed_exploration_locations(planet_id, ["dome"]).has(location_id):
-			available_count += 1
+	var planet_id := "glass_desert"
+	Global.ensure_mission_dispatch_ready(planet_id)
+	var unlocked_batch := Global.get_unlocked_mission_batch(planet_id)
+	var batch_label := MissionDispatch.batch_unlock_summary(planet_id, unlocked_batch)
+	var board := Global.get_mission_board_slots(planet_id)
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
 	_add_lead_panel(
-		"运输任务",
-		"共 %d 条主线 · 可接取 %d · 已完成 %d" % [missions.size(), available_count, completed_count]
+		"运输任务板",
+		"%s\n常驻 %d 槽 · 按据点缺口优先补发 · 点亮后自动换新任务" % [
+			batch_label,
+			MissionDispatch.BOARD_SLOT_COUNT,
+		]
 	)
-	for entry in missions:
-		_add_mission_card(entry["planet"], entry["mission"])
+	if board.is_empty():
+		_add_card("任务板已清空", "当前批次可运输据点均已点亮。可从地图再次运输，或等待下一批次解锁。")
+	else:
+		var slot_index := 1
+		for location_id in board:
+			var mission: Dictionary = cfg.get_mission_for_location(location_id) if cfg != null else {}
+			if mission.is_empty():
+				mission = {
+					"location_id": location_id,
+					"cargo_name": "运输物资",
+					"task_type": "Supply Run",
+					"order": slot_index * 10,
+					"difficulty": 1,
+				}
+			var planet_meta: Dictionary = PlanetDatabase.get_planet_meta(planet_id)
+			_add_mission_card(planet_meta, mission, slot_index, true)
+			slot_index += 1
+
+	_add_section_title("批次进度")
+	for entry in MissionDispatch.get_batches(planet_id):
+		var batch_id := int(entry.get("id", 0))
+		var status := "已开放" if batch_id <= unlocked_batch else "未解锁"
+		var locs: PackedStringArray = PackedStringArray()
+		for location_id in entry.get("locations", []):
+			var meta: Dictionary = cfg.get_outpost_meta(String(location_id)) if cfg != null and cfg.has_method("get_outpost_meta") else {}
+			var name := String(meta.get("name", location_id))
+			var progress := Global.get_outpost_progress(planet_id, String(location_id))
+			var total := Global.get_outpost_repair_total(planet_id, String(location_id))
+			locs.append("%s %d/%d" % [name, progress, total])
+		var unlock_hint := ""
+		if batch_id == 2 and unlocked_batch < 2:
+			unlock_hint = "\n解锁条件：批次1任一据点点亮"
+		elif batch_id == 3 and unlocked_batch < 3:
+			unlock_hint = "\n解锁条件：批次1+2平均进度 ≥ 85%"
+		_add_card(
+			"批次%d · %s · %s" % [batch_id, String(entry.get("name", "")), status],
+			" · ".join(locs) + unlock_hint
+		)
 
 
 func _build_character_page() -> void:
@@ -1914,7 +2129,7 @@ func _add_character_story_entry(character: Dictionary) -> void:
 	row.add_child(title)
 
 	var action := Label.new()
-	action.text = "打开宝典  ›"
+	action.text = "阅读档案  ›"
 	action.add_theme_font_size_override("font_size", 18)
 	action.add_theme_color_override("font_color", Color(0.90, 0.76, 0.46))
 	action.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2057,6 +2272,7 @@ func _cycle_character(direction: int = 1) -> void:
 			_show_toast("完成居民穹顶运输后解锁 Rook")
 		return
 	_selected_character_id = next_id
+	Global.set_selected_character(_selected_character_id)
 	_show_toast("已切换至 %s" % String(CharacterRoster.get_character(next_id).get("name", next_id)))
 	_show_tab(TAB_CHARACTER, true)
 
@@ -2067,12 +2283,307 @@ func _show_character_story(character_id: String) -> void:
 		_character_story_overlay = null
 
 	_selected_character_id = character_id
-	var book := CharacterBook.new()
-	book.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_ui_root.add_child(book)
-	_character_story_overlay = book
-	book.setup(character_id)
-	book.closed.connect(_close_character_story)
+	Global.set_selected_character(_selected_character_id)
+	var character: Dictionary = CharacterRoster.get_character(character_id)
+	var snapshot: Dictionary = Global.get_messenger_snapshot()
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	_ui_root.add_child(root)
+	_character_story_overlay = root
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.059, 0.082, 0.125, 1.0) # #0F1520
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 32)
+	margin.add_theme_constant_override("margin_right", 32)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_bottom", 24)
+	root.add_child(margin)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 18)
+	margin.add_child(column)
+
+	# —— 顶栏：返回 + 标题 ——
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 8)
+	column.add_child(top)
+
+	var back := Button.new()
+	back.text = "‹"
+	back.focus_mode = Control.FOCUS_NONE
+	back.flat = true
+	back.custom_minimum_size = Vector2(48, 48)
+	back.add_theme_font_size_override("font_size", 34)
+	back.add_theme_color_override("font_color", Color(0.94, 0.92, 0.88))
+	back.pressed.connect(_close_character_story)
+	top.add_child(back)
+
+	var top_title := Label.new()
+	top_title.text = "信使故事  RUNNER STORY"
+	top_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	top_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	top_title.add_theme_font_size_override("font_size", 22)
+	top_title.add_theme_color_override("font_color", Color(0.94, 0.93, 0.90))
+	top.add_child(top_title)
+
+	var top_spacer := Control.new()
+	top_spacer.custom_minimum_size = Vector2(48, 0)
+	top.add_child(top_spacer)
+
+	# —— 身份：圆形徽章 + 名 + 等级 ——
+	var identity := HBoxContainer.new()
+	identity.add_theme_constant_override("separation", 16)
+	identity.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	column.add_child(identity)
+
+	var badge_wrap := Control.new()
+	badge_wrap.custom_minimum_size = Vector2(72, 72)
+	badge_wrap.clip_contents = true
+	identity.add_child(badge_wrap)
+	var badge := Panel.new()
+	badge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.clip_contents = true
+	var badge_style := StyleBoxFlat.new()
+	badge_style.bg_color = Color(0.545, 0.435, 0.263) # #8B6F43
+	badge_style.set_corner_radius_all(999)
+	badge_style.anti_aliasing = true
+	badge_style.set_border_width_all(0)
+	badge_style.set_content_margin_all(0)
+	badge.add_theme_stylebox_override("panel", badge_style)
+	badge_wrap.add_child(badge)
+	var badge_label := Label.new()
+	badge_label.text = String(character.get("badge", "?"))
+	badge_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge_label.add_theme_font_size_override("font_size", 28)
+	badge_label.add_theme_color_override("font_color", Color(0.98, 0.96, 0.92))
+	badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge_wrap.add_child(badge_label)
+
+	var id_text := HBoxContainer.new()
+	id_text.alignment = BoxContainer.ALIGNMENT_CENTER
+	id_text.add_theme_constant_override("separation", 12)
+	id_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	identity.add_child(id_text)
+	var name_label := Label.new()
+	name_label.text = String(character.get("name_en", "ELSA"))
+	name_label.add_theme_font_size_override("font_size", 36)
+	name_label.add_theme_color_override("font_color", Color(0.98, 0.97, 0.94))
+	id_text.add_child(name_label)
+	var lv := Label.new()
+	lv.text = "Lv.%d" % int(snapshot["level"])
+	lv.add_theme_font_size_override("font_size", 20)
+	lv.add_theme_color_override("font_color", Color(0.83, 0.65, 0.45))
+	lv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	id_text.add_child(lv)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
+
+	var story_box := VBoxContainer.new()
+	story_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	story_box.add_theme_constant_override("separation", 20)
+	scroll.add_child(story_box)
+
+	# 01 在上、02 在下，纵向排列（勿重叠）
+	_add_story_section_header(story_box, String(character.get("section_why", "WHY SHE RUNS")), "01")
+	_add_story_comic_block(story_box, character)
+	_add_story_section_header(story_box, "BACKGROUND · 背景故事", "02")
+	_add_story_text_panel(story_box, character)
+
+
+func _add_story_section_header(parent: Control, title: String, index_text: String) -> void:
+	# 设计稿：标题 + 细金线 + 序号（金线固定 2px，禁止被 HBox 纵向拉高）
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(row)
+
+	var label := Label.new()
+	label.text = title
+	label.add_theme_font_size_override("font_size", 17)
+	label.add_theme_color_override("font_color", Color(0.83, 0.65, 0.45)) # #D4A574
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(label)
+
+	var line_wrap := Control.new()
+	line_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line_wrap.custom_minimum_size = Vector2(24, 2)
+	line_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(line_wrap)
+	var line := ColorRect.new()
+	line.color = Color(0.83, 0.65, 0.45, 0.95)
+	line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line_wrap.add_child(line)
+
+	var index := Label.new()
+	index.text = index_text
+	index.add_theme_font_size_override("font_size", 17)
+	index.add_theme_color_override("font_color", Color(0.72, 0.74, 0.78))
+	index.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(index)
+
+
+func _add_story_comic_block(parent: Control, character: Dictionary) -> void:
+	# 01：方形插画。Scroll 内不用 AspectRatioContainer（高度会变成 0 导致与 02 重叠）
+	var side := maxf(MOBILE_VIEWPORT_SIZE.x - 64.0, 640.0)
+	var frame := Control.new()
+	frame.custom_minimum_size = Vector2(0, side)
+	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	frame.clip_contents = true
+	parent.add_child(frame)
+
+	var stage := ColorRect.new()
+	stage.color = Color(0.10, 0.08, 0.06, 1.0)
+	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(stage)
+
+	var image := TextureRect.new()
+	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_SCALE
+	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var art := CharacterRoster.load_texture(String(character.get("story_art_path", "")))
+	if art == null:
+		art = CharacterRoster.load_texture(String(character.get("hero_path", "")))
+	if art == null:
+		art = CharacterRoster.load_texture(String(character.get("portrait_path", "")))
+	if art:
+		image.texture = art
+		var sz := art.get_size()
+		if sz.x > 1.0 and sz.y > 1.0 and absf(sz.x / sz.y - 1.0) > 0.08:
+			image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	frame.add_child(image)
+
+	_add_story_frame_corners(frame, 1.0)
+
+	if not bool(character.get("quote_in_art", false)):
+		var quote_panel := PanelContainer.new()
+		quote_panel.position = Vector2(56, 20)
+		quote_panel.custom_minimum_size = Vector2(560, 0)
+		quote_panel.add_theme_stylebox_override(
+			"panel",
+			_style(Color(0.96, 0.95, 0.93, 0.96), Color(0.12, 0.12, 0.12, 0.85), 1, 10)
+		)
+		frame.add_child(quote_panel)
+		var quote_margin := MarginContainer.new()
+		quote_margin.add_theme_constant_override("margin_left", 14)
+		quote_margin.add_theme_constant_override("margin_right", 14)
+		quote_margin.add_theme_constant_override("margin_top", 10)
+		quote_margin.add_theme_constant_override("margin_bottom", 10)
+		quote_panel.add_child(quote_margin)
+		var quote := Label.new()
+		quote.text = String(character.get("quote", ""))
+		quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		quote.add_theme_font_size_override("font_size", 15)
+		quote.add_theme_color_override("font_color", Color(0.12, 0.12, 0.14))
+		quote_margin.add_child(quote)
+
+
+func _add_story_frame_corners(frame: Control, pad: float = 0.0) -> void:
+	# 设计稿：左上 / 右下细金 L，贴外框角
+	var gold := Color(0.831, 0.647, 0.455, 0.98) # #D4A574
+	frame.add_child(_make_l_corner_bracket(false, gold, pad))
+	frame.add_child(_make_l_corner_bracket(true, gold, pad))
+
+
+func _make_l_corner_bracket(bottom_right: bool, color: Color, pad: float = 0.0) -> Control:
+	var arm := 28.0
+	var thick := 2.0
+	var root := Control.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.custom_minimum_size = Vector2(arm, arm)
+	root.size = Vector2(arm, arm)
+	if bottom_right:
+		root.anchor_left = 1.0
+		root.anchor_top = 1.0
+		root.anchor_right = 1.0
+		root.anchor_bottom = 1.0
+		root.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		root.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		root.offset_left = -arm - pad
+		root.offset_top = -arm - pad
+		root.offset_right = -pad
+		root.offset_bottom = -pad
+	else:
+		root.position = Vector2(pad, pad)
+
+	var h := ColorRect.new()
+	h.color = color
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var v := ColorRect.new()
+	v.color = color
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if bottom_right:
+		# ┘：底边 + 右边，贴外框
+		h.position = Vector2(0, arm - thick)
+		h.size = Vector2(arm, thick)
+		v.position = Vector2(arm - thick, 0)
+		v.size = Vector2(thick, arm)
+	else:
+		# ┌：顶边 + 左边，贴外框
+		h.position = Vector2.ZERO
+		h.size = Vector2(arm, thick)
+		v.position = Vector2.ZERO
+		v.size = Vector2(thick, arm)
+	root.add_child(h)
+	root.add_child(v)
+	return root
+
+
+func _add_story_text_panel(parent: Control, character: Dictionary) -> void:
+	# 02：圆角文字卡；角标贴外框（StyleBox content_margin 必须为 0）
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.086, 0.118, 0.125, 0.92)
+	panel_style.border_color = Color(0.83, 0.65, 0.45, 0.45)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(4)
+	panel_style.set_content_margin_all(0)
+	panel.add_theme_stylebox_override("panel", panel_style)
+	parent.add_child(panel)
+
+	var margin := MarginContainer.new()
+	# 给 L 角留出空间，文字不压线
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 28)
+	margin.add_theme_constant_override("margin_bottom", 28)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 16)
+	margin.add_child(box)
+
+	var paragraphs: Array = character.get("story_paragraphs", [])
+	for paragraph in paragraphs:
+		var label := Label.new()
+		label.text = String(paragraph)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.add_theme_font_size_override("font_size", 18)
+		label.add_theme_color_override("font_color", Color(0.90, 0.91, 0.93))
+		box.add_child(label)
+
+	var overlay := Control.new()
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(overlay)
+	_add_story_frame_corners(overlay, 1.0)
 
 
 func _close_character_story() -> void:
@@ -2113,14 +2624,24 @@ func _upgrade_messenger_stat(stat_id: String) -> void:
 	_show_toast("星火币不足，无法升级")
 
 
-func _add_mission_card(planet: Dictionary, mission: Dictionary) -> void:
+func _add_mission_card(
+	planet: Dictionary,
+	mission: Dictionary,
+	slot_index: int = 0,
+	from_board: bool = false
+) -> void:
 	var planet_id := String(planet["id"])
 	var location_id := String(mission.get("location_id", "dome"))
 	var completed := Global.get_completed_runner_locations(planet_id).has(location_id)
-	var revealed := Global.get_revealed_exploration_locations(planet_id, ["dome"]).has(location_id)
+	var revealed := Global.get_revealed_exploration_locations(
+		planet_id,
+		MissionDispatch.get_batch1_location_ids(planet_id)
+	).has(location_id)
+	var batch_unlocked := MissionDispatch.is_location_batch_unlocked(planet_id, location_id)
 	var is_active := Global.is_active_mission(planet_id, location_id)
-	var status := "已完成" if completed else ("进行中" if is_active else ("可接取" if revealed else "待解锁"))
-	var border_color := UI_GREEN if completed else (UI_ORANGE if is_active else (Color(0.96, 0.58, 0.22) if revealed else UI_PANEL_BORDER))
+	var on_board := from_board or Global.is_mission_on_board(planet_id, location_id)
+	var status := "已完成" if completed else ("进行中" if is_active else ("任务板上" if on_board else ("可接取" if batch_unlocked and revealed else "待解锁")))
+	var border_color := UI_GREEN if completed else (UI_ORANGE if is_active else (Color(0.96, 0.58, 0.22) if on_board or (batch_unlocked and revealed) else UI_PANEL_BORDER))
 
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2161,10 +2682,24 @@ func _add_mission_card(planet: Dictionary, mission: Dictionary) -> void:
 	header.add_child(text_box)
 
 	var type_label := Label.new()
-	type_label.text = String(mission.get("task_type", "Supply Run"))
+	var profile: Dictionary = MissionTypes.resolve(mission)
+	var type_zh := String(mission.get("task_type_zh", profile.get("name_zh", "补给")))
+	var duration_s := int(mission.get("duration", profile.get("duration", 60)))
+	type_label.text = "%s · %ds" % [type_zh, duration_s]
+	if slot_index > 0:
+		type_label.text = "槽位 %d · %s" % [slot_index, type_label.text]
 	type_label.add_theme_font_size_override("font_size", 15)
 	type_label.add_theme_color_override("font_color", UI_TEXT)
 	text_box.add_child(type_label)
+
+	var hint_text := String(mission.get("task_hint", profile.get("hint", "")))
+	if hint_text != "":
+		var hint_label := Label.new()
+		hint_label.text = hint_text
+		hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hint_label.add_theme_font_size_override("font_size", 12)
+		hint_label.add_theme_color_override("font_color", UI_MUTED)
+		text_box.add_child(hint_label)
 
 	var route_label := Label.new()
 	route_label.text = "%s → %s" % [
@@ -2214,22 +2749,37 @@ func _add_mission_card(planet: Dictionary, mission: Dictionary) -> void:
 	reward_row.add_child(xp_lbl)
 
 	# 据点修复进度（与地图详情同源）
-	if revealed or completed:
+	if revealed or completed or on_board:
 		var repair := _home_repair_progress(planet_id, location_id)
 		var repair_lbl := Label.new()
-		repair_lbl.text = "据点修复 %d / %d" % [int(repair["current"]), int(repair["total"])]
+		var gap := MissionDispatch.gap_priority(planet_id, location_id)
+		repair_lbl.text = "据点修复 %d / %d · 缺口优先 %.0f%%" % [
+			int(repair["current"]),
+			int(repair["total"]),
+			gap,
+		]
 		repair_lbl.add_theme_font_size_override("font_size", 13)
 		repair_lbl.add_theme_color_override("font_color", Color(0.72, 0.76, 0.82))
 		box.add_child(repair_lbl)
 
 	if completed:
 		_add_muted_label(box, "据点进度 100%")
-	elif revealed:
+		_add_home_road_style_picker(box)
+		var replay_actions := HBoxContainer.new()
+		replay_actions.add_theme_constant_override("separation", 8)
+		box.add_child(replay_actions)
+		var replay_btn := _add_primary_button(replay_actions, "再次运输", _start_runner_for_location.bind(planet_id, location_id))
+		replay_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var map_btn := _add_secondary_button(replay_actions, "查看地图", _open_planet_map.bind(planet_id))
+		map_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	elif batch_unlocked and revealed:
 		_add_home_road_style_picker(box)
 		var actions := HBoxContainer.new()
 		actions.add_theme_constant_override("separation", 8)
 		box.add_child(actions)
-		var start_btn := _add_primary_button(actions, "开始运输", _start_runner_for_location.bind(planet_id, location_id))
+		var repair2 := _home_repair_progress(planet_id, location_id)
+		var start_label := "继续运输" if int(repair2["current"]) > 0 else "开始运输"
+		var start_btn := _add_primary_button(actions, start_label, _start_runner_for_location.bind(planet_id, location_id))
 		start_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if is_active:
 			var home_btn := _add_secondary_button(actions, "回首页", _show_tab.bind(TAB_HOME))
@@ -2237,10 +2787,13 @@ func _add_mission_card(planet: Dictionary, mission: Dictionary) -> void:
 		else:
 			var accept_btn := _add_secondary_button(actions, "设为当前", _accept_mission.bind(planet_id, location_id))
 			accept_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var map_btn := _add_secondary_button(actions, "查看地图", _open_planet_map.bind(planet_id))
-		map_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var map_btn2 := _add_secondary_button(actions, "查看地图", _open_planet_map.bind(planet_id))
+		map_btn2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	else:
-		_add_muted_label(box, "需要先在地图中点亮据点")
+		var lock_reason := "需要先解锁对应任务批次"
+		if batch_unlocked and not revealed:
+			lock_reason = "需要先在地图中点亮据点"
+		_add_muted_label(box, lock_reason)
 
 
 func _add_home_hero(purify_pct: int) -> void:
@@ -2350,7 +2903,9 @@ func _add_recommended_task_card(mission: Dictionary, planet_id: String, location
 	tag.add_theme_color_override("font_color", UI_STATUS)
 	text_box.add_child(tag)
 	var line1 := Label.new()
-	line1.text = "Supply Run · %s" % String(mission.get("target_hearth", "据点"))
+	var type_zh := String(mission.get("task_type_zh", MissionTypes.short_label(mission)))
+	var duration_s := int(mission.get("duration", MissionTypes.resolve(mission).get("duration", 60)))
+	line1.text = "%s · %ds · %s" % [type_zh, duration_s, String(mission.get("target_hearth", "据点"))]
 	line1.add_theme_font_size_override("font_size", 18)
 	line1.add_theme_color_override("font_color", UI_TEXT)
 	text_box.add_child(line1)
@@ -2447,10 +3002,19 @@ func _load_runner_portrait(planet_id: String) -> Texture2D:
 	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
 	if not cfg.has_method("get_runner_portrait_path"):
 		return null
-	var portrait_path := String(cfg.get_runner_portrait_path())
+	var portrait_path := String(cfg.get_runner_portrait_path(_selected_character_id))
 	if portrait_path == "" or not ResourceLoader.exists(portrait_path):
 		return null
 	return load(portrait_path) as Texture2D
+
+
+func _sync_selected_character_from_global() -> void:
+	_selected_character_id = Global.get_selected_character_id()
+	var snapshot: Dictionary = Global.get_messenger_snapshot()
+	var unlocked: Array = snapshot.get("unlocked_stories", [])
+	if not CharacterRoster.is_unlocked(_selected_character_id, unlocked):
+		_selected_character_id = CharacterRoster.CHAR_ELSA
+	Global.set_selected_character(_selected_character_id)
 
 
 func _prepend_card_icon(card: VBoxContainer, texture: Texture2D) -> void:
@@ -2722,37 +3286,61 @@ func _status_color(status: String) -> Color:
 
 
 func _find_next_mission_entry() -> Dictionary:
-	# 优先使用已指派的进行中任务，与 TASKS / 地图据点分发对齐
+	# 优先使用已指派；否则取任务板第一槽（缺口优先派发结果）
 	for planet in _get_playable_planets():
 		if not bool(planet.get("unlocked", false)):
 			continue
 		var planet_id := String(planet["id"])
+		Global.ensure_mission_dispatch_ready(planet_id)
 		var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
-		if cfg == null or not cfg.has_method("get_location_missions"):
+		if cfg == null or not cfg.has_method("get_mission_for_location"):
 			continue
-		var missions: Array = cfg.get_location_missions()
-		missions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-			return int(a.get("order", 999)) < int(b.get("order", 999))
-		)
 
 		var active := Global.validate_active_mission(planet_id)
 		var active_id := String(active.get("location_id", ""))
 		if active_id != "":
-			for mission in missions:
-				if String(mission.get("location_id", "")) == active_id:
-					return {"planet_id": planet_id, "location_id": active_id, "mission": mission}
+			var active_mission: Dictionary = cfg.get_mission_for_location(active_id)
+			if not active_mission.is_empty():
+				return {"planet_id": planet_id, "location_id": active_id, "mission": active_mission}
 
-		for mission in missions:
-			var location_id := String(mission.get("location_id", ""))
-			if location_id == "":
-				continue
+		var board := Global.get_mission_board_slots(planet_id)
+		for location_id in board:
 			if Global.get_completed_runner_locations(planet_id).has(location_id):
 				continue
-			if Global.get_revealed_exploration_locations(planet_id, ["dome"]).has(location_id):
-				# 自动指派为当前任务，保证 HOME 与任务分发同源
-				Global.set_active_mission(planet_id, location_id)
-				return {"planet_id": planet_id, "location_id": location_id, "mission": mission}
+			var mission: Dictionary = cfg.get_mission_for_location(location_id)
+			if mission.is_empty():
+				continue
+			Global.set_active_mission(planet_id, location_id)
+			return {"planet_id": planet_id, "location_id": location_id, "mission": mission}
+
+		var missions: Array = cfg.get_location_missions() if cfg.has_method("get_location_missions") else []
+		var replay := _find_replay_mission_entry(planet_id, missions)
+		if not replay.is_empty():
+			return replay
 	return {}
+
+
+func _find_replay_mission_entry(planet_id: String, missions: Array) -> Dictionary:
+	# 主线全清后：HOME 仍展示最后一条已点亮任务，允许再次进跑酷
+	var revealed := Global.get_revealed_exploration_locations(planet_id, ["dome"])
+	var best_mission: Dictionary = {}
+	var best_order := -1
+	for mission in missions:
+		var location_id := String(mission.get("location_id", ""))
+		if location_id == "" or not revealed.has(location_id):
+			continue
+		var order := int(mission.get("order", 0))
+		if order >= best_order:
+			best_order = order
+			best_mission = mission
+	if best_mission.is_empty():
+		return {}
+	return {
+		"planet_id": planet_id,
+		"location_id": String(best_mission.get("location_id", "")),
+		"mission": best_mission,
+		"replay": true,
+	}
 
 
 func _get_planet_mission_progress(planet_id: String) -> Dictionary:
@@ -2800,6 +3388,7 @@ func _start_runner_for_planet(planet_id: String) -> void:
 
 
 func _start_runner_for_location(planet_id: String, location_id: String) -> void:
+	_sync_selected_character_from_global()
 	_selected_planet_id = planet_id
 	# 接取/指派为当前任务，HOME 与 TASKS 同源
 	Global.set_active_mission(planet_id, location_id)
@@ -2814,7 +3403,10 @@ func _accept_mission(planet_id: String, location_id: String) -> void:
 	if Global.get_completed_runner_locations(planet_id).has(location_id):
 		_show_toast("该据点任务已完成")
 		return
-	if not Global.get_revealed_exploration_locations(planet_id, ["dome"]).has(location_id):
+	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
+		_show_toast("该批次任务尚未解锁")
+		return
+	if not Global.get_revealed_exploration_locations(planet_id, MissionDispatch.get_batch1_location_ids(planet_id)).has(location_id):
 		_show_toast("需要先在地图中点亮据点")
 		return
 	Global.set_active_mission(planet_id, location_id)
@@ -3039,6 +3631,96 @@ func _overlay_label(text: String, size: int, color: Color) -> Label:
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
 	return label
+
+
+func _home_scale_x() -> float:
+	return MOBILE_VIEWPORT_SIZE.x / HOME_DESIGN_SIZE.x
+
+
+func _home_scale_y() -> float:
+	return MOBILE_VIEWPORT_SIZE.y / HOME_DESIGN_SIZE.y
+
+
+func _home_spec_w(design_px: float) -> int:
+	return int(round(design_px * _home_scale_x()))
+
+
+func _home_spec_h(design_px: float) -> int:
+	return int(round(design_px * _home_scale_y()))
+
+
+func _home_spec_fs(design_px: float) -> int:
+	return int(round(design_px * _home_scale_x()))
+
+
+func _home_spec_em(design_font_px: float, em: float) -> int:
+	return int(round(design_font_px * em * _home_scale_x()))
+
+
+func _style_glass(radius: int = 12, margin_left: int = 10, margin_right: int = 10, margin_vertical: int = 8) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = UI_FRAME
+	style.border_color = UI_METAL_BORDER
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	style.content_margin_left = margin_left
+	style.content_margin_right = margin_right
+	style.content_margin_top = margin_vertical
+	style.content_margin_bottom = margin_vertical
+	return style
+
+
+func _style_mission_frame() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.027, 0.063, 0.114, 0.45)
+	style.border_width_left = 0
+	style.border_width_top = 0
+	style.border_width_right = 0
+	style.border_width_bottom = 0
+	style.shadow_color = Color(0.557, 0.882, 0.969, 0.32)
+	style.shadow_size = 12
+	return style
+
+
+func _style_nav_bar() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.027, 0.063, 0.114, 0.62)
+	style.border_color = Color(0.627, 0.784, 0.922, 0.16)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(26)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	return style
+
+
+func _style_home_start_button(hover: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.157, 0.275, 0.392, 0.58) if hover else Color(0.118, 0.216, 0.314, 0.5)
+	style.border_color = Color(0.588, 0.843, 1.0, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(_home_spec_w(40))
+	style.shadow_color = Color(0.557, 0.882, 0.969, 0.38)
+	style.shadow_size = 18
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	return style
+
+
+func _home_spaced_label(text: String) -> String:
+	var out := PackedStringArray()
+	for ch in text:
+		if ch == " ":
+			out.append("  ")
+		else:
+			out.append("%s " % ch)
+	return "".strip_edges()
 
 
 func _style(fill: Color, border: Color, border_width: int = 1, radius: int = 6) -> StyleBoxFlat:

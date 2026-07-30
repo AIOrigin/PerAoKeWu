@@ -42,10 +42,17 @@ const THEME := {
 const ASSETS := {
 	"panorama": "res://3d素材/三拼地图.png",
 	"jump_obstacles": [
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_sprigs_2_5d.png",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
 		"res://3d素材/障碍物-需跳跃.glb",
 		"res://3d素材/障碍物-需跳跃2.glb",
 	],
-	"slide_obstacle": "res://3d素材/障碍物-需滑铲.glb",
+	"slide_obstacle": "res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
+	"slide_obstacles": [
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
+		"res://3d素材/障碍物-需滑铲.glb",
+	],
 	"side_props": [
 		"res://3d素材/障碍物-需跳跃.glb",
 		"res://3d素材/障碍物-需跳跃2.glb",
@@ -112,6 +119,10 @@ static func get_theme() -> Dictionary:
 
 static func get_assets() -> Dictionary:
 	return ASSETS
+
+
+static func get_player_assets(character_id: String = "elsa") -> Dictionary:
+	return GlassDesert.get_player_assets(character_id)
 
 
 static func get_track_segments() -> Array:

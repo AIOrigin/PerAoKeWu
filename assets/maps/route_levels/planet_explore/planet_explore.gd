@@ -1,6 +1,7 @@
 extends Node3D
 
 const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.gd")
+const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
 
 const MAP_TEXTURE_FALLBACK := "res://assets/ddddd.png"
 const MAX_REVEAL_POINTS := 24
@@ -14,13 +15,20 @@ const LocationDetailPopup = preload("res://assets/maps/route_levels/planet_explo
 const MapLocationMarker = preload("res://assets/maps/route_levels/planet_explore/map_location_marker.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
 const RUNNER_PRELOAD_PATHS := [
-	"res://3d素材/Elsa.glb",
-	"res://3d素材/奔跑左腿前.glb",
-	"res://3d素材/跑步右脚前.glb",
-	"res://3d素材/起跳.glb",
-	"res://3d素材/跳跃高点.glb",
-	"res://3d素材/落地.glb",
-	"res://3d素材/滑铲.glb",
+	"res://elsa动作/elsa正面.glb",
+	"res://elsa动作/elsa奔跑左腿前.glb",
+	"res://elsa动作/elsa奔跑右腿前.glb",
+	"res://elsa动作/elsa起跳.glb",
+	"res://elsa动作/elsa跳跃高点.glb",
+	"res://elsa动作/跳跃落地.glb",
+	"res://elsa动作/滑铲.glb",
+	"res://mvp素材第二批/rook/rook立体.glb",
+	"res://mvp素材第二批/rook/rook跑步1 左腿蹬地右腿在前.glb",
+	"res://mvp素材第二批/rook/rook跑步2 右腿前踩地左腿空中.glb",
+	"res://mvp素材第二批/rook/rook起跳.glb",
+	"res://mvp素材第二批/rook/rook跳跃高点.glb",
+	"res://mvp素材第二批/rook/rook跳跃落地.glb",
+	"res://mvp素材第二批/rook/rook滑铲.glb",
 	"res://3d素材/障碍物-需跳跃.glb",
 	"res://3d素材/障碍物-需滑铲.glb",
 ]
@@ -71,7 +79,7 @@ func _ready() -> void:
 	legacy_panel.visible = false
 	hint_label.visible = false
 	_mobile_layout = true
-	hint_label.text = "选择已恢复地标  ·  完成跑酷后点亮相邻区域"
+	hint_label.text = "选择已恢复地标  ·  累计运输进度满额后点亮据点"
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_load_map_texture()
 	_build_location_data()
@@ -461,23 +469,46 @@ func _build_info_panel(ui: Control) -> void:
 	var road_row := HBoxContainer.new()
 	road_row.add_theme_constant_override("separation", 10)
 	vbox.add_child(road_row)
-	var road_label := Label.new()
-	road_label.name = "RoadStyleLabel"
-	road_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	road_label.text = "跑道外观：%s" % Global.get_runner_road_style_label()
-	road_label.add_theme_font_size_override("font_size", 16)
-	road_label.add_theme_color_override("font_color", Color(0.72, 0.86, 0.95))
-	road_row.add_child(road_label)
-	var road_btn := Button.new()
-	road_btn.text = "切换跑道"
-	road_btn.custom_minimum_size = Vector2(140, 48)
-	road_btn.focus_mode = Control.FOCUS_NONE
-	_style_action_button(road_btn, Color(0.14, 0.18, 0.24), Color(0.35, 0.55, 0.7))
-	road_btn.pressed.connect(func():
-		Global.cycle_runner_road_style()
-		road_label.text = "跑道外观：%s" % Global.get_runner_road_style_label()
+	var road_title := Label.new()
+	road_title.text = "跑道"
+	road_title.custom_minimum_size = Vector2(72, 0)
+	road_title.add_theme_font_size_override("font_size", 14)
+	road_title.add_theme_color_override("font_color", Color(0.72, 0.86, 0.95))
+	road_row.add_child(road_title)
+	var road_option := OptionButton.new()
+	road_option.name = "RoadStyleOption"
+	road_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	road_option.custom_minimum_size = Vector2(0, 44)
+	road_option.focus_mode = Control.FOCUS_NONE
+	Global.populate_runner_road_style_option(road_option)
+	road_option.item_selected.connect(func(index: int) -> void:
+		if index >= 0 and index < Global.RUNNER_ROAD_STYLE_ORDER.size():
+			Global.set_runner_road_style(Global.RUNNER_ROAD_STYLE_ORDER[index])
 	)
-	road_row.add_child(road_btn)
+	_style_explore_option_button(road_option)
+	road_row.add_child(road_option)
+
+	var bg_row := HBoxContainer.new()
+	bg_row.add_theme_constant_override("separation", 10)
+	vbox.add_child(bg_row)
+	var bg_title := Label.new()
+	bg_title.text = "背景"
+	bg_title.custom_minimum_size = Vector2(72, 0)
+	bg_title.add_theme_font_size_override("font_size", 14)
+	bg_title.add_theme_color_override("font_color", Color(0.72, 0.86, 0.95))
+	bg_row.add_child(bg_title)
+	var bg_option := OptionButton.new()
+	bg_option.name = "BackgroundStyleOption"
+	bg_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bg_option.custom_minimum_size = Vector2(0, 44)
+	bg_option.focus_mode = Control.FOCUS_NONE
+	Global.populate_runner_background_style_option(bg_option)
+	bg_option.item_selected.connect(func(index: int) -> void:
+		if index >= 0 and index < Global.RUNNER_BACKGROUND_STYLE_ORDER.size():
+			Global.set_runner_background_style(Global.RUNNER_BACKGROUND_STYLE_ORDER[index])
+	)
+	_style_explore_option_button(bg_option)
+	bg_row.add_child(bg_option)
 
 	_runner_button = Button.new()
 	_runner_button.custom_minimum_size = Vector2(0, 62)
@@ -748,7 +779,10 @@ func _unlock_linked_locations(location_id: String) -> Array[String]:
 
 
 func _load_revealed_location_state() -> void:
-	var fallback_ids: Array[String] = ["dome"]
+	Global.ensure_mission_dispatch_ready(Global.exploration_planet_id)
+	var fallback_ids: Array[String] = MissionDispatch.get_batch1_location_ids(Global.exploration_planet_id)
+	if fallback_ids.is_empty():
+		fallback_ids = ["dome"]
 	_revealed_location_ids = Global.get_revealed_exploration_locations(Global.exploration_planet_id, fallback_ids)
 	if _revealed_location_ids.has("pump"):
 		_revealed_location_ids.erase("pump")
@@ -869,6 +903,17 @@ func _style_action_button(button: Button, fill: Color, border: Color) -> void:
 	button.add_theme_stylebox_override("disabled", _panel_style(fill.darkened(0.22), border.darkened(0.12), 1))
 	button.add_theme_color_override("font_color", Color(0.10, 0.07, 0.04))
 	button.add_theme_color_override("font_disabled_color", Color(0.42, 0.36, 0.30))
+
+
+func _style_explore_option_button(option: OptionButton) -> void:
+	var fill := Color(0.14, 0.18, 0.24)
+	var border := Color(0.35, 0.55, 0.7)
+	option.add_theme_stylebox_override("normal", _panel_style(fill, border, 2))
+	option.add_theme_stylebox_override("hover", _panel_style(fill.lightened(0.08), border.lightened(0.08), 2))
+	option.add_theme_stylebox_override("pressed", _panel_style(fill.darkened(0.12), border.darkened(0.08), 2))
+	option.add_theme_stylebox_override("focus", _panel_style(fill, border, 2))
+	option.add_theme_font_size_override("font_size", 15)
+	option.add_theme_color_override("font_color", Color(0.72, 0.86, 0.95))
 
 
 func _apply_mobile_hint_layout() -> void:
