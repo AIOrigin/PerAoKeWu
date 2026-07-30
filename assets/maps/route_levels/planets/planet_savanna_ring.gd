@@ -73,6 +73,7 @@ const RUN_PHASES := [
 ]
 
 const JUNCTION_ZONES = GlassDesert.JUNCTION_ZONES
+const SIDE_RUNWAY_ZONES = GlassDesert.SIDE_RUNWAY_ZONES
 
 const OBSTACLE_TYPES := {
 	"jump": "倒木栏",
@@ -82,6 +83,7 @@ const OBSTACLE_TYPES := {
 	"block_left": "左道灌木",
 	"block_right": "右道灌木",
 	"ramp": "土丘跳板",
+	"main_block": "主路坍塌带",
 	"turn_left": "兽道门",
 	"turn_right": "捷径门",
 }
@@ -121,6 +123,14 @@ static func build_obstacles() -> Array:
 
 static func build_coin_distances() -> Array:
 	return GlassDesert.build_coin_distances()
+
+
+static func build_main_runway_coins() -> Array:
+	return GlassDesert.build_main_runway_coins()
+
+
+static func build_side_runway_coins() -> Array:
+	return GlassDesert.build_side_runway_coins()
 
 
 static func phase_at(distance: float) -> Dictionary:

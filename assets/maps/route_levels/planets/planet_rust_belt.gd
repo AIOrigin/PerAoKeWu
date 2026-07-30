@@ -76,25 +76,27 @@ const JUNCTION_ZONES := [
 	{
 		"distance": 360.0,
 		"length": 72.0,
-		"spread": 10.0,
+		"spread": 16.0,
 		"lane_a": 0, "label_a": "维修岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "速运岔路", "effect_b": "fast",
 	},
 	{
 		"distance": 580.0,
 		"length": 72.0,
-		"spread": 10.0,
+		"spread": 16.0,
 		"lane_a": 0, "label_a": "加固岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "补给岔路", "effect_b": "bonus",
 	},
 	{
 		"distance": 820.0,
 		"length": 72.0,
-		"spread": 10.0,
+		"spread": 16.0,
 		"lane_a": 0, "label_a": "安全岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "速运岔路", "effect_b": "fast",
 	},
 ]
+
+const SIDE_RUNWAY_ZONES = GlassDesert.SIDE_RUNWAY_ZONES
 
 const OBSTACLE_TYPES := {
 	"jump": "废铁矮墙",
@@ -104,6 +106,7 @@ const OBSTACLE_TYPES := {
 	"block_left": "左道封锁",
 	"block_right": "右道封锁",
 	"ramp": "钢架跳板",
+	"main_block": "主路坍塌带",
 	"turn_left": "维修门",
 	"turn_right": "速运门",
 }
@@ -143,6 +146,14 @@ static func build_obstacles() -> Array:
 
 static func build_coin_distances() -> Array:
 	return GlassDesert.build_coin_distances()
+
+
+static func build_main_runway_coins() -> Array:
+	return GlassDesert.build_main_runway_coins()
+
+
+static func build_side_runway_coins() -> Array:
+	return GlassDesert.build_side_runway_coins()
 
 
 static func phase_at(distance: float) -> Dictionary:
