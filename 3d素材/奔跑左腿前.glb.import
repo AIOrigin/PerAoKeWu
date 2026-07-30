@@ -3,23 +3,20 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bkenrlyanvbt"
-path="res://.godot/imported/奔跑左腿前.glb-9e99a5e9eabee48087ee92542977f25a.scn"
+uid="uid://bonm4qw24wkkm"
+valid=false
 
 [deps]
 
 source_file="res://3d素材/奔跑左腿前.glb"
-dest_files=["res://.godot/imported/奔跑左腿前.glb-9e99a5e9eabee48087ee92542977f25a.scn"]
 
 [params]
 
 nodes/root_type=""
 nodes/root_name=""
-nodes/root_script=null
 nodes/apply_root_scale=true
 nodes/root_scale=1.0
 nodes/import_as_skeleton_bones=false
-nodes/use_name_suffixes=true
 nodes/use_node_type_suffixes=true
 meshes/ensure_tangents=true
 meshes/generate_lods=true
@@ -34,9 +31,6 @@ animation/trimming=false
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
 import_script/path=""
-materials/extract=0
-materials/extract_format=0
-materials/extract_path=""
 _subresources={}
 gltf/naming_version=1
 gltf/embedded_image_handling=1

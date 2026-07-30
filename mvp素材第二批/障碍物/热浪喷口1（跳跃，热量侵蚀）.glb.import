@@ -3,13 +3,12 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://r1vd4nawiqpt"
-path="res://.godot/imported/热浪喷口1（跳跃，热量侵蚀）.glb-bc1862a56e86e936bf149e6ebfad0c94.scn"
+uid="uid://ccx6jwhkecqns"
+valid=false
 
 [deps]
 
 source_file="res://mvp素材第二批/障碍物/热浪喷口1（跳跃，热量侵蚀）.glb"
-dest_files=["res://.godot/imported/热浪喷口1（跳跃，热量侵蚀）.glb-bc1862a56e86e936bf149e6ebfad0c94.scn"]
 
 [params]
 

@@ -89,30 +89,23 @@ const START_PAD_LENGTH := 72.0
 const TOUCH_SWIPE_MIN_DISTANCE := 72.0
 const TOUCH_TAP_MAX_DISTANCE := 26.0
 const MOBILE_VIEWPORT_SIZE := Vector2(1080, 1920)
-const ANIMATED_PLAYER_SCENE_PATH := "res://3d素材/cyberpunk+armor+3d+model_副本.glb"
+const ANIMATED_PLAYER_SCENE_PATH := "res://elsa动作/Running.fbx"
 const ANIMATED_PLAYER_IDLE_ANIM := "NlaTrack.002"
-const ANIMATED_PLAYER_RUN_ANIM := "NlaTrack"
+const ANIMATED_PLAYER_RUN_ANIM := "mixamo_com"
 const ANIMATED_PLAYER_CELEBRATE_ANIM := "NlaTrack.001"
-const PLAYER_MODEL_SCENE_PATH := "res://3d素材/Elsa.glb"
-const PLAYER_RUN_LEFT_SCENE_PATH := "res://3d素材/奔跑左腿前.glb"
-const PLAYER_RUN_RIGHT_SCENE_PATH := "res://3d素材/跑步右脚前.glb"
-const PLAYER_JUMP_START_SCENE_PATH := "res://3d素材/起跳.glb"
-const PLAYER_JUMP_PEAK_SCENE_PATH := "res://3d素材/跳跃高点.glb"
-const PLAYER_LANDING_SCENE_PATH := "res://3d素材/落地.glb"
-const PLAYER_SLIDE_SCENE_PATH := "res://3d素材/滑铲.glb"
+const PLAYER_MODEL_SCENE_PATH := "res://elsa动作/elsa正面.glb"
+const PLAYER_RUN_LEFT_SCENE_PATH := "res://elsa动作/elsa奔跑左腿前.glb"
+const PLAYER_RUN_RIGHT_SCENE_PATH := "res://elsa动作/elsa奔跑右腿前.glb"
+const PLAYER_JUMP_START_SCENE_PATH := "res://elsa动作/elsa起跳.glb"
+const PLAYER_JUMP_PEAK_SCENE_PATH := "res://elsa动作/elsa跳跃高点.glb"
+const PLAYER_LANDING_SCENE_PATH := "res://elsa动作/跳跃落地.glb"
+const PLAYER_SLIDE_SCENE_PATH := "res://elsa动作/滑铲.glb"
 const PLAYER_MODEL_HEIGHT := 1.65
 const PLAYER_MODEL_YAW := -90.0
 const PLAYER_INTRO_BODY_YAW := 180.0
 const PLAYER_SLIDE_MODEL_HEIGHT := 0.75
 const PLAYER_SLIDE_MODEL_YAW := 180.0
 const IMPORTED_SCENE_FALLBACKS := {
-	"res://3d素材/Elsa.glb": "res://.godot/imported/Elsa.glb-98f5c1965f2201b39824e7d015ccd31f.scn",
-	"res://3d素材/奔跑左腿前.glb": "res://.godot/imported/奔跑左腿前.glb-9e99a5e9eabee48087ee92542977f25a.scn",
-	"res://3d素材/跑步右脚前.glb": "res://.godot/imported/跑步右脚前.glb-08ee22fd58a2328e60ecd4958b8d9c45.scn",
-	"res://3d素材/起跳.glb": "res://.godot/imported/起跳.glb-1573aa6ad9de7e88288b1ab76172b3e7.scn",
-	"res://3d素材/跳跃高点.glb": "res://.godot/imported/跳跃高点.glb-bc7511edc3a2eb9738197efc09a8866b.scn",
-	"res://3d素材/落地.glb": "res://.godot/imported/落地.glb-c15990896e7d93cd809dfccd4246d765.scn",
-	"res://3d素材/滑铲.glb": "res://.godot/imported/滑铲.glb-5324a9310d5c602d2ffff35b79c260a7.scn",
 	"res://3d素材/障碍物-需跳跃.glb": "res://.godot/imported/障碍物-需跳跃.glb-46f57db02e27254a677214f954ab0d83.scn",
 	"res://3d素材/障碍物-需跳跃2.glb": "res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn",
 	"res://3d素材/居民穹顶据点 3d model.glb": "res://.godot/imported/居民穹顶据点 3d model.glb-f6066a8ae2d51e15aff61146c4296099.scn",
@@ -3100,7 +3093,7 @@ func _build_player_visual() -> void:
 			_play_player_animation("idle")
 			return
 
-		push_warning("Cyberpunk armor player has no usable run animation; using pose models instead.")
+		push_warning("Fallback animated player has no usable run animation; using pose models instead.")
 		if player_pose_root:
 			player_pose_root.queue_free()
 		player_pose_root = null

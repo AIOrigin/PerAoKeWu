@@ -3,13 +3,12 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ckyebkhfo5lee"
-path="res://.godot/imported/Elsa.glb-98f5c1965f2201b39824e7d015ccd31f.scn"
+uid="uid://cdjvxksmkn8f4"
+valid=false
 
 [deps]
 
 source_file="res://3d素材/Elsa.glb"
-dest_files=["res://.godot/imported/Elsa.glb-98f5c1965f2201b39824e7d015ccd31f.scn"]
 
 [params]
 
