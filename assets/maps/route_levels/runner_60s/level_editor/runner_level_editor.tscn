@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b4yt1djvunne7"]
+
+[ext_resource type="Script" uid="uid://c1516bg04dbsc" path="res://assets/maps/route_levels/runner_60s/level_editor/runner_level_editor.gd" id="1_editor"]
+
+[node name="RunnerLevelEditor" type="Node3D"]
+script = ExtResource("1_editor")

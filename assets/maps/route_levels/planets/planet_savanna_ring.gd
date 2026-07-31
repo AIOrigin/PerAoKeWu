@@ -1,6 +1,7 @@
 extends "res://assets/maps/route_levels/runner_planet_config.gd"
 
 const GlassDesert = preload("res://assets/maps/route_levels/planets/planet_glass_desert.gd")
+const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
 
 ## 星球三 · 稀树环带（演示锁定）
 
@@ -74,6 +75,7 @@ const RUN_PHASES := [
 
 const JUNCTION_ZONES = GlassDesert.JUNCTION_ZONES
 const SIDE_RUNWAY_ZONES = GlassDesert.SIDE_RUNWAY_ZONES
+const SANDSTORM_ZONES = GlassDesert.SANDSTORM_ZONES
 
 const OBSTACLE_TYPES := {
 	"jump": "倒木栏",
@@ -118,6 +120,8 @@ static func get_location_missions() -> Array:
 
 
 static func build_obstacles() -> Array:
+	if ObstacleLayout.has_layout(PLANET_ID):
+		return ObstacleLayout.load_items(PLANET_ID)
 	return GlassDesert.build_obstacles()
 
 

@@ -3,6 +3,8 @@ extends Node3D
 const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.gd")
 const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const CustomLevels = preload("res://assets/maps/route_levels/runner_60s/custom_levels.gd")
+const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
 const CharacterRoster = preload("res://assets/maps/route_levels/character_roster.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
 const HitFeedback = preload("res://assets/systems/hit_feedback/hit_feedback.gd")
@@ -77,6 +79,8 @@ const STRIKE_DAMAGE_TIER := {
 const HEAT_HAZARD_DPS := 7.0
 const HEAT_HAZARD_HALF_LEN := 7.0
 const HEAT_HAZARD_TICK := 0.45
+const SANDSTORM_TICK := 0.4
+const SANDSTORM_DEFAULT_DPS := 9.0
 const INTRO_DURATION := 3.0
 const PRE_RUN_LOADING_TIME := 0.45
 const PRE_RUN_COUNTDOWN_STEP := 1.0
@@ -232,6 +236,11 @@ var _hit_feedback: HitFeedback
 var _cargo_hud_panel: PanelContainer
 var _heat_tick_accum := 0.0
 var _side_runway_penalty_accum := 0.0
+var _sandstorm_tick_accum := 0.0
+var _sandstorm_active := false
+var _sandstorm_warned_keys: Array = []
+var _sandstorm_particles: GPUParticles3D
+var _base_fog_density := 0.0022
 var _wall_mount_armed := false
 var _wall_mount_armed_until_d := -1.0
 var _last_wall_side := 1.0
@@ -258,7 +267,15 @@ var _pause_overlay: MobilePauseOverlay
 
 func _ready() -> void:
 	LevelConfig = PlanetDatabase.get_runner_config(Global.runner_planet_id)
-	mission = LevelConfig.get_mission_for_location(Global.runner_location_id).duplicate()
+	if CustomLevels.has_level(Global.runner_location_id):
+		mission = CustomLevels.make_mission(Global.runner_location_id).duplicate()
+		var custom_meta := CustomLevels.get_level(Global.runner_location_id)
+		var base_planet := String(custom_meta.get("planet_id", Global.runner_planet_id))
+		if base_planet != "" and base_planet != Global.runner_planet_id:
+			# 自定义关卡可绑定底图星球；保持任务 location 不变
+			LevelConfig = PlanetDatabase.get_runner_config(base_planet)
+	else:
+		mission = LevelConfig.get_mission_for_location(Global.runner_location_id).duplicate()
 	if mission.is_empty():
 		mission = LevelConfig.MISSION.duplicate()
 	_apply_mission_type_profile()
@@ -500,10 +517,22 @@ func _physics_process(delta: float) -> void:
 		vertical_velocity -= GRAVITY * delta
 		var ground_y := _layer_height(0)
 		var next_y := player.position.y + vertical_velocity * delta
-		if next_y <= ground_y and vertical_velocity <= 0.0:
+		var over_pit := _is_over_open_pit()
+		if over_pit:
+			# 坑上无隐形地面：真正往下坠
+			if next_y <= ground_y and vertical_velocity >= -0.5:
+				# 刚踩到坑口：给一个下坠初速，避免卡在地面高度像「跳起来」
+				vertical_velocity = minf(vertical_velocity, -6.5)
+				next_y = ground_y - 0.02
+			player.position.y = next_y
+			if player.position.y < ground_y - 0.55:
+				_fail_into_pit()
+		elif next_y <= ground_y and vertical_velocity <= 0.0:
 			next_y = ground_y
 			vertical_velocity = 0.0
-		player.position.y = next_y
+			player.position.y = next_y
+		else:
+			player.position.y = next_y
 
 	_sync_player_position()
 	_sync_chaser_from_track()
@@ -512,6 +541,7 @@ func _physics_process(delta: float) -> void:
 	_try_side_runway_entry()
 	_enforce_track_layer()
 	_update_side_runway_ground_penalty(delta)
+	_update_sandstorm_hazard(delta)
 
 	var grounded := _is_on_ground()
 	if grounded and not was_on_ground:
@@ -782,12 +812,59 @@ func _fork_yaw_nudge(distance: float, lateral: float) -> float:
 
 
 func _side_runway_zones() -> Array:
+	var zones: Array = _raw_side_runway_zones()
+	return _merge_synthetic_side_zones_for_main_blocks(zones)
+
+
+func _raw_side_runway_zones() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id):
+		return CustomLevels.get_side_runway_zones(Global.runner_location_id)
 	if LevelConfig == null:
 		return []
 	var constants: Dictionary = LevelConfig.get_script_constant_map()
 	if constants.has("SIDE_RUNWAY_ZONES"):
-		return constants["SIDE_RUNWAY_ZONES"]
+		var out: Array = []
+		for raw in constants["SIDE_RUNWAY_ZONES"]:
+			if typeof(raw) == TYPE_DICTIONARY:
+				out.append(ObstacleLayout.normalize_side_zone(raw))
+		return out
 	return []
+
+
+func _layout_obstacle_items_raw() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id):
+		return CustomLevels.load_obstacles(Global.runner_location_id)
+	if LevelConfig != null and LevelConfig.has_method("build_obstacles"):
+		return LevelConfig.build_obstacles()
+	return []
+
+
+func _merge_synthetic_side_zones_for_main_blocks(zones: Array) -> Array:
+	# 孤立 main_block 自动补侧墙，否则主路封堵无法通过
+	var merged: Array = []
+	for z in zones:
+		if typeof(z) == TYPE_DICTIONARY:
+			merged.append(ObstacleLayout.normalize_side_zone(z))
+	for raw in _layout_obstacle_items_raw():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "main_block":
+			continue
+		if int(item.get("layer", 0)) != 0:
+			continue
+		var covered := false
+		for z2 in merged:
+			if ObstacleLayout.side_zone_covers_main_block(z2, item):
+				covered = true
+				break
+		if covered:
+			continue
+		merged.append(ObstacleLayout.side_zone_from_main_block(item, {
+			"side": "outer",
+			"fallback_side": 1,
+		}))
+	return ObstacleLayout.sort_side_zones(merged)
 
 
 func _is_distance_in_side_wall_corridor(distance: float) -> bool:
@@ -1087,6 +1164,107 @@ func _update_env_hazards(delta: float) -> void:
 		_show_strike_warning("热量侵蚀")
 
 
+func _sandstorm_zones() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id):
+		return CustomLevels.get_sandstorm_zones(Global.runner_location_id)
+	if LevelConfig == null:
+		return []
+	var constants: Dictionary = LevelConfig.get_script_constant_map()
+	if constants.has("SANDSTORM_ZONES"):
+		var out: Array = []
+		for raw in constants["SANDSTORM_ZONES"]:
+			if typeof(raw) == TYPE_DICTIONARY:
+				out.append(ObstacleLayout.normalize_sandstorm_zone(raw))
+		return out
+	return []
+
+
+func _sandstorm_zone_at(distance: float) -> Dictionary:
+	var player_lane := int(LANES[clampi(lane_index, 0, LANES.size() - 1)])
+	for zone in _sandstorm_zones():
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 40.0))
+		if distance < start or distance > start + length:
+			continue
+		if not _sandstorm_covers_lane(zone, player_lane):
+			continue
+		return zone
+	return {}
+
+
+func _sandstorm_covers_lane(zone: Dictionary, lane_value: int) -> bool:
+	var covered: Array = zone.get("covered_lanes", [-1, 0, 1])
+	for v in covered:
+		if int(v) == lane_value:
+			return true
+	return false
+
+
+func _sandstorm_volume_layout(zone: Dictionary) -> Dictionary:
+	var covered: Array = zone.get("covered_lanes", [-1, 0, 1])
+	if covered.is_empty():
+		covered = [-1, 0, 1]
+	var min_lane := int(covered[0])
+	var max_lane := int(covered[0])
+	for v in covered:
+		min_lane = mini(min_lane, int(v))
+		max_lane = maxi(max_lane, int(v))
+	var center := (float(min_lane) + float(max_lane)) * 0.5
+	var span := float(max_lane - min_lane) + 1.0
+	return {
+		"lateral_bias": center * LANE_WIDTH,
+		"half_width": span * LANE_WIDTH * 0.5 + 0.9,
+	}
+
+
+func _update_sandstorm_hazard(delta: float) -> void:
+	if is_finished or is_failed or not gameplay_active:
+		_set_sandstorm_visual(false)
+		return
+	var zone := _sandstorm_zone_at(track_distance)
+	var active := not zone.is_empty()
+	if active and not _sandstorm_active:
+		var key := int(float(zone.get("start", 0.0)))
+		if not _sandstorm_warned_keys.has(key):
+			_sandstorm_warned_keys.append(key)
+			_show_strike_warning("%s来袭 · 持续受损" % String(zone.get("label", "沙尘暴")))
+	_sandstorm_active = active
+	_set_sandstorm_visual(active)
+	if not active:
+		_sandstorm_tick_accum = 0.0
+		return
+	_sandstorm_tick_accum += delta
+	if _sandstorm_tick_accum < SANDSTORM_TICK:
+		return
+	_sandstorm_tick_accum = 0.0
+	var dps := float(zone.get("dps", SANDSTORM_DEFAULT_DPS))
+	var dmg := dps * SANDSTORM_TICK * Global.get_cargo_damage_multiplier()
+	_apply_cargo_loss(dmg)
+	if is_failed:
+		return
+	var label := String(zone.get("label", "沙尘暴"))
+	if _hit_feedback != null and player != null:
+		_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), dmg, label)
+	elif strike_toast_label:
+		_show_strike_warning("%s侵蚀" % label)
+
+
+func _set_sandstorm_visual(active: bool) -> void:
+	if _sandstorm_particles:
+		_sandstorm_particles.emitting = active
+		if active and player != null:
+			_sandstorm_particles.global_position = player.global_position + Vector3(0.0, 1.2, 0.0)
+	if danger_vignette:
+		if active:
+			danger_vignette.modulate.a = maxf(danger_vignette.modulate.a, 0.32)
+	if _world_environment and _world_environment.environment:
+		var env := _world_environment.environment
+		var target := _base_fog_density * (3.4 if active else 1.0)
+		env.fog_density = lerpf(env.fog_density, target, 0.18)
+		if active:
+			env.fog_light_color = env.fog_light_color.lerp(Color(0.92, 0.62, 0.28), 0.12)
+
+
 func _apply_gate_effect(effect: String) -> void:
 	match effect:
 		"repair", "safe":
@@ -1231,23 +1409,50 @@ func _try_side_runway_entry() -> void:
 	_show_gate_toast("侧墙跑 · 上下换高度道")
 
 
-func _update_side_runway_ground_penalty(delta: float) -> void:
-	# 侧墙段主路坍塌坑：留在地面即死
+func _is_over_open_pit() -> bool:
+	if track_layer != 0:
+		return false
+	if _is_in_side_runway_pit(track_distance):
+		return true
+	return _is_in_main_block_pit(track_distance)
+
+
+func _is_in_main_block_pit(distance: float) -> bool:
+	for obstacle in obstacles:
+		if String(obstacle.get("type", "")) != "main_block":
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		var center := float(obstacle.get("distance", 0.0))
+		var half := float(obstacle.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		if distance >= center - half and distance <= center + half:
+			return true
+	return false
+
+
+func _fail_into_pit(reason: String = "坠入主路坍塌坑") -> void:
+	if is_failed or is_finished:
+		return
+	# 定格成坠入坑中，而不是半空跳跃姿势
+	if player != null:
+		vertical_velocity = -12.0
+		player.position.y = minf(player.position.y, GROUND_Y - 1.6)
+		_sync_player_position()
+		_set_player_pose("landing")
+	camera_shake = maxf(camera_shake, 0.35)
+	_fail_run(reason)
+
+
+func _update_side_runway_ground_penalty(_delta: float) -> void:
+	# 坑上改为真实坠落判死；此处只做贴墙提示
 	if is_finished or is_failed or not gameplay_active:
 		return
 	if track_layer != 0:
-		_side_runway_penalty_accum = 0.0
 		return
 	if not _is_in_side_runway_pit(track_distance):
-		_side_runway_penalty_accum = 0.0
 		return
-	# 短缓冲，避免刚踩到坑沿瞬间误杀；仍很快即死
-	_side_runway_penalty_accum += delta
-	if _side_runway_penalty_accum < 0.12:
-		if strike_toast_label and _side_runway_penalty_accum < 0.05:
-			_show_strike_warning("主路坍塌 · 立刻上侧墙！")
-		return
-	_fail_run("坠入主路坍塌坑")
+	if player != null and player.position.y <= GROUND_Y + 0.15 and strike_toast_label:
+		_show_strike_warning("主路坍塌 · 立刻上侧墙！")
 
 
 func _enforce_track_layer() -> void:
@@ -1275,7 +1480,7 @@ func _enforce_track_layer() -> void:
 			player.position.y = current_wall_y
 			vertical_velocity = 0.0
 		return
-	if _is_on_ground() and absf(player.position.y - _layer_height(0)) > 0.05:
+	if _is_on_ground() and not _is_over_open_pit() and absf(player.position.y - _layer_height(0)) > 0.05:
 		player.position.y = _layer_height(0)
 		vertical_velocity = 0.0
 
@@ -1327,17 +1532,26 @@ func _finish_run() -> void:
 	var progress_cargo_load := 100
 	var repair_total := Global.DEFAULT_OUTPOST_REPAIR_TOTAL
 	var light_reward_coins := 0
-	if LevelConfig.has_method("get_outpost_meta"):
-		var outpost_meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
-		repair_total = maxi(1, int(outpost_meta.get("repair_total", repair_total)))
-		light_reward_coins = maxi(0, int(outpost_meta.get("reward_coins", 0)))
-	var progress_result: Dictionary = Global.apply_runner_delivery_progress(
-		Global.runner_planet_id,
-		Global.runner_location_id,
-		progress_cargo_load,
-		cargo_integrity,
-		repair_total
-	)
+	var is_custom := CustomLevels.has_level(Global.runner_location_id)
+	var progress_result := {
+		"newly_lit": false,
+		"already_lit": false,
+		"contribution": 0,
+		"progress_after": 0,
+		"repair_total": repair_total,
+	}
+	if not is_custom:
+		if LevelConfig.has_method("get_outpost_meta"):
+			var outpost_meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
+			repair_total = maxi(1, int(outpost_meta.get("repair_total", repair_total)))
+			light_reward_coins = maxi(0, int(outpost_meta.get("reward_coins", 0)))
+		progress_result = Global.apply_runner_delivery_progress(
+			Global.runner_planet_id,
+			Global.runner_location_id,
+			progress_cargo_load,
+			cargo_integrity,
+			repair_total
+		)
 	var newly_lit := bool(progress_result.get("newly_lit", false))
 	var already_lit := bool(progress_result.get("already_lit", false))
 	var contribution := int(progress_result.get("contribution", 0))
@@ -1371,6 +1585,8 @@ func _finish_run() -> void:
 	if bool(xp_result["level_up"]):
 		level_text = "升级！Lv.%d" % int(xp_result["new_level"])
 	var progress_line := "据点进度 +%d（%d / %d）" % [contribution, progress_after, progress_total]
+	if is_custom:
+		progress_line = "自定义关卡通关（不计入据点修复）"
 	var unlock_line := "继续运输以点亮据点"
 	var batch_just_unlocked := bool(progress_result.get("batch_just_unlocked", false))
 	var unlocked_batch := int(progress_result.get("unlocked_batch", 1))
@@ -1495,7 +1711,7 @@ func _strike_reason_for_obstacle(obstacle: Dictionary) -> String:
 func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 	var obstacle_type := String(obstacle.get("type", ""))
 	if obstacle_type == "main_block":
-		_fail_run("坠入主路坍塌坑")
+		_fail_into_pit("冲入主路坍塌带（需上侧墙绕过）")
 		return
 	strike_count += 1
 	strike_recovery_timer = 0.0
@@ -1821,12 +2037,15 @@ func _build_world() -> void:
 
 	_build_path_track()
 	_build_side_runway_tracks()
+	_build_sandstorm_zones()
 	for zone in LevelConfig.JUNCTION_ZONES:
 		_build_choice_gate(float(zone["distance"]), zone)
 	_build_planet_surroundings(theme)
 	_build_finish_gate()
 	_apply_background_environment()
 	_apply_road_style_environment()
+	if _world_environment and _world_environment.environment:
+		_base_fog_density = _world_environment.environment.fog_density
 
 
 func _background_uses_sky_panorama() -> bool:
@@ -2016,6 +2235,81 @@ func _build_side_runway_tracks() -> void:
 	for zone in _side_runway_zones():
 		_attach_wall_run_mesh(zone, kit)
 		_attach_side_runway_pit(zone, kit)
+	# main_block：沿路径挖坑+警示，避免长方体在弯道斜出跑道外
+	for gap in _main_block_road_gaps():
+		_attach_main_block_path_pit(gap, kit)
+
+
+func _build_sandstorm_zones() -> void:
+	for zone in _sandstorm_zones():
+		_attach_sandstorm_volume(zone)
+	_sandstorm_particles = _make_sandstorm_particles()
+	add_child(_sandstorm_particles)
+	_sandstorm_particles.emitting = false
+
+
+func _attach_sandstorm_volume(zone: Dictionary) -> void:
+	var start := float(zone.get("start", 0.0))
+	var length := float(zone.get("length", 40.0))
+	var layout := _sandstorm_volume_layout(zone)
+	var half_w: float = float(layout["half_width"])
+	var bias: float = float(layout["lateral_bias"])
+	var haze_mat := _make_material(Color(0.86, 0.55, 0.22, 0.16), Color(1.0, 0.62, 0.22), 0.55)
+	haze_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	haze_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# 沿路径铺一段半透明沙雾罩（宽度/横向偏移随占据列数变化）
+	_attach_path_strip_segment(start, start + length, half_w, GROUND_Y + 1.6, haze_mat, 2.2, bias)
+	_attach_path_strip_segment(start, start + length, half_w + 0.8, GROUND_Y + 3.2, haze_mat, 2.4, bias)
+	# 入口警示环（对准占据列中心）
+	var sample := _sample_path(start + 1.5)
+	var ring := MeshInstance3D.new()
+	ring.name = "SandstormGate"
+	var ring_mesh := TorusMesh.new()
+	var ring_r := clampf(half_w * 0.55, 1.6, 5.7)
+	ring_mesh.inner_radius = ring_r
+	ring_mesh.outer_radius = ring_r + 0.45
+	ring_mesh.rings = 12
+	ring_mesh.ring_segments = 28
+	var ring_mat := _make_material(Color(0.95, 0.55, 0.18, 0.55), Color(1.0, 0.55, 0.12), 1.6)
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	ring_mesh.material = ring_mat
+	ring.mesh = ring_mesh
+	var right: Vector3 = sample["right"]
+	ring.position = (sample["pos"] as Vector3) + right * bias + Vector3(0.0, GROUND_Y + 1.8, 0.0)
+	ring.rotation = Vector3(PI * 0.5, float(sample["yaw"]), 0.0)
+	track_root.add_child(ring)
+
+
+func _make_sandstorm_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "SandstormDust"
+	particles.amount = 96
+	particles.lifetime = 1.35
+	particles.preprocess = 0.4
+	particles.visibility_aabb = AABB(Vector3(-18, -4, -18), Vector3(36, 14, 36))
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(1.0, 0.15, 0.35)
+	mat.spread = 55.0
+	mat.initial_velocity_min = 6.0
+	mat.initial_velocity_max = 14.0
+	mat.gravity = Vector3(0.0, -0.4, 0.0)
+	mat.scale_min = 0.08
+	mat.scale_max = 0.22
+	mat.color = Color(0.92, 0.68, 0.35, 0.7)
+	particles.process_material = mat
+	var draw := SphereMesh.new()
+	draw.radius = 0.08
+	draw.height = 0.16
+	var draw_mat := StandardMaterial3D.new()
+	draw_mat.albedo_color = Color(0.9, 0.65, 0.32, 0.55)
+	draw_mat.emission_enabled = true
+	draw_mat.emission = Color(0.85, 0.5, 0.18)
+	draw_mat.emission_energy_multiplier = 0.45
+	draw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	draw.material = draw_mat
+	particles.draw_pass_1 = draw
+	return particles
 
 
 func _side_runway_pit_range(zone: Dictionary) -> Vector2:
@@ -2025,6 +2319,33 @@ func _side_runway_pit_range(zone: Dictionary) -> Vector2:
 	var pit_s := start + 5.0
 	var pit_e := start + length - 2.0
 	return Vector2(pit_s, pit_e)
+
+
+func _main_block_road_gaps() -> Array:
+	# 路网建造早于障碍注册：直接读本关障碍表
+	var items: Array = []
+	if CustomLevels.has_level(Global.runner_location_id):
+		items = CustomLevels.load_obstacles(Global.runner_location_id)
+	elif LevelConfig != null and LevelConfig.has_method("build_obstacles"):
+		items = LevelConfig.build_obstacles()
+	var gaps: Array = []
+	var seen: Dictionary = {}
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "main_block":
+			continue
+		if int(item.get("layer", 0)) != 0:
+			continue
+		var center := float(item.get("distance", 0.0))
+		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		var key := "%d" % int(round(center))
+		if seen.has(key):
+			continue
+		seen[key] = true
+		gaps.append(Vector2(center - half, center + half))
+	return gaps
 
 
 func _is_in_side_runway_pit(distance: float) -> bool:
@@ -2037,33 +2358,39 @@ func _is_in_side_runway_pit(distance: float) -> bool:
 
 func _attach_side_runway_pit(zone: Dictionary, kit: Dictionary) -> void:
 	var pit: Vector2 = _side_runway_pit_range(zone)
+	_attach_path_pit_visual(pit, kit, "SideRunwayPit")
+
+
+func _attach_main_block_path_pit(pit: Vector2, kit: Dictionary) -> void:
+	_attach_path_pit_visual(pit, kit, "MainBlockPathPit")
+
+
+func _attach_path_pit_visual(pit: Vector2, kit: Dictionary, node_name: String) -> void:
 	if pit.y <= pit.x + 2.0:
 		return
 	var lane_y := GROUND_Y - 0.05
-	var road_mat: Material = kit.get("road", null)
-	var curb_mat: Material = kit.get("curb", road_mat)
+	var curb_mat: Material = kit.get("curb", kit.get("road", null))
 	var void_mat := _make_material(Color(0.02, 0.03, 0.05), Color(0.15, 0.45, 0.7), 0.8)
-	# 坑底深渊
+	# 坑底深渊（贴合路径，弯道也不会斜出）
 	_attach_path_strip_segment(pit.x, pit.y, 7.2, lane_y - 2.4, void_mat, 2.0, 0.0)
-	# 坑口断裂描边
 	if curb_mat:
 		_attach_path_strip_segment(pit.x - 0.8, pit.x + 0.6, 6.4, lane_y + 0.03, curb_mat, 1.2, 0.0)
 		_attach_path_strip_segment(pit.y - 0.6, pit.y + 0.8, 6.4, lane_y + 0.03, curb_mat, 1.2, 0.0)
-	# 警示浮尘带
-	var warn := MeshInstance3D.new()
-	warn.name = "PitWarningBand"
-	var wmesh := BoxMesh.new()
-	wmesh.size = Vector3(LANE_WIDTH * 3.1, 0.08, maxf(pit.y - pit.x, 4.0))
-	var wmat := _make_material(Color(0.9, 0.25, 0.12, 0.35), Color(1.0, 0.35, 0.1), 1.8)
-	wmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	wmat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	wmesh.material = wmat
-	warn.mesh = wmesh
+	# 沿路径的警示带（分段，避免大盒子穿帮）
+	var warn_mat := _make_material(Color(0.95, 0.28, 0.1, 0.42), Color(1.0, 0.4, 0.08), 2.0)
+	warn_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	warn_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_attach_path_strip_segment(pit.x, pit.y, 6.0, lane_y + 0.06, warn_mat, 2.0, 0.0)
 	var mid := (pit.x + pit.y) * 0.5
 	var sample := _sample_path(mid)
-	warn.position = (sample["pos"] as Vector3) + Vector3(0.0, lane_y - 0.35, 0.0)
-	warn.rotation.y = float(sample["yaw"])
-	_attach_road(warn)
+	var label := Label3D.new()
+	label.name = node_name + "Label"
+	label.text = "主路坍塌\n上侧墙或绕开"
+	label.font_size = 56
+	label.modulate = Color(1.0, 0.55, 0.25)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = (sample["pos"] as Vector3) + Vector3(0.0, lane_y + 2.4, 0.0)
+	track_root.add_child(label)
 
 
 func _attach_wall_run_mesh(zone: Dictionary, kit: Dictionary) -> void:
@@ -2241,6 +2568,10 @@ func _attach_path_strip(
 			var pit: Vector2 = _side_runway_pit_range(zone)
 			if pit.y > pit.x + 4.0:
 				gaps.append(pit)
+		# main_block 封堵带也挖开主路，避免「看不见坑却判坠入」
+		for gap2 in _main_block_road_gaps():
+			if gap2.y > gap2.x + 2.0:
+				gaps.append(gap2)
 		gaps.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
 		for gap in gaps:
 			var gs: float = gap.x
@@ -4145,8 +4476,13 @@ func _update_chaser_visuals(delta: float) -> void:
 
 
 func _build_content() -> void:
+	var raw_obstacles: Array
+	if CustomLevels.has_level(Global.runner_location_id):
+		raw_obstacles = CustomLevels.load_obstacles_for_run(Global.runner_location_id, LevelConfig)
+	else:
+		raw_obstacles = LevelConfig.build_obstacles()
 	var obstacle_items: Array = MissionTypes.adapt_obstacles(
-		LevelConfig.build_obstacles(),
+		raw_obstacles,
 		_mission_profile,
 		_track_length
 	)
@@ -4292,7 +4628,7 @@ func _make_obstacle(lane: int, distance: float, obstacle_type: String, layer: in
 		"ramp":
 			_build_ramp(root, int(item.get("target_layer", layer + 1)))
 		"main_block":
-			_build_main_block(root)
+			_build_main_block(root, float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0))))
 		"turn_left", "turn_right":
 			_build_turn_sign(root, obstacle_type)
 		_:
@@ -4512,42 +4848,51 @@ func _build_ramp(root: Node3D, target_layer: int) -> void:
 	visual.rotation_degrees.x = -12.0
 
 
-func _build_main_block(root: Node3D) -> void:
-	# 坍塌坑视觉：断裂路面 + 深渊，撞上即死
-	var pit := MeshInstance3D.new()
-	pit.name = "MainBlockPit"
-	var pit_mesh := BoxMesh.new()
-	pit_mesh.size = Vector3(LANE_WIDTH * 3.3, 2.8, 10.0)
-	var pit_mat := _make_material(Color(0.02, 0.03, 0.06), Color(0.2, 0.55, 0.85), 1.1)
-	pit_mesh.material = pit_mat
-	pit.mesh = pit_mesh
-	pit.position = Vector3(0.0, -1.1, 0.0)
-	root.add_child(pit)
+func _build_main_block(root: Node3D, half_depth: float = 8.0) -> void:
+	# 只做入口警示门；长坍塌带由沿路径的挖坑条带展示，避免弯道上长方体斜出跑道
+	var _hd := half_depth
+	var gate := MeshInstance3D.new()
+	gate.name = "MainBlockGate"
+	var gate_mesh := BoxMesh.new()
+	gate_mesh.size = Vector3(LANE_WIDTH * 3.2, 0.22, 1.8)
+	var gate_mat := _make_material(Color(0.95, 0.32, 0.12, 0.7), Color(1.0, 0.4, 0.1), 2.4)
+	gate_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	gate_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	gate_mesh.material = gate_mat
+	gate.mesh = gate_mesh
+	gate.position = Vector3(0.0, 0.12, 0.0)
+	root.add_child(gate)
 
-	var rim := MeshInstance3D.new()
-	rim.name = "MainBlockRim"
-	var rim_mesh := BoxMesh.new()
-	rim_mesh.size = Vector3(LANE_WIDTH * 3.45, 0.18, 11.2)
-	var rim_mat := _make_material(Color(0.85, 0.28, 0.12, 0.55), Color(1.0, 0.4, 0.12), 2.0)
-	rim_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	rim_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	rim_mesh.material = rim_mat
-	rim.mesh = rim_mesh
-	rim.position = Vector3(0.0, 0.04, 0.0)
-	root.add_child(rim)
+	var post_l := MeshInstance3D.new()
+	var post_r := MeshInstance3D.new()
+	for post in [post_l, post_r]:
+		var pm := BoxMesh.new()
+		pm.size = Vector3(0.28, 2.4, 0.28)
+		var pmat := _make_material(Color(0.9, 0.35, 0.12), Color(1.0, 0.45, 0.15), 1.8)
+		pm.material = pmat
+		post.mesh = pm
+		post.position = Vector3(0.0, 1.2, 0.0)
+		root.add_child(post)
+	post_l.position.x = -LANE_WIDTH * 1.45
+	post_r.position.x = LANE_WIDTH * 1.45
 
-	var haze := MeshInstance3D.new()
-	haze.name = "MainBlockHaze"
-	var haze_mesh := BoxMesh.new()
-	haze_mesh.size = Vector3(LANE_WIDTH * 3.0, 1.2, 8.0)
-	var haze_mat := _make_material(Color(0.2, 0.7, 1.0, 0.22), Color(0.35, 0.9, 1.0), 1.4)
-	haze_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	haze_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	haze_mesh.material = haze_mat
-	haze.mesh = haze_mesh
-	haze.position = Vector3(0.0, 0.55, 0.0)
-	root.add_child(haze)
-	_add_ground_contact_shadow(root, LANE_WIDTH * 3.0, 2.2)
+	var beam := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(LANE_WIDTH * 3.0, 0.22, 0.22)
+	var bmat := _make_material(Color(1.0, 0.4, 0.15), Color(1.0, 0.5, 0.2), 2.0)
+	bm.material = bmat
+	beam.mesh = bm
+	beam.position = Vector3(0.0, 2.35, 0.0)
+	root.add_child(beam)
+
+	var label := Label3D.new()
+	label.text = "主路坍塌"
+	label.font_size = 56
+	label.modulate = Color(1.0, 0.55, 0.25)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = Vector3(0.0, 3.0, 0.0)
+	root.add_child(label)
+	_add_ground_contact_shadow(root, LANE_WIDTH * 3.0, 1.2)
 
 func _build_turn_sign(root: Node3D, turn_type: String) -> void:
 	var is_left := turn_type == "turn_left"

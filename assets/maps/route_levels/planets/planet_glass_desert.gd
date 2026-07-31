@@ -1,6 +1,7 @@
 extends "res://assets/maps/route_levels/runner_planet_config.gd"
 
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
 
 ## 星球一 · 无尽晶砂漠
 
@@ -453,6 +454,31 @@ const SIDE_RUNWAY_ZONES := [
 	},
 ]
 
+# 沙尘暴区：进入后持续扣货物完整度（避开侧墙/岔路中段）
+const SANDSTORM_ZONES := [
+	{
+		"start": 168.0,
+		"length": 42.0,
+		"dps": 9.0,
+		"label": "沙尘暴",
+		"lane_count": 3,
+	},
+	{
+		"start": 458.0,
+		"length": 48.0,
+		"dps": 10.5,
+		"label": "沙尘暴",
+		"lane_count": 3,
+	},
+	{
+		"start": 860.0,
+		"length": 55.0,
+		"dps": 12.0,
+		"label": "强沙尘暴",
+		"lane_count": 3,
+	},
+]
+
 const OBSTACLE_TYPES := {
 	"jump": "全息跳跃栏",
 	"slide": "全息下滑门",
@@ -510,7 +536,14 @@ static func get_jump_obstacle_label(asset_path: String) -> String:
 
 
 static func build_obstacles() -> Array:
-	var items: Array = [
+	# 优先读关卡编辑器导出的 JSON；没有文件则用内置默认表
+	if ObstacleLayout.has_layout(PLANET_ID):
+		return _filter_obstacles_away_from_side_walls(ObstacleLayout.load_items(PLANET_ID))
+	return _filter_obstacles_away_from_side_walls(_default_obstacles())
+
+
+static func _default_obstacles() -> Array:
+	return [
 		{"lane": 0, "distance": 95.0, "type": "jump"},
 		{"lane": -1, "distance": 145.0, "type": "slide"},
 		{"lane": 1, "distance": 190.0, "type": "jump"},
@@ -545,7 +578,6 @@ static func build_obstacles() -> Array:
 		{"lane": 1, "distance": 1160.0, "type": "slide"},
 		{"lane": 0, "distance": 1220.0, "type": "jump"},
 	]
-	return _filter_obstacles_away_from_side_walls(items)
 
 
 static func _obstacle_in_side_wall_corridor(distance: float) -> bool:
