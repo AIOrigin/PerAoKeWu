@@ -81,6 +81,10 @@ const HEAT_HAZARD_HALF_LEN := 7.0
 const HEAT_HAZARD_TICK := 0.45
 const SANDSTORM_TICK := 0.4
 const SANDSTORM_DEFAULT_DPS := 9.0
+const SHIELD_MAX_ENERGY := 100.0
+const SHIELD_START_ENERGY := 45.0
+const SHIELD_CRYSTAL_RESTORE := 28.0
+const SHIELD_DRAIN_MULT := 1.15
 const INTRO_DURATION := 3.0
 const PRE_RUN_LOADING_TIME := 0.45
 const PRE_RUN_COUNTDOWN_STEP := 1.0
@@ -176,8 +180,13 @@ var is_finished := false
 var is_failed := false
 var collected_count := 0
 var total_collectibles := 0
+var crystal_collected_count := 0
 var run_score := 0
 var cargo_integrity := 100.0
+var shield_energy := SHIELD_START_ENERGY
+var shield_active := false
+var _shield_mesh: MeshInstance3D
+var _shield_warned_empty := false
 var mission: Dictionary = {}
 var _mission_profile: Dictionary = {}
 var _run_time := DEFAULT_RUN_TIME
@@ -255,6 +264,9 @@ var state_body: Label
 var state_restart_button: Button
 var state_back_button: Button
 var pause_button: Button
+var shield_button: Button
+var shield_label: Label
+var shield_bar: ProgressBar
 var hud_root: Control
 var debug_hud_box: VBoxContainer
 var settlement_detail_timer := 0.0
@@ -281,6 +293,10 @@ func _ready() -> void:
 	_apply_mission_type_profile()
 	lane_change_ease = LANE_CHANGE_EASE + Global.get_lane_change_ease_bonus()
 	cargo_integrity = 100.0
+	shield_energy = SHIELD_START_ENERGY
+	shield_active = false
+	_shield_warned_empty = false
+	crystal_collected_count = 0
 	track_root = Node3D.new()
 	track_root.name = "TrackRoot"
 	add_child(track_root)
@@ -378,6 +394,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_try_jump()
 	elif event.is_action_pressed("move_backward") and _is_on_ground():
 		_try_slide()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		var key := event as InputEventKey
+		if key.keycode == KEY_F or key.physical_keycode == KEY_F:
+			_toggle_shield()
+			get_viewport().set_input_as_handled()
 
 
 func _handle_touch_input(event: InputEvent) -> bool:
@@ -542,6 +563,7 @@ func _physics_process(delta: float) -> void:
 	_enforce_track_layer()
 	_update_side_runway_ground_penalty(delta)
 	_update_sandstorm_hazard(delta)
+	_update_shield_visual(delta)
 
 	var grounded := _is_on_ground()
 	if grounded and not was_on_ground:
@@ -666,11 +688,32 @@ func _distance_to_z(distance: float) -> float:
 	return _sample_path(distance)["pos"].z
 
 
+func _active_track_segments() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id) and CustomLevels.has_custom_track(Global.runner_location_id):
+		return CustomLevels.get_track_segments(Global.runner_location_id)
+	if LevelConfig != null and LevelConfig.has_method("get_track_segments"):
+		return LevelConfig.get_track_segments()
+	return []
+
+
+func _junction_zones() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id) and CustomLevels.has_custom_junctions(Global.runner_location_id):
+		return CustomLevels.get_junction_zones(Global.runner_location_id)
+	if LevelConfig == null:
+		return []
+	var constants: Dictionary = LevelConfig.get_script_constant_map()
+	if not constants.has("JUNCTION_ZONES"):
+		return []
+	var out: Array = []
+	for raw in constants["JUNCTION_ZONES"]:
+		if typeof(raw) == TYPE_DICTIONARY:
+			out.append(ObstacleLayout.normalize_junction_zone(raw))
+	return out
+
+
 func _bake_track_path() -> void:
 	_path_samples.clear()
-	var segments: Array = []
-	if LevelConfig.has_method("get_track_segments"):
-		segments = LevelConfig.get_track_segments()
+	var segments: Array = _active_track_segments()
 	if segments.is_empty():
 		segments = [{"length": _track_length + 80.0, "turn": 0.0}]
 
@@ -751,9 +794,7 @@ func _path_world_stretch(distance: float, lateral: float) -> float:
 
 
 func _fork_zone_at(distance: float) -> Dictionary:
-	if LevelConfig == null:
-		return {}
-	for zone in LevelConfig.JUNCTION_ZONES:
+	for zone in _junction_zones():
 		var start := float(zone["distance"])
 		var length := float(zone.get("length", 70.0))
 		if distance >= start and distance <= start + length:
@@ -1041,10 +1082,10 @@ func _sync_player_position() -> void:
 
 
 func _check_junctions() -> void:
-	for junction_index in LevelConfig.JUNCTION_ZONES.size():
+	for junction_index in _junction_zones().size():
 		if passed_junctions.has(junction_index):
 			continue
-		var zone: Dictionary = LevelConfig.JUNCTION_ZONES[junction_index]
+		var zone: Dictionary = _junction_zones()[junction_index]
 		var at_distance: float = float(zone["distance"])
 		if track_distance < at_distance or track_distance > at_distance + 4.0:
 			continue
@@ -1079,8 +1120,8 @@ func _check_junctions() -> void:
 	_enforce_active_fork_side()
 
 	# 离开分叉段后复位
-	if _active_fork_index >= 0 and _active_fork_index < LevelConfig.JUNCTION_ZONES.size():
-		var active: Dictionary = LevelConfig.JUNCTION_ZONES[_active_fork_index]
+	if _active_fork_index >= 0 and _active_fork_index < _junction_zones().size():
+		var active: Dictionary = _junction_zones()[_active_fork_index]
 		var end_d := float(active["distance"]) + float(active.get("length", 70.0))
 		if track_distance > end_d + 1.0:
 			_active_fork_index = -1
@@ -1099,18 +1140,18 @@ func _enforce_active_fork_side() -> void:
 	if _fork_side == 0:
 		_fork_side = _resolve_fork_side(current_lateral)
 	if _active_fork_index < 0:
-		for i in LevelConfig.JUNCTION_ZONES.size():
-			var z: Dictionary = LevelConfig.JUNCTION_ZONES[i]
+		for i in _junction_zones().size():
+			var z: Dictionary = _junction_zones()[i]
 			if absf(float(z.get("distance", -999.0)) - start) < 0.5:
 				_active_fork_index = i
 				break
 
 
 func _check_fork_approach() -> void:
-	for junction_index in LevelConfig.JUNCTION_ZONES.size():
+	for junction_index in _junction_zones().size():
 		if _fork_approach_warned.has(junction_index) or passed_junctions.has(junction_index):
 			continue
-		var zone: Dictionary = LevelConfig.JUNCTION_ZONES[junction_index]
+		var zone: Dictionary = _junction_zones()[junction_index]
 		var at_distance := float(zone["distance"])
 		if track_distance < at_distance - 38.0 or track_distance > at_distance - 28.0:
 			continue
@@ -1227,7 +1268,10 @@ func _update_sandstorm_hazard(delta: float) -> void:
 		var key := int(float(zone.get("start", 0.0)))
 		if not _sandstorm_warned_keys.has(key):
 			_sandstorm_warned_keys.append(key)
-			_show_strike_warning("%s来袭 · 持续受损" % String(zone.get("label", "沙尘暴")))
+			if _is_shield_protecting():
+				_show_strike_warning("%s来袭 · 防护罩抵挡中" % String(zone.get("label", "沙尘暴")))
+			else:
+				_show_strike_warning("%s来袭 · 开启防护罩(F)或换道" % String(zone.get("label", "沙尘暴")))
 	_sandstorm_active = active
 	_set_sandstorm_visual(active)
 	if not active:
@@ -1239,14 +1283,93 @@ func _update_sandstorm_hazard(delta: float) -> void:
 	_sandstorm_tick_accum = 0.0
 	var dps := float(zone.get("dps", SANDSTORM_DEFAULT_DPS))
 	var dmg := dps * SANDSTORM_TICK * Global.get_cargo_damage_multiplier()
+	var label := String(zone.get("label", "沙尘暴"))
+	if _is_shield_protecting():
+		var drain := dmg * SHIELD_DRAIN_MULT
+		shield_energy = maxf(shield_energy - drain, 0.0)
+		if shield_energy <= 0.001:
+			shield_active = false
+			_shield_warned_empty = true
+			_show_strike_warning("防护罩能量耗尽 · 无法抵御沙尘暴")
+		elif _hit_feedback != null and player != null:
+			_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), drain * 0.35, "防护罩")
+		return
 	_apply_cargo_loss(dmg)
 	if is_failed:
 		return
-	var label := String(zone.get("label", "沙尘暴"))
 	if _hit_feedback != null and player != null:
 		_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), dmg, label)
 	elif strike_toast_label:
 		_show_strike_warning("%s侵蚀" % label)
+
+
+func _is_shield_protecting() -> bool:
+	return shield_active and shield_energy > 0.001
+
+
+func _toggle_shield() -> void:
+	if is_finished or is_failed or is_intro or not gameplay_active:
+		return
+	if shield_active:
+		shield_active = false
+		_show_gate_toast("防护罩关闭")
+		return
+	if shield_energy <= 0.001:
+		_show_strike_warning("防护罩能量不足 · 拾取水晶充能")
+		return
+	shield_active = true
+	_shield_warned_empty = false
+	_show_gate_toast("防护罩开启 · 可挡沙尘暴")
+	_ensure_shield_mesh()
+
+
+func _ensure_shield_mesh() -> void:
+	if player == null:
+		return
+	if _shield_mesh != null and is_instance_valid(_shield_mesh):
+		return
+	_shield_mesh = MeshInstance3D.new()
+	_shield_mesh.name = "PlayerShieldBubble"
+	var sphere := SphereMesh.new()
+	sphere.radius = 1.15
+	sphere.height = 2.3
+	sphere.radial_segments = 24
+	sphere.rings = 12
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.35, 0.85, 1.0, 0.22)
+	mat.emission_enabled = true
+	mat.emission = Color(0.25, 0.75, 1.0)
+	mat.emission_energy_multiplier = 1.6
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sphere.material = mat
+	_shield_mesh.mesh = sphere
+	_shield_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	player.add_child(_shield_mesh)
+	_shield_mesh.position = Vector3(0.0, 1.05, 0.0)
+
+
+func _update_shield_visual(_delta: float) -> void:
+	_ensure_shield_mesh()
+	if _shield_mesh == null:
+		return
+	var protecting := _is_shield_protecting()
+	_shield_mesh.visible = protecting
+	if not protecting:
+		return
+	var mat := _shield_mesh.get_active_material(0) as StandardMaterial3D
+	if mat == null and _shield_mesh.mesh:
+		mat = _shield_mesh.mesh.surface_get_material(0) as StandardMaterial3D
+	if mat:
+		var ratio := clampf(shield_energy / SHIELD_MAX_ENERGY, 0.0, 1.0)
+		var pulse := 0.18 + 0.08 * sin(Time.get_ticks_msec() * 0.008)
+		mat.albedo_color.a = pulse + ratio * 0.12
+		mat.emission_energy_multiplier = lerpf(0.8, 2.2, ratio)
+		if _sandstorm_active:
+			mat.emission = Color(0.45, 0.95, 1.0)
+		else:
+			mat.emission = Color(0.25, 0.75, 1.0)
 
 
 func _set_sandstorm_visual(active: bool) -> void:
@@ -1377,8 +1500,17 @@ func _check_collectibles() -> void:
 			continue
 		collectible["collected"] = true
 		node.visible = false
-		collected_count += 1
-		run_score += int(LevelConfig.EMBER_COIN_VALUE)
+		var kind := String(collectible.get("kind", "coin"))
+		if kind == "shield_crystal":
+			crystal_collected_count += 1
+			var before := shield_energy
+			shield_energy = minf(shield_energy + SHIELD_CRYSTAL_RESTORE, SHIELD_MAX_ENERGY)
+			_shield_warned_empty = false
+			run_score += 8
+			_show_gate_toast("水晶充能 +%d" % int(round(shield_energy - before)))
+		else:
+			collected_count += 1
+			run_score += int(LevelConfig.EMBER_COIN_VALUE)
 
 
 func _try_side_runway_entry() -> void:
@@ -2016,6 +2148,10 @@ func _load_cargo_icon() -> void:
 func _build_world() -> void:
 	var theme: Dictionary = LevelConfig.get_theme()
 	_road_style_id = Global.get_runner_road_style()
+	if CustomLevels.has_level(Global.runner_location_id):
+		var custom_style := CustomLevels.get_road_style(Global.runner_location_id)
+		if custom_style != "":
+			_road_style_id = Global.normalize_runner_road_style(custom_style)
 	_background_style_id = Global.get_runner_background_style()
 	var world := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -2038,7 +2174,7 @@ func _build_world() -> void:
 	_build_path_track()
 	_build_side_runway_tracks()
 	_build_sandstorm_zones()
-	for zone in LevelConfig.JUNCTION_ZONES:
+	for zone in _junction_zones():
 		_build_choice_gate(float(zone["distance"]), zone)
 	_build_planet_surroundings(theme)
 	_build_finish_gate()
@@ -2224,7 +2360,7 @@ func _build_path_track() -> void:
 			_attach_path_strip(0.0, track_end, 0.05, lane_y + 0.008, kit["line"], 1.75, 0.0, true)
 
 	_build_start_pad(kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y)
-	for zone in LevelConfig.JUNCTION_ZONES:
+	for zone in _junction_zones():
 		_build_fork_branch_roads(zone, kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["island"], lane_y)
 
 
@@ -2552,7 +2688,7 @@ func _attach_path_strip(
 	if skip_fork_gaps and LevelConfig != null:
 		var cursor := start_d
 		var gaps: Array = []
-		for zone in LevelConfig.JUNCTION_ZONES:
+		for zone in _junction_zones():
 			var gs := float(zone["distance"])
 			var glen := float(zone.get("length", 70.0))
 			var ge := gs + glen
@@ -2912,7 +3048,7 @@ func _boost_runner_lights(sun_color: Color, sun_energy: float, rim_energy: float
 
 
 func _is_in_fork_main_gap(distance: float) -> bool:
-	for zone in LevelConfig.JUNCTION_ZONES:
+	for zone in _junction_zones():
 		var start := float(zone["distance"])
 		var length := float(zone.get("length", 70.0))
 		if distance < start or distance > start + length:
@@ -4518,6 +4654,7 @@ func _build_content() -> void:
 				"distance": dist,
 				"y": y,
 				"layer": layer,
+				"kind": "coin",
 				"collected": false,
 			})
 			coin_index += 1
@@ -4538,6 +4675,7 @@ func _build_content() -> void:
 				"distance": dist,
 				"y": y,
 				"layer": layer,
+				"kind": "coin",
 				"collected": false,
 			})
 			coin_index += 1
@@ -4563,9 +4701,62 @@ func _build_content() -> void:
 				"distance": dist,
 				"y": y,
 				"layer": layer,
+				"kind": "coin",
 				"collected": false,
 			})
-	total_collectibles = collectibles.size()
+
+	_spawn_shield_crystals()
+	total_collectibles = 0
+	for c in collectibles:
+		if String(c.get("kind", "coin")) == "coin":
+			total_collectibles += 1
+
+
+func _spawn_shield_crystals() -> void:
+	var items: Array = []
+	if LevelConfig != null and LevelConfig.has_method("build_shield_crystals") and not CustomLevels.has_level(Global.runner_location_id):
+		items = LevelConfig.build_shield_crystals()
+	else:
+		items = _default_shield_crystals_from_sandstorms()
+	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		var dist := float(item.get("distance", 0.0))
+		if dist < 20.0 or dist > finish_cut:
+			continue
+		var lane := int(item.get("lane", 0))
+		var layer := int(item.get("layer", 0))
+		var y: float = _layer_height(layer) + 0.85
+		var node := _make_shield_crystal(lane, dist, y, layer)
+		collectibles.append({
+			"node": node,
+			"lane": lane,
+			"distance": dist,
+			"y": y,
+			"layer": layer,
+			"kind": "shield_crystal",
+			"collected": false,
+		})
+
+
+func _default_shield_crystals_from_sandstorms() -> Array:
+	var out: Array = []
+	var zones := _sandstorm_zones()
+	if zones.is_empty():
+		# 无沙尘暴时仍沿途投放少量水晶，方便试用防护罩
+		for d in [90.0, 210.0, 360.0, 520.0, 700.0, 880.0]:
+			out.append({"lane": (int(d) % 3) - 1, "distance": d, "layer": 0})
+		return out
+	for zone in zones:
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 40.0))
+		out.append({"lane": 0, "distance": start - 16.0, "layer": 0})
+		out.append({"lane": 1, "distance": start - 8.0, "layer": 0})
+		out.append({"lane": -1, "distance": start + length * 0.4, "layer": 0})
+		out.append({"lane": 0, "distance": start + length + 12.0, "layer": 0})
+	return out
 
 
 func _register_obstacle(item: Dictionary) -> Node3D:
@@ -4943,6 +5134,33 @@ func _make_collectible(lane: int, distance: float, y: float, layer: int) -> Node
 	return collectible
 
 
+func _make_shield_crystal(lane: int, distance: float, y: float, layer: int) -> Node3D:
+	var root := Node3D.new()
+	root.name = "ShieldCrystal"
+	var crystal := MeshInstance3D.new()
+	var prism := PrismMesh.new()
+	prism.size = Vector3(0.55, 1.1, 0.55)
+	var mat := _make_material(Color(0.45, 0.9, 1.0, 0.85), Color(0.3, 0.85, 1.0), 2.4)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	prism.material = mat
+	crystal.mesh = prism
+	crystal.position.y = 0.55
+	root.add_child(crystal)
+	var glow := MeshInstance3D.new()
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = 0.22
+	glow_mesh.height = 0.44
+	glow_mesh.material = _make_material(Color(0.7, 0.95, 1.0, 0.35), Color(0.4, 0.9, 1.0), 1.8)
+	glow.mesh = glow_mesh
+	glow.position.y = 0.55
+	root.add_child(glow)
+	track_root.add_child(root)
+	var placed: Dictionary = _world_on_path(distance, float(lane) * LANE_WIDTH, y, layer)
+	root.position = placed["pos"]
+	root.rotation.y = float(placed["yaw"])
+	return root
+
+
 func _build_ui() -> void:
 	var ui := CanvasLayer.new()
 	add_child(ui)
@@ -5158,6 +5376,46 @@ func _build_ui() -> void:
 	pause_button.pressed.connect(_on_pause_button_pressed)
 	shell.add_child(pause_button)
 
+	shield_button = Button.new()
+	shield_button.text = "盾"
+	shield_button.tooltip_text = "防护罩 (F)"
+	shield_button.custom_minimum_size = Vector2(72, 72)
+	shield_button.add_theme_font_size_override("font_size", 26)
+	shield_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	shield_button.offset_left = 24.0
+	shield_button.offset_top = 108.0
+	shield_button.offset_right = 96.0
+	shield_button.offset_bottom = 180.0
+	shield_button.pressed.connect(_toggle_shield)
+	shell.add_child(shield_button)
+
+	var shield_panel := PanelContainer.new()
+	shield_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	shield_panel.offset_left = 110.0
+	shield_panel.offset_top = 24.0
+	shield_panel.offset_right = 340.0
+	shield_panel.offset_bottom = 108.0
+	shell.add_child(shield_panel)
+	var shield_margin := MarginContainer.new()
+	shield_margin.add_theme_constant_override("margin_left", 12)
+	shield_margin.add_theme_constant_override("margin_top", 8)
+	shield_margin.add_theme_constant_override("margin_right", 12)
+	shield_margin.add_theme_constant_override("margin_bottom", 8)
+	shield_panel.add_child(shield_margin)
+	var shield_box := VBoxContainer.new()
+	shield_box.add_theme_constant_override("separation", 4)
+	shield_margin.add_child(shield_box)
+	shield_label = Label.new()
+	shield_label.text = "防护罩 关 · F"
+	shield_label.add_theme_font_size_override("font_size", 20)
+	shield_box.add_child(shield_label)
+	shield_bar = ProgressBar.new()
+	shield_bar.custom_minimum_size = Vector2(0, 18)
+	shield_bar.max_value = SHIELD_MAX_ENERGY
+	shield_bar.value = shield_energy
+	shield_bar.show_percentage = false
+	shield_box.add_child(shield_bar)
+
 	var cargo_panel := PanelContainer.new()
 	cargo_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	cargo_panel.offset_left = -260.0
@@ -5239,7 +5497,21 @@ func _update_hud() -> void:
 	cargo_label.text = "货物 %s  完整度 %0.0f%%" % [String(mission.get("cargo_name", "物资")), cargo_integrity]
 	score_label.text = "星火币 %d" % run_score
 	layer_label.text = "地图 %s" % LevelConfig.MAP_NAME
-	collectible_label.text = "星火币 %d / %d" % [collected_count, total_collectibles]
+	collectible_label.text = "星火币 %d / %d · 水晶 %d" % [collected_count, total_collectibles, crystal_collected_count]
+	if shield_label:
+		if _is_shield_protecting():
+			shield_label.text = "防护罩 开 · 抵挡沙尘暴"
+			shield_label.add_theme_color_override("font_color", Color(0.45, 0.92, 1.0))
+		elif shield_active and shield_energy <= 0.001:
+			shield_label.text = "防护罩 耗尽 · 拾取水晶"
+			shield_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
+		else:
+			shield_label.text = "防护罩 关 · F/盾键开启"
+			shield_label.add_theme_color_override("font_color", Color(0.75, 0.82, 0.9))
+	if shield_bar:
+		shield_bar.value = shield_energy
+	if shield_button:
+		shield_button.modulate = Color(0.55, 0.95, 1.0) if _is_shield_protecting() else Color(1, 1, 1)
 
 	var danger_ratio := 1.0 - clampf(chaser_distance / CHASER_MAX_DISTANCE, 0.0, 1.0)
 	var chase_status := "安全"

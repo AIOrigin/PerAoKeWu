@@ -192,6 +192,63 @@ static func ramp_distance_for_side_zone(zone: Dictionary) -> float:
 	return snappedf(start - entry + 2.0, 1.0)
 
 
+static func normalize_track_segment(raw: Dictionary) -> Dictionary:
+	return {
+		"length": maxf(float(raw.get("length", 40.0)), 1.0),
+		"turn": float(raw.get("turn", 0.0)),
+	}
+
+
+static func load_track_segments(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	if not root.has("track_segments"):
+		return []
+	var out: Array = []
+	for raw in root.get("track_segments", []):
+		if typeof(raw) == TYPE_DICTIONARY:
+			out.append(normalize_track_segment(raw))
+	return out
+
+
+static func normalize_junction_zone(raw: Dictionary) -> Dictionary:
+	return {
+		"distance": float(raw.get("distance", 0.0)),
+		"length": maxf(float(raw.get("length", 100.0)), 20.0),
+		"spread": maxf(float(raw.get("spread", 20.0)), 4.0),
+		"lane_a": int(raw.get("lane_a", 0)),
+		"label_a": String(raw.get("label_a", "安全岔路")),
+		"effect_a": String(raw.get("effect_a", "repair")),
+		"lane_b": int(raw.get("lane_b", 2)),
+		"label_b": String(raw.get("label_b", "速通岔路")),
+		"effect_b": String(raw.get("effect_b", "fast")),
+	}
+
+
+static func load_junction_zones(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	if not root.has("junction_zones"):
+		return []
+	var out: Array = []
+	for raw in root.get("junction_zones", []):
+		if typeof(raw) == TYPE_DICTIONARY:
+			out.append(normalize_junction_zone(raw))
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	return out
+
+
+static func sort_junction_zones(zones: Array) -> Array:
+	var copy: Array = []
+	for raw in zones:
+		if typeof(raw) == TYPE_DICTIONARY:
+			copy.append(normalize_junction_zone(raw))
+	copy.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	return copy
+
+
 static func save_items(planet_id: String, items: Array, meta: Dictionary = {}) -> bool:
 	var payload := {
 		"planet_id": planet_id,

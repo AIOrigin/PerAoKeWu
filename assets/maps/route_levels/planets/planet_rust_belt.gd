@@ -160,6 +160,10 @@ static func build_side_runway_coins() -> Array:
 	return GlassDesert.build_side_runway_coins()
 
 
+static func build_shield_crystals() -> Array:
+	return GlassDesert.build_shield_crystals()
+
+
 static func phase_at(distance: float) -> Dictionary:
 	for phase in RUN_PHASES:
 		if distance >= float(phase["start"]) and distance < float(phase["end"]):

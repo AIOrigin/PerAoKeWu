@@ -698,6 +698,22 @@ static func build_side_runway_coins() -> Array:
 	return coins
 
 
+static func build_shield_crystals() -> Array:
+	# 青色防护水晶：沙尘暴前后重点投放，供防护罩充能
+	var crystals: Array = []
+	for zone in SANDSTORM_ZONES:
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 40.0))
+		crystals.append({"lane": 0, "distance": start - 18.0, "layer": 0})
+		crystals.append({"lane": 1, "distance": start - 10.0, "layer": 0})
+		crystals.append({"lane": -1, "distance": start - 6.0, "layer": 0})
+		crystals.append({"lane": 0, "distance": start + length * 0.35, "layer": 0})
+		crystals.append({"lane": 1, "distance": start + length + 10.0, "layer": 0})
+	for d in [75.0, 250.0, 390.0, 640.0, 800.0, 1000.0]:
+		crystals.append({"lane": int(d) % 3 - 1, "distance": d, "layer": 0})
+	return crystals
+
+
 static func phase_at(distance: float) -> Dictionary:
 	for phase in RUN_PHASES:
 		if distance >= float(phase["start"]) and distance < float(phase["end"]):

@@ -7,6 +7,8 @@ const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.g
 const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
 const CustomLevels = preload("res://assets/maps/route_levels/runner_60s/custom_levels.gd")
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const ObstacleVisualFactory = preload("res://assets/maps/route_levels/runner_60s/level_editor/obstacle_visual_factory.gd")
+const EditorRoadPreview = preload("res://assets/maps/route_levels/runner_60s/level_editor/editor_road_preview.gd")
 
 const LANE_WIDTH := 4.0
 const LANES := [-1, 0, 1]
@@ -18,6 +20,10 @@ const PLACE_TYPES: Array[String] = [
 ]
 
 var LevelConfig: Script
+var _visual_factory: ObstacleVisualFactory = ObstacleVisualFactory.new()
+var _road_preview: EditorRoadPreview = EditorRoadPreview.new()
+var _road_style_id := "holographic"
+var _world_environment: WorldEnvironment
 var _planet_id := "glass_desert"
 var _path_samples: Array[Dictionary] = []
 var _path_length := 1200.0
@@ -28,32 +34,44 @@ var _place_type := "jump"
 var _items: Array = []
 var _side_zones: Array = []
 var _sand_zones: Array = []
+var _track_segments: Array = []
+var _junctions: Array = []
 var _selected := -1
 var _selected_side := -1
 var _selected_sand := -1
+var _selected_seg := -1
+var _selected_fork := -1
 var _dirty := false
 
 var _track_root: Node3D
 var _marker_root: Node3D
 var _side_root: Node3D
 var _sand_root: Node3D
+var _fork_root: Node3D
 var _cursor_marker: MeshInstance3D
 var _camera: Camera3D
 var _status: Label
 var _list: ItemList
 var _side_list: ItemList
 var _sand_list: ItemList
+var _seg_list: ItemList
+var _fork_list: ItemList
 var _side_length_spin: SpinBox
 var _side_side_option: OptionButton
 var _sand_length_spin: SpinBox
 var _sand_lanes_option: OptionButton
 var _sand_lane_option: OptionButton
 var _sand_dps_spin: SpinBox
+var _seg_len_spin: SpinBox
+var _seg_turn_spin: SpinBox
+var _fork_len_spin: SpinBox
+var _fork_spread_spin: SpinBox
 var _dist_slider: HSlider
 var _dist_spin: SpinBox
 var _type_option: OptionButton
 var _lane_option: OptionButton
 var _planet_option: OptionButton
+var _road_style_option: OptionButton
 var _dragging_marker := false
 var _drag_index := -1
 var _drag_lane_accum := 0.0
@@ -68,6 +86,9 @@ const DEFAULT_SIDE_OFFSET := 7.2
 const DEFAULT_SIDE_ENTRY := 10.0
 const DEFAULT_SAND_LENGTH := 42.0
 const DEFAULT_SAND_DPS := 9.0
+const DEFAULT_FORK_LENGTH := 100.0
+const DEFAULT_FORK_SPREAD := 20.0
+const DEFAULT_SEG_LENGTH := 80.0
 
 
 func _ready() -> void:
@@ -139,19 +160,24 @@ func _process(_delta: float) -> void:
 
 
 func _setup_world() -> void:
-	var env := WorldEnvironment.new()
+	_world_environment = WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.12, 0.08, 0.05)
+	environment.background_color = Color(0.02, 0.03, 0.06)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.9, 0.7, 0.5)
-	environment.ambient_light_energy = 1.1
-	env.environment = environment
-	add_child(env)
+	environment.ambient_light_color = Color(0.35, 0.55, 0.7)
+	environment.ambient_light_energy = 0.9
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.5
+	environment.glow_strength = 1.05
+	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	_world_environment.environment = environment
+	add_child(_world_environment)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48, 30, 0)
-	sun.light_energy = 1.6
+	sun.light_energy = 1.35
+	sun.light_color = Color(0.85, 0.92, 1.0)
 	add_child(sun)
 
 	_track_root = Node3D.new()
@@ -166,20 +192,27 @@ func _setup_world() -> void:
 	_sand_root = Node3D.new()
 	_sand_root.name = "Sandstorms"
 	add_child(_sand_root)
+	_fork_root = Node3D.new()
+	_fork_root.name = "ForkMarkers"
+	add_child(_fork_root)
 
 	_camera = Camera3D.new()
-	_camera.fov = 58.0
+	_camera.fov = 48.0
+	_camera.near = 0.15
+	_camera.far = 4000.0
 	_camera.current = true
+	# 左侧面板约占视口，水平偏移让跑道落在右侧可见区中心
+	_camera.h_offset = 3.2
 	add_child(_camera)
 
 	_cursor_marker = MeshInstance3D.new()
 	var cm := BoxMesh.new()
-	cm.size = Vector3(1.2, 0.15, 1.6)
+	cm.size = Vector3(2.2, 0.22, 2.8)
 	var cmat := StandardMaterial3D.new()
-	cmat.albedo_color = Color(1.0, 1.0, 0.2, 0.85)
+	cmat.albedo_color = Color(1.0, 1.0, 0.2, 0.9)
 	cmat.emission_enabled = true
 	cmat.emission = Color(1.0, 0.9, 0.2)
-	cmat.emission_energy_multiplier = 2.0
+	cmat.emission_energy_multiplier = 2.4
 	cmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	cm.material = cmat
 	_cursor_marker.mesh = cm
@@ -231,6 +264,151 @@ func _build_ui() -> void:
 		_refresh_all()
 	)
 	v.add_child(_planet_option)
+
+	v.add_child(_make_label("跑道样式（可更换）"))
+	_road_style_option = OptionButton.new()
+	for style_id in EditorRoadPreview.STYLE_ORDER:
+		_road_style_option.add_item(EditorRoadPreview.style_label(style_id))
+	_select_road_style_option(_road_style_id)
+	_road_style_option.item_selected.connect(func(i: int) -> void:
+		if i < 0 or i >= EditorRoadPreview.STYLE_ORDER.size():
+			return
+		_road_style_id = EditorRoadPreview.STYLE_ORDER[i]
+		_dirty = true
+		_rebuild_track_mesh()
+		_update_status()
+		_flash_status("跑道样式：%s" % EditorRoadPreview.style_label(_road_style_id))
+	)
+	v.add_child(_road_style_option)
+
+	v.add_child(_make_label("跑道路线（折线段）"))
+	var seg_hint := Label.new()
+	seg_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	seg_hint.add_theme_font_size_override("font_size", 11)
+	seg_hint.modulate = Color(0.75, 0.82, 0.9)
+	seg_hint.text = "先点选列表中的路段（不是场景里的障碍）。「插到选中后」会加在该段终点之后；插入后相机会跳到新段。上面「长/转」改完需点「应用到选中段」才会改已有段。"
+	v.add_child(seg_hint)
+	var seg_params := HBoxContainer.new()
+	seg_params.add_theme_constant_override("separation", 6)
+	v.add_child(seg_params)
+	_seg_len_spin = SpinBox.new()
+	_seg_len_spin.min_value = 5.0
+	_seg_len_spin.max_value = 800.0
+	_seg_len_spin.step = 1.0
+	_seg_len_spin.value = DEFAULT_SEG_LENGTH
+	_seg_len_spin.prefix = "长"
+	_seg_len_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	seg_params.add_child(_seg_len_spin)
+	_seg_turn_spin = SpinBox.new()
+	_seg_turn_spin.min_value = -180.0
+	_seg_turn_spin.max_value = 180.0
+	_seg_turn_spin.step = 1.0
+	_seg_turn_spin.value = 0.0
+	_seg_turn_spin.prefix = "转°"
+	_seg_turn_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	seg_params.add_child(_seg_turn_spin)
+	var seg_apply_row := HBoxContainer.new()
+	seg_apply_row.add_theme_constant_override("separation", 4)
+	v.add_child(seg_apply_row)
+	seg_apply_row.add_child(_make_button("应用到选中段", _apply_seg_params_to_selected))
+	var seg_btns := HBoxContainer.new()
+	seg_btns.add_theme_constant_override("separation", 4)
+	v.add_child(seg_btns)
+	seg_btns.add_child(_make_button("直线", func() -> void: _add_track_segment(DEFAULT_SEG_LENGTH, 0.0)))
+	seg_btns.add_child(_make_button("左转90", func() -> void: _add_track_segment(45.0, 90.0)))
+	seg_btns.add_child(_make_button("右转90", func() -> void: _add_track_segment(45.0, -90.0)))
+	var seg_btns2 := HBoxContainer.new()
+	seg_btns2.add_theme_constant_override("separation", 4)
+	v.add_child(seg_btns2)
+	seg_btns2.add_child(_make_button("左转45", func() -> void: _add_track_segment(40.0, 45.0)))
+	seg_btns2.add_child(_make_button("右转45", func() -> void: _add_track_segment(40.0, -45.0)))
+	seg_btns2.add_child(_make_button("删段", _delete_selected_seg))
+	var seg_btns_ins := HBoxContainer.new()
+	seg_btns_ins.add_theme_constant_override("separation", 4)
+	v.add_child(seg_btns_ins)
+	seg_btns_ins.add_child(_make_button("插到选中前", func() -> void:
+		_add_track_segment(float(_seg_len_spin.value), float(_seg_turn_spin.value), "before")
+	))
+	seg_btns_ins.add_child(_make_button("插到选中后", func() -> void:
+		_add_track_segment(float(_seg_len_spin.value), float(_seg_turn_spin.value), "after")
+	))
+	seg_btns_ins.add_child(_make_button("末尾追加", func() -> void:
+		_add_track_segment(float(_seg_len_spin.value), float(_seg_turn_spin.value), "append")
+	))
+	var seg_btns_move := HBoxContainer.new()
+	seg_btns_move.add_theme_constant_override("separation", 4)
+	v.add_child(seg_btns_move)
+	seg_btns_move.add_child(_make_button("上移", func() -> void: _move_selected_seg(-1)))
+	seg_btns_move.add_child(_make_button("下移", func() -> void: _move_selected_seg(1)))
+	var seg_btns3 := HBoxContainer.new()
+	seg_btns3.add_theme_constant_override("separation", 4)
+	v.add_child(seg_btns3)
+	seg_btns3.add_child(_make_button("载入默认路线", _load_default_track_segments))
+	seg_btns3.add_child(_make_button("清空路线", _clear_track_segments))
+	_seg_list = ItemList.new()
+	_seg_list.name = "TrackSegList"
+	_seg_list.custom_minimum_size = Vector2(0, 90)
+	_seg_list.item_selected.connect(func(i: int) -> void:
+		_selected_seg = i
+		if i >= 0 and i < _track_segments.size():
+			var s: Dictionary = _track_segments[i]
+			_seg_len_spin.set_value_no_signal(float(s.get("length", DEFAULT_SEG_LENGTH)))
+			_seg_turn_spin.set_value_no_signal(rad_to_deg(float(s.get("turn", 0.0))))
+			_jump_cursor_to_segment(i)
+		_update_status()
+	)
+	v.add_child(_seg_list)
+
+	v.add_child(_make_label("分叉区（Y 形岔路）"))
+	var fork_params := HBoxContainer.new()
+	fork_params.add_theme_constant_override("separation", 6)
+	v.add_child(fork_params)
+	_fork_len_spin = SpinBox.new()
+	_fork_len_spin.min_value = 30.0
+	_fork_len_spin.max_value = 300.0
+	_fork_len_spin.step = 1.0
+	_fork_len_spin.value = DEFAULT_FORK_LENGTH
+	_fork_len_spin.prefix = "长"
+	_fork_len_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_fork_len_spin.value_changed.connect(func(_v: float) -> void:
+		_apply_fork_params_to_selected()
+	)
+	fork_params.add_child(_fork_len_spin)
+	_fork_spread_spin = SpinBox.new()
+	_fork_spread_spin.min_value = 4.0
+	_fork_spread_spin.max_value = 40.0
+	_fork_spread_spin.step = 0.5
+	_fork_spread_spin.value = DEFAULT_FORK_SPREAD
+	_fork_spread_spin.prefix = "开"
+	_fork_spread_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_fork_spread_spin.value_changed.connect(func(_v: float) -> void:
+		_apply_fork_params_to_selected()
+	)
+	fork_params.add_child(_fork_spread_spin)
+	var fork_btns := HBoxContainer.new()
+	fork_btns.add_theme_constant_override("separation", 4)
+	v.add_child(fork_btns)
+	fork_btns.add_child(_make_button("在游标处分叉", _add_fork_at_cursor))
+	fork_btns.add_child(_make_button("删分叉", _delete_selected_fork))
+	var fork_btns2 := HBoxContainer.new()
+	fork_btns2.add_theme_constant_override("separation", 4)
+	v.add_child(fork_btns2)
+	fork_btns2.add_child(_make_button("载入默认分叉", _load_default_junctions))
+	fork_btns2.add_child(_make_button("清空分叉", _clear_junctions))
+	_fork_list = ItemList.new()
+	_fork_list.name = "ForkList"
+	_fork_list.custom_minimum_size = Vector2(0, 72)
+	_fork_list.item_selected.connect(func(i: int) -> void:
+		_selected_fork = i
+		if i >= 0 and i < _junctions.size():
+			var z: Dictionary = _junctions[i]
+			_set_cursor_d(float(z.get("distance", 0.0)))
+			_fork_len_spin.set_value_no_signal(float(z.get("length", DEFAULT_FORK_LENGTH)))
+			_fork_spread_spin.set_value_no_signal(float(z.get("spread", DEFAULT_FORK_SPREAD)))
+		_refresh_fork_visuals()
+		_update_status()
+	)
+	v.add_child(_fork_list)
 
 	v.add_child(_make_label("障碍类型（1-9 快捷键）"))
 	_type_option = OptionButton.new()
@@ -503,10 +681,15 @@ func _make_button(text: String, cb: Callable) -> Button:
 func _load_planet(planet_id: String) -> void:
 	_planet_id = planet_id
 	LevelConfig = PlanetDatabase.get_runner_config(planet_id)
+	_visual_factory.configure_from_level_config(LevelConfig)
+	_road_style_id = EditorRoadPreview.normalize_style(String(Global.get_runner_road_style()))
+	_select_road_style_option(_road_style_id)
 	var duration := 65.0
 	if LevelConfig != null and LevelConfig.get("MISSION") != null:
 		duration = float(LevelConfig.MISSION.get("duration", 65.0))
 	_track_length = MissionTypes.track_length_for(duration)
+	_track_segments = _planet_default_track_segments()
+	_junctions = _planet_default_junctions()
 	_bake_path()
 	_rebuild_track_mesh()
 	if ObstacleLayout.has_layout(_planet_id):
@@ -517,6 +700,15 @@ func _load_planet(planet_id: String) -> void:
 		_sand_zones = ObstacleLayout.load_sandstorm_zones(_planet_id)
 		if _sand_zones.is_empty():
 			_sand_zones = _planet_default_sand_zones()
+		var saved_segs := ObstacleLayout.load_track_segments(_planet_id)
+		if not saved_segs.is_empty():
+			_track_segments = saved_segs
+			_bake_path()
+			_rebuild_track_mesh()
+		var saved_forks := ObstacleLayout.load_junction_zones(_planet_id)
+		# 有 key 即采用（含空数组）；无 key 保留星球默认
+		if ObstacleLayout.load_root(_planet_id).has("junction_zones"):
+			_junctions = saved_forks
 	elif LevelConfig != null and LevelConfig.has_method("_default_obstacles"):
 		_items = ObstacleLayout.sort_items(LevelConfig._default_obstacles())
 		_side_zones = _planet_default_side_zones()
@@ -533,7 +725,33 @@ func _load_planet(planet_id: String) -> void:
 	_selected = -1
 	_selected_side = -1
 	_selected_sand = -1
+	_selected_seg = -1
+	_selected_fork = -1
 	_set_cursor_d(40.0)
+
+
+func _planet_default_track_segments() -> Array:
+	if LevelConfig != null and LevelConfig.has_method("get_track_segments"):
+		var out: Array = []
+		for raw in LevelConfig.get_track_segments():
+			if typeof(raw) == TYPE_DICTIONARY:
+				out.append(ObstacleLayout.normalize_track_segment(raw))
+		if not out.is_empty():
+			return out
+	return [ObstacleLayout.normalize_track_segment({"length": _track_length + 80.0, "turn": 0.0})]
+
+
+func _planet_default_junctions() -> Array:
+	if LevelConfig == null:
+		return []
+	var constants: Dictionary = LevelConfig.get_script_constant_map()
+	if not constants.has("JUNCTION_ZONES"):
+		return []
+	var out: Array = []
+	for raw in constants["JUNCTION_ZONES"]:
+		if typeof(raw) == TYPE_DICTIONARY:
+			out.append(ObstacleLayout.normalize_junction_zone(raw))
+	return ObstacleLayout.sort_junction_zones(out)
 
 
 func _planet_default_side_zones() -> Array:
@@ -564,9 +782,7 @@ func _planet_default_sand_zones() -> Array:
 
 func _bake_path() -> void:
 	_path_samples.clear()
-	var segments: Array = []
-	if LevelConfig != null and LevelConfig.has_method("get_track_segments"):
-		segments = LevelConfig.get_track_segments()
+	var segments: Array = _track_segments
 	if segments.is_empty():
 		segments = [{"length": _track_length + 80.0, "turn": 0.0}]
 	var pos := Vector3.ZERO
@@ -628,97 +844,24 @@ func _sample_path(distance: float) -> Dictionary:
 
 
 func _rebuild_track_mesh() -> void:
-	while _track_root.get_child_count() > 0:
-		_track_root.get_child(0).free()
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.08, 0.18, 0.28)
-	mat.emission_enabled = true
-	mat.emission = Color(0.15, 0.55, 0.85)
-	mat.emission_energy_multiplier = 0.35
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var half_w := 6.2
-	var step := 3.0
-	var d := 0.0
-	var prev_l := Vector3.ZERO
-	var prev_r := Vector3.ZERO
-	var has_prev := false
-	while d <= _path_length + 0.001:
-		var sample := _sample_path(minf(d, _path_length))
-		var origin: Vector3 = sample["pos"]
-		var right: Vector3 = sample["right"]
-		var l := origin - right * half_w
-		var r := origin + right * half_w
-		l.y = GROUND_Y - 0.05
-		r.y = GROUND_Y - 0.05
-		if has_prev:
-			st.set_normal(Vector3.UP)
-			st.add_vertex(prev_l)
-			st.add_vertex(prev_r)
-			st.add_vertex(r)
-			st.add_vertex(prev_l)
-			st.add_vertex(r)
-			st.add_vertex(l)
-		prev_l = l
-		prev_r = r
-		has_prev = true
-		if d >= _path_length:
-			break
-		d += step
-	var mesh := st.commit()
-	if mesh:
-		var mi := MeshInstance3D.new()
-		mi.mesh = mesh
-		mi.material_override = mat
-		_track_root.add_child(mi)
-	# 三道参考线
-	for lane_v in LANES:
-		_attach_lane_line(float(lane_v) * LANE_WIDTH)
+	if _world_environment != null:
+		_road_preview.apply_environment(_world_environment.environment, _road_style_id)
+	_road_preview.rebuild(
+		_track_root,
+		Callable(self, "_sample_path"),
+		_path_length,
+		_road_style_id,
+		_junctions
+	)
 
 
-func _attach_lane_line(lateral: float) -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.3, 0.9, 1.0, 0.55)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.emission_enabled = true
-	mat.emission = Color(0.2, 0.8, 1.0)
-	mat.emission_energy_multiplier = 0.8
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var step := 4.0
-	var d := 0.0
-	var prev_l := Vector3.ZERO
-	var prev_r := Vector3.ZERO
-	var has_prev := false
-	var half := 0.06
-	while d <= _path_length + 0.001:
-		var sample := _sample_path(minf(d, _path_length))
-		var origin: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral
-		var right: Vector3 = sample["right"]
-		var l := origin - right * half
-		var r := origin + right * half
-		l.y = GROUND_Y + 0.01
-		r.y = GROUND_Y + 0.01
-		if has_prev:
-			st.set_normal(Vector3.UP)
-			st.add_vertex(prev_l)
-			st.add_vertex(prev_r)
-			st.add_vertex(r)
-			st.add_vertex(prev_l)
-			st.add_vertex(r)
-			st.add_vertex(l)
-		prev_l = l
-		prev_r = r
-		has_prev = true
-		if d >= _path_length:
-			break
-		d += step
-	var mesh := st.commit()
-	if mesh:
-		var mi := MeshInstance3D.new()
-		mi.mesh = mesh
-		mi.material_override = mat
-		_track_root.add_child(mi)
+func _select_road_style_option(style_id: String) -> void:
+	if _road_style_option == null:
+		return
+	var id := EditorRoadPreview.normalize_style(style_id)
+	var idx := EditorRoadPreview.STYLE_ORDER.find(id)
+	if idx >= 0:
+		_road_style_option.select(idx)
 
 
 func _world_on_path(distance: float, lane_value: int) -> Vector3:
@@ -733,9 +876,12 @@ func _refresh_all() -> void:
 	_refresh_markers()
 	_refresh_side_visuals()
 	_refresh_sand_visuals()
+	_refresh_fork_visuals()
 	_refresh_list()
 	_refresh_side_list()
 	_refresh_sand_list()
+	_refresh_seg_list()
+	_refresh_fork_list()
 	_update_status()
 	_update_cursor_marker()
 	_update_camera()
@@ -757,41 +903,46 @@ func _make_obstacle_marker(item: Dictionary, selected: bool) -> Node3D:
 	var lane := int(item.get("lane", 0))
 	var dist := float(item.get("distance", 0.0))
 	var sample := _sample_path(dist)
-	root.position = _world_on_path(dist, lane)
+	var lateral := 0.0 if ObstacleVisualFactory.uses_center_lane(otype) else float(lane) * LANE_WIDTH
+	var pos: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral
+	pos.y = GROUND_Y
+	if otype in ["slide", "high_bar", "main_block"]:
+		pos.y -= 0.06
+	root.position = pos
 	root.rotation.y = float(sample["yaw"])
 
-	var body := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	var h := 1.1
-	var w := 1.4
-	var depth := 1.0
-	if otype in ["slide", "high_bar", "main_block"]:
-		w = 10.0
-		h = 1.6 if otype != "main_block" else 0.4
-		depth = 2.0 if otype == "main_block" else 0.5
-	elif otype.begins_with("block"):
-		w = 3.5
-	mesh.size = Vector3(w, h, depth)
-	var mat := StandardMaterial3D.new()
-	var col := ObstacleLayout.type_color(otype)
+	var model := _visual_factory.build(item)
+	root.add_child(model)
+
 	if selected:
-		col = col.lightened(0.35)
-	mat.albedo_color = col
-	mat.emission_enabled = true
-	mat.emission = col
-	mat.emission_energy_multiplier = 1.3 if selected else 0.7
-	mesh.material = mat
-	body.mesh = mesh
-	body.position.y = h * 0.5
-	root.add_child(body)
+		var ring := MeshInstance3D.new()
+		ring.name = "SelectionRing"
+		var torus := TorusMesh.new()
+		torus.inner_radius = 0.55
+		torus.outer_radius = 0.72
+		torus.rings = 12
+		torus.ring_segments = 24
+		var rmat := StandardMaterial3D.new()
+		rmat.albedo_color = Color(1.0, 0.92, 0.2, 0.85)
+		rmat.emission_enabled = true
+		rmat.emission = Color(1.0, 0.9, 0.25)
+		rmat.emission_energy_multiplier = 2.2
+		rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		torus.material = rmat
+		ring.mesh = torus
+		ring.rotation_degrees.x = 90.0
+		ring.position.y = 0.08
+		root.add_child(ring)
 
 	var label := Label3D.new()
 	label.text = "%s\n%.0f" % [otype, dist]
-	label.font_size = 48
+	label.font_size = 42 if selected else 36
 	label.pixel_size = 0.012
-	label.position = Vector3(0.0, h + 0.55, 0.0)
+	label.position = Vector3(0.0, 2.6 if selected else 2.2, 0.0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.modulate = Color.WHITE
+	label.modulate = Color(1.0, 1.0, 0.55) if selected else Color(0.92, 0.95, 1.0)
+	label.outline_modulate = Color(0, 0, 0, 0.85)
+	label.outline_size = 8
 	root.add_child(label)
 	return root
 
@@ -1151,6 +1302,312 @@ func _refresh_sand_list() -> void:
 		_sand_list.select(_selected_sand)
 
 
+func _rebuild_path_preview() -> void:
+	_bake_path()
+	_rebuild_track_mesh()
+	_refresh_markers()
+	_refresh_side_visuals()
+	_refresh_sand_visuals()
+	_refresh_fork_visuals()
+	_update_cursor_marker()
+	_update_camera()
+	_update_status()
+
+
+func _add_track_segment(length: float, turn_deg: float, mode: String = "auto") -> void:
+	var seg := ObstacleLayout.normalize_track_segment({
+		"length": length,
+		"turn": deg_to_rad(turn_deg),
+	})
+	var insert_at := _track_segments.size()
+	var resolved := mode
+	if resolved == "auto":
+		# 有选中：插到选中段后面（两段之间）；无选中：末尾追加
+		resolved = "after" if _selected_seg >= 0 and _selected_seg < _track_segments.size() else "append"
+	match resolved:
+		"before":
+			if _selected_seg < 0 or _selected_seg >= _track_segments.size():
+				_flash_status("请先在下方路段列表中选中一段，再插到前面")
+				return
+			insert_at = _selected_seg
+		"after":
+			if _selected_seg < 0 or _selected_seg >= _track_segments.size():
+				_flash_status("请先在下方路段列表中选中一段，再插到后面")
+				return
+			insert_at = _selected_seg + 1
+		_:
+			insert_at = _track_segments.size()
+	_track_segments.insert(insert_at, seg)
+	_selected_seg = insert_at
+	_seg_len_spin.set_value_no_signal(length)
+	_seg_turn_spin.set_value_no_signal(turn_deg)
+	_dirty = true
+	_refresh_seg_list()
+	_rebuild_path_preview()
+	var range_txt := _segment_distance_range(insert_at)
+	_jump_cursor_to_segment(insert_at, true)
+	_flash_status("已插入路段 %02d（%s）长%.0f 转%+.0f° · 相机已跳到该段" % [
+		insert_at, range_txt, length, turn_deg,
+	])
+
+
+func _segment_distance_range(index: int) -> String:
+	var acc := 0.0
+	for i in mini(index, _track_segments.size()):
+		acc += float((_track_segments[i] as Dictionary).get("length", 0.0))
+	var length := 0.0
+	if index >= 0 and index < _track_segments.size():
+		length = float((_track_segments[index] as Dictionary).get("length", 0.0))
+	return "@%.0f→%.0f" % [acc, acc + length]
+
+
+func _move_selected_seg(delta: int) -> void:
+	if _selected_seg < 0 or _selected_seg >= _track_segments.size():
+		_flash_status("请先选中要移动的路段")
+		return
+	var target := _selected_seg + delta
+	if target < 0 or target >= _track_segments.size():
+		return
+	var item: Variant = _track_segments[_selected_seg]
+	_track_segments.remove_at(_selected_seg)
+	_track_segments.insert(target, item)
+	_selected_seg = target
+	_dirty = true
+	_refresh_seg_list()
+	_rebuild_path_preview()
+	_jump_cursor_to_segment(_selected_seg, true)
+	_flash_status("路段已移到 %02d" % _selected_seg)
+
+
+func _apply_seg_params_to_selected() -> void:
+	if _selected_seg < 0 or _selected_seg >= _track_segments.size():
+		_flash_status("请先在路段列表中选中一段再应用")
+		return
+	_track_segments[_selected_seg] = ObstacleLayout.normalize_track_segment({
+		"length": float(_seg_len_spin.value),
+		"turn": deg_to_rad(float(_seg_turn_spin.value)),
+	})
+	_dirty = true
+	_refresh_seg_list()
+	_rebuild_path_preview()
+	_jump_cursor_to_segment(_selected_seg, true)
+	_flash_status("已更新路段 %02d（%s）" % [_selected_seg, _segment_distance_range(_selected_seg)])
+
+
+func _delete_selected_seg() -> void:
+	if _selected_seg < 0 or _selected_seg >= _track_segments.size():
+		return
+	_track_segments.remove_at(_selected_seg)
+	_selected_seg = mini(_selected_seg, _track_segments.size() - 1)
+	_dirty = true
+	_refresh_seg_list()
+	_rebuild_path_preview()
+
+
+func _clear_track_segments() -> void:
+	_track_segments = [ObstacleLayout.normalize_track_segment({
+		"length": _track_length + 80.0,
+		"turn": 0.0,
+	})]
+	_selected_seg = 0
+	_dirty = true
+	_refresh_seg_list()
+	_rebuild_path_preview()
+	_flash_status("路线已重置为单一直线段")
+
+
+func _load_default_track_segments() -> void:
+	_track_segments = _planet_default_track_segments()
+	_selected_seg = -1
+	_dirty = true
+	_refresh_seg_list()
+	_rebuild_path_preview()
+	_flash_status("已载入星球默认路线（未保存）")
+
+
+func _jump_cursor_to_segment(index: int, into_segment: bool = false) -> void:
+	if index < 0 or index >= _track_segments.size():
+		return
+	var d := 0.0
+	for i in index:
+		d += float((_track_segments[i] as Dictionary).get("length", 0.0))
+	if into_segment:
+		var length := float((_track_segments[index] as Dictionary).get("length", 0.0))
+		# 跳到段内前段，方便看见转弯
+		d += clampf(length * 0.35, 8.0, minf(length * 0.8, 28.0))
+	_set_cursor_d(d)
+
+
+func _refresh_seg_list() -> void:
+	if _seg_list == null:
+		return
+	_seg_list.clear()
+	var acc := 0.0
+	for i in _track_segments.size():
+		var s: Dictionary = _track_segments[i]
+		var length := float(s.get("length", 0.0))
+		var turn_deg := rad_to_deg(float(s.get("turn", 0.0)))
+		var kind := "直"
+		if turn_deg > 0.5:
+			kind = "左拐"
+		elif turn_deg < -0.5:
+			kind = "右拐"
+		_seg_list.add_item("%02d  %s  长%.0f  转%+.0f°  @%.0f→%.0f" % [
+			i, kind, length, turn_deg, acc, acc + length,
+		])
+		acc += length
+	if _selected_seg >= 0 and _selected_seg < _track_segments.size():
+		_seg_list.select(_selected_seg)
+
+
+func _add_fork_at_cursor() -> void:
+	_junctions.append(ObstacleLayout.normalize_junction_zone({
+		"distance": snappedf(_cursor_d, 1.0),
+		"length": float(_fork_len_spin.value),
+		"spread": float(_fork_spread_spin.value),
+		"lane_a": 0,
+		"label_a": "安全岔路",
+		"effect_a": "repair",
+		"lane_b": 2,
+		"label_b": "速通岔路",
+		"effect_b": "fast",
+	}))
+	_junctions = ObstacleLayout.sort_junction_zones(_junctions)
+	_selected_fork = -1
+	for i in _junctions.size():
+		if absf(float((_junctions[i] as Dictionary).get("distance", 0.0)) - _cursor_d) < 0.6:
+			_selected_fork = i
+			break
+	_dirty = true
+	_refresh_fork_list()
+	_refresh_fork_visuals()
+	_rebuild_track_mesh()
+	_update_status()
+	_flash_status("已在 %.0fm 添加分叉" % _cursor_d)
+
+
+func _apply_fork_params_to_selected() -> void:
+	if _selected_fork < 0 or _selected_fork >= _junctions.size():
+		return
+	var z: Dictionary = (_junctions[_selected_fork] as Dictionary).duplicate(true)
+	z["length"] = float(_fork_len_spin.value)
+	z["spread"] = float(_fork_spread_spin.value)
+	_junctions[_selected_fork] = ObstacleLayout.normalize_junction_zone(z)
+	_dirty = true
+	_refresh_fork_list()
+	_refresh_fork_visuals()
+	_rebuild_track_mesh()
+	_update_status()
+
+
+func _delete_selected_fork() -> void:
+	if _selected_fork < 0 or _selected_fork >= _junctions.size():
+		return
+	_junctions.remove_at(_selected_fork)
+	_selected_fork = mini(_selected_fork, _junctions.size() - 1)
+	_dirty = true
+	_refresh_fork_list()
+	_refresh_fork_visuals()
+	_rebuild_track_mesh()
+	_update_status()
+
+
+func _clear_junctions() -> void:
+	_junctions.clear()
+	_selected_fork = -1
+	_dirty = true
+	_refresh_fork_list()
+	_refresh_fork_visuals()
+	_rebuild_track_mesh()
+	_update_status()
+	_flash_status("已清空全部分叉")
+
+
+func _load_default_junctions() -> void:
+	_junctions = _planet_default_junctions()
+	_selected_fork = -1
+	_dirty = true
+	_refresh_fork_list()
+	_refresh_fork_visuals()
+	_rebuild_track_mesh()
+	_update_status()
+	_flash_status("已载入星球默认分叉（未保存）")
+
+
+func _refresh_fork_list() -> void:
+	if _fork_list == null:
+		return
+	_fork_list.clear()
+	for i in _junctions.size():
+		var z: Dictionary = _junctions[i]
+		_fork_list.add_item("%02d  @%.0f  长%.0f  开度%.0f  %s|%s" % [
+			i,
+			float(z.get("distance", 0.0)),
+			float(z.get("length", DEFAULT_FORK_LENGTH)),
+			float(z.get("spread", DEFAULT_FORK_SPREAD)),
+			String(z.get("label_a", "A")),
+			String(z.get("label_b", "B")),
+		])
+	if _selected_fork >= 0 and _selected_fork < _junctions.size():
+		_fork_list.select(_selected_fork)
+
+
+func _refresh_fork_visuals() -> void:
+	if _fork_root == null:
+		return
+	while _fork_root.get_child_count() > 0:
+		_fork_root.get_child(0).free()
+	for i in _junctions.size():
+		var z: Dictionary = _junctions[i]
+		_fork_root.add_child(_make_fork_zone_visual(z, i == _selected_fork))
+
+
+func _make_fork_zone_visual(zone: Dictionary, selected: bool) -> Node3D:
+	var root := Node3D.new()
+	var start := float(zone.get("distance", 0.0))
+	var length := float(zone.get("length", DEFAULT_FORK_LENGTH))
+	var spread := float(zone.get("spread", DEFAULT_FORK_SPREAD))
+	var steps := maxi(2, int(ceil(length / 6.0)))
+	for s in steps + 1:
+		var t := float(s) / float(steps)
+		var d := start + length * t
+		var envelope := sin(PI * t)
+		var offset := spread * envelope
+		for side_f in [-1.0, 1.0]:
+			var mi := MeshInstance3D.new()
+			var mesh := BoxMesh.new()
+			mesh.size = Vector3(1.1 if selected else 0.7, 0.12, 2.2)
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(0.2, 0.95, 0.55, 0.75) if selected else Color(0.15, 0.7, 0.45, 0.45)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.emission_enabled = selected
+			if selected:
+				mat.emission = Color(0.2, 1.0, 0.5)
+				mat.emission_energy_multiplier = 1.4
+			mi.mesh = mesh
+			mi.material_override = mat
+			var sample := _sample_path(d)
+			var lat: float = float(side_f) * (LANE_WIDTH + offset)
+			mi.position = (sample["pos"] as Vector3) + (sample["right"] as Vector3) * lat + Vector3(0, GROUND_Y + 0.05, 0)
+			mi.rotation.y = float(sample["yaw"])
+			root.add_child(mi)
+	# 入口旗标
+	var flag := MeshInstance3D.new()
+	var flag_mesh := BoxMesh.new()
+	flag_mesh.size = Vector3(0.4, 3.2, 0.4)
+	var flag_mat := StandardMaterial3D.new()
+	flag_mat.albedo_color = Color(0.3, 1.0, 0.6)
+	flag_mat.emission_enabled = true
+	flag_mat.emission = Color(0.2, 1.0, 0.5)
+	flag_mat.emission_energy_multiplier = 2.0
+	flag.mesh = flag_mesh
+	flag.material_override = flag_mat
+	var start_sample := _sample_path(start)
+	flag.position = (start_sample["pos"] as Vector3) + Vector3(0, GROUND_Y + 1.6, 0)
+	root.add_child(flag)
+	return root
+
+
 func _refresh_sand_visuals() -> void:
 	if _sand_root == null:
 		return
@@ -1290,23 +1747,27 @@ func _update_camera() -> void:
 	var pos: Vector3 = sample["pos"]
 	var forward: Vector3 = sample["forward"]
 	var right: Vector3 = sample["right"]
-	var cam_pos := pos - forward * 14.0 + Vector3(0.0, 8.5, 0.0) + right * 0.5
+	# 近距俯视：跑道在右侧视口占满，便于摆障碍
+	var cam_pos := pos - forward * 7.5 + Vector3(0.0, 4.8, 0.0) + right * 1.2
 	_camera.global_position = cam_pos
-	_camera.look_at(pos + forward * 10.0 + Vector3(0.0, 1.0, 0.0), Vector3.UP)
+	_camera.look_at(pos + forward * 5.5 + Vector3(0.0, 0.6, 0.0), Vector3.UP)
 
 
 func _update_status() -> void:
 	if _status == null:
 		return
 	var flag := " *" if _dirty else ""
-	_status.text = "%s%s | d=%.0f | lane=%d | type=%s\n下次保存 → %s | 障碍 %d · 侧墙 %d · 沙尘 %d\n滚轮/A·D · 左键拖放（Shift 微调） · Ctrl+S 保存为关卡" % [
+	_status.text = "%s%s | d=%.0f | lane=%d | type=%s | 跑道=%s\n下次保存 → %s | 障碍 %d · 路段 %d · 分叉 %d · 侧墙 %d · 沙尘 %d\n滚轮/A·D · 左键拖放（Shift 微调） · Ctrl+S 保存为关卡" % [
 		_planet_id,
 		flag,
 		_cursor_d,
 		_lane_index_to_value(_lane_index),
 		_place_type,
+		EditorRoadPreview.style_label(_road_style_id),
 		CustomLevels.format_name(CustomLevels.next_sequence()),
 		_items.size(),
+		_track_segments.size(),
+		_junctions.size(),
 		_side_zones.size(),
 		_sand_zones.size(),
 	]
@@ -1429,6 +1890,9 @@ func _save_layout() -> void:
 		"base_planet_id": _planet_id,
 		"side_runway_zones": _side_zones,
 		"sandstorm_zones": _sand_zones,
+		"track_segments": _track_segments,
+		"junction_zones": _junctions,
+		"road_style": _road_style_id,
 	})
 	var ok := not entry.is_empty()
 	_dirty = not ok
@@ -1460,10 +1924,12 @@ func _refresh_custom_level_ui() -> void:
 func _refresh_custom_level_list(custom_list: ItemList) -> void:
 	custom_list.clear()
 	for level in CustomLevels.list_levels():
-		custom_list.add_item("%s · %s · %d障碍 · %s" % [
+		custom_list.add_item("%s · %s · %d障碍 · %d路段 · %d分叉 · %s" % [
 			String(level.get("name", "?")),
 			String(level.get("id", "")),
 			int(level.get("obstacle_count", 0)),
+			int(level.get("track_segment_count", 0)),
+			int(level.get("junction_count", 0)),
 			String(level.get("planet_id", "")),
 		])
 		custom_list.set_item_metadata(custom_list.item_count - 1, String(level.get("id", "")))
@@ -1485,19 +1951,37 @@ func _load_custom_level_by_list_index(index: int) -> void:
 				_planet_option.select(i)
 				break
 		LevelConfig = PlanetDatabase.get_runner_config(_planet_id)
+		_visual_factory.configure_from_level_config(LevelConfig)
 		var duration := 65.0
 		if LevelConfig != null and LevelConfig.get("MISSION") != null:
 			duration = float(LevelConfig.MISSION.get("duration", 65.0))
 		_track_length = MissionTypes.track_length_for(duration)
-		_bake_path()
-		_rebuild_track_mesh()
 	_items = CustomLevels.load_obstacles(level_id)
 	_side_zones = CustomLevels.load_side_runway_zones(level_id)
 	_sand_zones = CustomLevels.load_sandstorm_zones(level_id)
+	var segs := CustomLevels.load_track_segments(level_id)
+	if segs.is_empty():
+		_track_segments = _planet_default_track_segments()
+	else:
+		_track_segments = segs
+	if CustomLevels.has_custom_junctions(level_id):
+		_junctions = CustomLevels.load_junction_zones(level_id)
+	else:
+		_junctions = _planet_default_junctions()
+	var saved_style := CustomLevels.load_road_style(level_id)
+	if saved_style != "":
+		_road_style_id = EditorRoadPreview.normalize_style(saved_style)
+	else:
+		_road_style_id = EditorRoadPreview.normalize_style(String(Global.get_runner_road_style()))
+	_select_road_style_option(_road_style_id)
+	_bake_path()
+	_rebuild_track_mesh()
 	_dirty = false
 	_selected = -1
 	_selected_side = -1
 	_selected_sand = -1
+	_selected_seg = -1
+	_selected_fork = -1
 	_refresh_all()
 	_flash_status("已载入 %s（再保存会新建下一关，不会覆盖）" % String(level.get("name", level_id)))
 
@@ -1573,7 +2057,7 @@ func _nearest_lane_at(world: Vector3, distance: float) -> int:
 	var right: Vector3 = sample["right"]
 	var delta := world - origin
 	delta.y = 0.0
-	var lat := delta.dot(right)
+	var lat: float = delta.dot(right)
 	return _lane_index_to_value(_lane_value_to_index(int(round(lat / LANE_WIDTH))))
 
 
@@ -1603,7 +2087,9 @@ func _try_pick_marker(screen_pos: Vector2) -> bool:
 	var best_score := 2.8 * 2.8
 	for i in _items.size():
 		var it: Dictionary = _items[i]
-		var p := _world_on_path(float(it.get("distance", 0.0)), int(it.get("lane", 0)))
+		var otype := String(it.get("type", ""))
+		var lane_v := 0 if ObstacleVisualFactory.uses_center_lane(otype) else int(it.get("lane", 0))
+		var p := _world_on_path(float(it.get("distance", 0.0)), lane_v)
 		var score := p.distance_squared_to(world)
 		if score < best_score:
 			best_score = score

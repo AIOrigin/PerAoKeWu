@@ -83,6 +83,9 @@ static func create_level(planet_id: String, obstacles: Array, meta: Dictionary =
 	var task_type := String(meta.get("task_type", "Supply Run"))
 	var side_zones: Array = meta.get("side_runway_zones", [])
 	var sand_zones: Array = meta.get("sandstorm_zones", [])
+	var track_segments: Array = meta.get("track_segments", [])
+	var junction_zones: Array = meta.get("junction_zones", [])
+	var road_style := String(meta.get("road_style", "holographic"))
 	var entry := {
 		"id": level_id,
 		"name": display_name,
@@ -93,11 +96,18 @@ static func create_level(planet_id: String, obstacles: Array, meta: Dictionary =
 		"obstacle_count": obstacles.size(),
 		"side_runway_count": side_zones.size(),
 		"sandstorm_count": sand_zones.size(),
+		"track_segment_count": track_segments.size(),
+		"junction_count": junction_zones.size(),
+		"road_style": road_style,
 	}
 	for k in meta.keys():
-		if k in ["name", "duration", "task_type", "side_runway_zones", "sandstorm_zones"]:
+		if k in ["name", "duration", "task_type", "side_runway_zones", "sandstorm_zones", "track_segments", "junction_zones", "road_style"]:
 			continue
 		entry[k] = meta[k]
+	var seg_out: Array = []
+	for raw in track_segments:
+		if typeof(raw) == TYPE_DICTIONARY:
+			seg_out.append(ObstacleLayout.normalize_track_segment(raw))
 	var ok := ObstacleLayout.save_items(level_id, obstacles, {
 		"level_id": level_id,
 		"level_name": display_name,
@@ -105,6 +115,9 @@ static func create_level(planet_id: String, obstacles: Array, meta: Dictionary =
 		"note": "Custom level from runner level editor",
 		"side_runway_zones": ObstacleLayout.sort_side_zones(side_zones),
 		"sandstorm_zones": ObstacleLayout.sort_sandstorm_zones(sand_zones),
+		"track_segments": seg_out,
+		"junction_zones": ObstacleLayout.sort_junction_zones(junction_zones),
+		"road_style": road_style,
 	})
 	if not ok:
 		return {}
@@ -133,6 +146,40 @@ static func load_sandstorm_zones(level_id: String) -> Array:
 
 static func get_sandstorm_zones(level_id: String) -> Array:
 	return load_sandstorm_zones(level_id)
+
+
+static func load_track_segments(level_id: String) -> Array:
+	return ObstacleLayout.load_track_segments(level_id)
+
+
+static func get_track_segments(level_id: String) -> Array:
+	return load_track_segments(level_id)
+
+
+static func load_junction_zones(level_id: String) -> Array:
+	return ObstacleLayout.load_junction_zones(level_id)
+
+
+static func get_junction_zones(level_id: String) -> Array:
+	return load_junction_zones(level_id)
+
+
+static func has_custom_track(level_id: String) -> bool:
+	var root := ObstacleLayout.load_root(level_id)
+	return root.has("track_segments") and not (root.get("track_segments", []) as Array).is_empty()
+
+
+static func has_custom_junctions(level_id: String) -> bool:
+	return ObstacleLayout.load_root(level_id).has("junction_zones")
+
+
+static func load_road_style(level_id: String) -> String:
+	var root := ObstacleLayout.load_root(level_id)
+	return String(root.get("road_style", ""))
+
+
+static func get_road_style(level_id: String) -> String:
+	return load_road_style(level_id)
 
 
 static func load_obstacles(level_id: String) -> Array:
