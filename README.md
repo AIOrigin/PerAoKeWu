@@ -147,7 +147,8 @@ HYPERLUNATIC的核心机制，可以基本了解游戏设计。
 
 * Antimatter Dimensions和NGU IDLE是挂机、点击、idle游戏，和这游戏有啥关系？
     * 这俩游戏的流程设计非常好，其中的一些解谜部分非常有趣，所以偷了。
-
+ddd
+dddd 
 * ？：
     * 答应我，好好睡觉。
 
