@@ -151,11 +151,18 @@ static func adapt_obstacles(items: Array, profile: Dictionary, track_length: flo
 		if typeof(raw) != TYPE_DICTIONARY:
 			continue
 		var item: Dictionary = (raw as Dictionary).duplicate(true)
+		var otype := String(item.get("type", ""))
+		# 主路封堵 / 侧轨入口跳板：与 SIDE_RUNWAY_ZONES 绝对距离对齐，不缩放、不抽稀
+		if otype in ["main_block", "ramp"] and int(item.get("layer", 0)) == 0:
+			var abs_dist := float(item.get("distance", 0.0))
+			if abs_dist < finish_cut:
+				item["distance"] = abs_dist
+				result.append(item)
+			continue
 		var dist := float(item.get("distance", 0.0)) * scale
 		if dist < 40.0 or dist > finish_cut:
 			continue
 		item["distance"] = dist
-		var otype := String(item.get("type", ""))
 		var is_fork_sign := otype in ["turn_left", "turn_right"]
 		if is_fork_sign:
 			if fork_bias or density >= 0.85:
@@ -204,6 +211,42 @@ static func adapt_coin_distances(dists: Array, track_length: float, density: flo
 		if budget >= 1.0:
 			budget -= 1.0
 			result.append(dist)
+	return result
+
+
+static func adapt_side_runway_coins(coins: Array, track_length: float) -> Array:
+	# 与 SIDE_RUNWAY_ZONES 绝对距离对齐：不缩放、不按密度抽稀
+	var finish_cut := maxf(track_length - 30.0, track_length * 0.9)
+	var result: Array = []
+	for raw in coins:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = (raw as Dictionary).duplicate(true)
+		var dist := float(item.get("distance", 0.0))
+		if dist < 20.0 or dist > finish_cut:
+			continue
+		result.append(item)
+	return result
+
+
+static func adapt_main_runway_coins(coins: Array, track_length: float, density: float = 1.0) -> Array:
+	var scale := track_length / BASE_TRACK_LENGTH
+	var spacing_keep := clampf(0.75 + density * 0.25, 0.55, 1.2)
+	var finish_cut := maxf(track_length - 30.0, track_length * 0.9)
+	var result: Array = []
+	var budget := 0.0
+	for raw in coins:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = (raw as Dictionary).duplicate(true)
+		var dist := float(item.get("distance", 0.0)) * scale
+		if dist < 20.0 or dist > finish_cut:
+			continue
+		budget += spacing_keep
+		if budget >= 1.0:
+			budget -= 1.0
+			item["distance"] = dist
+			result.append(item)
 	return result
 
 

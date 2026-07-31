@@ -79,7 +79,7 @@ func _ready() -> void:
 	legacy_panel.visible = false
 	hint_label.visible = false
 	_mobile_layout = true
-	hint_label.text = "选择已恢复地标  ·  累计运输进度满额后点亮据点"
+	hint_label.text = "点击地图上的地点进入详情  ·  累计运输进度满额后点亮据点"
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_load_map_texture()
 	_build_location_data()
@@ -211,7 +211,9 @@ func _build_map_ui() -> void:
 	_map_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_map_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 	_map_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 直接点地图上的地点，不再叠圆形据点标记
+	_map_texture.mouse_filter = Control.MOUSE_FILTER_STOP
+	_map_texture.gui_input.connect(_on_map_gui_input)
 	_map_root.add_child(_map_texture)
 
 	var vignette := ColorRect.new()
@@ -233,17 +235,17 @@ func _build_map_ui() -> void:
 	_connection_layer.name = "ConnectionLayer"
 	_connection_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_connection_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_connection_layer.visible = false
 	_map_root.add_child(_connection_layer)
 
 	_location_layer = Control.new()
 	_location_layer.name = "LocationLayer"
 	_location_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_location_layer.mouse_filter = Control.MOUSE_FILTER_PASS
+	_location_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_location_layer.visible = false
 	_map_root.add_child(_location_layer)
 
-	for location in _location_data:
-		_add_location_button(location)
-
+	# 不再生成 MapLocationMarker 圆形节点；点击走底图 hit-test
 	_build_info_panel(_ui_shell)
 	_build_top_chrome(_ui_shell)
 	_build_mobile_hint(_ui_shell)
@@ -536,7 +538,7 @@ func _apply_responsive_layout() -> void:
 	if _mobile_hint_label:
 		_mobile_hint_label.visible = _mobile_layout
 		if _mobile_layout:
-			_mobile_hint_label.text = "点击地标打开详情 · 拖拽旋转 3D 建筑"
+			_mobile_hint_label.text = "点击地图上的地点打开详情 · 拖拽旋转 3D 建筑"
 	_apply_mobile_hint_layout()
 
 
@@ -601,35 +603,69 @@ func _apply_info_panel_layout() -> void:
 
 
 func _add_location_button(location: Dictionary) -> void:
-	var id := String(location["id"])
-	var marker := MapLocationMarker.new()
-	marker.name = "Location_%s" % id
-	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
-	var preview_path := ""
-	var type_icon := "◎"
-	if cfg.has_method("get_location_preview_path"):
-		preview_path = String(cfg.get_location_preview_path(id))
-	if cfg.has_method("get_type_icon"):
-		type_icon = String(cfg.get_type_icon(id))
-	_location_layer.add_child(marker)
-	marker.configure(id, String(location["name"]), preview_path, type_icon)
-	marker.activated.connect(_open_location_detail.bind(id))
-	_location_buttons[id] = marker
+	# 保留接口兼容；探索地图已改为点底图地点，不再创建圆形标记
+	pass
 
 
 func _layout_location_buttons() -> void:
-	if _location_layer == null:
+	# 无圆形节点可布局；连线层已隐藏
+	pass
+
+
+func _on_map_gui_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_try_open_location_at_map_pos(touch.position)
 		return
+	if event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		if mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
+			_try_open_location_at_map_pos(mouse.position)
+
+
+func _try_open_location_at_map_pos(local_pos: Vector2) -> void:
+	var location_id := _hit_test_map_location(local_pos)
+	if location_id == "":
+		return
+	_open_location_detail(location_id)
+
+
+func _hit_test_map_location(local_pos: Vector2) -> String:
 	var image_rect := _get_map_image_rect()
+	if image_rect.size.x <= 1.0 or image_rect.size.y <= 1.0:
+		return ""
+	if not image_rect.has_point(local_pos):
+		return ""
+	var uv := Vector2(
+		(local_pos.x - image_rect.position.x) / image_rect.size.x,
+		(local_pos.y - image_rect.position.y) / image_rect.size.y
+	)
+	var best_id := ""
+	var best_score := 999.0
 	for location in _location_data:
 		var id := String(location["id"])
-		var marker: MapLocationMarker = _location_buttons.get(id)
-		if marker == null:
-			continue
-		var pos: Vector2 = location["pos"]
-		var target := image_rect.position + Vector2(image_rect.size.x * pos.x, image_rect.size.y * pos.y)
-		marker.position = target - Vector2(marker.size.x * 0.5, marker.size.y * 0.5 - 8.0)
-	_layout_connections()
+		var hit := false
+		var score := 999.0
+		var area: Variant = location.get("area", [])
+		if typeof(area) == TYPE_ARRAY and (area as Array).size() >= 3:
+			var poly := PackedVector2Array()
+			for p in area as Array:
+				poly.append(p as Vector2)
+			if Geometry2D.is_point_in_polygon(uv, poly):
+				hit = true
+				score = uv.distance_to(location["pos"] as Vector2)
+		if not hit:
+			var anchor: Vector2 = location["pos"]
+			var radius := float(location.get("hit_radius", 0.09))
+			var dist := uv.distance_to(anchor)
+			if dist <= radius:
+				hit = true
+				score = dist
+		if hit and score < best_score:
+			best_score = score
+			best_id = id
+	return best_id
 
 
 func _get_map_image_rect() -> Rect2:

@@ -3,6 +3,8 @@ extends Node3D
 const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.gd")
 const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const CustomLevels = preload("res://assets/maps/route_levels/runner_60s/custom_levels.gd")
+const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
 const CharacterRoster = preload("res://assets/maps/route_levels/character_roster.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
 const HitFeedback = preload("res://assets/systems/hit_feedback/hit_feedback.gd")
@@ -61,6 +63,7 @@ const OBSTACLE_HALF_DEPTH := {
 	"train_moving": 1.05,
 	"block_left": 0.75,
 	"block_right": 0.75,
+	"main_block": 8.0,
 }
 const STRIKE_DAMAGE_TIER := {
 	"jump": 0.55,
@@ -69,12 +72,19 @@ const STRIKE_DAMAGE_TIER := {
 	"high_bar": 0.7,
 	"block_left": 0.85,
 	"block_right": 0.85,
+	"main_block": 1.05,
 	"train": 1.0,
 	"train_moving": 1.15,
 }
 const HEAT_HAZARD_DPS := 7.0
 const HEAT_HAZARD_HALF_LEN := 7.0
 const HEAT_HAZARD_TICK := 0.45
+const SANDSTORM_TICK := 0.4
+const SANDSTORM_DEFAULT_DPS := 9.0
+const SHIELD_MAX_ENERGY := 100.0
+const SHIELD_START_ENERGY := 45.0
+const SHIELD_CRYSTAL_RESTORE := 28.0
+const SHIELD_DRAIN_MULT := 1.15
 const INTRO_DURATION := 3.0
 const PRE_RUN_LOADING_TIME := 0.45
 const PRE_RUN_COUNTDOWN_STEP := 1.0
@@ -111,9 +121,16 @@ const IMPORTED_SCENE_FALLBACKS := {
 	"res://3d素材/居民穹顶据点 3d model.glb": "res://.godot/imported/居民穹顶据点 3d model.glb-f6066a8ae2d51e15aff61146c4296099.scn",
 }
 
-# 分层跑道（当前玩法锁定地面）
-const LAYER_HEIGHTS := [GROUND_Y, 3.8, 6.5]
-const LAYER_NAMES := ["地面", "车顶", "高架"]
+# 垂直墙跑（神秘海域式侧墙，与主路成 90°）
+const WALL_RUN_LAYER := 1
+const WALL_LANE_HEIGHTS: Array[float] = [1.55, 3.05, 4.55] # 墙面上的三列高度：低 / 中 / 高
+const WALL_DEFAULT_OFFSET := 7.2
+const WALL_THICKNESS := 0.5
+const WALL_FACE_HEIGHT := 6.4
+# 脚点贴墙面后略朝主路推出，避免 z-fight / 穿模
+const WALL_STAND_CLEARANCE := 0.18
+const LAYER_HEIGHTS := [GROUND_Y, 3.8, 6.5] # 保留兼容；墙跑不再用抬高层
+const LAYER_NAMES := ["地面", "侧墙", "高架"]
 
 var LevelConfig: Script
 var _world_panorama: Texture2D
@@ -163,8 +180,13 @@ var is_finished := false
 var is_failed := false
 var collected_count := 0
 var total_collectibles := 0
+var crystal_collected_count := 0
 var run_score := 0
 var cargo_integrity := 100.0
+var shield_energy := SHIELD_START_ENERGY
+var shield_active := false
+var _shield_mesh: MeshInstance3D
+var _shield_warned_empty := false
 var mission: Dictionary = {}
 var _mission_profile: Dictionary = {}
 var _run_time := DEFAULT_RUN_TIME
@@ -174,6 +196,8 @@ var obstacles: Array[Dictionary] = []
 var collectibles: Array[Dictionary] = []
 var track_distance := 0.0
 var track_layer := 0
+var current_wall_y := 3.05
+var _wall_roll := 0.0
 var track_root: Node3D
 var passed_junctions: Array[int] = []
 var _path_samples: Array[Dictionary] = []
@@ -220,6 +244,15 @@ var strike_toast_timer := 0.0
 var _hit_feedback: HitFeedback
 var _cargo_hud_panel: PanelContainer
 var _heat_tick_accum := 0.0
+var _side_runway_penalty_accum := 0.0
+var _sandstorm_tick_accum := 0.0
+var _sandstorm_active := false
+var _sandstorm_warned_keys: Array = []
+var _sandstorm_particles: GPUParticles3D
+var _base_fog_density := 0.0022
+var _wall_mount_armed := false
+var _wall_mount_armed_until_d := -1.0
+var _last_wall_side := 1.0
 var _hit_iframe_timer := 0.0
 var _obstacle_scan_index := 0
 var intro_panel: PanelContainer
@@ -231,6 +264,9 @@ var state_body: Label
 var state_restart_button: Button
 var state_back_button: Button
 var pause_button: Button
+var shield_button: Button
+var shield_label: Label
+var shield_bar: ProgressBar
 var hud_root: Control
 var debug_hud_box: VBoxContainer
 var settlement_detail_timer := 0.0
@@ -243,12 +279,24 @@ var _pause_overlay: MobilePauseOverlay
 
 func _ready() -> void:
 	LevelConfig = PlanetDatabase.get_runner_config(Global.runner_planet_id)
-	mission = LevelConfig.get_mission_for_location(Global.runner_location_id).duplicate()
+	if CustomLevels.has_level(Global.runner_location_id):
+		mission = CustomLevels.make_mission(Global.runner_location_id).duplicate()
+		var custom_meta := CustomLevels.get_level(Global.runner_location_id)
+		var base_planet := String(custom_meta.get("planet_id", Global.runner_planet_id))
+		if base_planet != "" and base_planet != Global.runner_planet_id:
+			# 自定义关卡可绑定底图星球；保持任务 location 不变
+			LevelConfig = PlanetDatabase.get_runner_config(base_planet)
+	else:
+		mission = LevelConfig.get_mission_for_location(Global.runner_location_id).duplicate()
 	if mission.is_empty():
 		mission = LevelConfig.MISSION.duplicate()
 	_apply_mission_type_profile()
 	lane_change_ease = LANE_CHANGE_EASE + Global.get_lane_change_ease_bonus()
 	cargo_integrity = 100.0
+	shield_energy = SHIELD_START_ENERGY
+	shield_active = false
+	_shield_warned_empty = false
+	crystal_collected_count = 0
 	track_root = Node3D.new()
 	track_root.name = "TrackRoot"
 	add_child(track_root)
@@ -346,6 +394,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_try_jump()
 	elif event.is_action_pressed("move_backward") and _is_on_ground():
 		_try_slide()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		var key := event as InputEventKey
+		if key.keycode == KEY_F or key.physical_keycode == KEY_F:
+			_toggle_shield()
+			get_viewport().set_input_as_handled()
 
 
 func _handle_touch_input(event: InputEvent) -> bool:
@@ -401,6 +454,11 @@ func _apply_swipe(touch_delta: Vector2) -> bool:
 
 
 func _try_jump() -> void:
+	if _is_wall_running():
+		vertical_velocity = JUMP_SPEED * 0.72
+		_end_slide()
+		body_squash_timer = 0.1
+		return
 	if not _is_on_ground():
 		return
 	vertical_velocity = JUMP_SPEED
@@ -411,6 +469,10 @@ func _try_jump() -> void:
 
 
 func _try_slide() -> void:
+	if _is_wall_running():
+		# 侧墙上滑铲 = 切到最低列
+		_set_lane(0)
+		return
 	if not _is_on_ground():
 		return
 	_start_slide()
@@ -462,19 +524,46 @@ func _physics_process(delta: float) -> void:
 	if not _is_sliding():
 		current_lateral = lerpf(current_lateral, target_lane_x, 1.0 - exp(-lane_change_ease * delta))
 
-	vertical_velocity -= GRAVITY * delta
-	var ground_y := _layer_height(track_layer)
-	var next_y := player.position.y + vertical_velocity * delta
-	if next_y <= ground_y and vertical_velocity <= 0.0:
-		next_y = ground_y
-		vertical_velocity = 0.0
-	player.position.y = next_y
+	if _is_wall_running():
+		var target_wy: float = float(WALL_LANE_HEIGHTS[clampi(lane_index, 0, WALL_LANE_HEIGHTS.size() - 1)])
+		current_wall_y = lerpf(current_wall_y, target_wy, 1.0 - exp(-lane_change_ease * delta))
+		vertical_velocity -= GRAVITY * 0.42 * delta
+		var next_y := player.position.y + vertical_velocity * delta
+		var ceiling: float = float(WALL_LANE_HEIGHTS[WALL_LANE_HEIGHTS.size() - 1]) + 1.35
+		if next_y <= current_wall_y and vertical_velocity <= 0.0:
+			next_y = current_wall_y
+			vertical_velocity = 0.0
+		player.position.y = minf(next_y, ceiling)
+	else:
+		vertical_velocity -= GRAVITY * delta
+		var ground_y := _layer_height(0)
+		var next_y := player.position.y + vertical_velocity * delta
+		var over_pit := _is_over_open_pit()
+		if over_pit:
+			# 坑上无隐形地面：真正往下坠
+			if next_y <= ground_y and vertical_velocity >= -0.5:
+				# 刚踩到坑口：给一个下坠初速，避免卡在地面高度像「跳起来」
+				vertical_velocity = minf(vertical_velocity, -6.5)
+				next_y = ground_y - 0.02
+			player.position.y = next_y
+			if player.position.y < ground_y - 0.55:
+				_fail_into_pit()
+		elif next_y <= ground_y and vertical_velocity <= 0.0:
+			next_y = ground_y
+			vertical_velocity = 0.0
+			player.position.y = next_y
+		else:
+			player.position.y = next_y
 
 	_sync_player_position()
 	_sync_chaser_from_track()
 	_update_moving_obstacles(delta)
 	_check_ramps()
+	_try_side_runway_entry()
 	_enforce_track_layer()
+	_update_side_runway_ground_penalty(delta)
+	_update_sandstorm_hazard(delta)
+	_update_shield_visual(delta)
 
 	var grounded := _is_on_ground()
 	if grounded and not was_on_ground:
@@ -526,8 +615,42 @@ func _set_lane(next_lane_index: int) -> void:
 func _try_lane_change(next_lane_index: int) -> void:
 	if _is_sliding():
 		_end_slide()
+	# 主路最外道再朝侧墙按一次 = 预备上墙（不自动吸附）
+	if track_layer == 0 and _try_arm_wall_mount(next_lane_index):
+		return
+	if next_lane_index < 0 or next_lane_index >= LANES.size():
+		return
+	_wall_mount_armed = false
 	_set_lane(next_lane_index)
 
+
+func _wall_edge_lane_index(zone: Dictionary) -> int:
+	return 2 if _wall_zone_side(zone) > 0.0 else 0
+
+
+func _try_arm_wall_mount(requested_lane: int) -> bool:
+	var zone := _side_runway_entry_zone(track_distance)
+	if zone.is_empty():
+		_wall_mount_armed = false
+		return false
+	var wall_side := _wall_zone_side(zone)
+	var edge := _wall_edge_lane_index(zone)
+	var toward_wall := (wall_side > 0.0 and requested_lane > lane_index) or (wall_side < 0.0 and requested_lane < lane_index)
+	if lane_index != edge or not toward_wall:
+		return false
+	_wall_mount_armed = true
+	_wall_mount_armed_until_d = track_distance + 22.0
+	_show_gate_toast("贴墙就绪 · 跳跃上墙")
+	return true
+
+
+func _is_wall_mount_ready(zone: Dictionary) -> bool:
+	if not _wall_mount_armed:
+		return false
+	if track_distance > _wall_mount_armed_until_d:
+		_wall_mount_armed = false
+		return false
+	return lane_index == _wall_edge_lane_index(zone)
 
 func _nearest_lane_index(lateral: float) -> int:
 	var best_index := 0
@@ -545,8 +668,19 @@ func _layer_height(layer: int) -> float:
 	return LAYER_HEIGHTS[clampi(layer, 0, LAYER_HEIGHTS.size() - 1)]
 
 
+func _is_wall_running() -> bool:
+	return track_layer == WALL_RUN_LAYER
+
+
 func _is_on_ground() -> bool:
-	return player.position.y <= _layer_height(track_layer) + 0.02 and vertical_velocity <= 0.01
+	if _is_wall_running():
+		return absf(player.position.y - current_wall_y) <= 0.08 and vertical_velocity <= 0.01
+	return player.position.y <= _layer_height(0) + 0.02 and vertical_velocity <= 0.01
+
+
+func _wall_lane_height_for_lane_value(lane: int) -> float:
+	var idx := _lane_value_to_index(lane)
+	return WALL_LANE_HEIGHTS[clampi(idx, 0, WALL_LANE_HEIGHTS.size() - 1)]
 
 
 func _distance_to_z(distance: float) -> float:
@@ -554,11 +688,32 @@ func _distance_to_z(distance: float) -> float:
 	return _sample_path(distance)["pos"].z
 
 
+func _active_track_segments() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id) and CustomLevels.has_custom_track(Global.runner_location_id):
+		return CustomLevels.get_track_segments(Global.runner_location_id)
+	if LevelConfig != null and LevelConfig.has_method("get_track_segments"):
+		return LevelConfig.get_track_segments()
+	return []
+
+
+func _junction_zones() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id) and CustomLevels.has_custom_junctions(Global.runner_location_id):
+		return CustomLevels.get_junction_zones(Global.runner_location_id)
+	if LevelConfig == null:
+		return []
+	var constants: Dictionary = LevelConfig.get_script_constant_map()
+	if not constants.has("JUNCTION_ZONES"):
+		return []
+	var out: Array = []
+	for raw in constants["JUNCTION_ZONES"]:
+		if typeof(raw) == TYPE_DICTIONARY:
+			out.append(ObstacleLayout.normalize_junction_zone(raw))
+	return out
+
+
 func _bake_track_path() -> void:
 	_path_samples.clear()
-	var segments: Array = []
-	if LevelConfig.has_method("get_track_segments"):
-		segments = LevelConfig.get_track_segments()
+	var segments: Array = _active_track_segments()
 	if segments.is_empty():
 		segments = [{"length": _track_length + 80.0, "turn": 0.0}]
 
@@ -639,9 +794,7 @@ func _path_world_stretch(distance: float, lateral: float) -> float:
 
 
 func _fork_zone_at(distance: float) -> Dictionary:
-	if LevelConfig == null:
-		return {}
-	for zone in LevelConfig.JUNCTION_ZONES:
+	for zone in _junction_zones():
 		var start := float(zone["distance"])
 		var length := float(zone.get("length", 70.0))
 		if distance >= start and distance <= start + length:
@@ -650,7 +803,7 @@ func _fork_zone_at(distance: float) -> Dictionary:
 
 
 func _fork_adjusted_lateral(distance: float, lateral: float) -> float:
-	# 岔路仍保留三道：branch_center + (-4/0/+4)
+	# 岔路仍保留三道：branch_center + (-4/0/+4)；中间空隙禁跑
 	var zone := _fork_zone_at(distance)
 	if zone.is_empty():
 		return lateral
@@ -661,15 +814,24 @@ func _fork_adjusted_lateral(distance: float, lateral: float) -> float:
 	if envelope <= 0.001:
 		return lateral
 	var spread := float(zone.get("spread", 10.0))
-	var side := _fork_side
-	if side == 0:
-		if absf(lateral) > LANE_WIDTH * 0.25:
-			side = -1 if lateral < 0.0 else 1
-		else:
-			# 中道：仍走脊柱（主路空洞，惩罚）
-			return lateral * (1.0 - envelope * 0.9)
+	var side := _resolve_fork_side(lateral)
 	var branch_center := float(side) * spread * envelope
 	return branch_center + lateral
+
+
+func _resolve_fork_side(lateral: float) -> int:
+	# 始终落到左或右岔；中间不作为可跑路径
+	if _fork_side < 0:
+		return -1
+	if _fork_side > 0:
+		return 1
+	if absf(lateral) > LANE_WIDTH * 0.2:
+		return -1 if lateral < 0.0 else 1
+	if lane_index <= 0:
+		return -1
+	if lane_index >= 2:
+		return 1
+	return -1 if lateral <= 0.0 else 1
 
 
 func _fork_yaw_nudge(distance: float, lateral: float) -> float:
@@ -677,12 +839,7 @@ func _fork_yaw_nudge(distance: float, lateral: float) -> float:
 	var zone := _fork_zone_at(distance)
 	if zone.is_empty():
 		return 0.0
-	var side := _fork_side
-	if side == 0:
-		if absf(lateral) > LANE_WIDTH * 0.25:
-			side = -1 if lateral < 0.0 else 1
-		else:
-			return 0.0
+	var side := _resolve_fork_side(lateral)
 	var start := float(zone["distance"])
 	var length := float(zone.get("length", 70.0))
 	var spread := float(zone.get("spread", 10.0))
@@ -695,15 +852,214 @@ func _fork_yaw_nudge(distance: float, lateral: float) -> float:
 	return atan(d_lat) * 0.85
 
 
-func _world_on_path(distance: float, lateral: float, y: float) -> Dictionary:
+func _side_runway_zones() -> Array:
+	var zones: Array = _raw_side_runway_zones()
+	return _merge_synthetic_side_zones_for_main_blocks(zones)
+
+
+func _raw_side_runway_zones() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id):
+		return CustomLevels.get_side_runway_zones(Global.runner_location_id)
+	if LevelConfig == null:
+		return []
+	var constants: Dictionary = LevelConfig.get_script_constant_map()
+	if constants.has("SIDE_RUNWAY_ZONES"):
+		var out: Array = []
+		for raw in constants["SIDE_RUNWAY_ZONES"]:
+			if typeof(raw) == TYPE_DICTIONARY:
+				out.append(ObstacleLayout.normalize_side_zone(raw))
+		return out
+	return []
+
+
+func _layout_obstacle_items_raw() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id):
+		return CustomLevels.load_obstacles(Global.runner_location_id)
+	if LevelConfig != null and LevelConfig.has_method("build_obstacles"):
+		return LevelConfig.build_obstacles()
+	return []
+
+
+func _merge_synthetic_side_zones_for_main_blocks(zones: Array) -> Array:
+	# 孤立 main_block 自动补侧墙，否则主路封堵无法通过
+	var merged: Array = []
+	for z in zones:
+		if typeof(z) == TYPE_DICTIONARY:
+			merged.append(ObstacleLayout.normalize_side_zone(z))
+	for raw in _layout_obstacle_items_raw():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "main_block":
+			continue
+		if int(item.get("layer", 0)) != 0:
+			continue
+		var covered := false
+		for z2 in merged:
+			if ObstacleLayout.side_zone_covers_main_block(z2, item):
+				covered = true
+				break
+		if covered:
+			continue
+		merged.append(ObstacleLayout.side_zone_from_main_block(item, {
+			"side": "outer",
+			"fallback_side": 1,
+		}))
+	return ObstacleLayout.sort_side_zones(merged)
+
+
+func _is_distance_in_side_wall_corridor(distance: float) -> bool:
+	for zone in _side_runway_zones():
+		var start := float(zone["start"])
+		var length := float(zone.get("length", 70.0))
+		var entry := float(zone.get("entry_window", 10.0))
+		var pad := 22.0
+		if distance >= start - entry - pad and distance <= start + length + pad:
+			return true
+	return false
+
+
+func _filter_adapted_obstacles_from_wall_corridors(items: Array) -> Array:
+	var keep_types := {
+		"main_block": true,
+		"ramp": true,
+		"turn_left": true,
+		"turn_right": true,
+	}
+	var out: Array = []
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		var otype := String(item.get("type", ""))
+		var dist := float(item.get("distance", 0.0))
+		if _is_distance_in_side_wall_corridor(dist) and not keep_types.has(otype):
+			continue
+		out.append(item)
+	return out
+
+
+func _side_runway_zone_at(distance: float) -> Dictionary:
+	for zone in _side_runway_zones():
+		var start := float(zone["start"])
+		var length := float(zone.get("length", 70.0))
+		if distance >= start and distance <= start + length:
+			return zone
+	return {}
+
+
+func _side_runway_entry_zone(distance: float) -> Dictionary:
+	for zone in _side_runway_zones():
+		var start := float(zone["start"])
+		var length := float(zone.get("length", 70.0))
+		var entry := float(zone.get("entry_window", 8.0))
+		if distance >= start - entry and distance <= start + length:
+			return zone
+	return {}
+
+
+func _side_runway_envelope(distance: float, zone: Dictionary) -> float:
+	var start := float(zone["start"])
+	var length := float(zone.get("length", 70.0))
+	var edge := minf(5.0, length * 0.18)
+	if edge <= 0.001:
+		return 1.0
+	var t_in := clampf((distance - start) / edge, 0.0, 1.0)
+	var t_out := clampf((start + length - distance) / edge, 0.0, 1.0)
+	var t := minf(t_in, t_out)
+	return t * t * (3.0 - 2.0 * t)
+
+
+func _path_curvature_sign(distance: float, window: float = 22.0) -> float:
+	# 正=左转（外径在 +right），负=右转（外径在 -right）
+	var a := _sample_path(maxf(distance - window * 0.5, 0.0))
+	var b := _sample_path(distance + window * 0.5)
+	var dyaw := wrapf(float(b["yaw"]) - float(a["yaw"]), -PI, PI)
+	if absf(dyaw) < 0.04:
+		return 0.0
+	return signf(dyaw)
+
+
+func _wall_zone_side(zone: Dictionary) -> float:
+	if zone.is_empty():
+		return 1.0
+	var raw: Variant = zone.get("side", 1)
+	if typeof(raw) == TYPE_STRING and String(raw) == "outer":
+		var mid := float(zone["start"]) + float(zone.get("length", 70.0)) * 0.5
+		var curv := _path_curvature_sign(mid)
+		if absf(curv) < 0.5:
+			return float(zone.get("fallback_side", 1))
+		return curv
+	return float(raw)
+
+
+func _wall_inner_face_lateral(side: float, offset: float) -> float:
+	# 朝向主路的立墙表面
+	return side * offset - side * (WALL_THICKNESS * 0.5)
+
+
+func _wall_stand_lateral(side: float, offset: float) -> float:
+	# 脚在墙面外侧（朝主路），给躯干留出站立空间
+	return _wall_inner_face_lateral(side, offset) - side * WALL_STAND_CLEARANCE
+
+
+func _world_on_wall(distance: float, side: float, offset: float, height: float) -> Dictionary:
+	var sample := _sample_path(distance)
+	var lat := _wall_stand_lateral(side, offset)
+	var pos: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lat
+	pos.y = height
+	return {
+		"pos": pos,
+		"yaw": float(sample["yaw"]),
+		"forward": sample["forward"],
+		"right": sample["right"],
+		"side": side,
+	}
+
+
+func _apply_wall_run_body_orientation(side: float) -> void:
+	# 只转视觉根：头顶朝主路，脚贴墙；玩家根节点保持直立供相机跟随
+	_wall_roll = side * (PI * 0.5)
+	if player_body:
+		player_body.rotation = Vector3(0.0, 0.0, _wall_roll + body_tilt * 0.15)
+
+
+func _world_on_path(distance: float, lateral: float, y: float, content_layer: int = -1) -> Dictionary:
 	var sample := _sample_path(distance)
 	var x := _fork_adjusted_lateral(distance, lateral)
+	# 墙跑内容改走 _world_on_wall；此处仅主路
+	if content_layer == WALL_RUN_LAYER:
+		var zone := _side_runway_zone_at(distance)
+		if not zone.is_empty():
+			return _world_on_wall(
+				distance,
+				_wall_zone_side(zone),
+				float(zone.get("lateral_offset", WALL_DEFAULT_OFFSET)),
+				y
+			)
 	var pos: Vector3 = sample["pos"] + (sample["right"] as Vector3) * x
 	pos.y = y
 	return {"pos": pos, "yaw": float(sample["yaw"]), "forward": sample["forward"], "right": sample["right"]}
 
 
 func _sync_player_position() -> void:
+	if player == null:
+		return
+	if _is_wall_running():
+		var zone := _side_runway_zone_at(track_distance)
+		if zone.is_empty():
+			zone = _side_runway_entry_zone(track_distance)
+		var side := _wall_zone_side(zone)
+		var offset := float(zone.get("lateral_offset", WALL_DEFAULT_OFFSET))
+		var keep_y := player.position.y
+		var placed := _world_on_wall(track_distance, side, offset, keep_y)
+		_path_yaw = float(placed["yaw"])
+		# 根节点只跟路径偏航，相机才能稳定锁角色
+		player.position = placed["pos"]
+		player.rotation = Vector3(0.0, _path_yaw, 0.0)
+		_apply_wall_run_body_orientation(side)
+		return
+
 	var keep_y := player.position.y if player else GROUND_Y
 	var placed := _world_on_path(track_distance, current_lateral, keep_y)
 	player.position = placed["pos"]
@@ -716,14 +1072,20 @@ func _sync_player_position() -> void:
 		if delta.length_squared() > 0.04:
 			var face_yaw := atan2(-delta.x, -delta.z)
 			_path_yaw = lerp_angle(_path_yaw, face_yaw, 0.72)
-	player.rotation.y = _path_yaw
+	# 离开侧墙后恢复直立朝向
+	player.rotation = Vector3(0.0, _path_yaw, 0.0)
+	_wall_roll = lerpf(_wall_roll, 0.0, 0.4)
+	if player_body:
+		player_body.rotation.x = lerpf(player_body.rotation.x, 0.0, 0.4)
+		player_body.rotation.y = lerpf(player_body.rotation.y, 0.0, 0.4)
+		player_body.rotation.z = lerpf(player_body.rotation.z, body_tilt, 0.4)
 
 
 func _check_junctions() -> void:
-	for junction_index in LevelConfig.JUNCTION_ZONES.size():
+	for junction_index in _junction_zones().size():
 		if passed_junctions.has(junction_index):
 			continue
-		var zone: Dictionary = LevelConfig.JUNCTION_ZONES[junction_index]
+		var zone: Dictionary = _junction_zones()[junction_index]
 		var at_distance: float = float(zone["distance"])
 		if track_distance < at_distance or track_distance > at_distance + 4.0:
 			continue
@@ -740,7 +1102,8 @@ func _check_junctions() -> void:
 			_apply_gate_effect(String(zone.get("effect_b", "bonus")))
 			_show_gate_toast(String(zone.get("label_b", "右岔路")))
 		else:
-			_fork_side = 0
+			# 中道禁跑：强制甩入较近一侧，并扣货
+			_fork_side = _resolve_fork_side(current_lateral)
 			var fork_penalty := 8.0 * Global.get_cargo_damage_multiplier()
 			_apply_cargo_loss(fork_penalty)
 			if not is_failed:
@@ -749,24 +1112,46 @@ func _check_junctions() -> void:
 						player.global_position + Vector3(0.0, 1.7, 0.0),
 						HitFeedback.Intensity.LIGHT,
 						fork_penalty,
-						"未选岔路"
+						"中道禁行"
 					)
-				_show_strike_warning("未选择岔路（请靠左或靠右）")
+				_show_strike_warning("中间不能跑 · 已转入%s" % ("左岔" if _fork_side < 0 else "右岔"))
+
+	# 分叉段内持续锁定左右支，避免中空浮空
+	_enforce_active_fork_side()
 
 	# 离开分叉段后复位
-	if _active_fork_index >= 0 and _active_fork_index < LevelConfig.JUNCTION_ZONES.size():
-		var active: Dictionary = LevelConfig.JUNCTION_ZONES[_active_fork_index]
+	if _active_fork_index >= 0 and _active_fork_index < _junction_zones().size():
+		var active: Dictionary = _junction_zones()[_active_fork_index]
 		var end_d := float(active["distance"]) + float(active.get("length", 70.0))
 		if track_distance > end_d + 1.0:
 			_active_fork_index = -1
 			_fork_side = 0
 
 
+func _enforce_active_fork_side() -> void:
+	var zone := _fork_zone_at(track_distance)
+	if zone.is_empty():
+		return
+	var start := float(zone["distance"])
+	var length := float(zone.get("length", 70.0))
+	var t := clampf((track_distance - start) / maxf(length, 0.001), 0.0, 1.0)
+	if _fork_envelope(t) < 0.08:
+		return
+	if _fork_side == 0:
+		_fork_side = _resolve_fork_side(current_lateral)
+	if _active_fork_index < 0:
+		for i in _junction_zones().size():
+			var z: Dictionary = _junction_zones()[i]
+			if absf(float(z.get("distance", -999.0)) - start) < 0.5:
+				_active_fork_index = i
+				break
+
+
 func _check_fork_approach() -> void:
-	for junction_index in LevelConfig.JUNCTION_ZONES.size():
+	for junction_index in _junction_zones().size():
 		if _fork_approach_warned.has(junction_index) or passed_junctions.has(junction_index):
 			continue
-		var zone: Dictionary = LevelConfig.JUNCTION_ZONES[junction_index]
+		var zone: Dictionary = _junction_zones()[junction_index]
 		var at_distance := float(zone["distance"])
 		if track_distance < at_distance - 38.0 or track_distance > at_distance - 28.0:
 			continue
@@ -818,6 +1203,189 @@ func _update_env_hazards(delta: float) -> void:
 		_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), dmg, "热量侵蚀")
 	elif strike_toast_label:
 		_show_strike_warning("热量侵蚀")
+
+
+func _sandstorm_zones() -> Array:
+	if CustomLevels.has_level(Global.runner_location_id):
+		return CustomLevels.get_sandstorm_zones(Global.runner_location_id)
+	if LevelConfig == null:
+		return []
+	var constants: Dictionary = LevelConfig.get_script_constant_map()
+	if constants.has("SANDSTORM_ZONES"):
+		var out: Array = []
+		for raw in constants["SANDSTORM_ZONES"]:
+			if typeof(raw) == TYPE_DICTIONARY:
+				out.append(ObstacleLayout.normalize_sandstorm_zone(raw))
+		return out
+	return []
+
+
+func _sandstorm_zone_at(distance: float) -> Dictionary:
+	var player_lane := int(LANES[clampi(lane_index, 0, LANES.size() - 1)])
+	for zone in _sandstorm_zones():
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 40.0))
+		if distance < start or distance > start + length:
+			continue
+		if not _sandstorm_covers_lane(zone, player_lane):
+			continue
+		return zone
+	return {}
+
+
+func _sandstorm_covers_lane(zone: Dictionary, lane_value: int) -> bool:
+	var covered: Array = zone.get("covered_lanes", [-1, 0, 1])
+	for v in covered:
+		if int(v) == lane_value:
+			return true
+	return false
+
+
+func _sandstorm_volume_layout(zone: Dictionary) -> Dictionary:
+	var covered: Array = zone.get("covered_lanes", [-1, 0, 1])
+	if covered.is_empty():
+		covered = [-1, 0, 1]
+	var min_lane := int(covered[0])
+	var max_lane := int(covered[0])
+	for v in covered:
+		min_lane = mini(min_lane, int(v))
+		max_lane = maxi(max_lane, int(v))
+	var center := (float(min_lane) + float(max_lane)) * 0.5
+	var span := float(max_lane - min_lane) + 1.0
+	return {
+		"lateral_bias": center * LANE_WIDTH,
+		"half_width": span * LANE_WIDTH * 0.5 + 0.9,
+	}
+
+
+func _update_sandstorm_hazard(delta: float) -> void:
+	if is_finished or is_failed or not gameplay_active:
+		_set_sandstorm_visual(false)
+		return
+	var zone := _sandstorm_zone_at(track_distance)
+	var active := not zone.is_empty()
+	if active and not _sandstorm_active:
+		var key := int(float(zone.get("start", 0.0)))
+		if not _sandstorm_warned_keys.has(key):
+			_sandstorm_warned_keys.append(key)
+			if _is_shield_protecting():
+				_show_strike_warning("%s来袭 · 防护罩抵挡中" % String(zone.get("label", "沙尘暴")))
+			else:
+				_show_strike_warning("%s来袭 · 开启防护罩(F)或换道" % String(zone.get("label", "沙尘暴")))
+	_sandstorm_active = active
+	_set_sandstorm_visual(active)
+	if not active:
+		_sandstorm_tick_accum = 0.0
+		return
+	_sandstorm_tick_accum += delta
+	if _sandstorm_tick_accum < SANDSTORM_TICK:
+		return
+	_sandstorm_tick_accum = 0.0
+	var dps := float(zone.get("dps", SANDSTORM_DEFAULT_DPS))
+	var dmg := dps * SANDSTORM_TICK * Global.get_cargo_damage_multiplier()
+	var label := String(zone.get("label", "沙尘暴"))
+	if _is_shield_protecting():
+		var drain := dmg * SHIELD_DRAIN_MULT
+		shield_energy = maxf(shield_energy - drain, 0.0)
+		if shield_energy <= 0.001:
+			shield_active = false
+			_shield_warned_empty = true
+			_show_strike_warning("防护罩能量耗尽 · 无法抵御沙尘暴")
+		elif _hit_feedback != null and player != null:
+			_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), drain * 0.35, "防护罩")
+		return
+	_apply_cargo_loss(dmg)
+	if is_failed:
+		return
+	if _hit_feedback != null and player != null:
+		_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), dmg, label)
+	elif strike_toast_label:
+		_show_strike_warning("%s侵蚀" % label)
+
+
+func _is_shield_protecting() -> bool:
+	return shield_active and shield_energy > 0.001
+
+
+func _toggle_shield() -> void:
+	if is_finished or is_failed or is_intro or not gameplay_active:
+		return
+	if shield_active:
+		shield_active = false
+		_show_gate_toast("防护罩关闭")
+		return
+	if shield_energy <= 0.001:
+		_show_strike_warning("防护罩能量不足 · 拾取水晶充能")
+		return
+	shield_active = true
+	_shield_warned_empty = false
+	_show_gate_toast("防护罩开启 · 可挡沙尘暴")
+	_ensure_shield_mesh()
+
+
+func _ensure_shield_mesh() -> void:
+	if player == null:
+		return
+	if _shield_mesh != null and is_instance_valid(_shield_mesh):
+		return
+	_shield_mesh = MeshInstance3D.new()
+	_shield_mesh.name = "PlayerShieldBubble"
+	var sphere := SphereMesh.new()
+	sphere.radius = 1.15
+	sphere.height = 2.3
+	sphere.radial_segments = 24
+	sphere.rings = 12
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.35, 0.85, 1.0, 0.22)
+	mat.emission_enabled = true
+	mat.emission = Color(0.25, 0.75, 1.0)
+	mat.emission_energy_multiplier = 1.6
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sphere.material = mat
+	_shield_mesh.mesh = sphere
+	_shield_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	player.add_child(_shield_mesh)
+	_shield_mesh.position = Vector3(0.0, 1.05, 0.0)
+
+
+func _update_shield_visual(_delta: float) -> void:
+	_ensure_shield_mesh()
+	if _shield_mesh == null:
+		return
+	var protecting := _is_shield_protecting()
+	_shield_mesh.visible = protecting
+	if not protecting:
+		return
+	var mat := _shield_mesh.get_active_material(0) as StandardMaterial3D
+	if mat == null and _shield_mesh.mesh:
+		mat = _shield_mesh.mesh.surface_get_material(0) as StandardMaterial3D
+	if mat:
+		var ratio := clampf(shield_energy / SHIELD_MAX_ENERGY, 0.0, 1.0)
+		var pulse := 0.18 + 0.08 * sin(Time.get_ticks_msec() * 0.008)
+		mat.albedo_color.a = pulse + ratio * 0.12
+		mat.emission_energy_multiplier = lerpf(0.8, 2.2, ratio)
+		if _sandstorm_active:
+			mat.emission = Color(0.45, 0.95, 1.0)
+		else:
+			mat.emission = Color(0.25, 0.75, 1.0)
+
+
+func _set_sandstorm_visual(active: bool) -> void:
+	if _sandstorm_particles:
+		_sandstorm_particles.emitting = active
+		if active and player != null:
+			_sandstorm_particles.global_position = player.global_position + Vector3(0.0, 1.2, 0.0)
+	if danger_vignette:
+		if active:
+			danger_vignette.modulate.a = maxf(danger_vignette.modulate.a, 0.32)
+	if _world_environment and _world_environment.environment:
+		var env := _world_environment.environment
+		var target := _base_fog_density * (3.4 if active else 1.0)
+		env.fog_density = lerpf(env.fog_density, target, 0.18)
+		if active:
+			env.fog_light_color = env.fog_light_color.lerp(Color(0.92, 0.62, 0.28), 0.12)
 
 
 func _apply_gate_effect(effect: String) -> void:
@@ -905,8 +1473,8 @@ func _lane_value_to_index(lane: int) -> int:
 
 func _player_in_obstacle_lateral(obstacle: Dictionary) -> bool:
 	var obstacle_type := String(obstacle["type"])
-	# 横跨全路的滑铲/高杆屏障
-	if obstacle_type in ["slide", "high_bar", "ramp"]:
+	# 横跨全路的滑铲/高杆屏障 / 主路封堵 / 跳板
+	if obstacle_type in ["slide", "high_bar", "ramp", "main_block"]:
 		return true
 	# 封左：左道+中道有障，只有右道 (≈+LANE_WIDTH) 可过
 	if obstacle_type == "block_left":
@@ -932,14 +1500,119 @@ func _check_collectibles() -> void:
 			continue
 		collectible["collected"] = true
 		node.visible = false
-		collected_count += 1
-		run_score += int(LevelConfig.EMBER_COIN_VALUE)
+		var kind := String(collectible.get("kind", "coin"))
+		if kind == "shield_crystal":
+			crystal_collected_count += 1
+			var before := shield_energy
+			shield_energy = minf(shield_energy + SHIELD_CRYSTAL_RESTORE, SHIELD_MAX_ENERGY)
+			_shield_warned_empty = false
+			run_score += 8
+			_show_gate_toast("水晶充能 +%d" % int(round(shield_energy - before)))
+		else:
+			collected_count += 1
+			run_score += int(LevelConfig.EMBER_COIN_VALUE)
+
+
+func _try_side_runway_entry() -> void:
+	if track_layer != 0 or player == null:
+		return
+	var zone := _side_runway_entry_zone(track_distance)
+	if zone.is_empty():
+		_wall_mount_armed = false
+		return
+	# 必须：靠墙最外道 → 再朝墙按一次（armed）→ 跳跃，才上墙
+	if not _is_wall_mount_ready(zone):
+		return
+	if player.position.y < GROUND_Y + 0.85:
+		return
+	if vertical_velocity < -2.0:
+		return
+	track_layer = WALL_RUN_LAYER
+	_wall_mount_armed = false
+	_last_wall_side = _wall_zone_side(zone)
+	lane_index = 1
+	target_lane_x = 0.0
+	current_lateral = 0.0
+	current_wall_y = WALL_LANE_HEIGHTS[1]
+	player.position.y = current_wall_y
+	vertical_velocity = 0.0
+	camera_shake = maxf(camera_shake, 0.1)
+	_sync_player_position()
+	_show_gate_toast("侧墙跑 · 上下换高度道")
+
+
+func _is_over_open_pit() -> bool:
+	if track_layer != 0:
+		return false
+	if _is_in_side_runway_pit(track_distance):
+		return true
+	return _is_in_main_block_pit(track_distance)
+
+
+func _is_in_main_block_pit(distance: float) -> bool:
+	for obstacle in obstacles:
+		if String(obstacle.get("type", "")) != "main_block":
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		var center := float(obstacle.get("distance", 0.0))
+		var half := float(obstacle.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		if distance >= center - half and distance <= center + half:
+			return true
+	return false
+
+
+func _fail_into_pit(reason: String = "坠入主路坍塌坑") -> void:
+	if is_failed or is_finished:
+		return
+	# 定格成坠入坑中，而不是半空跳跃姿势
+	if player != null:
+		vertical_velocity = -12.0
+		player.position.y = minf(player.position.y, GROUND_Y - 1.6)
+		_sync_player_position()
+		_set_player_pose("landing")
+	camera_shake = maxf(camera_shake, 0.35)
+	_fail_run(reason)
+
+
+func _update_side_runway_ground_penalty(_delta: float) -> void:
+	# 坑上改为真实坠落判死；此处只做贴墙提示
+	if is_finished or is_failed or not gameplay_active:
+		return
+	if track_layer != 0:
+		return
+	if not _is_in_side_runway_pit(track_distance):
+		return
+	if player != null and player.position.y <= GROUND_Y + 0.15 and strike_toast_label:
+		_show_strike_warning("主路坍塌 · 立刻上侧墙！")
 
 
 func _enforce_track_layer() -> void:
-	# 暂时锁定地面层，避免高层相机穿模、跑道消失
-	track_layer = 0
-	if _is_on_ground() and abs(player.position.y - _layer_height(0)) > 0.05:
+	if player == null:
+		return
+	if _is_wall_running():
+		var zone := _side_runway_zone_at(track_distance)
+		if zone.is_empty():
+			zone = _side_runway_entry_zone(track_distance)
+		if zone.is_empty():
+			# 离开侧墙：落回靠墙那一主路车道
+			track_layer = 0
+			_wall_mount_armed = false
+			_wall_roll = 0.0
+			player.rotation = Vector3(0.0, _path_yaw, 0.0)
+			if player_body:
+				player_body.rotation = Vector3(0.0, 0.0, body_tilt)
+			vertical_velocity = minf(vertical_velocity, -2.0)
+			lane_index = 2 if _last_wall_side > 0.0 else 0
+			target_lane_x = float(LANES[lane_index]) * LANE_WIDTH
+			current_lateral = target_lane_x
+			return
+		_last_wall_side = _wall_zone_side(zone)
+		if player.position.y <= current_wall_y + 0.05 and vertical_velocity <= 0.01:
+			player.position.y = current_wall_y
+			vertical_velocity = 0.0
+		return
+	if _is_on_ground() and not _is_over_open_pit() and absf(player.position.y - _layer_height(0)) > 0.05:
 		player.position.y = _layer_height(0)
 		vertical_velocity = 0.0
 
@@ -956,7 +1629,7 @@ func _check_ramps() -> void:
 		if not _player_in_obstacle_lateral(obstacle):
 			continue
 		if vertical_velocity > 2.0 or _is_on_ground():
-			vertical_velocity = maxf(vertical_velocity, JUMP_SPEED * 1.0)
+			vertical_velocity = maxf(vertical_velocity, JUMP_SPEED * 1.15)
 			camera_shake = maxf(camera_shake, 0.12)
 
 
@@ -975,10 +1648,10 @@ func _place_obstacle_node(obstacle: Dictionary) -> void:
 	var y := _layer_height(layer) + float(obstacle.get("y_offset", 0.0))
 	var obstacle_type := String(obstacle.get("type", ""))
 	# 全路屏障居中放置，贴路面（略低于角色脚底高度，避免「浮空」）
-	var lateral := 0.0 if obstacle_type in ["slide", "high_bar"] else float(obstacle["lane"]) * LANE_WIDTH
-	if obstacle_type in ["slide", "high_bar"]:
+	var lateral := 0.0 if obstacle_type in ["slide", "high_bar", "main_block", "ramp"] else float(obstacle["lane"]) * LANE_WIDTH
+	if obstacle_type in ["slide", "high_bar", "main_block"]:
 		y -= 0.06
-	var placed := _world_on_path(dist, lateral, y)
+	var placed := _world_on_path(dist, lateral, y, layer)
 	node.position = placed["pos"]
 	node.rotation.y = float(placed["yaw"])
 
@@ -991,17 +1664,26 @@ func _finish_run() -> void:
 	var progress_cargo_load := 100
 	var repair_total := Global.DEFAULT_OUTPOST_REPAIR_TOTAL
 	var light_reward_coins := 0
-	if LevelConfig.has_method("get_outpost_meta"):
-		var outpost_meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
-		repair_total = maxi(1, int(outpost_meta.get("repair_total", repair_total)))
-		light_reward_coins = maxi(0, int(outpost_meta.get("reward_coins", 0)))
-	var progress_result: Dictionary = Global.apply_runner_delivery_progress(
-		Global.runner_planet_id,
-		Global.runner_location_id,
-		progress_cargo_load,
-		cargo_integrity,
-		repair_total
-	)
+	var is_custom := CustomLevels.has_level(Global.runner_location_id)
+	var progress_result := {
+		"newly_lit": false,
+		"already_lit": false,
+		"contribution": 0,
+		"progress_after": 0,
+		"repair_total": repair_total,
+	}
+	if not is_custom:
+		if LevelConfig.has_method("get_outpost_meta"):
+			var outpost_meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
+			repair_total = maxi(1, int(outpost_meta.get("repair_total", repair_total)))
+			light_reward_coins = maxi(0, int(outpost_meta.get("reward_coins", 0)))
+		progress_result = Global.apply_runner_delivery_progress(
+			Global.runner_planet_id,
+			Global.runner_location_id,
+			progress_cargo_load,
+			cargo_integrity,
+			repair_total
+		)
 	var newly_lit := bool(progress_result.get("newly_lit", false))
 	var already_lit := bool(progress_result.get("already_lit", false))
 	var contribution := int(progress_result.get("contribution", 0))
@@ -1035,6 +1717,8 @@ func _finish_run() -> void:
 	if bool(xp_result["level_up"]):
 		level_text = "升级！Lv.%d" % int(xp_result["new_level"])
 	var progress_line := "据点进度 +%d（%d / %d）" % [contribution, progress_after, progress_total]
+	if is_custom:
+		progress_line = "自定义关卡通关（不计入据点修复）"
 	var unlock_line := "继续运输以点亮据点"
 	var batch_just_unlocked := bool(progress_result.get("batch_just_unlocked", false))
 	var unlocked_batch := int(progress_result.get("unlocked_batch", 1))
@@ -1157,13 +1841,16 @@ func _strike_reason_for_obstacle(obstacle: Dictionary) -> String:
 
 
 func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
+	var obstacle_type := String(obstacle.get("type", ""))
+	if obstacle_type == "main_block":
+		_fail_into_pit("冲入主路坍塌带（需上侧墙绕过）")
+		return
 	strike_count += 1
 	strike_recovery_timer = 0.0
 	chaser_distance = maxf(chaser_distance - CHASER_HIT_PENALTY, CHASER_CATCH_DISTANCE)
 	speed_penalty_mult = HIT_SLOW_FACTOR
 	speed_penalty_timer = HIT_SLOW_DURATION
 	chaser_pulse = 1.0
-	var obstacle_type := String(obstacle.get("type", ""))
 	var tier := float(STRIKE_DAMAGE_TIER.get(obstacle_type, 1.0))
 	var damage: float = float(LevelConfig.CARGO_DAMAGE_PER_HIT) * tier * Global.get_cargo_damage_multiplier()
 	var intensity: int = HitFeedback.Intensity.MEDIUM
@@ -1290,8 +1977,8 @@ func _hits_obstacle(obstacle: Dictionary) -> bool:
 			return not _player_clears_obstacle(obstacle)
 		"train", "train_moving":
 			return not (_is_sliding() or _player_clears_obstacle(obstacle))
-		"block_left", "block_right":
-			# 横向已过滤，进窗口即撞
+		"block_left", "block_right", "main_block":
+			# 横向已过滤，进窗口即撞；主路封堵不可跳过
 			return true
 		"ramp", "turn_left", "turn_right":
 			return false
@@ -1461,6 +2148,10 @@ func _load_cargo_icon() -> void:
 func _build_world() -> void:
 	var theme: Dictionary = LevelConfig.get_theme()
 	_road_style_id = Global.get_runner_road_style()
+	if CustomLevels.has_level(Global.runner_location_id):
+		var custom_style := CustomLevels.get_road_style(Global.runner_location_id)
+		if custom_style != "":
+			_road_style_id = Global.normalize_runner_road_style(custom_style)
 	_background_style_id = Global.get_runner_background_style()
 	var world := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -1481,12 +2172,16 @@ func _build_world() -> void:
 	add_child(sun)
 
 	_build_path_track()
-	for zone in LevelConfig.JUNCTION_ZONES:
+	_build_side_runway_tracks()
+	_build_sandstorm_zones()
+	for zone in _junction_zones():
 		_build_choice_gate(float(zone["distance"]), zone)
 	_build_planet_surroundings(theme)
 	_build_finish_gate()
 	_apply_background_environment()
 	_apply_road_style_environment()
+	if _world_environment and _world_environment.environment:
+		_base_fog_density = _world_environment.environment.fog_density
 
 
 func _background_uses_sky_panorama() -> bool:
@@ -1621,7 +2316,7 @@ func _build_path_track() -> void:
 	elif sand_mat == null:
 		sand_mat = _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1)
 
-	# 连续挤出：托底 / 路肩 / 主路 / 描边（岔口段交给分支 mesh，避免主路+岔路叠出断崖）
+	# 连续挤出：托底/路肩可贯通；主路面在岔口中段挖空，改由左右岔路承接（中间禁跑）
 	if _road_style_id in ["holographic", "energy_neon"]:
 		var road_half := 6.4 if _road_style_id == "energy_neon" else 6.0
 		var shoulder_half := 1.6
@@ -1630,7 +2325,7 @@ func _build_path_track() -> void:
 		var underlay := _make_material(Color(0.02, 0.06, 0.1), Color(0.15, 0.45, 0.62), 0.55)
 		if _road_style_id == "energy_neon":
 			underlay = _make_material(Color(0.01, 0.02, 0.04), Color(0.08, 0.28, 0.42), 0.35)
-		# 托底略宽于主路，路肩填满主路外侧与 void 托底之间的缝
+		# 托底也挖中段，避免中间仍像可跑路面
 		_attach_path_strip(0.0, track_end, apron_half, lane_y - 0.018, underlay, 1.75, 0.0, true)
 		_attach_path_strip(0.0, track_end, road_half, lane_y, kit["road"], 1.75, 0.0, true)
 		_attach_path_strip(0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], 1.75, -shoulder_lat, true)
@@ -1642,6 +2337,9 @@ func _build_path_track() -> void:
 			_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, curb_lat, true)
 			_attach_path_strip(0.0, track_end, 0.055, lane_y + 0.01, kit["line"], 1.75, -(curb_lat + 0.14), true)
 			_attach_path_strip(0.0, track_end, 0.055, lane_y + 0.01, kit["line"], 1.75, curb_lat + 0.14, true)
+			# 主路三道分隔线（岔口中段同样挖空）
+			_attach_path_strip(0.0, track_end, 0.04, lane_y + 0.014, kit["line"], 1.75, -LANE_WIDTH, true)
+			_attach_path_strip(0.0, track_end, 0.04, lane_y + 0.014, kit["line"], 1.75, LANE_WIDTH, true)
 	else:
 		var foundation_half := 14.0 if _road_style_id == "planet" else (16.0 if _road_style_id == "coarse_desert" else 21.0)
 		var foundation_mat: Material = kit["island"] if _road_style_id in ["planet", "coarse_desert"] else sand_mat
@@ -1662,8 +2360,310 @@ func _build_path_track() -> void:
 			_attach_path_strip(0.0, track_end, 0.05, lane_y + 0.008, kit["line"], 1.75, 0.0, true)
 
 	_build_start_pad(kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y)
-	for zone in LevelConfig.JUNCTION_ZONES:
+	for zone in _junction_zones():
 		_build_fork_branch_roads(zone, kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["island"], lane_y)
+
+
+func _build_side_runway_tracks() -> void:
+	if LevelConfig == null:
+		return
+	var kit := _make_road_style_kit(_road_style_id)
+	for zone in _side_runway_zones():
+		_attach_wall_run_mesh(zone, kit)
+		_attach_side_runway_pit(zone, kit)
+	# main_block：沿路径挖坑+警示，避免长方体在弯道斜出跑道外
+	for gap in _main_block_road_gaps():
+		_attach_main_block_path_pit(gap, kit)
+
+
+func _build_sandstorm_zones() -> void:
+	for zone in _sandstorm_zones():
+		_attach_sandstorm_volume(zone)
+	_sandstorm_particles = _make_sandstorm_particles()
+	add_child(_sandstorm_particles)
+	_sandstorm_particles.emitting = false
+
+
+func _attach_sandstorm_volume(zone: Dictionary) -> void:
+	var start := float(zone.get("start", 0.0))
+	var length := float(zone.get("length", 40.0))
+	var layout := _sandstorm_volume_layout(zone)
+	var half_w: float = float(layout["half_width"])
+	var bias: float = float(layout["lateral_bias"])
+	var haze_mat := _make_material(Color(0.86, 0.55, 0.22, 0.16), Color(1.0, 0.62, 0.22), 0.55)
+	haze_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	haze_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# 沿路径铺一段半透明沙雾罩（宽度/横向偏移随占据列数变化）
+	_attach_path_strip_segment(start, start + length, half_w, GROUND_Y + 1.6, haze_mat, 2.2, bias)
+	_attach_path_strip_segment(start, start + length, half_w + 0.8, GROUND_Y + 3.2, haze_mat, 2.4, bias)
+	# 入口警示环（对准占据列中心）
+	var sample := _sample_path(start + 1.5)
+	var ring := MeshInstance3D.new()
+	ring.name = "SandstormGate"
+	var ring_mesh := TorusMesh.new()
+	var ring_r := clampf(half_w * 0.55, 1.6, 5.7)
+	ring_mesh.inner_radius = ring_r
+	ring_mesh.outer_radius = ring_r + 0.45
+	ring_mesh.rings = 12
+	ring_mesh.ring_segments = 28
+	var ring_mat := _make_material(Color(0.95, 0.55, 0.18, 0.55), Color(1.0, 0.55, 0.12), 1.6)
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	ring_mesh.material = ring_mat
+	ring.mesh = ring_mesh
+	var right: Vector3 = sample["right"]
+	ring.position = (sample["pos"] as Vector3) + right * bias + Vector3(0.0, GROUND_Y + 1.8, 0.0)
+	ring.rotation = Vector3(PI * 0.5, float(sample["yaw"]), 0.0)
+	track_root.add_child(ring)
+
+
+func _make_sandstorm_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "SandstormDust"
+	particles.amount = 96
+	particles.lifetime = 1.35
+	particles.preprocess = 0.4
+	particles.visibility_aabb = AABB(Vector3(-18, -4, -18), Vector3(36, 14, 36))
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(1.0, 0.15, 0.35)
+	mat.spread = 55.0
+	mat.initial_velocity_min = 6.0
+	mat.initial_velocity_max = 14.0
+	mat.gravity = Vector3(0.0, -0.4, 0.0)
+	mat.scale_min = 0.08
+	mat.scale_max = 0.22
+	mat.color = Color(0.92, 0.68, 0.35, 0.7)
+	particles.process_material = mat
+	var draw := SphereMesh.new()
+	draw.radius = 0.08
+	draw.height = 0.16
+	var draw_mat := StandardMaterial3D.new()
+	draw_mat.albedo_color = Color(0.9, 0.65, 0.32, 0.55)
+	draw_mat.emission_enabled = true
+	draw_mat.emission = Color(0.85, 0.5, 0.18)
+	draw_mat.emission_energy_multiplier = 0.45
+	draw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	draw.material = draw_mat
+	particles.draw_pass_1 = draw
+	return particles
+
+
+func _side_runway_pit_range(zone: Dictionary) -> Vector2:
+	var start := float(zone["start"])
+	var length := float(zone.get("length", 70.0))
+	# 入口留几米上墙，中后段挖坑
+	var pit_s := start + 5.0
+	var pit_e := start + length - 2.0
+	return Vector2(pit_s, pit_e)
+
+
+func _main_block_road_gaps() -> Array:
+	# 路网建造早于障碍注册：直接读本关障碍表
+	var items: Array = []
+	if CustomLevels.has_level(Global.runner_location_id):
+		items = CustomLevels.load_obstacles(Global.runner_location_id)
+	elif LevelConfig != null and LevelConfig.has_method("build_obstacles"):
+		items = LevelConfig.build_obstacles()
+	var gaps: Array = []
+	var seen: Dictionary = {}
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "main_block":
+			continue
+		if int(item.get("layer", 0)) != 0:
+			continue
+		var center := float(item.get("distance", 0.0))
+		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		var key := "%d" % int(round(center))
+		if seen.has(key):
+			continue
+		seen[key] = true
+		gaps.append(Vector2(center - half, center + half))
+	return gaps
+
+
+func _is_in_side_runway_pit(distance: float) -> bool:
+	for zone in _side_runway_zones():
+		var pit: Vector2 = _side_runway_pit_range(zone)
+		if distance >= pit.x and distance <= pit.y:
+			return true
+	return false
+
+
+func _attach_side_runway_pit(zone: Dictionary, kit: Dictionary) -> void:
+	var pit: Vector2 = _side_runway_pit_range(zone)
+	_attach_path_pit_visual(pit, kit, "SideRunwayPit")
+
+
+func _attach_main_block_path_pit(pit: Vector2, kit: Dictionary) -> void:
+	_attach_path_pit_visual(pit, kit, "MainBlockPathPit")
+
+
+func _attach_path_pit_visual(pit: Vector2, kit: Dictionary, node_name: String) -> void:
+	if pit.y <= pit.x + 2.0:
+		return
+	var lane_y := GROUND_Y - 0.05
+	var curb_mat: Material = kit.get("curb", kit.get("road", null))
+	var void_mat := _make_material(Color(0.02, 0.03, 0.05), Color(0.15, 0.45, 0.7), 0.8)
+	# 坑底深渊（贴合路径，弯道也不会斜出）
+	_attach_path_strip_segment(pit.x, pit.y, 7.2, lane_y - 2.4, void_mat, 2.0, 0.0)
+	if curb_mat:
+		_attach_path_strip_segment(pit.x - 0.8, pit.x + 0.6, 6.4, lane_y + 0.03, curb_mat, 1.2, 0.0)
+		_attach_path_strip_segment(pit.y - 0.6, pit.y + 0.8, 6.4, lane_y + 0.03, curb_mat, 1.2, 0.0)
+	# 沿路径的警示带（分段，避免大盒子穿帮）
+	var warn_mat := _make_material(Color(0.95, 0.28, 0.1, 0.42), Color(1.0, 0.4, 0.08), 2.0)
+	warn_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	warn_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_attach_path_strip_segment(pit.x, pit.y, 6.0, lane_y + 0.06, warn_mat, 2.0, 0.0)
+	var mid := (pit.x + pit.y) * 0.5
+	var sample := _sample_path(mid)
+	var label := Label3D.new()
+	label.name = node_name + "Label"
+	label.text = "主路坍塌\n上侧墙或绕开"
+	label.font_size = 56
+	label.modulate = Color(1.0, 0.55, 0.25)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = (sample["pos"] as Vector3) + Vector3(0.0, lane_y + 2.4, 0.0)
+	track_root.add_child(label)
+
+
+func _attach_wall_run_mesh(zone: Dictionary, kit: Dictionary) -> void:
+	var start := float(zone["start"])
+	var entry := float(zone.get("entry_window", 10.0))
+	var end_d := start + float(zone.get("length", 70.0))
+	# 入口窗就开始铺墙，和可吸附区间对齐，避免先跳上却看不见墙
+	var mesh_start := start - entry
+	var side := _wall_zone_side(zone)
+	var offset := float(zone.get("lateral_offset", WALL_DEFAULT_OFFSET))
+	var step := 1.75
+	var slices: Array[Dictionary] = []
+	var d := mesh_start
+	while d < end_d - 0.001:
+		slices.append(_wall_run_slice(d, side, offset))
+		d += step
+	slices.append(_wall_run_slice(end_d, side, offset))
+	if slices.size() < 2:
+		return
+
+	var wall_mat: Material = kit.get("road", null)
+	if wall_mat == null:
+		wall_mat = _make_material(Color(0.08, 0.22, 0.38), Color(0.2, 0.75, 1.0), 1.4)
+	var edge_mat: Material = kit.get("curb", wall_mat)
+	var line_mat: Material = kit.get("line", edge_mat)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(slices.size() - 1):
+		var a: Dictionary = slices[i]
+		var b: Dictionary = slices[i + 1]
+		# 朝向主路的立面（跑墙面）
+		_add_wall_quad(st, a["inner_bottom"], b["inner_bottom"], b["inner_top"], a["inner_top"])
+		# 外侧
+		_add_wall_quad(st, a["outer_bottom"], a["outer_top"], b["outer_top"], b["outer_bottom"])
+		# 顶边
+		_add_wall_quad(st, a["inner_top"], b["inner_top"], b["outer_top"], a["outer_top"])
+	var mesh := st.commit()
+	if mesh != null:
+		var mi := MeshInstance3D.new()
+		mi.name = "WallRunFace"
+		mi.mesh = mesh
+		mi.material_override = wall_mat
+		_attach_road(mi)
+
+	# 三列高度指示线
+	for h in WALL_LANE_HEIGHTS:
+		_attach_wall_lane_rail(mesh_start, end_d, side, offset, h, line_mat, step)
+
+
+func _wall_run_slice(distance: float, side: float, offset: float) -> Dictionary:
+	var sample := _sample_path(distance)
+	var right: Vector3 = sample["right"]
+	var base: Vector3 = sample["pos"] + right * (side * offset)
+	var y0 := GROUND_Y - 0.12
+	var y1 := y0 + WALL_FACE_HEIGHT
+	var half_t := WALL_THICKNESS * 0.5
+	# 内侧面更靠近主路
+	var inner_lat_shift := -side * half_t
+	var outer_lat_shift := side * half_t
+	var ib := base + right * inner_lat_shift
+	var ob := base + right * outer_lat_shift
+	ib.y = y0
+	ob.y = y0
+	var it := ib + Vector3(0.0, y1 - y0, 0.0)
+	var ot := ob + Vector3(0.0, y1 - y0, 0.0)
+	return {
+		"inner_bottom": ib,
+		"inner_top": it,
+		"outer_bottom": ob,
+		"outer_top": ot,
+	}
+
+
+func _add_wall_quad(st: SurfaceTool, v0: Vector3, v1: Vector3, v2: Vector3, v3: Vector3) -> void:
+	var n := (v1 - v0).cross(v3 - v0)
+	if n.length_squared() < 0.0001:
+		n = Vector3.UP
+	else:
+		n = n.normalized()
+	st.set_normal(n)
+	st.set_uv(Vector2(0.0, 0.0))
+	st.add_vertex(v0)
+	st.set_uv(Vector2(1.0, 0.0))
+	st.add_vertex(v1)
+	st.set_uv(Vector2(1.0, 1.0))
+	st.add_vertex(v2)
+	st.set_uv(Vector2(0.0, 0.0))
+	st.add_vertex(v0)
+	st.set_uv(Vector2(1.0, 1.0))
+	st.add_vertex(v2)
+	st.set_uv(Vector2(0.0, 1.0))
+	st.add_vertex(v3)
+
+
+func _attach_wall_lane_rail(
+	start_d: float,
+	end_d: float,
+	side: float,
+	offset: float,
+	height: float,
+	material: Material,
+	step: float
+) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var half_w := 0.07
+	var d := start_d
+	var prev_l := Vector3.ZERO
+	var prev_r := Vector3.ZERO
+	var has_prev := false
+	while d <= end_d + 0.001:
+		var sample := _sample_path(minf(d, end_d))
+		var right: Vector3 = sample["right"]
+		var inward: Vector3 = right * (-side)
+		# 指示线贴在墙面内侧
+		var center: Vector3 = sample["pos"] + right * _wall_inner_face_lateral(side, offset)
+		center.y = height
+		# 贴墙细轨：沿墙法线展开一点厚度
+		var l := center + inward * 0.02 - inward * half_w
+		var r := center + inward * 0.02 + inward * half_w
+		if has_prev:
+			_add_wall_quad(st, prev_l, prev_r, r, l)
+		prev_l = l
+		prev_r = r
+		has_prev = true
+		if d >= end_d:
+			break
+		d += step
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "WallLaneRail"
+	mi.mesh = mesh
+	mi.material_override = material
+	_attach_road(mi)
 
 
 func _attach_road(node: Node) -> void:
@@ -1688,10 +2688,26 @@ func _attach_path_strip(
 	if skip_fork_gaps and LevelConfig != null:
 		var cursor := start_d
 		var gaps: Array = []
-		for zone in LevelConfig.JUNCTION_ZONES:
+		for zone in _junction_zones():
 			var gs := float(zone["distance"])
-			var ge := gs + float(zone.get("length", 70.0))
-			gaps.append(Vector2(gs, ge))
+			var glen := float(zone.get("length", 70.0))
+			var ge := gs + glen
+			# 入口/出口保留主路与岔路重叠衔接；中段挖空形成不可跑空隙
+			var keep := maxf(glen * 0.14, 12.0)
+			var overlap := 4.0
+			var cut_s := gs + keep - overlap
+			var cut_e := ge - keep + overlap
+			if cut_e > cut_s + 8.0:
+				gaps.append(Vector2(cut_s, cut_e))
+		# 侧墙段主路挖坍塌坑
+		for zone in _side_runway_zones():
+			var pit: Vector2 = _side_runway_pit_range(zone)
+			if pit.y > pit.x + 4.0:
+				gaps.append(pit)
+		# main_block 封堵带也挖开主路，避免「看不见坑却判坠入」
+		for gap2 in _main_block_road_gaps():
+			if gap2.y > gap2.x + 2.0:
+				gaps.append(gap2)
 		gaps.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
 		for gap in gaps:
 			var gs: float = gap.x
@@ -2032,7 +3048,7 @@ func _boost_runner_lights(sun_color: Color, sun_energy: float, rim_energy: float
 
 
 func _is_in_fork_main_gap(distance: float) -> bool:
-	for zone in LevelConfig.JUNCTION_ZONES:
+	for zone in _junction_zones():
 		var start := float(zone["distance"])
 		var length := float(zone.get("length", 70.0))
 		if distance < start or distance > start + length:
@@ -2163,20 +3179,29 @@ func _build_fork_branch_roads(
 	var start := float(zone["distance"])
 	var length := float(zone.get("length", 90.0))
 	var spread := float(zone.get("spread", 22.0))
+	# 与主路同宽：左右岔各含完整左中右三道
 	var branch_half := 6.3 if _road_style_id == "energy_neon" else (6.0 if _road_style_id == "holographic" else 6.3)
-	var lead := 10.0
-	_attach_fork_underlay(zone, island_material, lane_y - 0.03)
-	_attach_fork_center_island(zone, island_material, lane_y - 0.02)
+	var lead := 16.0
+	# 不铺中间托底：中间故意留空，仅左右岔有路面
 	for side_f in [-1.0, 1.0]:
 		var side: float = float(side_f)
-		_attach_fork_branch_strip(start, length, spread, side, branch_half + 2.4, lane_y - 0.01, shoulder_material, 1.6, 0.0, lead)
-		_attach_fork_branch_strip(start, length, spread, side, branch_half, lane_y + 0.01, road_material, 1.6, 0.0, lead)
+		_attach_fork_branch_strip(start, length, spread, side, branch_half + 2.6, lane_y - 0.012, shoulder_material, 1.5, 0.0, lead)
+		_attach_fork_branch_strip(start, length, spread, side, branch_half, lane_y + 0.01, road_material, 1.5, 0.0, lead)
+		# 岔内三道分隔线
+		if line_material:
+			_attach_fork_branch_strip(start, length, spread, side, 0.045, lane_y + 0.016, line_material, 1.5, LANE_WIDTH, lead)
+			_attach_fork_branch_strip(start, length, spread, side, 0.045, lane_y + 0.016, line_material, 1.5, -LANE_WIDTH, lead)
 		if _road_style_id == "holographic":
-			_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, branch_half - 0.05, lead)
-			_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.6, -(branch_half - 0.05), lead)
-		if line_material and _road_style_id == "alien_energy":
-			_attach_fork_branch_strip(start, length, spread, side, 0.045, lane_y + 0.012, line_material, 1.6, 0.0, lead)
+			_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.5, branch_half - 0.05, lead)
+			_attach_fork_branch_strip(start, length, spread, side, 0.07, lane_y + 0.02, curb_material, 1.5, -(branch_half - 0.05), lead)
+			_attach_fork_branch_strip(start, length, spread, side, 0.055, lane_y + 0.018, line_material, 1.5, branch_half + 0.12, lead)
+			_attach_fork_branch_strip(start, length, spread, side, 0.055, lane_y + 0.018, line_material, 1.5, -(branch_half + 0.12), lead)
 	_build_fork_entry_wedge(zone, curb_material, lane_y)
+	# 入口/出口缝桥：盖住主路切断处
+	var keep := maxf(length * 0.14, 12.0)
+	var bridge_half := branch_half + 0.4
+	_attach_path_strip_segment(start - 3.0, start + keep + 3.0, bridge_half, lane_y + 0.006, road_material, 1.4, 0.0)
+	_attach_path_strip_segment(start + length - keep - 3.0, start + length + 3.0, bridge_half, lane_y + 0.006, road_material, 1.4, 0.0)
 
 
 func _attach_fork_center_island(zone: Dictionary, material: Material, y: float) -> void:
@@ -2246,19 +3271,27 @@ func _attach_fork_branch_strip(
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var pts: Array[Dictionary] = []
 	var d := start - lead
-	while d <= start + length + 0.001:
+	var end_d := start + length + lead * 0.35
+	while d <= end_d + 0.001:
 		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
 		var envelope := _fork_envelope(t)
 		var lateral := side * spread * envelope + extra_lateral * side
 		var sample := _sample_path(d)
 		var origin: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral
-		# 岔路朝向略偏：用相邻采样估 right
+		# 近汇合处跟主路 right 对齐，张开后才逐渐偏航，避免入口锯齿缝
 		var t2 := clampf(t + step / maxf(length, 0.001), 0.0, 1.0)
 		var offset := spread * envelope
 		var offset2 := spread * _fork_envelope(t2)
 		var d_lat := ((offset2 - offset) * side) / maxf(step, 0.001)
+		var path_right: Vector3 = sample["right"]
 		var branch_yaw := float(sample["yaw"]) + atan(d_lat) * 0.85
-		var branch_right := Vector3(cos(branch_yaw), 0.0, -sin(branch_yaw))
+		var yaw_right := Vector3(cos(branch_yaw), 0.0, -sin(branch_yaw))
+		var blend := smoothstep(0.0, 0.22, envelope)
+		var branch_right: Vector3 = path_right.lerp(yaw_right, blend)
+		if branch_right.length_squared() > 0.0001:
+			branch_right = branch_right.normalized()
+		else:
+			branch_right = path_right
 		var L: Vector3 = origin - branch_right * half_width
 		var R: Vector3 = origin + branch_right * half_width
 		L.y = y
@@ -2322,17 +3355,17 @@ func _attach_fork_underlay(zone: Dictionary, material: Material, y: float) -> vo
 	var length := float(zone.get("length", 90.0))
 	var spread := float(zone.get("spread", 22.0))
 	var branch_half := 6.3 if _road_style_id == "energy_neon" else (6.0 if _road_style_id == "holographic" else 6.3)
-	var lead := 10.0
-	var step := 2.0
+	var lead := 14.0
+	var step := 1.75
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var pts: Array[Dictionary] = []
 	var d := start - lead
-	while d <= start + length + 0.001:
+	while d <= start + length + lead * 0.35 + 0.001:
 		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
 		var envelope := _fork_envelope(t)
 		var outer := spread * envelope + branch_half + 3.2
-		outer = maxf(outer, 8.0)
+		outer = maxf(outer, 9.5)
 		pts.append(_path_strip_point(d, outer, y, 0.0))
 		d += step
 	if pts.size() < 2:
@@ -3236,7 +4269,7 @@ func _get_train_obstacle_scene() -> PackedScene:
 
 
 func _get_lane_block_scene() -> PackedScene:
-	return _get_slide_obstacle_scene_by_hint(["能量裂缝", "crack"], 3)
+	return _get_slide_obstacle_scene_by_hint(["闪避柱", "全息闪避", "能量裂缝", "crack"], 1)
 
 
 func _get_slide_obstacle_scene_by_hint(hints: Array, fallback_index: int) -> PackedScene:
@@ -3579,11 +4612,18 @@ func _update_chaser_visuals(delta: float) -> void:
 
 
 func _build_content() -> void:
+	var raw_obstacles: Array
+	if CustomLevels.has_level(Global.runner_location_id):
+		raw_obstacles = CustomLevels.load_obstacles_for_run(Global.runner_location_id, LevelConfig)
+	else:
+		raw_obstacles = LevelConfig.build_obstacles()
 	var obstacle_items: Array = MissionTypes.adapt_obstacles(
-		LevelConfig.build_obstacles(),
+		raw_obstacles,
 		_mission_profile,
 		_track_length
 	)
+	# adapt 缩放/加密后可能把下滑门等漂进侧墙走廊，再滤一次
+	obstacle_items = _filter_adapted_obstacles_from_wall_corridors(obstacle_items)
 	for item in obstacle_items:
 		_register_obstacle(item)
 	obstacles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -3592,37 +4632,144 @@ func _build_content() -> void:
 	_obstacle_scan_index = 0
 
 	var coin_index := 0
-	var coin_dists: Array = MissionTypes.adapt_coin_distances(
-		LevelConfig.build_coin_distances(),
-		_track_length,
-		float(_mission_profile.get("obstacle_density", 1.0))
-	)
-	for dist in coin_dists:
-		var lane: int = int(LANES[coin_index % LANES.size()])
-		var layer: int = 0
-		var y: float = _layer_height(layer) + (0.35 if coin_index % 5 != 2 else 1.2)
-		var collectible := _make_collectible(lane, dist, y, layer)
+	if LevelConfig.has_method("build_main_runway_coins"):
+		var main_coins: Array = MissionTypes.adapt_main_runway_coins(
+			LevelConfig.build_main_runway_coins(),
+			_track_length,
+			float(_mission_profile.get("obstacle_density", 1.0))
+		)
+		for raw in main_coins:
+			if typeof(raw) != TYPE_DICTIONARY:
+				continue
+			var item: Dictionary = raw
+			var lane: int = int(item.get("lane", 0))
+			var dist: float = float(item.get("distance", 0.0))
+			var layer: int = int(item.get("layer", 0))
+			var y_boost := bool(item.get("y_boost", false))
+			var y: float = _layer_height(layer) + (1.15 if y_boost else 0.4)
+			var collectible := _make_collectible(lane, dist, y, layer)
+			collectibles.append({
+				"node": collectible,
+				"lane": lane,
+				"distance": dist,
+				"y": y,
+				"layer": layer,
+				"kind": "coin",
+				"collected": false,
+			})
+			coin_index += 1
+	else:
+		var coin_dists: Array = MissionTypes.adapt_coin_distances(
+			LevelConfig.build_coin_distances(),
+			_track_length,
+			float(_mission_profile.get("obstacle_density", 1.0))
+		)
+		for dist in coin_dists:
+			var lane: int = int(LANES[coin_index % LANES.size()])
+			var layer: int = 0
+			var y: float = _layer_height(layer) + (0.35 if coin_index % 5 != 2 else 1.2)
+			var collectible := _make_collectible(lane, dist, y, layer)
+			collectibles.append({
+				"node": collectible,
+				"lane": lane,
+				"distance": dist,
+				"y": y,
+				"layer": layer,
+				"kind": "coin",
+				"collected": false,
+			})
+			coin_index += 1
+
+	if LevelConfig.has_method("build_side_runway_coins"):
+		var side_coins: Array = MissionTypes.adapt_side_runway_coins(
+			LevelConfig.build_side_runway_coins(),
+			_track_length
+		)
+		for raw in side_coins:
+			if typeof(raw) != TYPE_DICTIONARY:
+				continue
+			var item: Dictionary = raw
+			var lane: int = int(item.get("lane", 0))
+			var dist: float = float(item.get("distance", 0.0))
+			var layer: int = int(item.get("layer", WALL_RUN_LAYER))
+			var y_boost := bool(item.get("y_boost", false))
+			var y: float = _wall_lane_height_for_lane_value(lane) + (0.55 if y_boost else 0.0)
+			var collectible := _make_collectible(lane, dist, y, layer)
+			collectibles.append({
+				"node": collectible,
+				"lane": lane,
+				"distance": dist,
+				"y": y,
+				"layer": layer,
+				"kind": "coin",
+				"collected": false,
+			})
+
+	_spawn_shield_crystals()
+	total_collectibles = 0
+	for c in collectibles:
+		if String(c.get("kind", "coin")) == "coin":
+			total_collectibles += 1
+
+
+func _spawn_shield_crystals() -> void:
+	var items: Array = []
+	if LevelConfig != null and LevelConfig.has_method("build_shield_crystals") and not CustomLevels.has_level(Global.runner_location_id):
+		items = LevelConfig.build_shield_crystals()
+	else:
+		items = _default_shield_crystals_from_sandstorms()
+	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		var dist := float(item.get("distance", 0.0))
+		if dist < 20.0 or dist > finish_cut:
+			continue
+		var lane := int(item.get("lane", 0))
+		var layer := int(item.get("layer", 0))
+		var y: float = _layer_height(layer) + 0.85
+		var node := _make_shield_crystal(lane, dist, y, layer)
 		collectibles.append({
-			"node": collectible,
+			"node": node,
 			"lane": lane,
 			"distance": dist,
 			"y": y,
 			"layer": layer,
+			"kind": "shield_crystal",
 			"collected": false,
 		})
-		coin_index += 1
-	total_collectibles = collectibles.size()
+
+
+func _default_shield_crystals_from_sandstorms() -> Array:
+	var out: Array = []
+	var zones := _sandstorm_zones()
+	if zones.is_empty():
+		# 无沙尘暴时仍沿途投放少量水晶，方便试用防护罩
+		for d in [90.0, 210.0, 360.0, 520.0, 700.0, 880.0]:
+			out.append({"lane": (int(d) % 3) - 1, "distance": d, "layer": 0})
+		return out
+	for zone in zones:
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 40.0))
+		out.append({"lane": 0, "distance": start - 16.0, "layer": 0})
+		out.append({"lane": 1, "distance": start - 8.0, "layer": 0})
+		out.append({"lane": -1, "distance": start + length * 0.4, "layer": 0})
+		out.append({"lane": 0, "distance": start + length + 12.0, "layer": 0})
+	return out
 
 
 func _register_obstacle(item: Dictionary) -> Node3D:
 	var obstacle_type := String(item["type"])
 	var lane: int = int(item.get("lane", 0))
 	var dist: float = float(item["distance"])
-	var layer: int = 0
+	var layer: int = int(item.get("layer", 0))
 	var node := _make_obstacle(lane, dist, obstacle_type, layer, item)
 	var asset_path := String(node.get_meta("obstacle_asset_path", ""))
 	var is_float_orb := node.has_meta("float_orb") and bool(node.get_meta("float_orb"))
 	var default_clear := 1.55 if obstacle_type in ["slide", "high_bar"] else 1.35
+	if obstacle_type == "main_block":
+		default_clear = _layer_height(layer) + 4.0
 	if is_float_orb:
 		default_clear = GROUND_Y + 1.02
 	elif "energy_sprigs" in asset_path:
@@ -3671,6 +4818,8 @@ func _make_obstacle(lane: int, distance: float, obstacle_type: String, layer: in
 			_build_lane_block(root, "right")
 		"ramp":
 			_build_ramp(root, int(item.get("target_layer", layer + 1)))
+		"main_block":
+			_build_main_block(root, float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0))))
 		"turn_left", "turn_right":
 			_build_turn_sign(root, obstacle_type)
 		_:
@@ -3692,27 +4841,65 @@ func _build_low_barrier(root: Node3D, item: Dictionary = {}) -> void:
 		root.set_meta("obstacle_asset_path", asset_path)
 		if "热浪" in asset_path:
 			root.set_meta("heat_hazard", true)
-	var target_h := 1.05
+	var target_h := 1.15
 	if "energy_orb" in asset_path:
 		target_h = 1.45
 	elif "energy_sprigs" in asset_path:
+		target_h = 1.25
+	elif "全息跳跃" in asset_path:
 		target_h = 1.2
-	var visual := _add_scaled_model_visual(
-		root,
-		_get_jump_obstacle_scene(scene_index),
-		"JumpObstacleModel",
-		target_h,
-		0.0 if asset_path.ends_with(".png") else 180.0,
-		Vector3.ZERO,
-		LANE_WIDTH * 1.65
-	)
-	if "energy_orb" in asset_path:
-		# 漂浮在胸口高度，换道躲避为主，跳也可蹭过
-		visual.position.y += 0.75
-		root.set_meta("float_orb", true)
-	elif not asset_path.ends_with(".png"):
-		visual.rotation_degrees.y += 8.0 if scene_index == 0 else -8.0
+	# 横杆类：按高度轴缩放，避免「最宽边」把模型压成脚踝高
+	if "全息跳跃" in asset_path:
+		_add_jump_bar_visual(root, _get_jump_obstacle_scene(scene_index), target_h, LANE_WIDTH * 1.55)
+	else:
+		var visual := _add_scaled_model_visual(
+			root,
+			_get_jump_obstacle_scene(scene_index),
+			"JumpObstacleModel",
+			target_h,
+			0.0 if asset_path.ends_with(".png") else 180.0,
+			Vector3.ZERO,
+			LANE_WIDTH * 1.65
+		)
+		if "energy_orb" in asset_path:
+			# 漂浮在胸口高度，换道躲避为主，跳也可蹭过
+			visual.position.y += 0.75
+			root.set_meta("float_orb", true)
+		elif not asset_path.ends_with(".png"):
+			visual.rotation_degrees.y += 8.0 if scene_index == 0 else -8.0
 
+
+func _add_jump_bar_visual(root: Node3D, scene: PackedScene, target_height: float, target_span: float) -> void:
+	if scene == null:
+		_add_missing_model_visual(root, "JumpObstacleModel", target_height, 0.0, Vector3.ZERO)
+		return
+	var model := scene.instantiate() as Node3D
+	model.name = "JumpObstacleModel"
+	root.add_child(model)
+	model.position = Vector3.ZERO
+	model.rotation_degrees = Vector3.ZERO
+
+	var bounds := _compute_node_aabb(model)
+	if bounds.size.y <= 0.001:
+		push_warning("JumpObstacleModel bounds invalid")
+		return
+	# 若模型更宽轴在 Z，转到横跨 X
+	if bounds.size.z > bounds.size.x * 1.15:
+		model.rotation_degrees.y = 90.0
+		bounds = _compute_node_aabb(model)
+
+	var sx := target_span / maxf(bounds.size.x, 0.001)
+	var sy := target_height / maxf(bounds.size.y, 0.001)
+	# 厚度略跟高度，避免杆子扁成纸片
+	var sz := clampf(sy, 0.85, 2.8)
+	model.scale = Vector3(sx, sy, sz)
+	bounds = _compute_node_aabb(model)
+	model.position = Vector3(
+		-(bounds.position.x + bounds.size.x * 0.5),
+		-bounds.position.y,
+		-(bounds.position.z + bounds.size.z * 0.5)
+	)
+	_add_ground_contact_shadow(root, target_span * 0.85, 0.9)
 
 func _build_high_bar(root: Node3D) -> void:
 	var slide_path := _slide_obstacle_paths[0] if not _slide_obstacle_paths.is_empty() else ""
@@ -3721,6 +4908,7 @@ func _build_high_bar(root: Node3D) -> void:
 		var scene := _get_slide_obstacle_scene(0)
 		if scene == null:
 			_add_road_span_gate(root, "SlideObstacleModel", null, 1.95, 14.8)
+			_add_slide_visibility_curtain(root)
 			return
 		var model := scene.instantiate() as Node3D
 		model.name = "SlideObstacleModel"
@@ -3751,6 +4939,22 @@ func _build_high_bar(root: Node3D) -> void:
 		_add_ground_contact_shadow(root, 10.0, 1.2)
 	else:
 		_add_road_span_gate(root, "SlideObstacleModel", _get_slide_obstacle_scene(0), 1.95, 14.8)
+	# 全息 GLB 半透明时仍保证有可读光幕，避免「撞了却看不见」
+	_add_slide_visibility_curtain(root)
+
+
+func _add_slide_visibility_curtain(root: Node3D) -> void:
+	var curtain := MeshInstance3D.new()
+	curtain.name = "SlideVisibilityCurtain"
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(LANE_WIDTH * 3.15, 1.85, 0.22)
+	var mat := _make_material(Color(0.25, 0.85, 1.0, 0.38), Color(0.35, 0.95, 1.0), 2.2)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mesh.material = mat
+	curtain.mesh = mesh
+	curtain.position = Vector3(0.0, 1.05, 0.0)
+	root.add_child(curtain)
 
 
 func _add_road_span_gate(
@@ -3835,6 +5039,52 @@ func _build_ramp(root: Node3D, target_layer: int) -> void:
 	visual.rotation_degrees.x = -12.0
 
 
+func _build_main_block(root: Node3D, half_depth: float = 8.0) -> void:
+	# 只做入口警示门；长坍塌带由沿路径的挖坑条带展示，避免弯道上长方体斜出跑道
+	var _hd := half_depth
+	var gate := MeshInstance3D.new()
+	gate.name = "MainBlockGate"
+	var gate_mesh := BoxMesh.new()
+	gate_mesh.size = Vector3(LANE_WIDTH * 3.2, 0.22, 1.8)
+	var gate_mat := _make_material(Color(0.95, 0.32, 0.12, 0.7), Color(1.0, 0.4, 0.1), 2.4)
+	gate_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	gate_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	gate_mesh.material = gate_mat
+	gate.mesh = gate_mesh
+	gate.position = Vector3(0.0, 0.12, 0.0)
+	root.add_child(gate)
+
+	var post_l := MeshInstance3D.new()
+	var post_r := MeshInstance3D.new()
+	for post in [post_l, post_r]:
+		var pm := BoxMesh.new()
+		pm.size = Vector3(0.28, 2.4, 0.28)
+		var pmat := _make_material(Color(0.9, 0.35, 0.12), Color(1.0, 0.45, 0.15), 1.8)
+		pm.material = pmat
+		post.mesh = pm
+		post.position = Vector3(0.0, 1.2, 0.0)
+		root.add_child(post)
+	post_l.position.x = -LANE_WIDTH * 1.45
+	post_r.position.x = LANE_WIDTH * 1.45
+
+	var beam := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(LANE_WIDTH * 3.0, 0.22, 0.22)
+	var bmat := _make_material(Color(1.0, 0.4, 0.15), Color(1.0, 0.5, 0.2), 2.0)
+	bm.material = bmat
+	beam.mesh = bm
+	beam.position = Vector3(0.0, 2.35, 0.0)
+	root.add_child(beam)
+
+	var label := Label3D.new()
+	label.text = "主路坍塌"
+	label.font_size = 56
+	label.modulate = Color(1.0, 0.55, 0.25)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = Vector3(0.0, 3.0, 0.0)
+	root.add_child(label)
+	_add_ground_contact_shadow(root, LANE_WIDTH * 3.0, 1.2)
+
 func _build_turn_sign(root: Node3D, turn_type: String) -> void:
 	var is_left := turn_type == "turn_left"
 	var visual := _add_scaled_model_visual(
@@ -3874,10 +5124,41 @@ func _make_collectible(lane: int, distance: float, y: float, layer: int) -> Node
 	collectible.add_child(core)
 
 	track_root.add_child(collectible)
-	var placed := _world_on_path(distance, float(lane) * LANE_WIDTH, y)
+	var placed: Dictionary
+	if layer == WALL_RUN_LAYER:
+		placed = _world_on_path(distance, 0.0, y, WALL_RUN_LAYER)
+	else:
+		placed = _world_on_path(distance, float(lane) * LANE_WIDTH, y, layer)
 	collectible.position = placed["pos"]
 	collectible.rotation.y = float(placed["yaw"])
 	return collectible
+
+
+func _make_shield_crystal(lane: int, distance: float, y: float, layer: int) -> Node3D:
+	var root := Node3D.new()
+	root.name = "ShieldCrystal"
+	var crystal := MeshInstance3D.new()
+	var prism := PrismMesh.new()
+	prism.size = Vector3(0.55, 1.1, 0.55)
+	var mat := _make_material(Color(0.45, 0.9, 1.0, 0.85), Color(0.3, 0.85, 1.0), 2.4)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	prism.material = mat
+	crystal.mesh = prism
+	crystal.position.y = 0.55
+	root.add_child(crystal)
+	var glow := MeshInstance3D.new()
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = 0.22
+	glow_mesh.height = 0.44
+	glow_mesh.material = _make_material(Color(0.7, 0.95, 1.0, 0.35), Color(0.4, 0.9, 1.0), 1.8)
+	glow.mesh = glow_mesh
+	glow.position.y = 0.55
+	root.add_child(glow)
+	track_root.add_child(root)
+	var placed: Dictionary = _world_on_path(distance, float(lane) * LANE_WIDTH, y, layer)
+	root.position = placed["pos"]
+	root.rotation.y = float(placed["yaw"])
+	return root
 
 
 func _build_ui() -> void:
@@ -4095,6 +5376,46 @@ func _build_ui() -> void:
 	pause_button.pressed.connect(_on_pause_button_pressed)
 	shell.add_child(pause_button)
 
+	shield_button = Button.new()
+	shield_button.text = "盾"
+	shield_button.tooltip_text = "防护罩 (F)"
+	shield_button.custom_minimum_size = Vector2(72, 72)
+	shield_button.add_theme_font_size_override("font_size", 26)
+	shield_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	shield_button.offset_left = 24.0
+	shield_button.offset_top = 108.0
+	shield_button.offset_right = 96.0
+	shield_button.offset_bottom = 180.0
+	shield_button.pressed.connect(_toggle_shield)
+	shell.add_child(shield_button)
+
+	var shield_panel := PanelContainer.new()
+	shield_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	shield_panel.offset_left = 110.0
+	shield_panel.offset_top = 24.0
+	shield_panel.offset_right = 340.0
+	shield_panel.offset_bottom = 108.0
+	shell.add_child(shield_panel)
+	var shield_margin := MarginContainer.new()
+	shield_margin.add_theme_constant_override("margin_left", 12)
+	shield_margin.add_theme_constant_override("margin_top", 8)
+	shield_margin.add_theme_constant_override("margin_right", 12)
+	shield_margin.add_theme_constant_override("margin_bottom", 8)
+	shield_panel.add_child(shield_margin)
+	var shield_box := VBoxContainer.new()
+	shield_box.add_theme_constant_override("separation", 4)
+	shield_margin.add_child(shield_box)
+	shield_label = Label.new()
+	shield_label.text = "防护罩 关 · F"
+	shield_label.add_theme_font_size_override("font_size", 20)
+	shield_box.add_child(shield_label)
+	shield_bar = ProgressBar.new()
+	shield_bar.custom_minimum_size = Vector2(0, 18)
+	shield_bar.max_value = SHIELD_MAX_ENERGY
+	shield_bar.value = shield_energy
+	shield_bar.show_percentage = false
+	shield_box.add_child(shield_bar)
+
 	var cargo_panel := PanelContainer.new()
 	cargo_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	cargo_panel.offset_left = -260.0
@@ -4169,11 +5490,28 @@ func _update_hud() -> void:
 	speed_label.text = speed_text
 
 	var phase: Dictionary = LevelConfig.phase_at(track_distance)
-	phase_label.text = "阶段 %s · %s" % [phase["name"], phase["hint"]]
+	if track_layer > 0:
+		phase_label.text = "侧墙跑 · 左/右切换高度列"
+	else:
+		phase_label.text = "阶段 %s · %s" % [phase["name"], phase["hint"]]
 	cargo_label.text = "货物 %s  完整度 %0.0f%%" % [String(mission.get("cargo_name", "物资")), cargo_integrity]
 	score_label.text = "星火币 %d" % run_score
 	layer_label.text = "地图 %s" % LevelConfig.MAP_NAME
-	collectible_label.text = "星火币 %d / %d" % [collected_count, total_collectibles]
+	collectible_label.text = "星火币 %d / %d · 水晶 %d" % [collected_count, total_collectibles, crystal_collected_count]
+	if shield_label:
+		if _is_shield_protecting():
+			shield_label.text = "防护罩 开 · 抵挡沙尘暴"
+			shield_label.add_theme_color_override("font_color", Color(0.45, 0.92, 1.0))
+		elif shield_active and shield_energy <= 0.001:
+			shield_label.text = "防护罩 耗尽 · 拾取水晶"
+			shield_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
+		else:
+			shield_label.text = "防护罩 关 · F/盾键开启"
+			shield_label.add_theme_color_override("font_color", Color(0.75, 0.82, 0.9))
+	if shield_bar:
+		shield_bar.value = shield_energy
+	if shield_button:
+		shield_button.modulate = Color(0.55, 0.95, 1.0) if _is_shield_protecting() else Color(1, 1, 1)
 
 	var danger_ratio := 1.0 - clampf(chaser_distance / CHASER_MAX_DISTANCE, 0.0, 1.0)
 	var chase_status := "安全"
@@ -4225,7 +5563,31 @@ func _update_camera() -> void:
 	if is_intro:
 		cam_behind = lerpf(CAMERA_BEHIND + 1.2, CAMERA_BEHIND, clampf(intro_elapsed / INTRO_DURATION, 0.0, 1.0))
 
-	camera_pivot.position = Vector3(shake_offset.x, CAMERA_HEIGHT + slide_offset, cam_behind) + shake_offset * 0.35
+	if _is_wall_running():
+		var zone := _side_runway_zone_at(track_distance)
+		var side := _wall_zone_side(zone)
+		# 根节点已直立：相机仍挂在角色上。偏向主路内侧，始终能看见贴墙的主角
+		cam_behind = 9.2
+		camera_pivot.position = Vector3(
+			shake_offset.x + (-side * 3.4),
+			CAMERA_HEIGHT + 0.85 + slide_offset,
+			cam_behind
+		) + shake_offset * 0.35
+		camera.position = Vector3(0.0, 0.35, 0.0)
+		var focus := player.global_position + Vector3(0.0, 0.95, 0.0)
+		var sample := _sample_path(track_distance)
+		var inward: Vector3 = (sample["right"] as Vector3) * (-side)
+		focus += inward * 1.1
+		if camera.global_position.distance_squared_to(focus) > 0.02:
+			camera.look_at(focus, Vector3.UP)
+		camera.fov = lerpf(camera.fov, clampf(CAMERA_FOV + danger_ratio * 2.0, CAMERA_FOV, 68.0), 0.1)
+		return
+
+	camera_pivot.position = Vector3(
+		shake_offset.x,
+		CAMERA_HEIGHT + slide_offset,
+		cam_behind
+	) + shake_offset * 0.35
 	camera.position = Vector3(0, 0.45, 0.0)
 
 	# 沿真实路径（含岔路横向偏移）取前瞻点，避免瞬时切线直线瞄出路面
@@ -4266,8 +5628,15 @@ func _update_runner_feedback(delta: float) -> void:
 		player_animation_player.speed_scale = maxf(current_speed / RUN_SPEED, 0.45) * speed_mult
 
 	var x_error := target_lane_x - current_lateral
+	if _is_wall_running():
+		var target_wy: float = float(WALL_LANE_HEIGHTS[clampi(lane_index, 0, WALL_LANE_HEIGHTS.size() - 1)])
+		x_error = (target_wy - current_wall_y) * 0.55
 	body_tilt = lerpf(body_tilt, clampf(-x_error * 0.18, -0.45, 0.45), 1.0 - exp(-10.0 * delta))
-	player_body.rotation.z = body_tilt
+	if player_body:
+		if _is_wall_running():
+			_apply_wall_run_body_orientation(_wall_zone_side(_side_runway_zone_at(track_distance)))
+		else:
+			player_body.rotation.z = body_tilt
 
 	trail_particles.amount_ratio = remap(current_speed, RUN_SPEED, RUN_SPEED_MAX, 0.45, 1.0)
 

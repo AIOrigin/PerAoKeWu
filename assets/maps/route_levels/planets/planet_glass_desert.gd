@@ -1,6 +1,7 @@
 extends "res://assets/maps/route_levels/runner_planet_config.gd"
 
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
 
 ## 星球一 · 无尽晶砂漠
 
@@ -36,9 +37,12 @@ const EXPLORE_LOCATIONS := [
 		"type": "水源据点",
 		"tagline": "荒原最后的净水设施之一。",
 		"goal": "修复净化系统，让生命之源重新流动。",
-		"pos": Vector2(0.18, 0.32),
+		"pos": Vector2(0.16, 0.28),
+		"hit_radius": 0.11,
 		"reveal": ["dome", "medical"],
-		"area": [Vector2(0.12, 0.26), Vector2(0.20, 0.28), Vector2(0.16, 0.38), Vector2(0.10, 0.36)],
+		"area": [
+			Vector2(0.08, 0.20), Vector2(0.24, 0.20), Vector2(0.26, 0.36), Vector2(0.08, 0.38),
+		],
 		"danger_stars": 3,
 		"manager_name": "Mira",
 		"manager_title": "净水系统工程师",
@@ -57,9 +61,12 @@ const EXPLORE_LOCATIONS := [
 		"type": "居民穹顶",
 		"tagline": "荒原最大的幸存者聚居地。",
 		"goal": "修复穹顶，重建人类最后的家园。",
-		"pos": Vector2(0.50, 0.38),
+		"pos": Vector2(0.48, 0.46),
+		"hit_radius": 0.12,
 		"reveal": ["reservoir", "medical"],
-		"area": [Vector2(0.44, 0.32), Vector2(0.54, 0.34), Vector2(0.50, 0.46), Vector2(0.40, 0.44)],
+		"area": [
+			Vector2(0.38, 0.36), Vector2(0.58, 0.36), Vector2(0.60, 0.56), Vector2(0.36, 0.56),
+		],
 		"danger_stars": 4,
 		"manager_name": "Owen",
 		"manager_title": "聚居地负责人",
@@ -79,9 +86,12 @@ const EXPLORE_LOCATIONS := [
 		"type": "医疗据点",
 		"tagline": "保存旧时代医疗技术的基地。",
 		"goal": "恢复设备，为幸存者提供救治。",
-		"pos": Vector2(0.72, 0.48),
+		"pos": Vector2(0.70, 0.46),
+		"hit_radius": 0.10,
 		"reveal": ["dome", "reservoir"],
-		"area": [Vector2(0.66, 0.42), Vector2(0.76, 0.44), Vector2(0.72, 0.56), Vector2(0.62, 0.54)],
+		"area": [
+			Vector2(0.62, 0.38), Vector2(0.78, 0.38), Vector2(0.80, 0.56), Vector2(0.60, 0.56),
+		],
 		"danger_stars": 4,
 		"manager_name": "Iris",
 		"manager_title": "医疗主管",
@@ -100,9 +110,12 @@ const EXPLORE_LOCATIONS := [
 		"type": "防御哨站",
 		"tagline": "守护荒原边界的防线。",
 		"goal": "重启防御系统，抵御未知威胁。",
-		"pos": Vector2(0.22, 0.72),
+		"pos": Vector2(0.20, 0.74),
+		"hit_radius": 0.10,
 		"reveal": ["relay"],
-		"area": [Vector2(0.16, 0.66), Vector2(0.26, 0.68), Vector2(0.22, 0.78), Vector2(0.12, 0.76)],
+		"area": [
+			Vector2(0.12, 0.66), Vector2(0.30, 0.66), Vector2(0.30, 0.82), Vector2(0.10, 0.82),
+		],
 		"danger_stars": 5,
 		"manager_name": "Kane",
 		"manager_title": "防线指挥官",
@@ -121,9 +134,12 @@ const EXPLORE_LOCATIONS := [
 		"type": "星火中继站",
 		"tagline": "连接各区域的通讯核心。",
 		"goal": "恢复信号，让希望再次传递。",
-		"pos": Vector2(0.78, 0.68),
+		"pos": Vector2(0.78, 0.70),
+		"hit_radius": 0.10,
 		"reveal": ["medical", "gate"],
-		"area": [Vector2(0.72, 0.62), Vector2(0.82, 0.64), Vector2(0.78, 0.76), Vector2(0.68, 0.74)],
+		"area": [
+			Vector2(0.70, 0.60), Vector2(0.88, 0.60), Vector2(0.88, 0.80), Vector2(0.68, 0.80),
+		],
 		"danger_stars": 5,
 		"manager_name": "Nova",
 		"manager_title": "中继站信号员",
@@ -299,12 +315,15 @@ const PLAYER_ROOK := {
 const ASSETS := {
 	"panorama": "res://3d素材/三拼地图.png",
 	"jump_obstacles": [
+		"res://mvp素材第二批/障碍物/全息跳跃栏.glb",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_sprigs_2_5d.png",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
 	],
-	"slide_obstacle": "res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
+	"slide_obstacle": "res://mvp素材第二批/障碍物/全息下滑门.glb",
 	"slide_obstacles": [
+		"res://mvp素材第二批/障碍物/全息下滑门.glb",
+		"res://mvp素材第二批/障碍物/全息闪避柱.glb",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
 		"res://mvp素材第二批/障碍物/锈蚀水管1.glb",
 		"res://mvp素材第二批/障碍物/坍塌广告牌.glb",
@@ -393,34 +412,82 @@ const JUNCTION_ZONES := [
 	{
 		"distance": 110.0,
 		"length": 100.0,
-		"spread": 15.0,
+		"spread": 20.0,
 		"lane_a": 0, "label_a": "安全岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "速通岔路", "effect_b": "fast",
 	},
 	{
 		"distance": 420.0,
 		"length": 100.0,
-		"spread": 15.0,
+		"spread": 20.0,
 		"lane_a": 0, "label_a": "修复岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "奖励岔路", "effect_b": "bonus",
 	},
 	{
 		"distance": 720.0,
 		"length": 100.0,
-		"spread": 15.0,
+		"spread": 20.0,
 		"lane_a": 0, "label_a": "安全岔路", "effect_a": "repair",
 		"lane_b": 2, "label_b": "速通岔路", "effect_b": "fast",
 	},
 ]
 
+# 垂直侧墙跑：放在拐弯外径一侧；side 可用 "outer" 自动取外径
+const SIDE_RUNWAY_ZONES := [
+	{
+		"start": 285.0,
+		"length": 55.0,
+		"side": "outer",
+		"fallback_side": 1,
+		"lateral_offset": 7.2,
+		"layer": 1,
+		"entry_window": 10.0,
+	},
+	{
+		"start": 548.0,
+		"length": 55.0,
+		"side": "outer",
+		"fallback_side": -1,
+		"lateral_offset": 7.2,
+		"layer": 1,
+		"entry_window": 10.0,
+	},
+]
+
+# 沙尘暴区：进入后持续扣货物完整度（避开侧墙/岔路中段）
+const SANDSTORM_ZONES := [
+	{
+		"start": 168.0,
+		"length": 42.0,
+		"dps": 9.0,
+		"label": "沙尘暴",
+		"lane_count": 3,
+	},
+	{
+		"start": 458.0,
+		"length": 48.0,
+		"dps": 10.5,
+		"label": "沙尘暴",
+		"lane_count": 3,
+	},
+	{
+		"start": 860.0,
+		"length": 55.0,
+		"dps": 12.0,
+		"label": "强沙尘暴",
+		"lane_count": 3,
+	},
+]
+
 const OBSTACLE_TYPES := {
-	"jump": "跳跃障碍",
-	"slide": "相位光幕",
+	"jump": "全息跳跃栏",
+	"slide": "全息下滑门",
 	"train": "坍塌广告牌",
 	"train_moving": "失控运输车",
-	"block_left": "能量裂缝",
-	"block_right": "能量裂缝",
+	"block_left": "全息闪避柱",
+	"block_right": "全息闪避柱",
 	"ramp": "沙丘跳板",
+	"main_block": "主路坍塌带",
 	"turn_left": "安全门",
 	"turn_right": "速通门",
 }
@@ -469,23 +536,35 @@ static func get_jump_obstacle_label(asset_path: String) -> String:
 
 
 static func build_obstacles() -> Array:
+	# 优先读关卡编辑器导出的 JSON；没有文件则用内置默认表
+	if ObstacleLayout.has_layout(PLANET_ID):
+		return _filter_obstacles_away_from_side_walls(ObstacleLayout.load_items(PLANET_ID))
+	return _filter_obstacles_away_from_side_walls(_default_obstacles())
+
+
+static func _default_obstacles() -> Array:
 	return [
 		{"lane": 0, "distance": 95.0, "type": "jump"},
 		{"lane": -1, "distance": 145.0, "type": "slide"},
 		{"lane": 1, "distance": 190.0, "type": "jump"},
 		{"lane": 0, "distance": 250.0, "type": "train"},
-		{"lane": 0, "distance": 310.0, "type": "block_left"},
+		# 侧墙入口跳板 + 主路封堵（与 SIDE_RUNWAY_ZONES 对齐）
+		{"lane": 0, "distance": 277.0, "type": "ramp", "target_layer": 1, "layer": 0},
+		{"lane": 0, "distance": 312.0, "type": "main_block", "half_depth": 26.0, "layer": 0},
 		{"lane": 1, "distance": 360.0, "type": "jump"},
-		{"lane": -1, "distance": 400.0, "type": "slide"},
+		# 侧墙走廊结束后再放下滑门，避免缩放漂进墙跑区
+		{"lane": -1, "distance": 375.0, "type": "slide"},
 		{"lane": 1, "distance": 100.0, "type": "turn_left"},
 		{"lane": -1, "distance": 100.0, "type": "turn_right"},
 		{"lane": 0, "distance": 350.0, "type": "train_moving", "move_speed": -10.0},
 		{"lane": 1, "distance": 430.0, "type": "jump"},
 		{"lane": -1, "distance": 480.0, "type": "jump"},
-		{"lane": 0, "distance": 540.0, "type": "slide"},
+		{"lane": 0, "distance": 540.0, "type": "ramp", "target_layer": 1, "layer": 0},
+		{"lane": 0, "distance": 575.0, "type": "main_block", "half_depth": 26.0, "layer": 0},
+		# 注意：勿在 SIDE_RUNWAY 入口再放 slide（曾导致「看不见却撞上全息下滑门」）
 		{"lane": 1, "distance": 410.0, "type": "turn_left"},
 		{"lane": -1, "distance": 410.0, "type": "turn_right"},
-		{"lane": 1, "distance": 620.0, "type": "block_right"},
+		{"lane": 1, "distance": 650.0, "type": "block_right"},
 		{"lane": -1, "distance": 680.0, "type": "jump"},
 		{"lane": 0, "distance": 740.0, "type": "train_moving", "move_speed": 11.0},
 		{"lane": 1, "distance": 800.0, "type": "jump"},
@@ -501,13 +580,138 @@ static func build_obstacles() -> Array:
 	]
 
 
+static func _obstacle_in_side_wall_corridor(distance: float) -> bool:
+	for zone in SIDE_RUNWAY_ZONES:
+		var start := float(zone["start"])
+		var length := float(zone.get("length", 70.0))
+		var entry := float(zone.get("entry_window", 10.0))
+		# 前后多留缓冲：缩放/加密障碍容易漂进侧墙区
+		var pad := 22.0
+		if distance >= start - entry - pad and distance <= start + length + pad:
+			return true
+	return false
+
+
+static func _filter_obstacles_away_from_side_walls(items: Array) -> Array:
+	# 侧墙走廊内只保留入口跳板 / 主路封堵 / 岔路牌，避免隐形下滑门等误伤
+	var keep_types := {
+		"main_block": true,
+		"ramp": true,
+		"turn_left": true,
+		"turn_right": true,
+	}
+	var out: Array = []
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		var otype := String(item.get("type", ""))
+		var dist := float(item.get("distance", 0.0))
+		if _obstacle_in_side_wall_corridor(dist) and not keep_types.has(otype):
+			continue
+		out.append(item)
+	return out
+
 static func build_coin_distances() -> Array:
+	# 兼容旧接口：仅返回距离；主路图案币走 build_main_runway_coins
 	var coins: Array = []
-	var dist := 28.0
-	while dist < 1120.0:
-		coins.append(dist)
-		dist += 38.0
+	for item in build_main_runway_coins():
+		coins.append(float(item.get("distance", 0.0)))
 	return coins
+
+
+static func build_main_runway_coins() -> Array:
+	var coins: Array = []
+	var cursor := 28.0
+	var pattern_i := 0
+	while cursor < 1120.0:
+		var on_side := false
+		for zone in SIDE_RUNWAY_ZONES:
+			var zs := float(zone["start"])
+			var ze := zs + float(zone.get("length", 70.0))
+			if cursor >= zs - 4.0 and cursor <= ze + 4.0:
+				on_side = true
+				break
+		if on_side:
+			cursor += 38.0
+			continue
+		# 交替投放：S 形一段、单列一段、横排一段
+		var kind := pattern_i % 3
+		if kind == 0:
+			_append_coin_pattern(coins, cursor, 0, "s_curve", 7, 6.0)
+			cursor += 7.0 * 6.0 + 18.0
+		elif kind == 1:
+			# pattern_i%3 在 column 分支恒为 1，用整轮次轮换左/中/右列
+			var col_lanes: Array[int] = [-1, 0, 1]
+			var col_lane: int = col_lanes[int(pattern_i / 3) % 3]
+			_append_coin_pattern(coins, cursor, 0, "column", 6, 5.5, col_lane)
+			cursor += 5.5 * 5.0 + 20.0
+		else:
+			_append_coin_pattern(coins, cursor, 0, "row", 1, 8.0)
+			cursor += 38.0
+		pattern_i += 1
+	return coins
+
+
+static func _append_coin_pattern(
+	out: Array,
+	start: float,
+	layer: int,
+	pattern: String,
+	count: int = 5,
+	step: float = 7.0,
+	lane_hint: int = 0
+) -> void:
+	# S 形序列：左右摆动形成连贯曲线
+	var s_seq: Array[int] = [-1, 0, 1, 1, 0, -1]
+	for i in count:
+		var dist := start + float(i) * step
+		match pattern:
+			"row":
+				for lane in [-1, 0, 1]:
+					out.append({"distance": dist, "lane": lane, "layer": layer, "pattern": pattern})
+			"zigzag":
+				var z_lane := -1 if i % 2 == 0 else 1
+				out.append({"distance": dist, "lane": z_lane, "layer": layer, "pattern": pattern})
+				if i % 3 == 1:
+					out.append({"distance": dist, "lane": 0, "layer": layer, "pattern": pattern, "y_boost": true})
+			"s_curve", "s":
+				var s_lane: int = s_seq[i % s_seq.size()]
+				out.append({"distance": dist, "lane": s_lane, "layer": layer, "pattern": pattern})
+			"column", "stream":
+				out.append({"distance": dist, "lane": lane_hint, "layer": layer, "pattern": "column"})
+			"gap_center":
+				out.append({"distance": dist, "lane": -1, "layer": layer, "pattern": pattern})
+				out.append({"distance": dist, "lane": 1, "layer": layer, "pattern": pattern})
+			_:
+				out.append({"distance": dist, "lane": lane_hint, "layer": layer, "pattern": pattern})
+
+
+static func build_side_runway_coins() -> Array:
+	var coins: Array = []
+	# 第一段外径墙：S 形 → 中列单列
+	_append_coin_pattern(coins, 290.0, 1, "s_curve", 8, 5.5)
+	_append_coin_pattern(coins, 318.0, 1, "column", 5, 5.0, 0)
+	# 第二段外径墙：左列单列 → S 形
+	_append_coin_pattern(coins, 552.0, 1, "column", 6, 5.0, -1)
+	_append_coin_pattern(coins, 580.0, 1, "s_curve", 7, 5.5)
+	return coins
+
+
+static func build_shield_crystals() -> Array:
+	# 青色防护水晶：沙尘暴前后重点投放，供防护罩充能
+	var crystals: Array = []
+	for zone in SANDSTORM_ZONES:
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 40.0))
+		crystals.append({"lane": 0, "distance": start - 18.0, "layer": 0})
+		crystals.append({"lane": 1, "distance": start - 10.0, "layer": 0})
+		crystals.append({"lane": -1, "distance": start - 6.0, "layer": 0})
+		crystals.append({"lane": 0, "distance": start + length * 0.35, "layer": 0})
+		crystals.append({"lane": 1, "distance": start + length + 10.0, "layer": 0})
+	for d in [75.0, 250.0, 390.0, 640.0, 800.0, 1000.0]:
+		crystals.append({"lane": int(d) % 3 - 1, "distance": d, "layer": 0})
+	return crystals
 
 
 static func phase_at(distance: float) -> Dictionary:

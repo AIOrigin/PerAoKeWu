@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://wqnygvmooqi8"
+path.s3tc="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-bad5e416059379c17f92ff01913a3349.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-bad5e416059379c17f92ff01913a3349.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "a52f066409314b19a0ebf616ff446ae9"
+}
+
+[deps]
+
+source_file="res://mvp素材第二批/障碍物/holographic_tripo/dodge/tripo-out/holo-dodge-decimate-b1186e2f/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg"
+dest_files=["res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-bad5e416059379c17f92ff01913a3349.s3tc.ctex", "res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-bad5e416059379c17f92ff01913a3349.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

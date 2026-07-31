@@ -3,6 +3,7 @@ extends Control
 const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.gd")
 const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const CustomLevels = preload("res://assets/maps/route_levels/runner_60s/custom_levels.gd")
 const CharacterProgression = preload("res://assets/maps/route_levels/character_progression.gd")
 const CharacterRoster = preload("res://assets/maps/route_levels/character_roster.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
@@ -1885,6 +1886,50 @@ func _build_tasks_page() -> void:
 			"批次%d · %s · %s" % [batch_id, String(entry.get("name", "")), status],
 			" · ".join(locs) + unlock_hint
 		)
+
+	_add_section_title("自定义关卡")
+	var customs: Array = CustomLevels.list_levels()
+	if customs.is_empty():
+		_add_card("暂无自定义关卡", "在关卡编辑器中摆放障碍后点「保存为关卡」，会按 自定义01、自定义02… 自动上架到此处。")
+	else:
+		for level in customs:
+			_add_custom_level_card(level)
+
+
+func _add_custom_level_card(level: Dictionary) -> void:
+	var planet_id := String(level.get("planet_id", "glass_desert"))
+	var level_id := String(level.get("id", ""))
+	var display_name := String(level.get("name", level_id))
+	var duration := int(level.get("duration", 65))
+	var obstacle_count := int(level.get("obstacle_count", 0))
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _style(Color(0.08, 0.10, 0.13, 0.98), UI_CYAN, 2, 8))
+	_page_box.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	margin.add_child(box)
+	var title := Label.new()
+	title.text = display_name
+	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", UI_CYAN)
+	box.add_child(title)
+	var meta := Label.new()
+	meta.text = "%s · %ds · %d 障碍 · 底图 %s" % [level_id, duration, obstacle_count, planet_id]
+	meta.add_theme_font_size_override("font_size", 13)
+	meta.add_theme_color_override("font_color", UI_MUTED)
+	box.add_child(meta)
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	box.add_child(actions)
+	var start_btn := _add_primary_button(actions, "开始跑酷", _start_runner_for_location.bind(planet_id, level_id))
+	start_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 func _build_character_page() -> void:

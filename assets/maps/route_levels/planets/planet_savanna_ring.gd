@@ -1,6 +1,7 @@
 extends "res://assets/maps/route_levels/runner_planet_config.gd"
 
 const GlassDesert = preload("res://assets/maps/route_levels/planets/planet_glass_desert.gd")
+const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
 
 ## 星球三 · 稀树环带（演示锁定）
 
@@ -73,6 +74,8 @@ const RUN_PHASES := [
 ]
 
 const JUNCTION_ZONES = GlassDesert.JUNCTION_ZONES
+const SIDE_RUNWAY_ZONES = GlassDesert.SIDE_RUNWAY_ZONES
+const SANDSTORM_ZONES = GlassDesert.SANDSTORM_ZONES
 
 const OBSTACLE_TYPES := {
 	"jump": "倒木栏",
@@ -82,6 +85,7 @@ const OBSTACLE_TYPES := {
 	"block_left": "左道灌木",
 	"block_right": "右道灌木",
 	"ramp": "土丘跳板",
+	"main_block": "主路坍塌带",
 	"turn_left": "兽道门",
 	"turn_right": "捷径门",
 }
@@ -116,11 +120,25 @@ static func get_location_missions() -> Array:
 
 
 static func build_obstacles() -> Array:
+	if ObstacleLayout.has_layout(PLANET_ID):
+		return ObstacleLayout.load_items(PLANET_ID)
 	return GlassDesert.build_obstacles()
 
 
 static func build_coin_distances() -> Array:
 	return GlassDesert.build_coin_distances()
+
+
+static func build_main_runway_coins() -> Array:
+	return GlassDesert.build_main_runway_coins()
+
+
+static func build_side_runway_coins() -> Array:
+	return GlassDesert.build_side_runway_coins()
+
+
+static func build_shield_crystals() -> Array:
+	return GlassDesert.build_shield_crystals()
 
 
 static func phase_at(distance: float) -> Dictionary:

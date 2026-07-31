@@ -1,0 +1,233 @@
+{
+	"base_planet_id": "glass_desert",
+	"level_id": "custom_02",
+	"level_name": "自定义02",
+	"note": "Custom level from runner level editor",
+	"obstacles": [
+		{
+			"distance": 95.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 100.0,
+			"lane": 1,
+			"type": "turn_left"
+		},
+		{
+			"distance": 100.0,
+			"lane": -1,
+			"type": "turn_right"
+		},
+		{
+			"distance": 145.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 190.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 250.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 277.0,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 312.0,
+			"half_depth": 26.0,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		},
+		{
+			"distance": 350.0,
+			"lane": 0,
+			"move_speed": -10.0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 360.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 375.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 410.0,
+			"lane": -1,
+			"type": "turn_right"
+		},
+		{
+			"distance": 410.0,
+			"lane": 1,
+			"type": "turn_left"
+		},
+		{
+			"distance": 430.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 480.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 540.0,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 575.0,
+			"half_depth": 26.0,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		},
+		{
+			"distance": 650.0,
+			"lane": 1,
+			"type": "block_right"
+		},
+		{
+			"distance": 680.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 710.0,
+			"lane": 1,
+			"type": "turn_right"
+		},
+		{
+			"distance": 710.0,
+			"lane": -1,
+			"type": "turn_left"
+		},
+		{
+			"distance": 740.0,
+			"lane": 0,
+			"move_speed": 11.0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 800.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 860.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 920.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 980.0,
+			"lane": 1,
+			"type": "block_left"
+		},
+		{
+			"distance": 1040.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 1100.0,
+			"lane": -1,
+			"move_speed": -12.0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 1160.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 1220.0,
+			"lane": 0,
+			"type": "jump"
+		}
+	],
+	"planet_id": "custom_02",
+	"sandstorm_zones": [
+		{
+			"covered_lanes": [
+				-1,
+				0,
+				1
+			],
+			"dps": 9.0,
+			"label": "沙尘暴",
+			"lane": -1,
+			"lane_count": 3,
+			"length": 42.0,
+			"start": 168.0
+		},
+		{
+			"covered_lanes": [
+				-1,
+				0,
+				1
+			],
+			"dps": 10.5,
+			"label": "沙尘暴",
+			"lane": -1,
+			"lane_count": 3,
+			"length": 48.0,
+			"start": 458.0
+		},
+		{
+			"covered_lanes": [
+				-1,
+				0,
+				1
+			],
+			"dps": 12.0,
+			"label": "强沙尘暴",
+			"lane": -1,
+			"lane_count": 3,
+			"length": 55.0,
+			"start": 860.0
+		}
+	],
+	"side_runway_zones": [
+		{
+			"entry_window": 10.0,
+			"fallback_side": 1,
+			"lateral_offset": 7.2,
+			"layer": 1,
+			"length": 55.0,
+			"side": "outer",
+			"start": 285.0
+		},
+		{
+			"entry_window": 10.0,
+			"fallback_side": -1,
+			"lateral_offset": 7.2,
+			"layer": 1,
+			"length": 55.0,
+			"side": "outer",
+			"start": 548.0
+		}
+	],
+	"updated_at": "2026-07-31T03:47:33",
+	"version": 1
+}

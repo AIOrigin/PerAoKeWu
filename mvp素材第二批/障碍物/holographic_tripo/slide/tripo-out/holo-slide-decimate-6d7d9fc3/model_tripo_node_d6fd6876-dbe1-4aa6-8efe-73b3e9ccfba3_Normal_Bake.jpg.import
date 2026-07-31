@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://ch3cl7j5vl1eu"
+path.s3tc="res://.godot/imported/model_tripo_node_d6fd6876-dbe1-4aa6-8efe-73b3e9ccfba3_Normal_Bake.jpg-8ddc8e57fb0652e170f7195b44fb1949.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_node_d6fd6876-dbe1-4aa6-8efe-73b3e9ccfba3_Normal_Bake.jpg-8ddc8e57fb0652e170f7195b44fb1949.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "d891878cfda7e57029ac56db98551a4f"
+}
+
+[deps]
+
+source_file="res://mvp素材第二批/障碍物/holographic_tripo/slide/tripo-out/holo-slide-decimate-6d7d9fc3/model_tripo_node_d6fd6876-dbe1-4aa6-8efe-73b3e9ccfba3_Normal_Bake.jpg"
+dest_files=["res://.godot/imported/model_tripo_node_d6fd6876-dbe1-4aa6-8efe-73b3e9ccfba3_Normal_Bake.jpg-8ddc8e57fb0652e170f7195b44fb1949.s3tc.ctex", "res://.godot/imported/model_tripo_node_d6fd6876-dbe1-4aa6-8efe-73b3e9ccfba3_Normal_Bake.jpg-8ddc8e57fb0652e170f7195b44fb1949.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://mvp素材第二批/障碍物/holographic_tripo/slide/tripo-out/holo-slide-decimate-6d7d9fc3/model_tripo_node_d6fd6876-dbe1-4aa6-8efe-73b3e9ccfba3_Normal_Bake.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0
