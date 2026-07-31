@@ -3,7 +3,7 @@
 # HYPERLUNATIC
 
 [![English](https://img.shields.io/badge/English-blue)](README_en.md) [![简体中文](https://img.shields.io/badge/简体中文-red)](README.md)
-
+单独
 
 ![Godot v4.4](https://img.shields.io/badge/Godot-v4.4-478cbf?logo=godot-engine&logoColor=white) [![GitHub license](https://img.shields.io/github/license/317gw/HYPERLUNATIC)](LICENSE) [![GitHub stars](https://img.shields.io/github/stars/317gw/HYPERLUNATIC)](https://github.com/317gw/HYPERLUNATIC/stargazers) [![GitHub issues](https://img.shields.io/github/issues/317gw/HYPERLUNATIC)](https://github.com/317gw/HYPERLUNATIC/issues) [![GitHub forks](https://img.shields.io/github/forks/317gw/HYPERLUNATIC)](https://github.com/317gw/HYPERLUNATIC/network)
 
