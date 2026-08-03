@@ -9,6 +9,7 @@ const CharacterRoster = preload("res://assets/maps/route_levels/character_roster
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
 const HomeFrameOverlay = preload("res://assets/maps/route_levels/mobile_home/home_frame_overlay.gd")
 const MapFrameOverlay = preload("res://assets/maps/route_levels/mobile_home/map_frame_overlay.gd")
+const TaskDetailSheet = preload("res://assets/maps/route_levels/mobile_home/task_detail_sheet.gd")
 
 const MAP_PREVIEW_FALLBACK := "res://assets/ddddd.png"
 const TAB_HOME := "home"
@@ -168,6 +169,7 @@ var _selected_planet_id := "glass_desert"
 var _guide_step := -1
 var _pause_overlay: MobilePauseOverlay
 var _energy_tick := 0.0
+var _task_detail: Control
 
 
 func _ready() -> void:
@@ -196,6 +198,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _character_story_overlay != null and is_instance_valid(_character_story_overlay):
 		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
 			_close_character_story()
+			get_viewport().set_input_as_handled()
+		return
+	if _task_detail != null and _task_detail.visible:
+		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+			_task_detail.close()
 			get_viewport().set_input_as_handled()
 		return
 	if _story_overlay != null and _story_overlay.visible:
@@ -389,6 +396,7 @@ func _build_ui() -> void:
 	scroll.add_child(_page_box)
 
 	_ensure_toast_layer()
+	_ensure_task_detail()
 
 	_home_overlay = Control.new()
 	_home_overlay.name = "HomeOverlay"
@@ -1848,22 +1856,37 @@ func _build_tasks_page() -> void:
 			MissionDispatch.BOARD_SLOT_COUNT,
 		]
 	)
-	if board.is_empty():
-		_add_card("任务板已清空", "当前批次可运输据点均已点亮。可从地图再次运输，或等待下一批次解锁。")
-	else:
-		var slot_index := 1
+	var missions_to_show: Array = []
+	if not board.is_empty():
 		for location_id in board:
-			var mission: Dictionary = cfg.get_mission_for_location(location_id) if cfg != null else {}
+			var mission: Dictionary = cfg.get_mission_for_location(String(location_id)) if cfg != null else {}
 			if mission.is_empty():
 				mission = {
-					"location_id": location_id,
+					"location_id": String(location_id),
 					"cargo_name": "运输物资",
 					"task_type": "Supply Run",
-					"order": slot_index * 10,
 					"difficulty": 1,
 				}
-			var planet_meta: Dictionary = PlanetDatabase.get_planet_meta(planet_id)
-			_add_mission_card(planet_meta, mission, slot_index, true)
+			missions_to_show.append(mission)
+	elif cfg != null and cfg.has_method("get_location_missions"):
+		# 任务板清空后仍展示已开放据点任务，便于再次运输 / 测详情
+		for mission in cfg.get_location_missions():
+			var location_id := String(mission.get("location_id", ""))
+			if location_id == "":
+				continue
+			if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id, unlocked_batch):
+				continue
+			missions_to_show.append(mission)
+
+	if missions_to_show.is_empty():
+		_add_card("任务板已清空", "当前批次可运输据点均已点亮。可从地图再次运输，或等待下一批次解锁。")
+	else:
+		if board.is_empty():
+			_add_muted_label(_page_box, "当前批次据点已全部点亮 · 以下为可再次运输任务")
+		var planet_meta: Dictionary = PlanetDatabase.get_planet_meta(planet_id)
+		var slot_index := 1
+		for mission in missions_to_show:
+			_add_mission_card(planet_meta, mission, slot_index, not board.is_empty())
 			slot_index += 1
 
 	_add_section_title("批次进度")
@@ -2669,6 +2692,55 @@ func _upgrade_messenger_stat(stat_id: String) -> void:
 	_show_toast("星火币不足，无法升级")
 
 
+func _ensure_task_detail() -> void:
+	if _task_detail != null:
+		return
+	_task_detail = TaskDetailSheet.new()
+	_task_detail.configure(MOBILE_VIEWPORT_SIZE, HOME_DESIGN_SIZE, _home_outpost_display_name)
+	_task_detail.accept_pressed.connect(_on_task_detail_accept)
+	_task_detail.closed.connect(_on_task_detail_closed)
+	_ui_root.add_child(_task_detail)
+
+
+func _open_task_detail(planet_id: String, mission: Dictionary) -> void:
+	_ensure_task_detail()
+	if _bottom_nav_root:
+		_bottom_nav_root.visible = false
+	_task_detail.open(planet_id, mission)
+
+
+func _on_task_detail_closed() -> void:
+	if _bottom_nav_root:
+		_bottom_nav_root.visible = true
+
+
+func _on_task_detail_accept(planet_id: String, location_id: String) -> void:
+	if planet_id == "" or location_id == "":
+		return
+	var completed := Global.get_completed_runner_locations(planet_id).has(location_id)
+	var is_active := Global.is_active_mission(planet_id, location_id)
+	if completed or is_active:
+		if _task_detail:
+			_task_detail.close()
+		_start_runner_for_location(planet_id, location_id)
+		return
+	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
+		_show_toast("该批次任务尚未解锁")
+		return
+	if not Global.get_revealed_exploration_locations(planet_id, MissionDispatch.get_batch1_location_ids(planet_id)).has(location_id):
+		_show_toast("需要先在地图中点亮据点")
+		return
+	Global.set_active_mission(planet_id, location_id)
+	_show_toast("已接取 · 可点 START RUN 出发")
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
+	var mission: Dictionary = cfg.get_mission_for_location(location_id) if cfg != null else {}
+	if mission.is_empty():
+		mission = {"location_id": location_id}
+	_open_task_detail(planet_id, mission)
+	if _selected_tab == TAB_TASKS:
+		_build_tasks_page()
+
+
 func _add_mission_card(
 	planet: Dictionary,
 	mission: Dictionary,
@@ -2690,8 +2762,13 @@ func _add_mission_card(
 
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.add_theme_stylebox_override("panel", _style(Color(0.08, 0.10, 0.13, 0.98), border_color, 2, 8))
 	_page_box.add_child(panel)
+	panel.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_open_task_detail(planet_id, mission.duplicate(true))
+	)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
@@ -2910,8 +2987,13 @@ func _add_home_hero(purify_pct: int) -> void:
 
 func _add_recommended_task_card(mission: Dictionary, planet_id: String, location_id: String) -> void:
 	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.add_theme_stylebox_override("panel", _style(UI_PANEL, Color(0.96, 0.58, 0.22), 2, 10))
 	_page_box.add_child(panel)
+	panel.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_open_task_detail(planet_id, mission.duplicate(true))
+	)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)

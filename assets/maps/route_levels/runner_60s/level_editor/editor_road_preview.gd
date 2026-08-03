@@ -94,30 +94,25 @@ func apply_environment(env: Environment, style_id: String) -> void:
 	if env == null:
 		return
 	var style := normalize_style(style_id)
+	# 编辑器可读性优先：亮天空 + 强环境光，避免赛道融进黑底
+	env.background_mode = Environment.BG_COLOR
+	env.glow_enabled = false
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	match style:
 		"holographic", "energy_neon", "alien_energy", "void_crystal":
-			env.background_mode = Environment.BG_COLOR
-			env.background_color = Color(0.02, 0.03, 0.06)
+			env.background_color = Color(0.38, 0.45, 0.52)
 			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-			env.ambient_light_color = Color(0.35, 0.55, 0.7)
-			env.ambient_light_energy = 0.85
-			env.glow_enabled = true
-			env.glow_intensity = 0.55
-			env.glow_strength = 1.1
-			env.glow_bloom = 0.22 if style != "energy_neon" else 0.28
-			env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+			env.ambient_light_color = Color(0.9, 0.95, 1.0)
+			env.ambient_light_energy = 1.4
 		"coarse_desert", "planet", "rust_metal":
-			env.background_mode = Environment.BG_COLOR
-			env.background_color = Color(0.18, 0.12, 0.08)
+			env.background_color = Color(0.55, 0.48, 0.38)
 			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-			env.ambient_light_color = Color(0.9, 0.72, 0.5)
-			env.ambient_light_energy = 1.05
-			env.glow_enabled = false
+			env.ambient_light_color = Color(1.0, 0.92, 0.78)
+			env.ambient_light_energy = 1.35
 		_:
-			env.background_mode = Environment.BG_COLOR
-			env.background_color = Color(0.08, 0.08, 0.1)
-			env.ambient_light_color = Color(0.7, 0.75, 0.85)
-			env.ambient_light_energy = 1.0
+			env.background_color = Color(0.42, 0.45, 0.48)
+			env.ambient_light_color = Color(0.92, 0.94, 0.96)
+			env.ambient_light_energy = 1.3
 
 
 func _fork_gaps(junctions: Array) -> Array:
@@ -244,6 +239,77 @@ func _add_start_pad(parent: Node3D, sample_path: Callable, kit: Dictionary, lane
 	_strip_segment(parent, sample_path, 0.0, 14.0, 0.06, lane_y + 0.016, kit["line"], 2.0, LANE_WIDTH, style_id)
 
 
+## samples: Array[{pos: Vector3, yaw: float, d?: float}] — 用于 Y 分叉右岔等额外支路
+func add_polyline_road(parent: Node3D, samples: Array, style_id: String) -> void:
+	if parent == null or samples.size() < 2:
+		return
+	var style := normalize_style(style_id)
+	var kit := _make_kit(style)
+	var lane_y := GROUND_Y - 0.05
+	var road_half := 6.0
+	_polyline_strip(parent, samples, road_half + 1.4, lane_y - 0.02, kit["island"], style)
+	_polyline_strip(parent, samples, road_half, lane_y, kit["road"], style)
+	_polyline_strip(parent, samples, 0.07, lane_y + 0.012, kit["curb"], style, -(road_half - 0.02))
+	_polyline_strip(parent, samples, 0.07, lane_y + 0.012, kit["curb"], style, road_half - 0.02)
+	_polyline_strip(parent, samples, 0.04, lane_y + 0.014, kit["line"], style, -LANE_WIDTH)
+	_polyline_strip(parent, samples, 0.04, lane_y + 0.014, kit["line"], style, LANE_WIDTH)
+
+
+func _polyline_strip(
+	parent: Node3D,
+	samples: Array,
+	half_width: float,
+	y: float,
+	material: Material,
+	style_id: String,
+	lateral_bias: float = 0.0
+) -> void:
+	if material == null or samples.size() < 2:
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array[Dictionary] = []
+	for i in samples.size():
+		var s: Dictionary = samples[i]
+		var pos: Vector3 = s.get("pos", Vector3.ZERO)
+		var yaw := float(s.get("yaw", 0.0))
+		var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
+		var right := forward.cross(Vector3.UP).normalized()
+		var origin := pos + right * lateral_bias
+		var L := origin - right * half_width
+		var R := origin + right * half_width
+		L.y = y
+		R.y = y
+		var d := float(s.get("d", float(i) * 2.0))
+		pts.append({"L": L, "R": R, "d": d})
+	var uv_scale := 0.14 if style_id == "holographic" else 0.09
+	for i in range(pts.size() - 1):
+		var a: Dictionary = pts[i]
+		var b: Dictionary = pts[i + 1]
+		var v0 := float(a["d"]) * uv_scale
+		var v1 := float(b["d"]) * uv_scale
+		st.set_normal(Vector3.UP)
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v0))
+		st.add_vertex(a["R"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v0))
+		st.add_vertex(a["L"])
+		st.set_uv(Vector2(1.0, v1))
+		st.add_vertex(b["R"])
+		st.set_uv(Vector2(0.0, v1))
+		st.add_vertex(b["L"])
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material
+	parent.add_child(mi)
+
+
 func _make_kit(style_id: String) -> Dictionary:
 	match style_id:
 		"holographic":
@@ -322,10 +388,10 @@ func _holographic_road() -> StandardMaterial3D:
 	if tex:
 		mat.albedo_texture = tex
 		mat.emission_texture = tex
-	mat.albedo_color = Color(0.45, 0.85, 0.95)
+	mat.albedo_color = Color(0.62, 0.95, 1.0)
 	mat.emission_enabled = true
-	mat.emission = Color(0.5, 0.98, 1.0)
-	mat.emission_energy_multiplier = 3.0
+	mat.emission = Color(0.55, 0.98, 1.0)
+	mat.emission_energy_multiplier = 5.0
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -338,10 +404,10 @@ func _energy_neon_road() -> StandardMaterial3D:
 	if tex:
 		mat.albedo_texture = tex
 		mat.emission_texture = tex
-	mat.albedo_color = Color(0.42, 0.82, 0.92)
+	mat.albedo_color = Color(0.55, 0.92, 1.0)
 	mat.emission_enabled = true
-	mat.emission = Color(0.32, 0.95, 1.0)
-	mat.emission_energy_multiplier = 3.2
+	mat.emission = Color(0.4, 0.98, 1.0)
+	mat.emission_energy_multiplier = 5.0
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS

@@ -712,34 +712,20 @@ func _junction_zones() -> Array:
 
 
 func _bake_track_path() -> void:
-	_path_samples.clear()
 	var segments: Array = _active_track_segments()
-	if segments.is_empty():
-		segments = [{"length": _track_length + 80.0, "turn": 0.0}]
-
-	var pos := Vector3.ZERO
-	var yaw := 0.0
-	var dist := 0.0
-	var step := 2.0
-	_path_samples.append({"d": 0.0, "pos": pos, "yaw": yaw})
-	for seg in segments:
-		var length := float(seg.get("length", 0.0))
-		var turn := float(seg.get("turn", 0.0))
-		if length <= 0.001:
-			continue
-		var steps := maxi(1, int(ceil(length / step)))
-		var ds := length / float(steps)
-		var dyaw := turn / float(steps)
-		for _i in steps:
-			yaw += dyaw
-			var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
-			pos += forward * ds
-			dist += ds
-			_path_samples.append({"d": dist, "pos": pos, "yaw": yaw})
-	_path_length = dist
+	var baked: Dictionary = ObstacleLayout.bake_path_from_segments(segments, 2.0)
+	_path_samples.clear()
+	for s in baked.get("samples", []):
+		if typeof(s) == TYPE_DICTIONARY:
+			_path_samples.append(s)
+	_path_length = float(baked.get("length", 0.0))
 	if _path_length < _track_length:
 		# 不足时直线补齐到终点
+		var pos: Vector3 = baked.get("end_pos", Vector3.ZERO)
+		var yaw := float(baked.get("end_yaw", 0.0))
+		var dist := _path_length
 		var remain := _track_length + 40.0 - _path_length
+		var step := 2.0
 		var steps2 := maxi(1, int(ceil(remain / step)))
 		var ds2 := remain / float(steps2)
 		var forward2 := Vector3(-sin(yaw), 0.0, -cos(yaw))
@@ -2362,6 +2348,7 @@ func _build_path_track() -> void:
 	_build_start_pad(kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y)
 	for zone in _junction_zones():
 		_build_fork_branch_roads(zone, kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["island"], lane_y)
+	_build_y_fork_branch_roads(kit, lane_y)
 
 
 func _build_side_runway_tracks() -> void:
@@ -3165,6 +3152,77 @@ func _build_path_road_slice(
 			post.position.y = GROUND_Y + 0.34
 			post.rotation.y = yaw
 			_attach_road(post)
+
+
+func _build_y_fork_branch_roads(kit: Dictionary, lane_y: float) -> void:
+	# 主路径已沿左岔；补画右岔实心路面
+	var segments: Array = _active_track_segments()
+	for entry in ObstacleLayout.segment_start_poses(segments, 2.0):
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = entry.get("segment", {})
+		if not ObstacleLayout.is_y_fork_segment(seg):
+			continue
+		var poly: Array = ObstacleLayout.bake_y_fork_branch_polyline(
+			entry.get("pos", Vector3.ZERO),
+			float(entry.get("yaw", 0.0)),
+			float(seg.get("branch_length", 55.0)),
+			float(seg.get("angle", deg_to_rad(45.0))),
+			-1.0,
+			2.0
+		)
+		var road_half := 6.0 if _road_style_id == "holographic" else 6.3
+		_attach_polyline_strip(poly, road_half + 1.4, lane_y - 0.012, kit.get("island", kit["shoulder"]))
+		_attach_polyline_strip(poly, road_half, lane_y, kit["road"])
+		if kit.get("line"):
+			_attach_polyline_strip(poly, 0.04, lane_y + 0.014, kit["line"], -LANE_WIDTH)
+			_attach_polyline_strip(poly, 0.04, lane_y + 0.014, kit["line"], LANE_WIDTH)
+		if kit.get("curb"):
+			_attach_polyline_strip(poly, 0.07, lane_y + 0.012, kit["curb"], -(road_half - 0.02))
+			_attach_polyline_strip(poly, 0.07, lane_y + 0.012, kit["curb"], road_half - 0.02)
+
+
+func _attach_polyline_strip(
+	samples: Array,
+	half_width: float,
+	y: float,
+	material: Material,
+	lateral_bias: float = 0.0
+) -> void:
+	if material == null or samples.size() < 2:
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array[Dictionary] = []
+	for i in samples.size():
+		var s: Dictionary = samples[i]
+		var pos: Vector3 = s.get("pos", Vector3.ZERO)
+		var yaw := float(s.get("yaw", 0.0))
+		var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
+		var right := forward.cross(Vector3.UP).normalized()
+		var origin := pos + right * lateral_bias
+		var L := origin - right * half_width
+		var R := origin + right * half_width
+		L.y = y
+		R.y = y
+		pts.append({"L": L, "R": R, "d": float(s.get("d", float(i) * 2.0))})
+	for i in range(pts.size() - 1):
+		var a: Dictionary = pts[i]
+		var b: Dictionary = pts[i + 1]
+		st.set_normal(Vector3.UP)
+		st.add_vertex(a["L"])
+		st.add_vertex(a["R"])
+		st.add_vertex(b["R"])
+		st.add_vertex(a["L"])
+		st.add_vertex(b["R"])
+		st.add_vertex(b["L"])
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material
+	_attach_road(mi)
 
 
 func _build_fork_branch_roads(

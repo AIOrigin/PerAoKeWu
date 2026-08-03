@@ -193,10 +193,202 @@ static func ramp_distance_for_side_zone(zone: Dictionary) -> float:
 
 
 static func normalize_track_segment(raw: Dictionary) -> Dictionary:
+	var seg_type := String(raw.get("type", ""))
+	if seg_type == "y_fork" or bool(raw.get("y_fork", false)):
+		var branch := float(raw.get("branch_length", 0.0))
+		if branch <= 0.001:
+			branch = maxf(float(raw.get("length", 100.0)) * 0.5, 10.0)
+		else:
+			branch = maxf(branch, 10.0)
+		var angle := deg_to_rad(45.0)
+		if raw.has("angle_deg"):
+			angle = deg_to_rad(float(raw.get("angle_deg", 45.0)))
+		elif raw.has("angle"):
+			angle = float(raw.get("angle"))
+			if absf(angle) > PI + 0.01:
+				angle = deg_to_rad(angle)
+		return {
+			"type": "y_fork",
+			"branch_length": branch,
+			"angle": angle,
+			# 沿一条可跑支路的路程：斜出 + 斜回收
+			"length": branch * 2.0,
+			"turn": 0.0,
+		}
 	return {
+		"type": "arc",
 		"length": maxf(float(raw.get("length", 40.0)), 1.0),
 		"turn": float(raw.get("turn", 0.0)),
 	}
+
+
+static func is_y_fork_segment(seg: Dictionary) -> bool:
+	return String(seg.get("type", "arc")) == "y_fork"
+
+
+## 从路段列表烘焙中心采样。Y 分叉主路径走左侧支路再汇合。
+## 返回 { samples: Array[{d,pos,yaw}], length: float, end_pos: Vector3, end_yaw: float }
+static func bake_path_from_segments(segments: Array, step: float = 2.0) -> Dictionary:
+	var samples: Array = []
+	var pos := Vector3.ZERO
+	var yaw := 0.0
+	var dist := 0.0
+	samples.append({"d": 0.0, "pos": pos, "yaw": yaw})
+	var segs: Array = segments
+	if segs.is_empty():
+		segs = [normalize_track_segment({"length": 80.0, "turn": 0.0})]
+	for raw in segs:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = normalize_track_segment(raw)
+		if is_y_fork_segment(seg):
+			var branch := float(seg.get("branch_length", 50.0))
+			var ang := float(seg.get("angle", deg_to_rad(45.0)))
+			var state := _bake_append_y_fork_side(samples, pos, yaw, dist, branch, ang, 1.0, step)
+			pos = state["pos"]
+			yaw = state["yaw"]
+			dist = state["dist"]
+		else:
+			var length := float(seg.get("length", 0.0))
+			var turn := float(seg.get("turn", 0.0))
+			if length <= 0.001:
+				continue
+			var state2 := _bake_append_arc(samples, pos, yaw, dist, length, turn, step)
+			pos = state2["pos"]
+			yaw = state2["yaw"]
+			dist = state2["dist"]
+	return {
+		"samples": samples,
+		"length": dist,
+		"end_pos": pos,
+		"end_yaw": yaw,
+	}
+
+
+## side_sign: +1 左岔（主路径），-1 右岔。从分叉口走完再回到原航向汇合点。
+static func bake_y_fork_branch_polyline(
+	start_pos: Vector3,
+	start_yaw: float,
+	branch_length: float,
+	angle: float,
+	side_sign: float,
+	step: float = 2.0
+) -> Array:
+	var samples: Array = []
+	var pos := start_pos
+	var yaw := start_yaw
+	var dist := 0.0
+	samples.append({"d": 0.0, "pos": pos, "yaw": yaw})
+	var state := _bake_append_y_fork_side(samples, pos, yaw, dist, branch_length, angle, side_sign, step)
+	return samples
+
+
+static func _bake_append_y_fork_side(
+	samples: Array,
+	pos: Vector3,
+	yaw: float,
+	dist: float,
+	branch_length: float,
+	angle: float,
+	side_sign: float,
+	step: float
+) -> Dictionary:
+	var y0 := yaw
+	var sign := 1.0 if side_sign >= 0.0 else -1.0
+	# 斜出：航向 = 原航向 ± angle
+	yaw = y0 + sign * angle
+	var s1 := _bake_append_straight(samples, pos, yaw, dist, branch_length, step)
+	pos = s1["pos"]
+	dist = s1["dist"]
+	# 斜回收：航向 = 原航向 ∓ angle，终点落在原中心线延长线上
+	yaw = y0 - sign * angle
+	var s2 := _bake_append_straight(samples, pos, yaw, dist, branch_length, step)
+	pos = s2["pos"]
+	dist = s2["dist"]
+	yaw = y0
+	if not samples.is_empty():
+		var last: Dictionary = samples[samples.size() - 1]
+		samples[samples.size() - 1] = {"d": last["d"], "pos": last["pos"], "yaw": yaw}
+	return {"pos": pos, "yaw": yaw, "dist": dist}
+
+
+static func _bake_append_straight(
+	samples: Array,
+	pos: Vector3,
+	yaw: float,
+	dist: float,
+	length: float,
+	step: float
+) -> Dictionary:
+	if length <= 0.001:
+		return {"pos": pos, "yaw": yaw, "dist": dist}
+	var steps := maxi(1, int(ceil(length / maxf(step, 0.5))))
+	var ds := length / float(steps)
+	var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	for _i in steps:
+		pos += forward * ds
+		dist += ds
+		samples.append({"d": dist, "pos": pos, "yaw": yaw})
+	return {"pos": pos, "yaw": yaw, "dist": dist}
+
+
+static func _bake_append_arc(
+	samples: Array,
+	pos: Vector3,
+	yaw: float,
+	dist: float,
+	length: float,
+	turn: float,
+	step: float
+) -> Dictionary:
+	if length <= 0.001:
+		return {"pos": pos, "yaw": yaw, "dist": dist}
+	var steps := maxi(1, int(ceil(length / maxf(step, 0.5))))
+	var ds := length / float(steps)
+	var dyaw := turn / float(steps)
+	for _i in steps:
+		yaw += dyaw
+		var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
+		pos += forward * ds
+		dist += ds
+		samples.append({"d": dist, "pos": pos, "yaw": yaw})
+	return {"pos": pos, "yaw": yaw, "dist": dist}
+
+
+## 沿路段推进，返回每个路段起点的位姿（用于画 Y 右岔等）
+static func segment_start_poses(segments: Array, step: float = 2.0) -> Array:
+	var out: Array = []
+	var pos := Vector3.ZERO
+	var yaw := 0.0
+	var dist := 0.0
+	for raw in segments:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = normalize_track_segment(raw)
+		out.append({"pos": pos, "yaw": yaw, "dist": dist, "segment": seg})
+		var scratch: Array = [{"d": dist, "pos": pos, "yaw": yaw}]
+		if is_y_fork_segment(seg):
+			var state := _bake_append_y_fork_side(
+				scratch, pos, yaw, dist,
+				float(seg.get("branch_length", 50.0)),
+				float(seg.get("angle", deg_to_rad(45.0))),
+				1.0,
+				step
+			)
+			pos = state["pos"]
+			yaw = state["yaw"]
+			dist = state["dist"]
+		else:
+			var state2 := _bake_append_arc(
+				scratch, pos, yaw, dist,
+				float(seg.get("length", 0.0)),
+				float(seg.get("turn", 0.0)),
+				step
+			)
+			pos = state2["pos"]
+			yaw = state2["yaw"]
+			dist = state2["dist"]
+	return out
 
 
 static func load_track_segments(layout_id: String) -> Array:

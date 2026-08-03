@@ -1,6 +1,6 @@
 extends Node3D
 
-## 跑酷关卡编辑器：沿路径拖拽/点击摆障碍，保存为 JSON 供正式关卡读取
+## 跑酷关卡编辑器：① 拼接赛道基准 → ② 在基准上摆障碍，保存为 JSON
 ## 打开方式：在 Godot 中打开本场景 → F6 运行当前场景
 
 const PlanetDatabase = preload("res://assets/maps/route_levels/planet_database.gd")
@@ -75,6 +75,11 @@ var _road_style_option: OptionButton
 var _dragging_marker := false
 var _drag_index := -1
 var _drag_lane_accum := 0.0
+var _ui_canvas_root: Control
+var _end_add_btn: Button
+var _end_add_marker: MeshInstance3D
+var _piece_picker: PopupPanel
+var _next_seg_len_spin: SpinBox
 
 ## 拖拽：按屏幕相对位移推进距离（避免透视下绝对射线过灵敏）
 const DRAG_DIST_PER_PX := 0.12
@@ -89,6 +94,17 @@ const DEFAULT_SAND_DPS := 9.0
 const DEFAULT_FORK_LENGTH := 100.0
 const DEFAULT_FORK_SPREAD := 20.0
 const DEFAULT_SEG_LENGTH := 80.0
+const DEFAULT_Y_FORK_BRANCH := 55.0
+const DEFAULT_Y_FORK_ANGLE_DEG := 45.0
+
+const EDIT_MODE_TRACK := "track"
+const EDIT_MODE_OBSTACLES := "obstacles"
+
+var _edit_mode := EDIT_MODE_TRACK
+var _mode_tabs: TabBar
+var _track_panel: VBoxContainer
+var _obstacle_panel: VBoxContainer
+var _phase_hint: Label
 
 
 func _ready() -> void:
@@ -96,6 +112,9 @@ func _ready() -> void:
 	_setup_world()
 	_planet_id = "glass_desert"
 	_load_planet(_planet_id)
+	# 新建编辑：从一条初始直线开始，在尽头点「＋」接下一段
+	_reset_to_initial_straight(false)
+	_set_edit_mode(EDIT_MODE_TRACK)
 	_refresh_all()
 
 
@@ -109,12 +128,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_cursor_d(_cursor_d - (8.0 if not Input.is_key_pressed(KEY_SHIFT) else 2.0))
 			get_viewport().set_input_as_handled()
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			if _try_pick_marker(mb.position):
-				_dragging_marker = true
-				_drag_lane_accum = 0.0
-				get_viewport().set_input_as_handled()
-			elif _try_place_at_mouse(mb.position):
-				get_viewport().set_input_as_handled()
+			if _edit_mode == EDIT_MODE_OBSTACLES:
+				if _try_pick_marker(mb.position):
+					_dragging_marker = true
+					_drag_lane_accum = 0.0
+					get_viewport().set_input_as_handled()
+				elif _try_place_at_mouse(mb.position):
+					get_viewport().set_input_as_handled()
+			elif _edit_mode == EDIT_MODE_TRACK:
+				# 拼赛道阶段：点地只移动游标，不摆障碍
+				if _try_set_cursor_at_mouse(mb.position):
+					get_viewport().set_input_as_handled()
 		elif mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
 			if _dragging_marker:
 				_items = ObstacleLayout.sort_items(_items)
@@ -124,7 +148,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drag_index = -1
 			_drag_lane_accum = 0.0
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			if _try_delete_at_mouse(mb.position):
+			if _edit_mode == EDIT_MODE_OBSTACLES and _try_delete_at_mouse(mb.position):
 				get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and _dragging_marker and _drag_index >= 0:
 		var mm := event as InputEventMouseMotion
@@ -138,47 +162,82 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_D, KEY_RIGHT:
 				_set_cursor_d(_cursor_d + (12.0 if not key.shift_pressed else 3.0))
 			KEY_Q:
-				_set_lane_index(maxi(_lane_index - 1, 0))
+				if _edit_mode == EDIT_MODE_OBSTACLES:
+					_set_lane_index(maxi(_lane_index - 1, 0))
 			KEY_E:
-				_set_lane_index(mini(_lane_index + 1, 2))
+				if _edit_mode == EDIT_MODE_OBSTACLES:
+					_set_lane_index(mini(_lane_index + 1, 2))
+			KEY_TAB:
+				if not key.ctrl_pressed and not key.alt_pressed:
+					_set_edit_mode(EDIT_MODE_OBSTACLES if _edit_mode == EDIT_MODE_TRACK else EDIT_MODE_TRACK)
+					get_viewport().set_input_as_handled()
 			KEY_SPACE, KEY_ENTER:
-				_place_at_cursor()
+				if _edit_mode == EDIT_MODE_OBSTACLES:
+					_place_at_cursor()
+				else:
+					_open_piece_picker()
 			KEY_DELETE, KEY_BACKSPACE:
-				_delete_selected()
+				if _edit_mode == EDIT_MODE_OBSTACLES:
+					_delete_selected()
+				elif _selected_seg >= 0:
+					_delete_selected_seg()
+				elif _selected_fork >= 0:
+					_delete_selected_fork()
 			KEY_S:
 				if key.ctrl_pressed:
 					_save_layout()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
-				var idx := key.keycode - KEY_1
-				if idx >= 0 and idx < PLACE_TYPES.size():
-					_set_place_type(PLACE_TYPES[idx])
+				if _edit_mode == EDIT_MODE_OBSTACLES:
+					var idx := key.keycode - KEY_1
+					if idx >= 0 and idx < PLACE_TYPES.size():
+						_set_place_type(PLACE_TYPES[idx])
 
 
 func _process(_delta: float) -> void:
 	_update_camera()
 	_update_cursor_marker()
+	_update_end_add_affordance()
 
 
 func _setup_world() -> void:
 	_world_environment = WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.02, 0.03, 0.06)
+	# 编辑器需要高对比：亮背景 + 强环境光，避免赛道「融进黑底」
+	environment.background_color = Color(0.42, 0.48, 0.55)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.35, 0.55, 0.7)
-	environment.ambient_light_energy = 0.9
-	environment.glow_enabled = true
-	environment.glow_intensity = 0.5
-	environment.glow_strength = 1.05
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.ambient_light_color = Color(0.92, 0.95, 1.0)
+	environment.ambient_light_energy = 1.35
+	environment.glow_enabled = false
+	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	_world_environment.environment = environment
 	add_child(_world_environment)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-48, 30, 0)
-	sun.light_energy = 1.35
-	sun.light_color = Color(0.85, 0.92, 1.0)
+	sun.rotation_degrees = Vector3(-55, 35, 0)
+	sun.light_energy = 1.8
+	sun.light_color = Color(1.0, 0.98, 0.92)
+	sun.shadow_enabled = false
 	add_child(sun)
+
+	var fill := DirectionalLight3D.new()
+	fill.rotation_degrees = Vector3(-20, -120, 0)
+	fill.light_energy = 0.55
+	fill.light_color = Color(0.75, 0.85, 1.0)
+	add_child(fill)
+
+	# 地面参考面，方便判断方向与距离
+	var ground := MeshInstance3D.new()
+	ground.name = "EditorGround"
+	var ground_mesh := PlaneMesh.new()
+	ground_mesh.size = Vector2(4000, 4000)
+	ground.mesh = ground_mesh
+	var ground_mat := StandardMaterial3D.new()
+	ground_mat.albedo_color = Color(0.55, 0.58, 0.52)
+	ground_mat.roughness = 1.0
+	ground.material_override = ground_mat
+	ground.position.y = GROUND_Y - 0.08
+	add_child(ground)
 
 	_track_root = Node3D.new()
 	_track_root.name = "TrackRoot"
@@ -197,12 +256,12 @@ func _setup_world() -> void:
 	add_child(_fork_root)
 
 	_camera = Camera3D.new()
-	_camera.fov = 48.0
+	_camera.fov = 55.0
 	_camera.near = 0.15
 	_camera.far = 4000.0
 	_camera.current = true
 	# 左侧面板约占视口，水平偏移让跑道落在右侧可见区中心
-	_camera.h_offset = 3.2
+	_camera.h_offset = 4.5
 	add_child(_camera)
 
 	_cursor_marker = MeshInstance3D.new()
@@ -218,6 +277,21 @@ func _setup_world() -> void:
 	_cursor_marker.mesh = cm
 	add_child(_cursor_marker)
 
+	_end_add_marker = MeshInstance3D.new()
+	_end_add_marker.name = "EndAddMarker"
+	var em := BoxMesh.new()
+	em.size = Vector3(3.2, 0.35, 3.2)
+	var emat := StandardMaterial3D.new()
+	emat.albedo_color = Color(0.2, 1.0, 0.45, 0.95)
+	emat.emission_enabled = true
+	emat.emission = Color(0.2, 1.0, 0.5)
+	emat.emission_energy_multiplier = 4.0
+	emat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	emat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	em.material = emat
+	_end_add_marker.mesh = em
+	add_child(_end_add_marker)
+
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new()
@@ -228,31 +302,47 @@ func _build_ui() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
+	_ui_canvas_root = root
 
 	var panel := PanelContainer.new()
-	panel.position = Vector2(16, 16)
-	panel.custom_minimum_size = Vector2(380, 720)
+	panel.position = Vector2(12, 12)
+	panel.custom_minimum_size = Vector2(420, 780)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.08, 0.10, 0.14, 0.96)
+	panel_style.border_color = Color(0.75, 0.88, 1.0, 0.85)
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(10)
+	panel_style.content_margin_left = 12
+	panel_style.content_margin_right = 12
+	panel_style.content_margin_top = 10
+	panel_style.content_margin_bottom = 10
+	panel_style.shadow_color = Color(0, 0, 0, 0.45)
+	panel_style.shadow_size = 12
+	panel.add_theme_stylebox_override("panel", panel_style)
 	root.add_child(panel)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(380, 720)
+	scroll.custom_minimum_size = Vector2(396, 760)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	panel.add_child(scroll)
 
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 10)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(v)
 
 	var title := Label.new()
 	title.text = "跑酷关卡编辑器"
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	v.add_child(title)
 
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status.text = "滚轮/A·D 移动 · 左键点地放置或拖拽（Shift 微调） · 右键删除 · Ctrl+S 保存"
+	_status.add_theme_font_size_override("font_size", 15)
+	_status.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
+	_status.text = "滚轮/A·D 移动 · Tab 切阶段 · Ctrl+S 保存"
 	v.add_child(_status)
 
 	v.add_child(_make_label("星球"))
@@ -281,16 +371,69 @@ func _build_ui() -> void:
 	)
 	v.add_child(_road_style_option)
 
-	v.add_child(_make_label("跑道路线（折线段）"))
+	# —— 两阶段：① 拼赛道 → ② 摆障碍 ——
+	_mode_tabs = TabBar.new()
+	_mode_tabs.add_tab("① 拼赛道")
+	_mode_tabs.add_tab("② 摆障碍")
+	_mode_tabs.add_theme_font_size_override("font_size", 18)
+	_mode_tabs.tab_changed.connect(func(i: int) -> void:
+		_set_edit_mode(EDIT_MODE_TRACK if i == 0 else EDIT_MODE_OBSTACLES)
+	)
+	v.add_child(_mode_tabs)
+
+	_phase_hint = Label.new()
+	_phase_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_phase_hint.add_theme_font_size_override("font_size", 15)
+	_phase_hint.add_theme_color_override("font_color", Color(1.0, 0.95, 0.55))
+	v.add_child(_phase_hint)
+
+	_track_panel = VBoxContainer.new()
+	_track_panel.name = "TrackPanel"
+	_track_panel.add_theme_constant_override("separation", 8)
+	_track_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(_track_panel)
+
+	_obstacle_panel = VBoxContainer.new()
+	_obstacle_panel.name = "ObstaclePanel"
+	_obstacle_panel.add_theme_constant_override("separation", 8)
+	_obstacle_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_obstacle_panel.visible = false
+	v.add_child(_obstacle_panel)
+
+	_track_panel.add_child(_make_label("拼赛道：尽头「＋」接下一段"))
 	var seg_hint := Label.new()
 	seg_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	seg_hint.add_theme_font_size_override("font_size", 11)
-	seg_hint.modulate = Color(0.75, 0.82, 0.9)
-	seg_hint.text = "先点选列表中的路段（不是场景里的障碍）。「插到选中后」会加在该段终点之后；插入后相机会跳到新段。上面「长/转」改完需点「应用到选中段」才会改已有段。"
-	v.add_child(seg_hint)
+	seg_hint.add_theme_font_size_override("font_size", 14)
+	seg_hint.add_theme_color_override("font_color", Color(0.85, 0.9, 0.98))
+	seg_hint.text = "初始一条直线。点尽头「＋」选下一段。分叉是 Y 字：±45° 两条斜路，汇合后再接直线。"
+	_track_panel.add_child(seg_hint)
+
+	var next_len_row := HBoxContainer.new()
+	next_len_row.add_theme_constant_override("separation", 6)
+	_track_panel.add_child(next_len_row)
+	next_len_row.add_child(_make_label("下一段直线长"))
+	_next_seg_len_spin = SpinBox.new()
+	_next_seg_len_spin.min_value = 5.0
+	_next_seg_len_spin.max_value = 800.0
+	_next_seg_len_spin.step = 1.0
+	_next_seg_len_spin.value = DEFAULT_SEG_LENGTH
+	_next_seg_len_spin.prefix = "m"
+	_next_seg_len_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	next_len_row.add_child(_next_seg_len_spin)
+
+	var end_add_row := HBoxContainer.new()
+	end_add_row.add_theme_constant_override("separation", 4)
+	_track_panel.add_child(end_add_row)
+	end_add_row.add_child(_make_button("＋ 添加下一段…", _open_piece_picker))
+	end_add_row.add_child(_make_button("跳到尽头", func() -> void:
+		_set_cursor_d(_path_length)
+		_flash_status("已跳到赛道尽头")
+	))
+
+	_track_panel.add_child(_make_label("已有路段（选中可改长/转）"))
 	var seg_params := HBoxContainer.new()
 	seg_params.add_theme_constant_override("separation", 6)
-	v.add_child(seg_params)
+	_track_panel.add_child(seg_params)
 	_seg_len_spin = SpinBox.new()
 	_seg_len_spin.min_value = 5.0
 	_seg_len_spin.max_value = 800.0
@@ -307,62 +450,38 @@ func _build_ui() -> void:
 	_seg_turn_spin.prefix = "转°"
 	_seg_turn_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	seg_params.add_child(_seg_turn_spin)
-	var seg_apply_row := HBoxContainer.new()
-	seg_apply_row.add_theme_constant_override("separation", 4)
-	v.add_child(seg_apply_row)
-	seg_apply_row.add_child(_make_button("应用到选中段", _apply_seg_params_to_selected))
-	var seg_btns := HBoxContainer.new()
-	seg_btns.add_theme_constant_override("separation", 4)
-	v.add_child(seg_btns)
-	seg_btns.add_child(_make_button("直线", func() -> void: _add_track_segment(DEFAULT_SEG_LENGTH, 0.0)))
-	seg_btns.add_child(_make_button("左转90", func() -> void: _add_track_segment(45.0, 90.0)))
-	seg_btns.add_child(_make_button("右转90", func() -> void: _add_track_segment(45.0, -90.0)))
-	var seg_btns2 := HBoxContainer.new()
-	seg_btns2.add_theme_constant_override("separation", 4)
-	v.add_child(seg_btns2)
-	seg_btns2.add_child(_make_button("左转45", func() -> void: _add_track_segment(40.0, 45.0)))
-	seg_btns2.add_child(_make_button("右转45", func() -> void: _add_track_segment(40.0, -45.0)))
-	seg_btns2.add_child(_make_button("删段", _delete_selected_seg))
-	var seg_btns_ins := HBoxContainer.new()
-	seg_btns_ins.add_theme_constant_override("separation", 4)
-	v.add_child(seg_btns_ins)
-	seg_btns_ins.add_child(_make_button("插到选中前", func() -> void:
-		_add_track_segment(float(_seg_len_spin.value), float(_seg_turn_spin.value), "before")
-	))
-	seg_btns_ins.add_child(_make_button("插到选中后", func() -> void:
-		_add_track_segment(float(_seg_len_spin.value), float(_seg_turn_spin.value), "after")
-	))
-	seg_btns_ins.add_child(_make_button("末尾追加", func() -> void:
-		_add_track_segment(float(_seg_len_spin.value), float(_seg_turn_spin.value), "append")
-	))
-	var seg_btns_move := HBoxContainer.new()
-	seg_btns_move.add_theme_constant_override("separation", 4)
-	v.add_child(seg_btns_move)
-	seg_btns_move.add_child(_make_button("上移", func() -> void: _move_selected_seg(-1)))
-	seg_btns_move.add_child(_make_button("下移", func() -> void: _move_selected_seg(1)))
+	var seg_edit_row := HBoxContainer.new()
+	seg_edit_row.add_theme_constant_override("separation", 4)
+	_track_panel.add_child(seg_edit_row)
+	seg_edit_row.add_child(_make_button("应用到选中段", _apply_seg_params_to_selected))
+	seg_edit_row.add_child(_make_button("删选中段", _delete_selected_seg))
 	var seg_btns3 := HBoxContainer.new()
 	seg_btns3.add_theme_constant_override("separation", 4)
-	v.add_child(seg_btns3)
+	_track_panel.add_child(seg_btns3)
+	seg_btns3.add_child(_make_button("重置为初始直线", func() -> void: _reset_to_initial_straight(true)))
 	seg_btns3.add_child(_make_button("载入默认路线", _load_default_track_segments))
-	seg_btns3.add_child(_make_button("清空路线", _clear_track_segments))
 	_seg_list = ItemList.new()
 	_seg_list.name = "TrackSegList"
-	_seg_list.custom_minimum_size = Vector2(0, 90)
+	_seg_list.custom_minimum_size = Vector2(0, 110)
 	_seg_list.item_selected.connect(func(i: int) -> void:
 		_selected_seg = i
 		if i >= 0 and i < _track_segments.size():
 			var s: Dictionary = _track_segments[i]
-			_seg_len_spin.set_value_no_signal(float(s.get("length", DEFAULT_SEG_LENGTH)))
-			_seg_turn_spin.set_value_no_signal(rad_to_deg(float(s.get("turn", 0.0))))
+			if ObstacleLayout.is_y_fork_segment(s):
+				_seg_len_spin.set_value_no_signal(float(s.get("branch_length", DEFAULT_Y_FORK_BRANCH)))
+				_seg_turn_spin.set_value_no_signal(rad_to_deg(float(s.get("angle", deg_to_rad(DEFAULT_Y_FORK_ANGLE_DEG)))))
+			else:
+				_seg_len_spin.set_value_no_signal(float(s.get("length", DEFAULT_SEG_LENGTH)))
+				_seg_turn_spin.set_value_no_signal(rad_to_deg(float(s.get("turn", 0.0))))
 			_jump_cursor_to_segment(i)
 		_update_status()
 	)
-	v.add_child(_seg_list)
+	_track_panel.add_child(_seg_list)
 
-	v.add_child(_make_label("分叉区（Y 形岔路）"))
+	_track_panel.add_child(_make_label("旧版横向分叉区（可选，不同于 Y 字路口）"))
 	var fork_params := HBoxContainer.new()
 	fork_params.add_theme_constant_override("separation", 6)
-	v.add_child(fork_params)
+	_track_panel.add_child(fork_params)
 	_fork_len_spin = SpinBox.new()
 	_fork_len_spin.min_value = 30.0
 	_fork_len_spin.max_value = 300.0
@@ -387,12 +506,12 @@ func _build_ui() -> void:
 	fork_params.add_child(_fork_spread_spin)
 	var fork_btns := HBoxContainer.new()
 	fork_btns.add_theme_constant_override("separation", 4)
-	v.add_child(fork_btns)
+	_track_panel.add_child(fork_btns)
 	fork_btns.add_child(_make_button("在游标处分叉", _add_fork_at_cursor))
 	fork_btns.add_child(_make_button("删分叉", _delete_selected_fork))
 	var fork_btns2 := HBoxContainer.new()
 	fork_btns2.add_theme_constant_override("separation", 4)
-	v.add_child(fork_btns2)
+	_track_panel.add_child(fork_btns2)
 	fork_btns2.add_child(_make_button("载入默认分叉", _load_default_junctions))
 	fork_btns2.add_child(_make_button("清空分叉", _clear_junctions))
 	_fork_list = ItemList.new()
@@ -408,88 +527,12 @@ func _build_ui() -> void:
 		_refresh_fork_visuals()
 		_update_status()
 	)
-	v.add_child(_fork_list)
+	_track_panel.add_child(_fork_list)
 
-	v.add_child(_make_label("障碍类型（1-9 快捷键）"))
-	_type_option = OptionButton.new()
-	for t in PLACE_TYPES:
-		_type_option.add_item(t)
-	_type_option.item_selected.connect(func(i: int) -> void:
-		_place_type = PLACE_TYPES[i]
-		_update_status()
-	)
-	v.add_child(_type_option)
-
-	v.add_child(_make_label("车道（Q/E）"))
-	_lane_option = OptionButton.new()
-	_lane_option.add_item("左道 (-1)", 0)
-	_lane_option.add_item("中道 (0)", 1)
-	_lane_option.add_item("右道 (1)", 2)
-	_lane_option.select(1)
-	_lane_option.item_selected.connect(func(i: int) -> void:
-		_set_lane_index(i)
-	)
-	v.add_child(_lane_option)
-
-	v.add_child(_make_label("当前距离"))
-	var dist_row := HBoxContainer.new()
-	v.add_child(dist_row)
-	_dist_spin = SpinBox.new()
-	_dist_spin.min_value = 0.0
-	_dist_spin.max_value = 5000.0
-	_dist_spin.step = 1.0
-	_dist_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_dist_spin.value_changed.connect(func(v: float) -> void:
-		_set_cursor_d(v, false)
-	)
-	dist_row.add_child(_dist_spin)
-
-	_dist_slider = HSlider.new()
-	_dist_slider.min_value = 0.0
-	_dist_slider.max_value = 1200.0
-	_dist_slider.step = 1.0
-	_dist_slider.value_changed.connect(func(v: float) -> void:
-		_set_cursor_d(v, false)
-	)
-	v.add_child(_dist_slider)
-
-	var btn_row := HBoxContainer.new()
-	btn_row.add_theme_constant_override("separation", 6)
-	v.add_child(btn_row)
-	btn_row.add_child(_make_button("放置 (Space)", _place_at_cursor))
-	btn_row.add_child(_make_button("删除选中", _delete_selected))
-
-	var btn_row2 := HBoxContainer.new()
-	btn_row2.add_theme_constant_override("separation", 6)
-	v.add_child(btn_row2)
-	btn_row2.add_child(_make_button("保存为关卡", _save_layout))
-	btn_row2.add_child(_make_button("重新加载", _reload_layout))
-
-	var btn_row3 := HBoxContainer.new()
-	btn_row3.add_theme_constant_override("separation", 6)
-	v.add_child(btn_row3)
-	btn_row3.add_child(_make_button("载入默认表", _load_defaults_from_code))
-	btn_row3.add_child(_make_button("清空", func() -> void:
-		_items.clear()
-		_side_zones.clear()
-		_sand_zones.clear()
-		_selected = -1
-		_selected_side = -1
-		_selected_sand = -1
-		_dirty = true
-		_refresh_markers()
-		_refresh_side_visuals()
-		_refresh_sand_visuals()
-		_refresh_list()
-		_refresh_side_list()
-		_refresh_sand_list()
-		_update_status()
-	))
-
-	v.add_child(_make_label("侧边跑道（墙跑）"))
+	_track_panel.add_child(_make_label("侧向跑道（墙跑基准）"))
 	var side_row := HBoxContainer.new()
 	side_row.add_theme_constant_override("separation", 6)
-	v.add_child(side_row)
+	_track_panel.add_child(side_row)
 	_side_side_option = OptionButton.new()
 	_side_side_option.add_item("外径 outer", 0)
 	_side_side_option.add_item("左侧 left", 1)
@@ -505,13 +548,12 @@ func _build_ui() -> void:
 	side_row.add_child(_side_length_spin)
 	var side_btns := HBoxContainer.new()
 	side_btns.add_theme_constant_override("separation", 6)
-	v.add_child(side_btns)
+	_track_panel.add_child(side_btns)
 	side_btns.add_child(_make_button("添加侧墙", _add_side_zone_at_cursor))
-	side_btns.add_child(_make_button("侧墙套件", _add_side_kit_at_cursor))
+	side_btns.add_child(_make_button("删侧墙", _delete_selected_side))
 	var side_btns2 := HBoxContainer.new()
 	side_btns2.add_theme_constant_override("separation", 6)
-	v.add_child(side_btns2)
-	side_btns2.add_child(_make_button("删侧墙", _delete_selected_side))
+	_track_panel.add_child(side_btns2)
 	side_btns2.add_child(_make_button("载入默认侧墙", _load_default_side_zones))
 	_side_list = ItemList.new()
 	_side_list.name = "SideZoneList"
@@ -525,18 +567,119 @@ func _build_ui() -> void:
 			_select_side_option_from_zone(z)
 		_refresh_side_visuals()
 	)
-	v.add_child(_side_list)
+	_track_panel.add_child(_side_list)
 	var side_hint := Label.new()
 	side_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	side_hint.add_theme_font_size_override("font_size", 11)
-	side_hint.modulate = Color(0.8, 0.85, 0.7)
-	side_hint.text = "「侧墙套件」= 侧墙 + ramp + main_block；单独放 main_block 也会自动补侧墙与跳板"
-	v.add_child(side_hint)
+	side_hint.add_theme_font_size_override("font_size", 14)
+	side_hint.add_theme_color_override("font_color", Color(0.9, 0.95, 0.75))
+	side_hint.text = "侧墙属赛道基准。要「侧墙+跳板+主挡」请切②摆障碍。"
+	_track_panel.add_child(side_hint)
 
-	v.add_child(_make_label("沙尘暴"))
+	_track_panel.add_child(_make_label("游标距离（拼路时定位）"))
+	var track_dist_row := HBoxContainer.new()
+	_track_panel.add_child(track_dist_row)
+	var track_dist_spin_proxy := SpinBox.new()
+	track_dist_spin_proxy.min_value = 0.0
+	track_dist_spin_proxy.max_value = 5000.0
+	track_dist_spin_proxy.step = 1.0
+	track_dist_spin_proxy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track_dist_spin_proxy.value_changed.connect(func(vv: float) -> void:
+		_set_cursor_d(vv, false)
+		if _dist_spin:
+			_dist_spin.set_value_no_signal(vv)
+		if _dist_slider:
+			_dist_slider.set_value_no_signal(vv)
+	)
+	# 与障碍页共用同一套距离控件：稍后创建正式 _dist_spin/_dist_slider
+	_track_panel.set_meta("pending_dist_spin", track_dist_spin_proxy)
+	track_dist_row.add_child(track_dist_spin_proxy)
+
+	var go_obs := _make_button("赛道拼好了 → 去摆障碍", func() -> void:
+		_set_edit_mode(EDIT_MODE_OBSTACLES)
+	)
+	_track_panel.add_child(go_obs)
+
+	# ——— 障碍阶段面板 ———
+	_obstacle_panel.add_child(_make_label("在已拼好的赛道基准上放置障碍"))
+	var obs_hint := Label.new()
+	obs_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	obs_hint.add_theme_font_size_override("font_size", 14)
+	obs_hint.add_theme_color_override("font_color", Color(0.85, 0.92, 1.0))
+	obs_hint.text = "左键放置/拖拽 · 右键删除 · Space 放置 · 1-9 选类型。"
+	_obstacle_panel.add_child(obs_hint)
+
+	_obstacle_panel.add_child(_make_label("障碍类型（1-9 快捷键）"))
+	_type_option = OptionButton.new()
+	for t in PLACE_TYPES:
+		_type_option.add_item(t)
+	_type_option.item_selected.connect(func(i: int) -> void:
+		_place_type = PLACE_TYPES[i]
+		_update_status()
+	)
+	_obstacle_panel.add_child(_type_option)
+
+	_obstacle_panel.add_child(_make_label("车道（Q/E）"))
+	_lane_option = OptionButton.new()
+	_lane_option.add_item("左道 (-1)", 0)
+	_lane_option.add_item("中道 (0)", 1)
+	_lane_option.add_item("右道 (1)", 2)
+	_lane_option.select(1)
+	_lane_option.item_selected.connect(func(i: int) -> void:
+		_set_lane_index(i)
+	)
+	_obstacle_panel.add_child(_lane_option)
+
+	_obstacle_panel.add_child(_make_label("当前距离"))
+	var dist_row := HBoxContainer.new()
+	_obstacle_panel.add_child(dist_row)
+	_dist_spin = SpinBox.new()
+	_dist_spin.min_value = 0.0
+	_dist_spin.max_value = 5000.0
+	_dist_spin.step = 1.0
+	_dist_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_dist_spin.value_changed.connect(func(vv: float) -> void:
+		_set_cursor_d(vv, false)
+		var pending: SpinBox = _track_panel.get_meta("pending_dist_spin") if _track_panel and _track_panel.has_meta("pending_dist_spin") else null
+		if pending:
+			pending.set_value_no_signal(vv)
+	)
+	dist_row.add_child(_dist_spin)
+	# 同步拼赛道页的距离框
+	var pending_spin: SpinBox = _track_panel.get_meta("pending_dist_spin")
+	if pending_spin:
+		pending_spin.value = _cursor_d
+
+	_dist_slider = HSlider.new()
+	_dist_slider.min_value = 0.0
+	_dist_slider.max_value = 1200.0
+	_dist_slider.step = 1.0
+	_dist_slider.value_changed.connect(func(vv: float) -> void:
+		_set_cursor_d(vv, false)
+	)
+	_obstacle_panel.add_child(_dist_slider)
+
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 6)
+	_obstacle_panel.add_child(btn_row)
+	btn_row.add_child(_make_button("放置 (Space)", _place_at_cursor))
+	btn_row.add_child(_make_button("删除选中", _delete_selected))
+
+	_obstacle_panel.add_child(_make_label("侧墙套件（障碍辅助）"))
+	var kit_row := HBoxContainer.new()
+	kit_row.add_theme_constant_override("separation", 6)
+	_obstacle_panel.add_child(kit_row)
+	kit_row.add_child(_make_button("侧墙套件", _add_side_kit_at_cursor))
+	var kit_hint := Label.new()
+	kit_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	kit_hint.add_theme_font_size_override("font_size", 11)
+	kit_hint.modulate = Color(0.8, 0.85, 0.7)
+	kit_hint.text = "套件 = 侧墙 + ramp + main_block；单独放 main_block 也会自动补侧墙与跳板"
+	_obstacle_panel.add_child(kit_hint)
+
+	_obstacle_panel.add_child(_make_label("沙尘暴"))
 	var sand_row := HBoxContainer.new()
 	sand_row.add_theme_constant_override("separation", 6)
-	v.add_child(sand_row)
+	_obstacle_panel.add_child(sand_row)
 	_sand_lanes_option = OptionButton.new()
 	_sand_lanes_option.add_item("占1列", 1)
 	_sand_lanes_option.add_item("占2列", 2)
@@ -560,7 +703,7 @@ func _build_ui() -> void:
 	sand_row.add_child(_sand_lane_option)
 	var sand_row2 := HBoxContainer.new()
 	sand_row2.add_theme_constant_override("separation", 6)
-	v.add_child(sand_row2)
+	_obstacle_panel.add_child(sand_row2)
 	_sand_length_spin = SpinBox.new()
 	_sand_length_spin.min_value = 10.0
 	_sand_length_spin.max_value = 300.0
@@ -568,8 +711,8 @@ func _build_ui() -> void:
 	_sand_length_spin.value = DEFAULT_SAND_LENGTH
 	_sand_length_spin.prefix = "长"
 	_sand_length_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_sand_length_spin.value_changed.connect(func(v: float) -> void:
-		_apply_sand_params_to_selected({"length": v})
+	_sand_length_spin.value_changed.connect(func(vv: float) -> void:
+		_apply_sand_params_to_selected({"length": vv})
 	)
 	sand_row2.add_child(_sand_length_spin)
 	_sand_dps_spin = SpinBox.new()
@@ -578,18 +721,18 @@ func _build_ui() -> void:
 	_sand_dps_spin.step = 0.5
 	_sand_dps_spin.value = DEFAULT_SAND_DPS
 	_sand_dps_spin.prefix = "DPS"
-	_sand_dps_spin.value_changed.connect(func(v: float) -> void:
-		_apply_sand_params_to_selected({"dps": v})
+	_sand_dps_spin.value_changed.connect(func(vv: float) -> void:
+		_apply_sand_params_to_selected({"dps": vv})
 	)
 	sand_row2.add_child(_sand_dps_spin)
 	var sand_btns := HBoxContainer.new()
 	sand_btns.add_theme_constant_override("separation", 6)
-	v.add_child(sand_btns)
+	_obstacle_panel.add_child(sand_btns)
 	sand_btns.add_child(_make_button("添加沙尘暴", _add_sand_zone_at_cursor))
 	sand_btns.add_child(_make_button("删沙尘暴", _delete_selected_sand))
 	var sand_btns2 := HBoxContainer.new()
 	sand_btns2.add_theme_constant_override("separation", 6)
-	v.add_child(sand_btns2)
+	_obstacle_panel.add_child(sand_btns2)
 	sand_btns2.add_child(_make_button("载入默认沙尘暴", _load_default_sand_zones))
 	_sand_list = ItemList.new()
 	_sand_list.name = "SandZoneList"
@@ -606,14 +749,62 @@ func _build_ui() -> void:
 				_sand_dps_spin.set_value_no_signal(float(z.get("dps", DEFAULT_SAND_DPS)))
 		_refresh_sand_visuals()
 	)
-	v.add_child(_sand_list)
+	_obstacle_panel.add_child(_sand_list)
 	var sand_hint := Label.new()
 	sand_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sand_hint.add_theme_font_size_override("font_size", 11)
 	sand_hint.modulate = Color(0.95, 0.8, 0.55)
 	sand_hint.text = "占2列时「左道起」=左+中，「中道起」=中+右；占3列时覆盖全宽"
-	v.add_child(sand_hint)
+	_obstacle_panel.add_child(sand_hint)
 	_sync_sand_lane_option_enabled()
+
+	_obstacle_panel.add_child(_make_label("障碍列表（点击选中）"))
+	_list = ItemList.new()
+	_list.custom_minimum_size = Vector2(0, 160)
+	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_list.item_selected.connect(func(i: int) -> void:
+		_selected = i
+		if i >= 0 and i < _items.size():
+			var it: Dictionary = _items[i]
+			_set_cursor_d(float(it.get("distance", 0.0)))
+			var lane := int(it.get("lane", 0))
+			_set_lane_index(_lane_value_to_index(lane))
+			var t := String(it.get("type", "jump"))
+			var ti := PLACE_TYPES.find(t)
+			if ti >= 0:
+				_set_place_type(t)
+				_type_option.select(ti)
+	)
+	_obstacle_panel.add_child(_list)
+
+	var go_track := _make_button("← 返回拼赛道", func() -> void:
+		_set_edit_mode(EDIT_MODE_TRACK)
+	)
+	_obstacle_panel.add_child(go_track)
+
+	# ——— 共用：保存 / 关卡列表 ———
+	var btn_row2 := HBoxContainer.new()
+	btn_row2.add_theme_constant_override("separation", 6)
+	v.add_child(btn_row2)
+	btn_row2.add_child(_make_button("保存为关卡", _save_layout))
+	btn_row2.add_child(_make_button("重新加载", _reload_layout))
+
+	var btn_row3 := HBoxContainer.new()
+	btn_row3.add_theme_constant_override("separation", 6)
+	v.add_child(btn_row3)
+	btn_row3.add_child(_make_button("载入默认表", _load_defaults_from_code))
+	btn_row3.add_child(_make_button("清空障碍", func() -> void:
+		_items.clear()
+		_sand_zones.clear()
+		_selected = -1
+		_selected_sand = -1
+		_dirty = true
+		_refresh_markers()
+		_refresh_sand_visuals()
+		_refresh_list()
+		_refresh_sand_list()
+		_update_status()
+	))
 
 	var next_seq := CustomLevels.next_sequence()
 	var next_hint := Label.new()
@@ -637,43 +828,174 @@ func _build_ui() -> void:
 	v.add_child(custom_list)
 	_refresh_custom_level_list(custom_list)
 
-	v.add_child(_make_label("障碍列表（点击选中）"))
-	_list = ItemList.new()
-	_list.custom_minimum_size = Vector2(0, 160)
-	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_list.item_selected.connect(func(i: int) -> void:
-		_selected = i
-		if i >= 0 and i < _items.size():
-			var it: Dictionary = _items[i]
-			_set_cursor_d(float(it.get("distance", 0.0)))
-			var lane := int(it.get("lane", 0))
-			_set_lane_index(_lane_value_to_index(lane))
-			var t := String(it.get("type", "jump"))
-			var ti := PLACE_TYPES.find(t)
-			if ti >= 0:
-				_set_place_type(t)
-				_type_option.select(ti)
-	)
-	v.add_child(_list)
-
 	var help := Label.new()
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	help.add_theme_font_size_override("font_size", 12)
-	help.modulate = Color(0.85, 0.85, 0.7)
-	help.text = "「保存为关卡」会新建 自定义01/02…（含侧边跑道）；\n移动基地「任务」页可直接开跑。"
+	help.add_theme_font_size_override("font_size", 14)
+	help.add_theme_color_override("font_color", Color(0.95, 0.95, 0.8))
+	help.text = "①拼赛道（尽头＋接下一段）→ ②摆障碍 → 保存。Tab 切换 · Ctrl+S 保存。"
 	v.add_child(help)
+
+	_status.text = "先拼赛道：点尽头「＋」或 Space 选择下一段 · Tab 切到摆障碍"
+
+	_build_end_add_button(root)
+	_build_piece_picker(root)
+
+
+func _build_end_add_button(parent: Control) -> void:
+	_end_add_btn = Button.new()
+	_end_add_btn.name = "EndAddButton"
+	_end_add_btn.text = "＋ 添加"
+	_end_add_btn.custom_minimum_size = Vector2(120, 48)
+	_end_add_btn.add_theme_font_size_override("font_size", 20)
+	_end_add_btn.add_theme_color_override("font_color", Color(0.05, 0.12, 0.08))
+	_end_add_btn.add_theme_color_override("font_hover_color", Color(0.05, 0.12, 0.08))
+	_end_add_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.35, 0.95, 0.55, 0.95)
+	normal.border_color = Color(0.85, 1.0, 0.9)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(10)
+	normal.content_margin_left = 14
+	normal.content_margin_right = 14
+	normal.content_margin_top = 8
+	normal.content_margin_bottom = 8
+	var hover := normal.duplicate()
+	hover.bg_color = Color(0.5, 1.0, 0.65, 1.0)
+	_end_add_btn.add_theme_stylebox_override("normal", normal)
+	_end_add_btn.add_theme_stylebox_override("hover", hover)
+	_end_add_btn.add_theme_stylebox_override("pressed", hover)
+	_end_add_btn.pressed.connect(_open_piece_picker)
+	_end_add_btn.visible = false
+	parent.add_child(_end_add_btn)
+
+
+func _build_piece_picker(parent: Control) -> void:
+	_piece_picker = PopupPanel.new()
+	_piece_picker.name = "PiecePicker"
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.1, 0.12, 0.16, 0.98)
+	panel_style.border_color = Color(0.4, 0.95, 0.6, 0.9)
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(12)
+	panel_style.content_margin_left = 14
+	panel_style.content_margin_right = 14
+	panel_style.content_margin_top = 12
+	panel_style.content_margin_bottom = 12
+	_piece_picker.add_theme_stylebox_override("panel", panel_style)
+	parent.add_child(_piece_picker)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	box.custom_minimum_size = Vector2(260, 0)
+	_piece_picker.add_child(box)
+
+	var title := Label.new()
+	title.text = "选择下一段赛道"
+	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	box.add_child(title)
+
+	var sub := Label.new()
+	sub.text = "接在当前赛道尽头之后"
+	sub.add_theme_font_size_override("font_size", 13)
+	sub.add_theme_color_override("font_color", Color(0.8, 0.9, 0.85))
+	box.add_child(sub)
+
+	var choices: Array = [
+		["直线", func() -> void: _pick_piece_straight()],
+		["左转 90°", func() -> void: _pick_piece_turn(70.0, 90.0)],
+		["右转 90°", func() -> void: _pick_piece_turn(70.0, -90.0)],
+		["左转 45°", func() -> void: _pick_piece_turn(55.0, 45.0)],
+		["右转 45°", func() -> void: _pick_piece_turn(55.0, -45.0)],
+		["分叉 Y±45°", func() -> void: _pick_piece_fork()],
+		["侧墙", func() -> void: _pick_piece_side()],
+	]
+	for c in choices:
+		box.add_child(_make_button(String(c[0]), c[1] as Callable))
+	box.add_child(_make_button("取消", func() -> void:
+		if _piece_picker:
+			_piece_picker.hide()
+	))
 
 
 func _make_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
+	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0))
 	return l
+
+
+func _set_edit_mode(mode: String) -> void:
+	_edit_mode = mode if mode in [EDIT_MODE_TRACK, EDIT_MODE_OBSTACLES] else EDIT_MODE_TRACK
+	var is_track := _edit_mode == EDIT_MODE_TRACK
+	if _track_panel:
+		_track_panel.visible = is_track
+	if _obstacle_panel:
+		_obstacle_panel.visible = not is_track
+	if _mode_tabs and _mode_tabs.tab_count >= 2:
+		var want := 0 if is_track else 1
+		if _mode_tabs.current_tab != want:
+			_mode_tabs.set_current_tab(want)
+	if _marker_root:
+		_marker_root.visible = not is_track
+	if _phase_hint:
+		if is_track:
+			_phase_hint.text = "① 拼赛道：点尽头「＋」选择下一段。点地不会放障碍。"
+			_phase_hint.add_theme_color_override("font_color", Color(1.0, 0.95, 0.45))
+		else:
+			_phase_hint.text = "② 摆障碍：在已拼赛道上放置。改路请回①。"
+			_phase_hint.add_theme_color_override("font_color", Color(0.55, 0.9, 1.0))
+	if _end_add_btn and not is_track:
+		_end_add_btn.visible = false
+	if _end_add_marker and not is_track:
+		_end_add_marker.visible = false
+	if _piece_picker and _piece_picker.visible and not is_track:
+		_piece_picker.hide()
+	_dragging_marker = false
+	_drag_index = -1
+	_update_status()
+
+
+func _try_set_cursor_at_mouse(screen_pos: Vector2) -> bool:
+	var hit := _ray_from_mouse(screen_pos)
+	if hit.is_empty():
+		return false
+	var world: Vector3 = hit["pos"]
+	var d := _nearest_distance_to_point(world)
+	var on_path: Vector3 = _sample_path(d)["pos"]
+	if Vector2(world.x, world.z).distance_to(Vector2(on_path.x, on_path.z)) > 14.0:
+		return false
+	_set_cursor_d(d)
+	return true
 
 
 func _make_button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
+	b.custom_minimum_size = Vector2(0, 36)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.add_theme_font_size_override("font_size", 15)
+	b.add_theme_color_override("font_color", Color(0.05, 0.08, 0.12))
+	b.add_theme_color_override("font_hover_color", Color(0.05, 0.08, 0.12))
+	b.add_theme_color_override("font_pressed_color", Color(0.05, 0.08, 0.12))
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.78, 0.88, 0.98)
+	normal.border_color = Color(0.95, 0.98, 1.0)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(6)
+	normal.content_margin_left = 8
+	normal.content_margin_right = 8
+	normal.content_margin_top = 6
+	normal.content_margin_bottom = 6
+	var hover := normal.duplicate()
+	hover.bg_color = Color(0.88, 0.94, 1.0)
+	var pressed := normal.duplicate()
+	pressed.bg_color = Color(0.62, 0.78, 0.92)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.pressed.connect(cb)
 	return b
 
@@ -781,42 +1103,16 @@ func _planet_default_sand_zones() -> Array:
 
 
 func _bake_path() -> void:
+	var baked: Dictionary = ObstacleLayout.bake_path_from_segments(_track_segments, 2.0)
 	_path_samples.clear()
-	var segments: Array = _track_segments
-	if segments.is_empty():
-		segments = [{"length": _track_length + 80.0, "turn": 0.0}]
-	var pos := Vector3.ZERO
-	var yaw := 0.0
-	var dist := 0.0
-	var step := 2.0
-	_path_samples.append({"d": 0.0, "pos": pos, "yaw": yaw})
-	for seg in segments:
-		var length := float(seg.get("length", 0.0))
-		var turn := float(seg.get("turn", 0.0))
-		if length <= 0.001:
-			continue
-		var steps := maxi(1, int(ceil(length / step)))
-		var ds := length / float(steps)
-		var dyaw := turn / float(steps)
-		for _i in steps:
-			yaw += dyaw
-			var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
-			pos += forward * ds
-			dist += ds
-			_path_samples.append({"d": dist, "pos": pos, "yaw": yaw})
-	_path_length = dist
-	if _path_length < _track_length:
-		var remain := _track_length + 40.0 - _path_length
-		var steps2 := maxi(1, int(ceil(remain / step)))
-		var ds2 := remain / float(steps2)
-		var forward2 := Vector3(-sin(yaw), 0.0, -cos(yaw))
-		for _j in steps2:
-			pos += forward2 * ds2
-			dist += ds2
-			_path_samples.append({"d": dist, "pos": pos, "yaw": yaw})
-		_path_length = dist
-	_dist_slider.max_value = maxf(_path_length, 100.0)
-	_dist_spin.max_value = _dist_slider.max_value
+	for s in baked.get("samples", []):
+		if typeof(s) == TYPE_DICTIONARY:
+			_path_samples.append(s)
+	_path_length = maxf(float(baked.get("length", 0.0)), 1.0)
+	if _dist_slider:
+		_dist_slider.max_value = maxf(_path_length, 100.0)
+	if _dist_spin:
+		_dist_spin.max_value = _dist_slider.max_value if _dist_slider else maxf(_path_length, 100.0)
 
 
 func _sample_path(distance: float) -> Dictionary:
@@ -853,6 +1149,28 @@ func _rebuild_track_mesh() -> void:
 		_road_style_id,
 		_junctions
 	)
+	_rebuild_y_fork_branch_meshes()
+
+
+func _rebuild_y_fork_branch_meshes() -> void:
+	# 主路径已走左岔；这里补画右岔，形成完整 Y 字
+	if _track_root == null:
+		return
+	for entry in ObstacleLayout.segment_start_poses(_track_segments, 2.0):
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = entry.get("segment", {})
+		if not ObstacleLayout.is_y_fork_segment(seg):
+			continue
+		var poly: Array = ObstacleLayout.bake_y_fork_branch_polyline(
+			entry.get("pos", Vector3.ZERO),
+			float(entry.get("yaw", 0.0)),
+			float(seg.get("branch_length", DEFAULT_Y_FORK_BRANCH)),
+			float(seg.get("angle", deg_to_rad(DEFAULT_Y_FORK_ANGLE_DEG))),
+			-1.0,
+			2.0
+		)
+		_road_preview.add_polyline_road(_track_root, poly, _road_style_id)
 
 
 func _select_road_style_option(style_id: String) -> void:
@@ -895,6 +1213,7 @@ func _refresh_markers() -> void:
 		var node := _make_obstacle_marker(it, i == _selected)
 		node.set_meta("item_index", i)
 		_marker_root.add_child(node)
+	_marker_root.visible = _edit_mode == EDIT_MODE_OBSTACLES
 
 
 func _make_obstacle_marker(item: Dictionary, selected: bool) -> Node3D:
@@ -1345,8 +1664,12 @@ func _add_track_segment(length: float, turn_deg: float, mode: String = "auto") -
 	_refresh_seg_list()
 	_rebuild_path_preview()
 	var range_txt := _segment_distance_range(insert_at)
-	_jump_cursor_to_segment(insert_at, true)
-	_flash_status("已插入路段 %02d（%s）长%.0f 转%+.0f° · 相机已跳到该段" % [
+	# 弯道：镜头对准新弯；直线：留在尽头方便继续「＋」
+	if absf(turn_deg) > 0.5:
+		_jump_cursor_to_segment(insert_at, true)
+	else:
+		_set_cursor_d(_path_length)
+	_flash_status("已接上路段 %02d（%s）长%.0f 转%+.0f°" % [
 		insert_at, range_txt, length, turn_deg,
 	])
 
@@ -1383,10 +1706,18 @@ func _apply_seg_params_to_selected() -> void:
 	if _selected_seg < 0 or _selected_seg >= _track_segments.size():
 		_flash_status("请先在路段列表中选中一段再应用")
 		return
-	_track_segments[_selected_seg] = ObstacleLayout.normalize_track_segment({
-		"length": float(_seg_len_spin.value),
-		"turn": deg_to_rad(float(_seg_turn_spin.value)),
-	})
+	var prev: Dictionary = _track_segments[_selected_seg]
+	if ObstacleLayout.is_y_fork_segment(prev):
+		_track_segments[_selected_seg] = ObstacleLayout.normalize_track_segment({
+			"type": "y_fork",
+			"branch_length": float(_seg_len_spin.value),
+			"angle_deg": float(_seg_turn_spin.value),
+		})
+	else:
+		_track_segments[_selected_seg] = ObstacleLayout.normalize_track_segment({
+			"length": float(_seg_len_spin.value),
+			"turn": deg_to_rad(float(_seg_turn_spin.value)),
+		})
 	_dirty = true
 	_refresh_seg_list()
 	_rebuild_path_preview()
@@ -1397,6 +1728,9 @@ func _apply_seg_params_to_selected() -> void:
 func _delete_selected_seg() -> void:
 	if _selected_seg < 0 or _selected_seg >= _track_segments.size():
 		return
+	if _track_segments.size() <= 1:
+		_flash_status("至少保留一段初始直线；可用「重置为初始直线」")
+		return
 	_track_segments.remove_at(_selected_seg)
 	_selected_seg = mini(_selected_seg, _track_segments.size() - 1)
 	_dirty = true
@@ -1405,15 +1739,33 @@ func _delete_selected_seg() -> void:
 
 
 func _clear_track_segments() -> void:
+	_reset_to_initial_straight(true)
+
+
+func _reset_to_initial_straight(flash: bool = true) -> void:
 	_track_segments = [ObstacleLayout.normalize_track_segment({
-		"length": _track_length + 80.0,
+		"length": DEFAULT_SEG_LENGTH,
 		"turn": 0.0,
 	})]
+	_junctions = []
+	_side_zones = []
 	_selected_seg = 0
+	_selected_fork = -1
+	_selected_side = -1
 	_dirty = true
+	if _seg_len_spin:
+		_seg_len_spin.set_value_no_signal(DEFAULT_SEG_LENGTH)
+	if _seg_turn_spin:
+		_seg_turn_spin.set_value_no_signal(0.0)
+	if _next_seg_len_spin:
+		_next_seg_len_spin.set_value_no_signal(DEFAULT_SEG_LENGTH)
 	_refresh_seg_list()
+	_refresh_fork_list()
+	_refresh_side_list()
 	_rebuild_path_preview()
-	_flash_status("路线已重置为单一直线段")
+	_set_cursor_d(_path_length)
+	if flash:
+		_flash_status("已重置为初始直线（%.0fm）· 点尽头「＋」接下一段" % DEFAULT_SEG_LENGTH)
 
 
 func _load_default_track_segments() -> void:
@@ -1446,14 +1798,22 @@ func _refresh_seg_list() -> void:
 	for i in _track_segments.size():
 		var s: Dictionary = _track_segments[i]
 		var length := float(s.get("length", 0.0))
-		var turn_deg := rad_to_deg(float(s.get("turn", 0.0)))
 		var kind := "直"
-		if turn_deg > 0.5:
-			kind = "左拐"
-		elif turn_deg < -0.5:
-			kind = "右拐"
-		_seg_list.add_item("%02d  %s  长%.0f  转%+.0f°  @%.0f→%.0f" % [
-			i, kind, length, turn_deg, acc, acc + length,
+		var detail := ""
+		if ObstacleLayout.is_y_fork_segment(s):
+			kind = "Y分叉"
+			var ang := rad_to_deg(float(s.get("angle", deg_to_rad(45.0))))
+			var branch := float(s.get("branch_length", length * 0.5))
+			detail = "  支路%.0f ±%.0f°" % [branch, ang]
+		else:
+			var turn_deg := rad_to_deg(float(s.get("turn", 0.0)))
+			if turn_deg > 0.5:
+				kind = "左拐"
+			elif turn_deg < -0.5:
+				kind = "右拐"
+			detail = "  转%+.0f°" % turn_deg
+		_seg_list.add_item("%02d  %s  长%.0f%s  @%.0f→%.0f" % [
+			i, kind, length, detail, acc, acc + length,
 		])
 		acc += length
 	if _selected_seg >= 0 and _selected_seg < _track_segments.size():
@@ -1702,6 +2062,10 @@ func _set_cursor_d(d: float, sync_controls: bool = true) -> void:
 			_dist_slider.set_value_no_signal(_cursor_d)
 		if _dist_spin and absf(_dist_spin.value - _cursor_d) > 0.01:
 			_dist_spin.set_value_no_signal(_cursor_d)
+	if _track_panel and _track_panel.has_meta("pending_dist_spin"):
+		var pending: SpinBox = _track_panel.get_meta("pending_dist_spin")
+		if pending and absf(pending.value - _cursor_d) > 0.01:
+			pending.set_value_no_signal(_cursor_d)
 	_update_cursor_marker()
 	_update_status()
 
@@ -1740,6 +2104,95 @@ func _update_cursor_marker() -> void:
 	_cursor_marker.rotation.y = float(sample["yaw"])
 
 
+func _update_end_add_affordance() -> void:
+	var show := _edit_mode == EDIT_MODE_TRACK and _camera != null and _path_length > 0.5
+	if _end_add_marker:
+		_end_add_marker.visible = show
+		if show:
+			var sample_m := _sample_path(_path_length)
+			var pos_m: Vector3 = sample_m["pos"]
+			var fwd_m: Vector3 = sample_m["forward"]
+			_end_add_marker.global_position = pos_m + Vector3(0.0, 0.25, 0.0) + fwd_m * 2.2
+			_end_add_marker.rotation.y = float(sample_m["yaw"])
+	if _end_add_btn == null:
+		return
+	if not show:
+		_end_add_btn.visible = false
+		return
+	var sample := _sample_path(_path_length)
+	var world: Vector3 = sample["pos"] + Vector3.UP * 3.2 + sample["forward"] * 1.5
+	if _camera.is_position_behind(world):
+		_end_add_btn.visible = false
+		return
+	var screen := _camera.unproject_position(world)
+	_end_add_btn.visible = true
+	var sz := _end_add_btn.size
+	if sz.x < 2.0 or sz.y < 2.0:
+		sz = _end_add_btn.get_combined_minimum_size()
+	_end_add_btn.position = screen - Vector2(sz.x * 0.5, sz.y * 0.5)
+
+
+func _open_piece_picker() -> void:
+	if _edit_mode != EDIT_MODE_TRACK:
+		_flash_status("请切到「① 拼赛道」再添加路段")
+		return
+	if _piece_picker == null:
+		return
+	_set_cursor_d(_path_length)
+	_piece_picker.popup_centered(Vector2(280, 420))
+
+
+func _close_piece_picker() -> void:
+	if _piece_picker and _piece_picker.visible:
+		_piece_picker.hide()
+
+
+func _pick_piece_straight() -> void:
+	_close_piece_picker()
+	var length := float(_next_seg_len_spin.value) if _next_seg_len_spin else DEFAULT_SEG_LENGTH
+	_add_track_segment(length, 0.0, "append")
+
+
+func _pick_piece_turn(length: float, turn_deg: float) -> void:
+	_close_piece_picker()
+	_add_track_segment(length, turn_deg, "append")
+
+
+func _pick_piece_fork() -> void:
+	_close_piece_picker()
+	_add_y_fork_segment()
+
+
+func _add_y_fork_segment() -> void:
+	var branch := DEFAULT_Y_FORK_BRANCH
+	if _next_seg_len_spin:
+		branch = maxf(float(_next_seg_len_spin.value) * 0.5, 20.0)
+	elif _fork_len_spin:
+		branch = maxf(float(_fork_len_spin.value) * 0.5, 20.0)
+	var seg := ObstacleLayout.normalize_track_segment({
+		"type": "y_fork",
+		"branch_length": branch,
+		"angle_deg": DEFAULT_Y_FORK_ANGLE_DEG,
+	})
+	_track_segments.append(seg)
+	_selected_seg = _track_segments.size() - 1
+	if _seg_len_spin:
+		_seg_len_spin.set_value_no_signal(branch)
+	if _seg_turn_spin:
+		_seg_turn_spin.set_value_no_signal(DEFAULT_Y_FORK_ANGLE_DEG)
+	_dirty = true
+	_refresh_seg_list()
+	_rebuild_path_preview()
+	_jump_cursor_to_segment(_selected_seg, true)
+	_flash_status("已添加 Y 分叉：±%.0f° 斜出再汇合，可再接直线" % DEFAULT_Y_FORK_ANGLE_DEG)
+
+
+func _pick_piece_side() -> void:
+	_close_piece_picker()
+	_set_cursor_d(maxf(0.0, _path_length - 10.0))
+	_add_side_zone_at_cursor()
+
+
 func _update_camera() -> void:
 	if _camera == null:
 		return
@@ -1747,33 +2200,41 @@ func _update_camera() -> void:
 	var pos: Vector3 = sample["pos"]
 	var forward: Vector3 = sample["forward"]
 	var right: Vector3 = sample["right"]
-	# 近距俯视：跑道在右侧视口占满，便于摆障碍
-	var cam_pos := pos - forward * 7.5 + Vector3(0.0, 4.8, 0.0) + right * 1.2
+	# 拼赛道时拉高看清整段；摆障碍时略近
+	var back := 22.0 if _edit_mode == EDIT_MODE_TRACK else 8.5
+	var up := 14.0 if _edit_mode == EDIT_MODE_TRACK else 5.2
+	var look_ahead := 16.0 if _edit_mode == EDIT_MODE_TRACK else 8.0
+	var cam_pos := pos - forward * back + Vector3(0.0, up, 0.0) + right * 1.6
 	_camera.global_position = cam_pos
-	_camera.look_at(pos + forward * 5.5 + Vector3(0.0, 0.6, 0.0), Vector3.UP)
+	_camera.look_at(pos + forward * look_ahead + Vector3(0.0, 0.4, 0.0), Vector3.UP)
 
 
 func _update_status() -> void:
 	if _status == null:
 		return
 	var flag := " *" if _dirty else ""
-	_status.text = "%s%s | d=%.0f | lane=%d | type=%s | 跑道=%s\n下次保存 → %s | 障碍 %d · 路段 %d · 分叉 %d · 侧墙 %d · 沙尘 %d\n滚轮/A·D · 左键拖放（Shift 微调） · Ctrl+S 保存为关卡" % [
+	var phase := "拼赛道" if _edit_mode == EDIT_MODE_TRACK else "摆障碍"
+	var tip := "点尽头「＋」/Space 选下一段 · Tab 切阶段" if _edit_mode == EDIT_MODE_TRACK else "左键放置/拖拽 · Space 放置 · Tab 切阶段"
+	_status.text = "[%s] %s%s | d=%.0f | 跑道=%s\n路段 %d · 分叉 %d · 侧墙 %d · 障碍 %d · 沙尘 %d → 下次 %s\n%s · Ctrl+S 保存" % [
+		phase,
 		_planet_id,
 		flag,
 		_cursor_d,
-		_lane_index_to_value(_lane_index),
-		_place_type,
 		EditorRoadPreview.style_label(_road_style_id),
-		CustomLevels.format_name(CustomLevels.next_sequence()),
-		_items.size(),
 		_track_segments.size(),
 		_junctions.size(),
 		_side_zones.size(),
+		_items.size(),
 		_sand_zones.size(),
+		CustomLevels.format_name(CustomLevels.next_sequence()),
+		tip,
 	]
 
 
 func _place_at_cursor() -> void:
+	if _edit_mode != EDIT_MODE_OBSTACLES:
+		_flash_status("请先切到「② 摆障碍」再放置")
+		return
 	var item := {
 		"type": _place_type,
 		"lane": _lane_index_to_value(_lane_index),
@@ -2062,6 +2523,8 @@ func _nearest_lane_at(world: Vector3, distance: float) -> int:
 
 
 func _try_place_at_mouse(screen_pos: Vector2) -> bool:
+	if _edit_mode != EDIT_MODE_OBSTACLES:
+		return false
 	var hit := _ray_from_mouse(screen_pos)
 	if hit.is_empty():
 		return false
