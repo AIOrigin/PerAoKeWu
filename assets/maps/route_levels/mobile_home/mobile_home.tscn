@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://dmmn3q2p701kg"]
 
-[ext_resource type="Script" path="res://assets/maps/route_levels/mobile_home/mobile_home.gd" id="1_mobile_home"]
+[ext_resource type="Script" uid="uid://b2y3kpuypets2" path="res://assets/maps/route_levels/mobile_home/mobile_home.gd" id="1_mobile_home"]
 
 [node name="MobileHome" type="Control"]
 layout_mode = 3

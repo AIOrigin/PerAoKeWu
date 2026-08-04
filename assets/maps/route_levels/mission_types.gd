@@ -242,6 +242,11 @@ static func adapt_main_runway_coins(coins: Array, track_length: float, density: 
 		var dist := float(item.get("distance", 0.0)) * scale
 		if dist < 20.0 or dist > finish_cut:
 			continue
+		var pattern := String(item.get("pattern", ""))
+		if pattern in ["column", "cluster"]:
+			item["distance"] = dist
+			result.append(item)
+			continue
 		budget += spacing_keep
 		if budget >= 1.0:
 			budget -= 1.0

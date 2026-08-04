@@ -4,6 +4,20 @@ extends RefCounted
 ## 与 runner_60s 同款障碍外观：供关卡编辑器预览（及后续共用）
 
 const LANE_WIDTH := 4.0
+const RUNWAY_OBSTACLE_SPAN_INSET := 0.96
+const RUNWAY_OBSTACLE_SPAN := LANE_WIDTH * 3.0 * RUNWAY_OBSTACLE_SPAN_INSET
+const SLIDE_GATE_TOP := 3.08
+const SLIDE_GATE_OPEN_BOTTOM := 1.22
+const SLIDE_GATE_PILLAR_OUTSIDE_MARGIN := 0.55
+const SLIDE_GATE_MODEL_BBOX_WIDTH := 1.0
+const SLIDE_GATE_PREVIEW_ROAD_HALF := 6.4
+const ORB_TARGET_HEIGHT := 2.65
+const ORB_RUNWAY_WIDTH := LANE_WIDTH * 3.0
+const ORB_SMALL_SPAN := ORB_RUNWAY_WIDTH / 9.0
+const ORB_LARGE_SPAN := ORB_RUNWAY_WIDTH * 0.5
+const ORB_SMALL_SCALE := ORB_SMALL_SPAN / ORB_TARGET_HEIGHT
+const ORB_LARGE_SCALE := ORB_LARGE_SPAN / ORB_TARGET_HEIGHT
+const ORB_VISUAL_BASE_Y := 0.85
 const IMPORTED_SCENE_FALLBACKS := {
 	"res://3d素材/障碍物-需跳跃.glb": "res://.godot/imported/障碍物-需跳跃.glb-46f57db02e27254a677214f954ab0d83.scn",
 	"res://3d素材/障碍物-需跳跃2.glb": "res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn",
@@ -39,23 +53,13 @@ func build(item: Dictionary) -> Node3D:
 	root.name = "%sPreview" % otype.capitalize()
 	match otype:
 		"slide", "high_bar":
-			_build_high_bar(root)
+			_build_high_bar(root, item)
+		"orb":
+			_build_energy_orb(root, item)
 		"jump", "low_barrier":
-			_build_low_barrier(root, item)
-		"train", "train_moving":
-			_build_train(root, otype == "train_moving")
-		"block_left":
-			_build_lane_block(root, "left")
-		"block_right":
-			_build_lane_block(root, "right")
-		"ramp":
-			_build_ramp(root)
-		"main_block":
-			_build_main_block(root)
-		"turn_left", "turn_right":
-			_build_turn_sign(root, otype)
+			_build_jump_bar(root, item)
 		_:
-			_build_low_barrier(root, item)
+			_build_jump_bar(root, item)
 	return root
 
 
@@ -63,66 +67,58 @@ static func uses_center_lane(otype: String) -> bool:
 	return otype in ["slide", "high_bar", "main_block", "ramp"]
 
 
-func _build_low_barrier(root: Node3D, item: Dictionary) -> void:
-	var path_count := maxi(_jump_paths.size(), 1)
-	var scene_index := int(item.get("visual_index", -1))
-	if scene_index < 0:
-		var lane := int(item.get("lane", 0))
-		var dist_key := int(float(item.get("distance", 0.0)))
-		scene_index = absi(lane * 17 + dist_key) % path_count
-	var asset_path := ""
-	if not _jump_paths.is_empty():
-		asset_path = _jump_paths[scene_index % _jump_paths.size()]
-	var target_h := 1.15
-	if "energy_orb" in asset_path:
-		target_h = 1.45
-	elif "energy_sprigs" in asset_path:
-		target_h = 1.25
-	elif "全息跳跃" in asset_path:
-		target_h = 1.2
-	if "全息跳跃" in asset_path:
-		_add_jump_bar_visual(root, _jump_scene(scene_index), target_h, LANE_WIDTH * 1.55)
-	else:
-		var visual := _add_scaled_model(
-			root,
-			_jump_scene(scene_index),
-			"JumpObstacleModel",
-			target_h,
-			0.0 if asset_path.ends_with(".png") else 180.0,
-			Vector3.ZERO,
-			LANE_WIDTH * 1.65
-		)
-		if "energy_orb" in asset_path:
-			visual.position.y += 0.75
-		elif not asset_path.ends_with(".png"):
-			visual.rotation_degrees.y += 8.0 if scene_index == 0 else -8.0
+func _build_jump_bar(root: Node3D, item: Dictionary) -> void:
+	var scene_index := _pick_jump_bar_scene_index(item)
+	_add_jump_bar_visual(root, _jump_scene(scene_index), 1.2, RUNWAY_OBSTACLE_SPAN)
 
 
-func _build_high_bar(root: Node3D) -> void:
-	var slide_path := _slide_paths[0] if not _slide_paths.is_empty() else ""
-	if slide_path.ends_with(".png") and "phase_curtain" in slide_path:
-		var scene := _slide_scene_at(0)
-		if scene == null:
-			_add_road_span_gate(root, null, 1.95, 14.8)
-			_add_slide_curtain(root)
-			return
-		var model := scene.instantiate() as Node3D
-		model.name = "SlideObstacleModel"
-		root.add_child(model)
-		var bounds := _aabb(model)
-		model.scale = Vector3(13.5 / maxf(bounds.size.x, 0.001), 2.05 / maxf(bounds.size.y, 0.001), 1.0)
-		bounds = _aabb(model)
-		model.position = Vector3(
-			-(bounds.position.x + bounds.size.x * 0.5),
-			-bounds.position.y,
-			-(bounds.position.z + bounds.size.z * 0.5)
-		)
-	elif slide_path.ends_with(".png"):
-		var visual := _add_scaled_model(root, _slide_scene_at(0), "SlideObstacleModel", 2.2, 0.0, Vector3.ZERO)
-		visual.position.y += 0.4
+func _build_energy_orb(root: Node3D, item: Dictionary) -> void:
+	var scene_index := _pick_energy_orb_scene_index(item)
+	var roll := _orb_roll(item)
+	var target_span := float(roll.get("span", ORB_SMALL_SPAN))
+	var scene := _jump_scene(scene_index)
+	var visual: Node3D
+	if scene:
+		visual = scene.instantiate() as Node3D
+		visual.name = "JumpObstacleModel"
+		root.add_child(visual)
+		_fit_energy_orb_to_span(visual, target_span)
 	else:
-		_add_road_span_gate(root, _slide_scene_at(0), 1.95, 14.8)
-	_add_slide_curtain(root)
+		visual = _add_scaled_model(root, null, "JumpObstacleModel", target_span, 0.0, Vector3.ZERO)
+		_fit_energy_orb_to_span(visual, target_span)
+	visual.position.y += ORB_VISUAL_BASE_Y
+
+
+func _fit_energy_orb_to_span(model: Node3D, span: float) -> void:
+	if model == null or span <= 0.0:
+		return
+	model.scale = Vector3.ONE
+	model.position = Vector3.ZERO
+	model.rotation = Vector3.ZERO
+	var bounds := _aabb(model)
+	var current := maxf(maxf(bounds.size.x, bounds.size.y), bounds.size.z)
+	if current <= 0.001:
+		model.scale = Vector3.ONE * span
+		return
+	model.scale = Vector3.ONE * (span / current)
+	model.force_update_transform()
+	bounds = _aabb(model)
+	model.position = Vector3(
+		-(bounds.position.x + bounds.size.x * 0.5),
+		-bounds.position.y,
+		-(bounds.position.z + bounds.size.z * 0.5)
+	)
+
+
+func _build_high_bar(root: Node3D, item: Dictionary = {}) -> void:
+	var scene_index := _pick_slide_obstacle_scene_index(item)
+	var asset_path := _slide_paths[scene_index] if scene_index < _slide_paths.size() else ""
+	var span := _slide_gate_span_for_path(asset_path)
+	var scene := _slide_scene_at(scene_index)
+	if scene != null:
+		_add_road_span_gate(root, scene, SLIDE_GATE_TOP, span)
+	else:
+		_add_slide_gate_visual(root, span, SLIDE_GATE_TOP, SLIDE_GATE_OPEN_BOTTOM)
 
 
 func _build_train(root: Node3D, moving: bool) -> void:
@@ -204,21 +200,66 @@ func _add_jump_bar_visual(root: Node3D, scene: PackedScene, target_height: float
 	var model := scene.instantiate() as Node3D
 	model.name = "JumpObstacleModel"
 	root.add_child(model)
-	var bounds := _aabb(model)
-	if bounds.size.y <= 0.001:
+	var bounds0 := _aabb(model)
+	if bounds0.size.y <= 0.001:
 		return
-	if bounds.size.z > bounds.size.x * 1.15:
+	var sy := target_height / maxf(bounds0.size.y, 0.001)
+	var depth_scale := clampf(sy, 0.85, 2.8)
+	var span_size := maxf(bounds0.size.x, bounds0.size.z)
+	if bounds0.size.z >= bounds0.size.x:
 		model.rotation_degrees.y = 90.0
-		bounds = _aabb(model)
-	var sx := target_span / maxf(bounds.size.x, 0.001)
-	var sy := target_height / maxf(bounds.size.y, 0.001)
-	model.scale = Vector3(sx, sy, clampf(sy, 0.85, 2.8))
-	bounds = _aabb(model)
+		model.force_update_transform()
+		var span_scale := target_span / maxf(span_size, 0.001)
+		model.scale = Vector3(depth_scale, sy, span_scale)
+	else:
+		var span_scale := target_span / maxf(span_size, 0.001)
+		model.scale = Vector3(span_scale, sy, depth_scale)
+	model.force_update_transform()
+	var bounds := _aabb(model)
 	model.position = Vector3(
 		-(bounds.position.x + bounds.size.x * 0.5),
 		-bounds.position.y,
 		-(bounds.position.z + bounds.size.z * 0.5)
 	)
+
+
+func _add_slide_gate_visual(root: Node3D, span: float, top_height: float, open_bottom: float) -> void:
+	var gate_root := Node3D.new()
+	gate_root.name = "SlideObstacleModel"
+	root.add_child(gate_root)
+
+	var half_span := span * 0.5
+	var pillar_h := maxf(top_height - open_bottom, 0.45)
+	var pillar_center_y := open_bottom + pillar_h * 0.5
+	var pillar_mat := _mat(Color(0.28, 0.62, 0.98), Color(0.14, 0.38, 0.88), 1.05)
+
+	for side in [-1, 1]:
+		var pillar := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(0.34, pillar_h, 0.36)
+		mesh.material = pillar_mat
+		pillar.mesh = mesh
+		pillar.position = Vector3(side * half_span, pillar_center_y, 0.0)
+		gate_root.add_child(pillar)
+
+	var beam := MeshInstance3D.new()
+	var beam_mesh := BoxMesh.new()
+	beam_mesh.size = Vector3(span * 0.98, 0.26, 0.4)
+	beam_mesh.material = pillar_mat
+	beam.mesh = beam_mesh
+	beam.position = Vector3(0.0, top_height - 0.13, 0.0)
+	gate_root.add_child(beam)
+
+	var holo := MeshInstance3D.new()
+	var holo_mesh := BoxMesh.new()
+	holo_mesh.size = Vector3(span * 0.94, maxf(top_height - open_bottom, 0.35), 0.06)
+	var holo_mat := _mat(Color(0.22, 0.55, 0.95, 0.62), Color(0.18, 0.62, 1.0), 1.05)
+	holo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	holo_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	holo_mesh.material = holo_mat
+	holo.mesh = holo_mesh
+	holo.position = Vector3(0.0, open_bottom + (top_height - open_bottom) * 0.5, 0.0)
+	gate_root.add_child(holo)
 
 
 func _add_road_span_gate(parent: Node3D, scene: PackedScene, target_height: float, target_span: float) -> void:
@@ -237,7 +278,7 @@ func _add_road_span_gate(parent: Node3D, scene: PackedScene, target_height: floa
 	model.scale = Vector3(
 		target_span / maxf(bounds.size.x, 0.001),
 		target_height / maxf(bounds.size.y, 0.001),
-		target_height / maxf(bounds.size.y, 0.001)
+		target_span / maxf(bounds.size.x, 0.001)
 	)
 	bounds = _aabb(model)
 	model.position = Vector3(
@@ -252,7 +293,7 @@ func _add_slide_curtain(root: Node3D) -> void:
 	curtain.name = "SlideVisibilityCurtain"
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(LANE_WIDTH * 3.15, 1.85, 0.22)
-	var mat := _mat(Color(0.25, 0.85, 1.0, 0.38), Color(0.35, 0.95, 1.0), 2.2)
+	var mat := _mat(Color(0.22, 0.55, 0.95, 0.32), Color(0.18, 0.62, 1.0), 1.4)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mesh.material = mat
@@ -268,7 +309,8 @@ func _add_scaled_model(
 	target_height: float,
 	yaw_degrees: float = 0.0,
 	local_position: Vector3 = Vector3.ZERO,
-	max_footprint: float = -1.0
+	max_footprint: float = -1.0,
+	max_scale_cap: float = 12.0
 ) -> Node3D:
 	if scene == null:
 		return _add_missing(parent, model_name, target_height, yaw_degrees, local_position)
@@ -282,7 +324,10 @@ func _add_scaled_model(
 	if characteristic <= 0.001:
 		model.scale = Vector3.ONE * (target_height / 2.0)
 	else:
-		model.scale = Vector3.ONE * minf(target_height / characteristic, 12.0)
+		var scale_factor := target_height / characteristic
+		if max_scale_cap > 0.0:
+			scale_factor = minf(scale_factor, max_scale_cap)
+		model.scale = Vector3.ONE * scale_factor
 	bounds = _aabb(model)
 	if max_footprint > 0.0:
 		var footprint := maxf(bounds.size.x, bounds.size.z)
@@ -323,6 +368,83 @@ func _jump_scene(index: int) -> PackedScene:
 	if _jump_paths.is_empty():
 		return null
 	return _load_scene(_jump_paths[index % _jump_paths.size()])
+
+
+func _is_energy_orb_asset_path(path: String) -> bool:
+	return "energy_orb" in path or path.ends_with(".png") or path.ends_with(".webp")
+
+
+func _jump_bar_path_indices() -> Array[int]:
+	var out: Array[int] = []
+	for i in range(_jump_paths.size()):
+		if not _is_energy_orb_asset_path(_jump_paths[i]):
+			out.append(i)
+	return out
+
+
+func _energy_orb_path_indices() -> Array[int]:
+	var out: Array[int] = []
+	for i in range(_jump_paths.size()):
+		if _is_energy_orb_asset_path(_jump_paths[i]):
+			out.append(i)
+	return out
+
+
+func _pick_jump_bar_scene_index(item: Dictionary) -> int:
+	var indices := _jump_bar_path_indices()
+	if indices.is_empty():
+		return 0
+	var dist_key := int(float(item.get("distance", 0.0)))
+	var lane := int(item.get("lane", 0))
+	return indices[(absi(lane * 17 + dist_key)) % indices.size()]
+
+
+func _pick_energy_orb_scene_index(item: Dictionary) -> int:
+	var indices := _energy_orb_path_indices()
+	if indices.is_empty():
+		return 1
+	var dist_key := int(float(item.get("distance", 0.0)))
+	var lane := int(item.get("lane", 0))
+	return indices[(absi(lane * 13 + dist_key)) % indices.size()]
+
+
+func _pick_slide_obstacle_scene_index(item: Dictionary) -> int:
+	if _slide_paths.is_empty():
+		return 0
+	var dist_key := int(float(item.get("distance", 0.0)))
+	var lane := int(item.get("lane", 0))
+	return (absi(lane * 19 + dist_key)) % _slide_paths.size()
+
+
+func _slide_gate_model_pillar_half(asset_path: String) -> float:
+	var lower := asset_path.to_lower()
+	if "能量屏障" in asset_path or ("energy" in lower and "barrier" in lower):
+		return 0.46
+	return 0.5
+
+
+func _slide_gate_span_for_path(asset_path: String) -> float:
+	var pillar_half := SLIDE_GATE_PREVIEW_ROAD_HALF + SLIDE_GATE_PILLAR_OUTSIDE_MARGIN
+	var model_pillar_half := _slide_gate_model_pillar_half(asset_path)
+	return pillar_half * SLIDE_GATE_MODEL_BBOX_WIDTH / maxf(model_pillar_half, 0.001)
+
+
+func _orb_roll(item: Dictionary) -> Dictionary:
+	var dist_key := int(float(item.get("distance", 0.0)))
+	var lane := int(item.get("lane", 0))
+	var bucket := (int(dist_key / 7) + lane * 3 + 1) % 4
+	var is_large := bucket == 0
+	var tier := "large" if is_large else "small"
+	var scale := ORB_LARGE_SCALE if is_large else ORB_SMALL_SCALE
+	return {
+		"tier": tier,
+		"scale": scale,
+		"span": ORB_LARGE_SPAN if is_large else ORB_SMALL_SPAN,
+	}
+
+
+func _orb_size_scale_for(item: Dictionary) -> float:
+	return float(_orb_roll(item).get("scale", ORB_SMALL_SCALE))
 
 
 func _slide_scene_at(index: int) -> PackedScene:

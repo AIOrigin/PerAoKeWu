@@ -14,8 +14,7 @@ const LANE_WIDTH := 4.0
 const LANES := [-1, 0, 1]
 const GROUND_Y := 0.85
 const PLACE_TYPES: Array[String] = [
-	"jump", "slide", "train", "train_moving",
-	"block_left", "block_right", "ramp", "main_block",
+	"jump", "slide", "orb",
 	"turn_left", "turn_right",
 ]
 

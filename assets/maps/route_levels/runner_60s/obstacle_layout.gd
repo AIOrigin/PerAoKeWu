@@ -498,6 +498,8 @@ static func type_color(obstacle_type: String) -> Color:
 	match obstacle_type:
 		"jump", "low_barrier":
 			return Color(0.35, 0.85, 1.0)
+		"orb":
+			return Color(1.0, 0.82, 0.25)
 		"slide", "high_bar":
 			return Color(0.95, 0.45, 1.0)
 		"train", "train_moving":

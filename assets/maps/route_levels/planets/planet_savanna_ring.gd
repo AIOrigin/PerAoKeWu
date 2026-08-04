@@ -43,23 +43,36 @@ const THEME := {
 const ASSETS := {
 	"panorama": "res://3d素材/三拼地图.png",
 	"jump_obstacles": [
-		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_sprigs_2_5d.png",
+		"res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）.glb",
+		"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
-		"res://3d素材/障碍物-需跳跃.glb",
-		"res://3d素材/障碍物-需跳跃2.glb",
 	],
-	"slide_obstacle": "res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
+	"slide_obstacle": "res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
 	"slide_obstacles": [
-		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
-		"res://3d素材/障碍物-需滑铲.glb",
+		"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
+		"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
 	],
-	"side_props": [
-		"res://3d素材/障碍物-需跳跃.glb",
-		"res://3d素材/障碍物-需跳跃2.glb",
-		"res://3d素材/障碍物-需滑铲.glb",
+	"side_props": [],
+	"midground_props": [
+		"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+		"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+		"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+		"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
 	],
 	"landmark_props": [
+		"res://3d素材/居民穹顶据点 3d model.glb",
+	],
+	"distant_tower_props": [
+		"res://assets/maps/route_levels/runner_60s/distant_props/fantasy_crystal_tower.glb",
+	],
+	"distant_pod_props": [
+		"res://assets/maps/route_levels/runner_60s/distant_props/futuristic_pod.glb",
+	],
+	"distant_spaceship_props": [
+		"res://assets/maps/route_levels/runner_60s/distant_props/futuristic_spaceship.glb",
+	],
+	"distant_hearth_props": [
 		"res://3d素材/居民穹顶据点 3d model.glb",
 	],
 	"hearth": "res://3d素材/居民穹顶据点 3d model.glb",
