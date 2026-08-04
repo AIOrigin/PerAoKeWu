@@ -1902,9 +1902,14 @@ func _fail_run(reason: String = "被零潮捕获") -> void:
 func _return_to_exploration_map() -> void:
 	if _pause_overlay != null and _pause_overlay.is_paused():
 		_pause_overlay.close_pause()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	var return_scene := String(Global.runner_return_scene)
+	Global.runner_return_scene = ""
+	if return_scene != "":
+		Global.change_game_scene(return_scene)
+		return
 	Global.exploration_planet_id = Global.runner_planet_id
 	Global.mobile_home_tab = "map"
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	Global.change_game_scene(PlanetDatabase.EXPLORATION_SCENE)
 
 
@@ -1915,8 +1920,9 @@ func _setup_pause_overlay() -> void:
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(layer)
 	_pause_overlay = MobilePauseOverlay.new()
+	var quit_text := "返回编辑器" if String(Global.runner_return_scene) != "" else "返回地图"
 	_pause_overlay.configure({
-		"quit_text": "返回地图",
+		"quit_text": quit_text,
 		"show_quit": true,
 		"show_pause_button": true,
 	})
@@ -5503,7 +5509,7 @@ func _build_ui() -> void:
 	state_button_row.add_child(state_restart_button)
 
 	state_back_button = Button.new()
-	state_back_button.text = "返回地图"
+	state_back_button.text = "返回编辑器" if String(Global.runner_return_scene) != "" else "返回地图"
 	state_back_button.custom_minimum_size = Vector2(320, 56)
 	state_back_button.add_theme_font_size_override("font_size", 20)
 	state_back_button.pressed.connect(_return_to_exploration_map)

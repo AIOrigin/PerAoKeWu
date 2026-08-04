@@ -187,6 +187,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_S:
 				if key.ctrl_pressed:
 					_save_layout()
+			KEY_P:
+				if key.ctrl_pressed:
+					_playtest_layout()
+					get_viewport().set_input_as_handled()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
 				if _edit_mode == EDIT_MODE_OBSTACLES:
 					var idx := key.keycode - KEY_1
@@ -795,6 +799,7 @@ func _build_ui() -> void:
 	var btn_row2 := HBoxContainer.new()
 	btn_row2.add_theme_constant_override("separation", 6)
 	v.add_child(btn_row2)
+	btn_row2.add_child(_make_button("▶ 试玩当前", _playtest_layout))
 	btn_row2.add_child(_make_button("保存为关卡", _save_layout))
 	btn_row2.add_child(_make_button("重新加载", _reload_layout))
 
@@ -841,10 +846,10 @@ func _build_ui() -> void:
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_theme_font_size_override("font_size", 14)
 	help.add_theme_color_override("font_color", Color(0.95, 0.95, 0.8))
-	help.text = "①拼赛道（尽头＋接下一段）→ ②摆障碍 → 保存。Tab 切换 · Ctrl+S 保存。"
+	help.text = "①拼赛道 → ②摆障碍 → 试玩/保存。Tab 切阶段 · Ctrl+P 试玩 · Ctrl+S 保存。"
 	v.add_child(help)
 
-	_status.text = "先拼赛道：点尽头「＋」或 Space 选择下一段 · Tab 切到摆障碍"
+	_status.text = "先拼赛道：点尽头「＋」或 Space 选下一段 · Ctrl+P 试玩 · Tab 摆障碍"
 
 	_build_end_add_button(root)
 	_build_piece_picker(root)
@@ -2308,7 +2313,7 @@ func _update_status() -> void:
 		return
 	var flag := " *" if _dirty else ""
 	var phase := "拼赛道" if _edit_mode == EDIT_MODE_TRACK else "摆障碍"
-	var tip := "点尽头「＋」/Space 选下一段 · Tab 切阶段" if _edit_mode == EDIT_MODE_TRACK else "左键放置/拖拽 · Space 放置 · Tab 切阶段"
+	var tip := "点尽头「＋」/Space 选下一段 · Ctrl+P 试玩 · Tab 切阶段" if _edit_mode == EDIT_MODE_TRACK else "左键放置/拖拽 · Space 放置 · Ctrl+P 试玩 · Tab 切阶段"
 	_status.text = "[%s] %s%s | d=%.0f | 跑道=%s\n路段 %d · 分叉 %d · 侧墙 %d · 障碍 %d · 沙尘 %d → 下次 %s\n%s · Ctrl+S 保存" % [
 		phase,
 		_planet_id,
@@ -2463,6 +2468,35 @@ func _save_layout() -> void:
 		])
 	else:
 		_flash_status("保存失败")
+
+
+func _playtest_layout() -> void:
+	_items = ObstacleLayout.sort_items(_items)
+	var duration := 65.0
+	if LevelConfig != null and LevelConfig.get("MISSION") != null:
+		duration = float(LevelConfig.MISSION.get("duration", 65.0))
+	# 短轨试玩：按已拼路程估时长，避免被任务全长拖太久
+	var path_len := maxf(_path_length, 40.0)
+	var estimated := clampf(path_len / 12.0 + 8.0, 20.0, duration)
+	var entry := CustomLevels.save_playtest(_planet_id, _items, {
+		"duration": estimated,
+		"task_type": "Supply Run",
+		"base_planet_id": _planet_id,
+		"side_runway_zones": _side_zones,
+		"sandstorm_zones": _sand_zones,
+		"track_segments": _track_segments,
+		"junction_zones": _junctions,
+		"road_style": _road_style_id,
+	})
+	if entry.is_empty():
+		_flash_status("试玩失败：无法写入草稿（检查 data 目录写权限）")
+		return
+	Global.runner_planet_id = _planet_id
+	Global.runner_location_id = CustomLevels.PLAYTEST_ID
+	Global.runner_return_scene = CustomLevels.EDITOR_SCENE
+	Global.set_runner_road_style(_road_style_id)
+	_flash_status("正在进入试玩…")
+	Global.change_game_scene(PlanetDatabase.RUNNER_SCENE)
 
 
 func _refresh_custom_level_ui() -> void:

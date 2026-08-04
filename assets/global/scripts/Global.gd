@@ -32,6 +32,8 @@ var sky_limit = null
 var runner_planet_id: String = "glass_desert"
 var exploration_planet_id: String = "glass_desert"
 var runner_location_id: String = "dome"
+## 跑酷结束后回到的场景；空则回探索地图
+var runner_return_scene: String = ""
 ## 跑酷跑道外观（进关前选择，与背景独立）
 var runner_road_style: String = "holographic"
 ## 跑酷场景背景（天空 + 两侧地形，与跑道独立）

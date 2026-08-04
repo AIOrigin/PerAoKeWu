@@ -5,15 +5,22 @@ extends RefCounted
 
 const DATA_DIR := "res://assets/maps/route_levels/planets/data/"
 const INDEX_PATH := DATA_DIR + "custom_levels_index.json"
+const PLAYTEST_ID := "custom_playtest"
+const PLAYTEST_NAME := "试玩草稿"
+const EDITOR_SCENE := "res://assets/maps/route_levels/runner_60s/level_editor/runner_level_editor.tscn"
 
 
-static func list_levels() -> Array:
+static func list_levels(include_playtest: bool = false) -> Array:
 	var root := _read_index()
 	var levels: Array = root.get("levels", [])
 	var out: Array = []
 	for raw in levels:
-		if typeof(raw) == TYPE_DICTIONARY:
-			out.append((raw as Dictionary).duplicate(true))
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var level: Dictionary = (raw as Dictionary).duplicate(true)
+		if not include_playtest and String(level.get("id", "")) == PLAYTEST_ID:
+			continue
+		out.append(level)
 	return out
 
 
@@ -130,6 +137,85 @@ static func create_level(planet_id: String, obstacles: Array, meta: Dictionary =
 	if not _write_index(root):
 		return {}
 	return entry
+
+
+## 覆盖写入指定 id（用于试玩草稿 / 后续「覆盖当前关」）
+static func upsert_level(level_id: String, planet_id: String, obstacles: Array, meta: Dictionary = {}) -> Dictionary:
+	if level_id.is_empty():
+		return {}
+	var display_name := String(meta.get("name", level_id))
+	var duration := float(meta.get("duration", 65.0))
+	var task_type := String(meta.get("task_type", "Supply Run"))
+	var side_zones: Array = meta.get("side_runway_zones", [])
+	var sand_zones: Array = meta.get("sandstorm_zones", [])
+	var track_segments: Array = meta.get("track_segments", [])
+	var junction_zones: Array = meta.get("junction_zones", [])
+	var road_style := String(meta.get("road_style", "holographic"))
+	var entry := {
+		"id": level_id,
+		"name": display_name,
+		"planet_id": planet_id,
+		"duration": duration,
+		"task_type": task_type,
+		"updated_at": Time.get_datetime_string_from_system(true),
+		"obstacle_count": obstacles.size(),
+		"side_runway_count": side_zones.size(),
+		"sandstorm_count": sand_zones.size(),
+		"track_segment_count": track_segments.size(),
+		"junction_count": junction_zones.size(),
+		"road_style": road_style,
+	}
+	for k in meta.keys():
+		if k in ["name", "duration", "task_type", "side_runway_zones", "sandstorm_zones", "track_segments", "junction_zones", "road_style"]:
+			continue
+		entry[k] = meta[k]
+	var seg_out: Array = []
+	for raw in track_segments:
+		if typeof(raw) == TYPE_DICTIONARY:
+			seg_out.append(ObstacleLayout.normalize_track_segment(raw))
+	var ok := ObstacleLayout.save_items(level_id, obstacles, {
+		"level_id": level_id,
+		"level_name": display_name,
+		"base_planet_id": planet_id,
+		"note": "Custom level from runner level editor",
+		"side_runway_zones": ObstacleLayout.sort_side_zones(side_zones),
+		"sandstorm_zones": ObstacleLayout.sort_sandstorm_zones(sand_zones),
+		"track_segments": seg_out,
+		"junction_zones": ObstacleLayout.sort_junction_zones(junction_zones),
+		"road_style": road_style,
+	})
+	if not ok:
+		return {}
+	var root := _read_index()
+	var levels: Array = root.get("levels", [])
+	var found := false
+	for i in levels.size():
+		if typeof(levels[i]) != TYPE_DICTIONARY:
+			continue
+		if String((levels[i] as Dictionary).get("id", "")) == level_id:
+			if not (levels[i] as Dictionary).has("created_at"):
+				entry["created_at"] = Time.get_datetime_string_from_system(true)
+			else:
+				entry["created_at"] = (levels[i] as Dictionary).get("created_at")
+			levels[i] = entry
+			found = true
+			break
+	if not found:
+		entry["created_at"] = Time.get_datetime_string_from_system(true)
+		levels.append(entry)
+	root["levels"] = levels
+	root["version"] = 1
+	root["updated_at"] = Time.get_datetime_string_from_system(true)
+	if not _write_index(root):
+		return {}
+	return entry
+
+
+static func save_playtest(planet_id: String, obstacles: Array, meta: Dictionary = {}) -> Dictionary:
+	var m: Dictionary = meta.duplicate(true)
+	m["name"] = PLAYTEST_NAME
+	m["is_playtest"] = true
+	return upsert_level(PLAYTEST_ID, planet_id, obstacles, m)
 
 
 static func load_side_runway_zones(level_id: String) -> Array:
