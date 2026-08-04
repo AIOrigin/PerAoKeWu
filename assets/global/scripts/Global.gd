@@ -42,6 +42,12 @@ var mobile_home_tab: String = "home"
 var pending_location_showcase_id: String = ""
 var first_launch_story_seen: bool = false
 var home_guide_seen: bool = false
+## 跑酷新手引导总开关（设置里可关）
+var runner_tutorial_enabled: bool = true
+## 分项：jump / slide / lane / shield / fork / sandstorm / wall_run
+var runner_tutorial_seen: Dictionary = {}
+## 兼容旧字段
+var runner_wall_run_tutorial_seen: bool = false
 var ember_coins: int = 0
 var gold_coins: int = 1280
 var runner_energy: int = 86
@@ -441,6 +447,48 @@ func mark_home_guide_seen() -> void:
 	save_mobile_progress()
 
 
+func mark_runner_wall_run_tutorial_seen() -> void:
+	mark_runner_tutorial_seen("wall_run")
+
+
+func is_runner_tutorial_enabled() -> bool:
+	return runner_tutorial_enabled
+
+
+func set_runner_tutorial_enabled(enabled: bool) -> void:
+	runner_tutorial_enabled = enabled
+	save_mobile_progress()
+
+
+func has_seen_runner_tutorial(key: String) -> bool:
+	if key == "wall_run" and runner_wall_run_tutorial_seen:
+		return true
+	return bool(runner_tutorial_seen.get(key, false))
+
+
+func mark_runner_tutorial_seen(key: String) -> void:
+	if key == "":
+		return
+	if bool(runner_tutorial_seen.get(key, false)):
+		if key == "wall_run":
+			runner_wall_run_tutorial_seen = true
+		return
+	runner_tutorial_seen[key] = true
+	if key == "wall_run":
+		runner_wall_run_tutorial_seen = true
+	save_mobile_progress()
+
+
+func reset_runner_tutorials() -> void:
+	runner_tutorial_seen.clear()
+	runner_wall_run_tutorial_seen = false
+	save_mobile_progress()
+
+
+func should_show_runner_tutorial(key: String) -> bool:
+	return runner_tutorial_enabled and not has_seen_runner_tutorial(key)
+
+
 func set_selected_ship(ship_id: String) -> void:
 	if ship_id == "":
 		return
@@ -558,6 +606,9 @@ func save_mobile_progress() -> void:
 		"version": MOBILE_PROGRESS_VERSION,
 		"first_launch_story_seen": first_launch_story_seen,
 		"home_guide_seen": home_guide_seen,
+		"runner_tutorial_enabled": runner_tutorial_enabled,
+		"runner_tutorial_seen": runner_tutorial_seen.duplicate(true),
+		"runner_wall_run_tutorial_seen": runner_wall_run_tutorial_seen or bool(runner_tutorial_seen.get("wall_run", false)),
 		"ember_coins": ember_coins,
 		"gold_coins": gold_coins,
 		"runner_energy": runner_energy,
@@ -600,6 +651,15 @@ func load_mobile_progress() -> void:
 	var data: Dictionary = json.data
 	first_launch_story_seen = bool(data.get("first_launch_story_seen", first_launch_story_seen))
 	home_guide_seen = bool(data.get("home_guide_seen", home_guide_seen))
+	runner_tutorial_enabled = bool(data.get("runner_tutorial_enabled", true))
+	runner_tutorial_seen = {}
+	var seen_raw: Variant = data.get("runner_tutorial_seen", {})
+	if typeof(seen_raw) == TYPE_DICTIONARY:
+		for k in (seen_raw as Dictionary).keys():
+			runner_tutorial_seen[String(k)] = bool((seen_raw as Dictionary)[k])
+	runner_wall_run_tutorial_seen = bool(data.get("runner_wall_run_tutorial_seen", runner_wall_run_tutorial_seen))
+	if runner_wall_run_tutorial_seen:
+		runner_tutorial_seen["wall_run"] = true
 	ember_coins = max(0, int(data.get("ember_coins", ember_coins)))
 	gold_coins = max(0, int(data.get("gold_coins", gold_coins)))
 	runner_energy_max = maxi(1, int(data.get("runner_energy_max", runner_energy_max)))
@@ -644,6 +704,9 @@ func _sync_completed_outpost_progress() -> void:
 func reset_mobile_progress() -> void:
 	first_launch_story_seen = false
 	home_guide_seen = false
+	runner_tutorial_enabled = true
+	runner_tutorial_seen.clear()
+	runner_wall_run_tutorial_seen = false
 	ember_coins = 0
 	gold_coins = 1280
 	runner_energy = 86

@@ -116,7 +116,7 @@ const GUIDE_STEPS := [
 	{
 		"tab": TAB_MAP,
 		"title": "从这里开始",
-		"body": "点击 MAP 进入据点地图，或从 TASKS 任务板接取运输。批次逐步解锁，任务板常驻 3 槽并按缺口优先补发。",
+		"body": "点击下方 MAP 进入据点地图。\n也可从 TASKS 接取运输任务；批次会逐步解锁。",
 		"next": "知道了",
 	},
 ]
@@ -168,6 +168,8 @@ var _selected_tab := TAB_HOME
 var _selected_planet_id := "glass_desert"
 var _guide_step := -1
 var _pause_overlay: MobilePauseOverlay
+var _settings_overlay: Control
+var _settings_tutorial_check: CheckButton
 var _energy_tick := 0.0
 var _task_detail: Control
 
@@ -206,6 +208,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if _story_overlay != null and _story_overlay.visible:
+		return
+	if _settings_overlay != null and _settings_overlay.visible:
+		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+			_close_settings()
+			get_viewport().set_input_as_handled()
 		return
 	if _guide_overlay != null and _guide_overlay.visible:
 		return
@@ -713,7 +720,7 @@ func _build_status_bar() -> Control:
 	settings_button.add_theme_stylebox_override("hover", _style_glass(_home_spec_w(22), 10, 10, 10))
 	settings_button.add_theme_stylebox_override("pressed", _style(Color(0.02, 0.05, 0.09, 0.82), UI_PANEL_BORDER, 1, _home_spec_w(22)))
 	settings_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	settings_button.pressed.connect(func(): _show_toast("设置功能开发中"))
+	settings_button.pressed.connect(_open_settings)
 	row.add_child(settings_button)
 
 	var settings_icon := TextureRect.new()
@@ -3334,6 +3341,121 @@ func _show_toast(text: String, duration: float = 2.2) -> void:
 	_toast_tween.tween_callback(func(): _toast_panel.visible = false)
 
 
+func _open_settings() -> void:
+	if _settings_overlay != null and is_instance_valid(_settings_overlay):
+		_settings_overlay.visible = true
+		_refresh_settings_ui()
+		return
+	_build_settings_overlay()
+	_refresh_settings_ui()
+
+
+func _close_settings() -> void:
+	if _settings_overlay != null and is_instance_valid(_settings_overlay):
+		_settings_overlay.visible = false
+
+
+func _build_settings_overlay() -> void:
+	_settings_overlay = Control.new()
+	_settings_overlay.name = "SettingsOverlay"
+	_settings_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_settings_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_ui_root.add_child(_settings_overlay)
+
+	var shade := ColorRect.new()
+	shade.color = Color(0.02, 0.04, 0.08, 0.78)
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed:
+			_close_settings()
+	)
+	_settings_overlay.add_child(shade)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_settings_overlay.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(560, 0)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.add_theme_stylebox_override("panel", _style(UI_FRAME, UI_FRAME_BORDER, 2, 14))
+	center.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 26)
+	margin.add_theme_constant_override("margin_bottom", 26)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 16)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.text = "设置"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", UI_TEXT)
+	box.add_child(title)
+
+	var tip := Label.new()
+	tip.text = "跑酷新手引导会在首次遇到跳跃、滑铲、换道、防护罩、分叉、侧墙时提示。"
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip.custom_minimum_size = Vector2(480, 0)
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip.add_theme_font_size_override("font_size", 16)
+	tip.add_theme_color_override("font_color", UI_MUTED)
+	box.add_child(tip)
+
+	_settings_tutorial_check = CheckButton.new()
+	_settings_tutorial_check.text = "开启跑酷新手引导"
+	_settings_tutorial_check.focus_mode = Control.FOCUS_NONE
+	_settings_tutorial_check.add_theme_font_size_override("font_size", 20)
+	_settings_tutorial_check.add_theme_color_override("font_color", UI_TEXT)
+	_settings_tutorial_check.toggled.connect(_on_settings_tutorial_toggled)
+	box.add_child(_settings_tutorial_check)
+
+	var reset_btn := _make_flat_button("重置跑酷教学进度")
+	reset_btn.pressed.connect(_on_settings_reset_tutorials)
+	box.add_child(reset_btn)
+
+	var home_guide_btn := _make_flat_button("重新播放主页引导")
+	home_guide_btn.pressed.connect(_on_settings_replay_home_guide)
+	box.add_child(home_guide_btn)
+
+	var close_btn := _make_gold_button("关闭")
+	close_btn.pressed.connect(_close_settings)
+	box.add_child(close_btn)
+
+
+func _refresh_settings_ui() -> void:
+	if _settings_tutorial_check == null:
+		return
+	_settings_tutorial_check.set_pressed_no_signal(Global.is_runner_tutorial_enabled())
+
+
+func _on_settings_tutorial_toggled(pressed: bool) -> void:
+	Global.set_runner_tutorial_enabled(pressed)
+	_show_toast("跑酷新手引导已%s" % ("开启" if pressed else "关闭"))
+
+
+func _on_settings_reset_tutorials() -> void:
+	Global.reset_runner_tutorials()
+	_show_toast("已重置跑酷教学，下次开跑会重新提示")
+
+
+func _on_settings_replay_home_guide() -> void:
+	Global.home_guide_seen = false
+	Global.save_mobile_progress()
+	_close_settings()
+	if _guide_overlay != null and is_instance_valid(_guide_overlay):
+		_guide_overlay.queue_free()
+		_guide_overlay = null
+	_start_home_guide()
+
+
 func _position_toast() -> void:
 	if _toast_panel == null or _ui_root == null:
 		return
@@ -3584,11 +3706,12 @@ func _build_guide_overlay() -> void:
 	_guide_overlay = Control.new()
 	_guide_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_guide_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_guide_overlay.clip_contents = false
 	_ui_root.add_child(_guide_overlay)
 
 	var shade := ColorRect.new()
 	shade.name = "GuideShade"
-	shade.color = Color(0.02, 0.04, 0.08, 0.82)
+	shade.color = Color(0.02, 0.04, 0.08, 0.72)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_guide_overlay.add_child(shade)
@@ -3596,47 +3719,62 @@ func _build_guide_overlay() -> void:
 	_guide_highlight = PanelContainer.new()
 	_guide_highlight.name = "GuideHighlight"
 	_guide_highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_guide_highlight.clip_contents = false
 	_guide_highlight.add_theme_stylebox_override(
 		"panel",
-		_style(Color(0.42, 0.86, 0.98, 0.16), UI_CYAN, 2, 10)
+		_style(Color(0.42, 0.86, 0.98, 0.14), UI_CYAN, 2, 14)
 	)
 	_guide_overlay.add_child(_guide_highlight)
 
 	_guide_callout = PanelContainer.new()
 	_guide_callout.name = "GuideCallout"
-	_guide_callout.custom_minimum_size = Vector2(560, 0)
-	_guide_callout.add_theme_stylebox_override(
-		"panel",
-		_style(UI_FRAME, UI_FRAME_BORDER, 2, 10)
-	)
+	_guide_callout.clip_contents = false
+	_guide_callout.custom_minimum_size = Vector2(520, 0)
+	var callout_style := _style(Color(0.035, 0.07, 0.12, 0.96), UI_FRAME_BORDER, 2, 16)
+	callout_style.content_margin_left = 0
+	callout_style.content_margin_right = 0
+	callout_style.content_margin_top = 0
+	callout_style.content_margin_bottom = 0
+	_guide_callout.add_theme_stylebox_override("panel", callout_style)
 	_guide_overlay.add_child(_guide_callout)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_right", 24)
-	margin.add_theme_constant_override("margin_top", 22)
-	margin.add_theme_constant_override("margin_bottom", 22)
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 26)
+	margin.add_theme_constant_override("margin_bottom", 24)
 	_guide_callout.add_child(margin)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 16)
 	margin.add_child(box)
 
 	_guide_title_label = Label.new()
 	_guide_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_guide_title_label.add_theme_font_size_override("font_size", 28)
-	_guide_title_label.add_theme_color_override("font_color", UI_TEXT)
+	_guide_title_label.clip_text = false
+	_guide_title_label.add_theme_font_size_override("font_size", 26)
+	_guide_title_label.add_theme_color_override("font_color", UI_CYAN_SOFT)
+	_guide_title_label.add_theme_constant_override("line_spacing", 4)
 	box.add_child(_guide_title_label)
 
 	_guide_body_label = Label.new()
 	_guide_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_guide_body_label.custom_minimum_size = Vector2(500, 0)
+	_guide_body_label.clip_text = false
+	_guide_body_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_guide_body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_guide_body_label.add_theme_font_size_override("font_size", 17)
+	_guide_body_label.add_theme_font_size_override("font_size", 18)
 	_guide_body_label.add_theme_color_override("font_color", UI_MUTED)
+	_guide_body_label.add_theme_constant_override("line_spacing", 6)
 	box.add_child(_guide_body_label)
 
-	_guide_next_button = _make_gold_button("下一步")
+	_guide_next_button = Button.new()
+	_guide_next_button.focus_mode = Control.FOCUS_NONE
+	_guide_next_button.custom_minimum_size = Vector2(0, 52)
+	_guide_next_button.add_theme_font_size_override("font_size", 18)
+	_guide_next_button.add_theme_stylebox_override("normal", _style(UI_GOLD, UI_GOLD_BORDER, 2, 12))
+	_guide_next_button.add_theme_stylebox_override("hover", _style(UI_GOLD.lightened(0.05), UI_GOLD_BORDER.lightened(0.04), 2, 12))
+	_guide_next_button.add_theme_stylebox_override("pressed", _style(UI_GOLD.darkened(0.08), UI_GOLD_BORDER.darkened(0.04), 2, 12))
+	_guide_next_button.add_theme_color_override("font_color", Color(0.08, 0.05, 0.02))
 	_guide_next_button.pressed.connect(_advance_home_guide)
 	box.add_child(_guide_next_button)
 
@@ -3692,22 +3830,41 @@ func _set_nav_interactive(enabled: bool) -> void:
 func _update_guide_layout() -> void:
 	if _guide_overlay == null or _guide_step < 0 or _guide_step >= GUIDE_STEPS.size():
 		return
+	if _guide_callout == null or _guide_highlight == null:
+		return
 	var tab_id := String(GUIDE_STEPS[_guide_step]["tab"])
 	var button: Control = _nav_buttons.get(tab_id)
 	if button == null:
 		return
 	var button_rect := button.get_global_rect()
-	_guide_highlight.global_position = button_rect.position - Vector2(6, 6)
-	_guide_highlight.size = button_rect.size + Vector2(12, 12)
+	_guide_highlight.global_position = button_rect.position - Vector2(8, 8)
+	_guide_highlight.size = button_rect.size + Vector2(16, 16)
 
 	var overlay_rect := _guide_overlay.get_global_rect()
-	var callout_width := minf(overlay_rect.size.x - 48.0, 620.0)
+	var side_pad := 36.0
+	var callout_width := minf(overlay_rect.size.x - side_pad * 2.0, 560.0)
 	_guide_callout.custom_minimum_size = Vector2(callout_width, 0)
-	_guide_callout.size.x = callout_width
+	if _guide_body_label != null:
+		_guide_body_label.custom_minimum_size = Vector2(maxi(callout_width - 56.0, 200.0), 0)
+	# 先按内容最小尺寸定高，再定位，避免高度为 0 时叠在底栏上
+	_guide_callout.reset_size()
+	var callout_size := _guide_callout.get_combined_minimum_size()
+	callout_size.x = callout_width
+	callout_size.y = maxf(callout_size.y, 160.0)
+	_guide_callout.size = callout_size
+
 	var callout_x := overlay_rect.position.x + (overlay_rect.size.x - callout_width) * 0.5
-	var callout_y := button_rect.position.y - _guide_callout.size.y - 18.0
-	if callout_y < overlay_rect.position.y + 24.0:
-		callout_y = button_rect.end.y + 18.0
+	var gap := 24.0
+	var nav_top := button_rect.position.y
+	if _bottom_nav_root != null:
+		nav_top = mini(nav_top, _bottom_nav_root.get_global_rect().position.y)
+	var callout_y := nav_top - callout_size.y - gap
+	var top_limit := overlay_rect.position.y + 96.0
+	if callout_y < top_limit:
+		callout_y = top_limit
+	# 绝不压住底栏
+	if callout_y + callout_size.y > nav_top - 12.0:
+		callout_y = nav_top - callout_size.y - gap
 	_guide_callout.global_position = Vector2(callout_x, callout_y)
 
 

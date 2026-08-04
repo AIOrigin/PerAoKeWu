@@ -255,6 +255,26 @@ var _wall_mount_armed_until_d := -1.0
 var _last_wall_side := 1.0
 var _hit_iframe_timer := 0.0
 var _obstacle_scan_index := 0
+## 侧墙跑首次教学：贴墙道 → 再朝墙按 → 跳跃
+const WALL_TUT_OFF := 0
+const WALL_TUT_APPROACH := 1
+const WALL_TUT_LANE := 2
+const WALL_TUT_ARM := 3
+const WALL_TUT_JUMP := 4
+const WALL_TUT_DONE := 5
+var _wall_tut_step := WALL_TUT_OFF
+var _wall_tut_zone: Dictionary = {}
+var _wall_tut_root: Node3D
+var _wall_tut_panel: PanelContainer
+var _wall_tut_title: Label
+var _wall_tut_body: Label
+var _wall_tut_pulse := 0.0
+## 通用操作教学（跳/滑/换道/盾/分叉/沙尘），与侧墙教学共用面板
+var _coach_tip_key := ""
+var _coach_tip_until_d := -1.0
+## 教学暂停：冻结推进，等玩家完成指定操作
+var _tutorial_paused := false
+var _tutorial_expect := ""
 var intro_panel: PanelContainer
 var intro_title: Label
 var intro_body: Label
@@ -453,7 +473,53 @@ func _apply_swipe(touch_delta: Vector2) -> bool:
 	return true
 
 
+func _notify_coach_action(action: String) -> void:
+	if _coach_tip_key == "":
+		return
+	if action == _coach_tip_key:
+		_complete_coach_tip(_coach_tip_key)
+		return
+	# 开盾也算完成沙尘教学
+	if action == "shield" and _coach_tip_key == "sandstorm":
+		_complete_coach_tip("sandstorm")
+		Global.mark_runner_tutorial_seen("shield")
+	# 换道也可结束沙尘/分叉提示
+	elif action == "lane" and _coach_tip_key in ["fork", "sandstorm"]:
+		_complete_coach_tip(_coach_tip_key)
+
+
+func _tutorial_allows_action(action: String) -> bool:
+	if not _tutorial_paused:
+		return true
+	match _tutorial_expect:
+		"jump", "wall_jump":
+			return action == "jump"
+		"slide":
+			return action == "slide"
+		"lane", "fork", "wall_lane", "wall_arm":
+			return action == "lane"
+		"shield":
+			return action == "shield"
+		"sandstorm":
+			return action == "shield" or action == "lane"
+		_:
+			return false
+
+
+func _begin_tutorial_pause(expect: String) -> void:
+	_tutorial_paused = true
+	_tutorial_expect = expect
+
+
+func _end_tutorial_pause() -> void:
+	_tutorial_paused = false
+	_tutorial_expect = ""
+
+
 func _try_jump() -> void:
+	if not _tutorial_allows_action("jump"):
+		_show_gate_toast("请按教学提示操作")
+		return
 	if _is_wall_running():
 		vertical_velocity = JUMP_SPEED * 0.72
 		_end_slide()
@@ -461,14 +527,31 @@ func _try_jump() -> void:
 		return
 	if not _is_on_ground():
 		return
+	# 侧墙教学最后一步：暂停中直接上墙，避免跳跃高度来不及结算
+	if _tutorial_paused and _tutorial_expect == "wall_jump":
+		vertical_velocity = JUMP_SPEED
+		_end_slide()
+		if player != null:
+			player.position.y = GROUND_Y + 1.15
+		_end_tutorial_pause()
+		_try_side_runway_entry()
+		if not _is_wall_running():
+			# 兜底：仍未上墙则恢复教学暂停
+			_begin_tutorial_pause("wall_jump")
+			_refresh_wall_tut_panel(_wall_tut_side_name(_wall_tut_zone))
+		return
 	vertical_velocity = JUMP_SPEED
 	_end_slide()
 	body_squash_timer = 0.16
 	camera_shake = maxf(camera_shake, 0.05)
 	_emit_landing_particles()
+	_notify_coach_action("jump")
 
 
 func _try_slide() -> void:
+	if not _tutorial_allows_action("slide"):
+		_show_gate_toast("请按教学提示操作")
+		return
 	if _is_wall_running():
 		# 侧墙上滑铲 = 切到最低列
 		_set_lane(0)
@@ -476,6 +559,7 @@ func _try_slide() -> void:
 	if not _is_on_ground():
 		return
 	_start_slide()
+	_notify_coach_action("slide")
 
 
 func _restart_run() -> void:
@@ -496,6 +580,19 @@ func _physics_process(delta: float) -> void:
 		_sync_player_position()
 		_sync_chaser_from_track()
 		_update_chaser_visuals(delta)
+		_update_camera()
+		_update_hud()
+		return
+
+	# 教学暂停：不推进路程，只保留换道插值/镜头/HUD，等正确操作
+	if _tutorial_paused:
+		if not _is_sliding():
+			current_lateral = lerpf(current_lateral, target_lane_x, 1.0 - exp(-lane_change_ease * delta))
+		_sync_player_position()
+		_sync_chaser_from_track()
+		_update_shield_visual(delta)
+		_pulse_wall_tut_markers(delta)
+		_refresh_active_tutorial_panel()
 		_update_camera()
 		_update_hud()
 		return
@@ -562,6 +659,8 @@ func _physics_process(delta: float) -> void:
 	_try_side_runway_entry()
 	_enforce_track_layer()
 	_update_side_runway_ground_penalty(delta)
+	_update_wall_run_tutorial(delta)
+	_update_runner_coach_tips(delta)
 	_update_sandstorm_hazard(delta)
 	_update_shield_visual(delta)
 
@@ -613,15 +712,21 @@ func _set_lane(next_lane_index: int) -> void:
 
 
 func _try_lane_change(next_lane_index: int) -> void:
+	if not _tutorial_allows_action("lane"):
+		_show_gate_toast("请按教学提示操作")
+		return
 	if _is_sliding():
 		_end_slide()
 	# 主路最外道再朝侧墙按一次 = 预备上墙（不自动吸附）
 	if track_layer == 0 and _try_arm_wall_mount(next_lane_index):
+		_on_wall_tutorial_action("arm")
 		return
 	if next_lane_index < 0 or next_lane_index >= LANES.size():
 		return
 	_wall_mount_armed = false
 	_set_lane(next_lane_index)
+	_on_wall_tutorial_action("lane")
+	_notify_coach_action("lane")
 
 
 func _wall_edge_lane_index(zone: Dictionary) -> int:
@@ -1296,6 +1401,9 @@ func _is_shield_protecting() -> bool:
 func _toggle_shield() -> void:
 	if is_finished or is_failed or is_intro or not gameplay_active:
 		return
+	if not _tutorial_allows_action("shield"):
+		_show_gate_toast("请按教学提示操作")
+		return
 	if shield_active:
 		shield_active = false
 		_show_gate_toast("防护罩关闭")
@@ -1307,6 +1415,7 @@ func _toggle_shield() -> void:
 	_shield_warned_empty = false
 	_show_gate_toast("防护罩开启 · 可挡沙尘暴")
 	_ensure_shield_mesh()
+	_notify_coach_action("shield")
 
 
 func _ensure_shield_mesh() -> void:
@@ -1525,6 +1634,7 @@ func _try_side_runway_entry() -> void:
 	camera_shake = maxf(camera_shake, 0.1)
 	_sync_player_position()
 	_show_gate_toast("侧墙跑 · 上下换高度道")
+	_complete_wall_run_tutorial()
 
 
 func _is_over_open_pit() -> bool:
@@ -1551,6 +1661,8 @@ func _is_in_main_block_pit(distance: float) -> bool:
 func _fail_into_pit(reason: String = "坠入主路坍塌坑") -> void:
 	if is_failed or is_finished:
 		return
+	if _wall_tut_step >= WALL_TUT_APPROACH and _wall_tut_step < WALL_TUT_DONE:
+		reason = "坠入坍塌坑 · 需：贴墙道→再朝墙按→跳跃"
 	# 定格成坠入坑中，而不是半空跳跃姿势
 	if player != null:
 		vertical_velocity = -12.0
@@ -1570,7 +1682,459 @@ func _update_side_runway_ground_penalty(_delta: float) -> void:
 	if not _is_in_side_runway_pit(track_distance):
 		return
 	if player != null and player.position.y <= GROUND_Y + 0.15 and strike_toast_label:
-		_show_strike_warning("主路坍塌 · 立刻上侧墙！")
+		if _wall_tut_step >= WALL_TUT_APPROACH and _wall_tut_step < WALL_TUT_DONE:
+			_show_strike_warning("坍塌坑！教学：贴墙道 → 再朝墙按 → 跳")
+		else:
+			_show_strike_warning("主路坍塌 · 立刻上侧墙！")
+
+
+func _first_side_runway_zone() -> Dictionary:
+	var zones := _side_runway_zones()
+	if zones.is_empty():
+		return {}
+	var best: Dictionary = {}
+	var best_start := INF
+	for z in zones:
+		if typeof(z) != TYPE_DICTIONARY:
+			continue
+		var start := float(z.get("start", 0.0))
+		if start < best_start:
+			best_start = start
+			best = z
+	return best
+
+
+func _setup_wall_run_tutorial_markers() -> void:
+	if not Global.should_show_runner_tutorial("wall_run"):
+		_wall_tut_step = WALL_TUT_DONE
+		return
+	var zone := _first_side_runway_zone()
+	if zone.is_empty():
+		return
+	_wall_tut_zone = zone
+	# 仅标记「待接近」，真正进入区间后再暂停教学
+	_wall_tut_step = WALL_TUT_APPROACH
+	if _wall_tut_root != null and is_instance_valid(_wall_tut_root):
+		_wall_tut_root.queue_free()
+	_wall_tut_root = Node3D.new()
+	_wall_tut_root.name = "WallRunTutorialMarkers"
+	if track_root != null:
+		track_root.add_child(_wall_tut_root)
+	else:
+		add_child(_wall_tut_root)
+	var start := float(zone.get("start", 0.0))
+	var entry := float(zone.get("entry_window", 10.0))
+	var side := _wall_zone_side(zone)
+	var edge_lane := -1 if side < 0.0 else 1
+	for i in 5:
+		var d := start - entry + 4.0 + float(i) * 3.5
+		if d < 5.0:
+			continue
+		_wall_tut_root.add_child(_make_wall_tut_arrow(d, float(edge_lane) * LANE_WIDTH, side))
+	_wall_tut_root.add_child(_make_wall_tut_ready_pad(start - 2.0, start + 8.0, side))
+	var zone_end := start + float(zone.get("length", 55.0))
+	for gap in _main_block_road_gaps():
+		var gs: float = gap.x
+		if gs < start - 20.0 or gs > zone_end + 20.0:
+			continue
+		_wall_tut_root.add_child(_make_wall_tut_pit_warning(gs - 6.0))
+		break
+
+
+func _make_wall_tut_arrow(distance: float, lateral: float, wall_side: float) -> Node3D:
+	var root := Node3D.new()
+	var sample := _sample_path(distance)
+	var pos: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral
+	pos.y = GROUND_Y + 0.18
+	root.position = pos
+	root.rotation.y = float(sample["yaw"])
+	var wedge := MeshInstance3D.new()
+	var prism := PrismMesh.new()
+	prism.size = Vector3(1.4, 0.18, 2.2)
+	var mat := _make_material(Color(0.2, 0.95, 0.7, 0.85), Color(0.25, 1.0, 0.75), 2.4)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	prism.material = mat
+	wedge.mesh = prism
+	wedge.rotation_degrees.y = 90.0 if wall_side > 0.0 else -90.0
+	root.add_child(wedge)
+	return root
+
+
+func _make_wall_tut_ready_pad(start_d: float, end_d: float, wall_side: float) -> Node3D:
+	var root := Node3D.new()
+	var offset := float(wall_side) * (WALL_DEFAULT_OFFSET - 1.8)
+	var mat := _make_material(Color(0.15, 0.9, 1.0, 0.35), Color(0.3, 0.95, 1.0), 1.8)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_attach_path_strip_to_parent(root, start_d, end_d, 1.1, GROUND_Y + 0.08, mat, 2.0, offset)
+	return root
+
+
+func _attach_path_strip_to_parent(
+	parent: Node3D,
+	start_d: float,
+	end_d: float,
+	half_width: float,
+	y: float,
+	material: Material,
+	step: float,
+	lateral_bias: float
+) -> void:
+	if end_d <= start_d + 0.05:
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var d := start_d
+	var prev_l := Vector3.ZERO
+	var prev_r := Vector3.ZERO
+	var has_prev := false
+	while d <= end_d + 0.001:
+		var sample := _sample_path(minf(d, end_d))
+		var origin: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral_bias
+		var right: Vector3 = sample["right"]
+		var l := origin - right * half_width
+		var r := origin + right * half_width
+		l.y = y
+		r.y = y
+		if has_prev:
+			st.set_normal(Vector3.UP)
+			st.add_vertex(prev_l)
+			st.add_vertex(prev_r)
+			st.add_vertex(r)
+			st.add_vertex(prev_l)
+			st.add_vertex(r)
+			st.add_vertex(l)
+		prev_l = l
+		prev_r = r
+		has_prev = true
+		if d >= end_d:
+			break
+		d = minf(d + step, end_d)
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material
+	parent.add_child(mi)
+
+
+func _make_wall_tut_pit_warning(distance: float) -> Node3D:
+	var root := Node3D.new()
+	var sample := _sample_path(distance)
+	root.position = (sample["pos"] as Vector3) + Vector3(0.0, GROUND_Y + 0.05, 0.0)
+	root.rotation.y = float(sample["yaw"])
+	var gate := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(LANE_WIDTH * 3.1, 0.18, 1.4)
+	var mat := _make_material(Color(1.0, 0.35, 0.12, 0.7), Color(1.0, 0.45, 0.15), 2.6)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	box.material = mat
+	gate.mesh = box
+	gate.position.y = 0.12
+	root.add_child(gate)
+	var label := Label3D.new()
+	label.text = "坍塌坑 · 上侧墙"
+	label.font_size = 52
+	label.modulate = Color(1.0, 0.55, 0.25)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = Vector3(0.0, 2.4, 0.0)
+	root.add_child(label)
+	return root
+
+
+func _wall_tut_side_name(zone: Dictionary) -> String:
+	return "右" if _wall_zone_side(zone) > 0.0 else "左"
+
+
+func _wall_tut_approach_distance(zone: Dictionary) -> float:
+	# 暂停式教学不需要提前很远：靠近入口/贴墙垫再弹，避免「还没到侧墙就暂停」
+	var start := float(zone.get("start", 0.0))
+	return start - 10.0
+
+
+func _update_wall_run_tutorial(_delta: float) -> void:
+	if not Global.should_show_runner_tutorial("wall_run") or _wall_tut_step == WALL_TUT_OFF or _wall_tut_step >= WALL_TUT_DONE:
+		return
+	if is_intro or is_failed or is_finished or not gameplay_active:
+		return
+	# 其它教学暂停中时，不要抢占成侧墙教学
+	if _tutorial_paused and not _tutorial_expect.begins_with("wall_"):
+		return
+	if _wall_tut_zone.is_empty():
+		_wall_tut_zone = _first_side_runway_zone()
+		if _wall_tut_zone.is_empty():
+			return
+	var start := float(_wall_tut_zone.get("start", 0.0))
+	var length := float(_wall_tut_zone.get("length", 55.0))
+	var approach_d := _wall_tut_approach_distance(_wall_tut_zone)
+
+	if track_distance < approach_d or track_distance > start + length + 8.0:
+		return
+
+	if _is_wall_running():
+		_complete_wall_run_tutorial()
+		return
+
+	# 侧墙教学优先：靠近入口后再暂停，按步骤等正确操作
+	if _coach_tip_key != "":
+		_coach_tip_key = ""
+	if not _tutorial_paused or not _tutorial_expect.begins_with("wall_"):
+		var edge := _wall_edge_lane_index(_wall_tut_zone)
+		if _wall_mount_armed and _is_wall_mount_ready(_wall_tut_zone):
+			_wall_tut_step = WALL_TUT_JUMP
+			_begin_tutorial_pause("wall_jump")
+		elif lane_index == edge:
+			_wall_tut_step = WALL_TUT_ARM
+			_begin_tutorial_pause("wall_arm")
+		else:
+			_wall_tut_step = WALL_TUT_LANE
+			_begin_tutorial_pause("wall_lane")
+	_refresh_wall_tut_panel(_wall_tut_side_name(_wall_tut_zone))
+	_pulse_wall_tut_markers(_delta)
+
+
+func _pulse_wall_tut_markers(delta: float) -> void:
+	if _wall_tut_root == null:
+		return
+	_wall_tut_pulse += delta
+	var pulse := 0.65 + 0.35 * sin(_wall_tut_pulse * 6.0)
+	for child in _wall_tut_root.get_children():
+		for mi in child.find_children("*", "MeshInstance3D", true, false):
+			var mesh_i := mi as MeshInstance3D
+			if mesh_i.material_override is StandardMaterial3D:
+				(mesh_i.material_override as StandardMaterial3D).emission_energy_multiplier = 1.2 * pulse
+
+
+func _on_wall_tutorial_action(kind: String) -> void:
+	# 仅在侧墙教学已进入暂停流程后才响应；避免开局换道误触发
+	if not (_tutorial_paused and _tutorial_expect.begins_with("wall_")):
+		return
+	if not Global.should_show_runner_tutorial("wall_run"):
+		return
+	if _wall_tut_step <= WALL_TUT_OFF or _wall_tut_step >= WALL_TUT_DONE:
+		return
+	if _wall_tut_zone.is_empty():
+		return
+	var edge := _wall_edge_lane_index(_wall_tut_zone)
+	var side_name := _wall_tut_side_name(_wall_tut_zone)
+	if kind == "lane":
+		if lane_index == edge:
+			_wall_tut_step = WALL_TUT_ARM
+			_begin_tutorial_pause("wall_arm")
+			_refresh_wall_tut_panel(side_name)
+			_show_gate_toast("很好 · 再朝%s墙按一次换道" % side_name)
+		else:
+			_wall_tut_step = WALL_TUT_LANE
+			_begin_tutorial_pause("wall_lane")
+			_refresh_wall_tut_panel(side_name)
+	elif kind == "arm":
+		_wall_tut_step = WALL_TUT_JUMP
+		_begin_tutorial_pause("wall_jump")
+		_refresh_wall_tut_panel(side_name)
+		_show_gate_toast("贴墙就绪 · 现在跳跃上墙")
+
+
+func _refresh_wall_tut_panel(side_name: String) -> void:
+	if _wall_tut_panel == null:
+		return
+	_wall_tut_panel.visible = true
+	match _wall_tut_step:
+		WALL_TUT_LANE:
+			_wall_tut_title.text = "侧墙教学 · ① 换道（已暂停）"
+			_wall_tut_body.text = "前方主路坍塌！先换到%s侧贴墙车道\n（跟随绿色箭头）完成后继续" % side_name
+		WALL_TUT_ARM:
+			_wall_tut_title.text = "侧墙教学 · ② 贴墙（已暂停）"
+			_wall_tut_body.text = "已在贴墙道 · 再朝%s墙按一次换道\n出现「贴墙就绪」后准备跳" % side_name
+		WALL_TUT_JUMP:
+			_wall_tut_title.text = "侧墙教学 · ③ 跳跃（已暂停）"
+			_wall_tut_body.text = "贴墙就绪！立刻跳跃上墙\n墙上可上下换高度，绕过坍塌坑"
+		_:
+			_wall_tut_title.text = "侧墙教学（已暂停）"
+			_wall_tut_body.text = "贴墙道 → 再朝墙按 → 跳跃上墙"
+
+
+func _complete_wall_run_tutorial() -> void:
+	if _wall_tut_step >= WALL_TUT_DONE and Global.has_seen_runner_tutorial("wall_run"):
+		return
+	_wall_tut_step = WALL_TUT_DONE
+	Global.mark_runner_tutorial_seen("wall_run")
+	_end_tutorial_pause()
+	if _coach_tip_key == "" and _wall_tut_panel:
+		_wall_tut_panel.visible = false
+	if _wall_tut_root != null and is_instance_valid(_wall_tut_root):
+		_wall_tut_root.queue_free()
+		_wall_tut_root = null
+	_show_gate_toast("侧墙教学完成 · 三步：换道→贴墙→跳")
+
+
+func _is_wall_tut_panel_busy() -> bool:
+	if not Global.should_show_runner_tutorial("wall_run"):
+		return false
+	if _wall_tut_step <= WALL_TUT_OFF or _wall_tut_step >= WALL_TUT_DONE:
+		return false
+	if _wall_tut_zone.is_empty():
+		return false
+	var start := float(_wall_tut_zone.get("start", 0.0))
+	var length := float(_wall_tut_zone.get("length", 55.0))
+	var approach_d := _wall_tut_approach_distance(_wall_tut_zone)
+	return track_distance >= approach_d and track_distance <= start + length + 8.0
+
+
+func _coach_tip_copy(key: String) -> Dictionary:
+	match key:
+		"lane":
+			return {
+				"title": "换道教学（已暂停）",
+				"body": "左右滑动（或 ←→）切换车道\n躲开当前道上的障碍后继续",
+			}
+		"jump":
+			return {
+				"title": "跳跃教学（已暂停）",
+				"body": "上滑（或空格）跳跃\n越过前方低矮障碍后继续",
+			}
+		"slide":
+			return {
+				"title": "滑铲教学（已暂停）",
+				"body": "下滑（或 ↓）滑铲\n钻过前方高处障碍后继续",
+			}
+		"shield":
+			return {
+				"title": "防护罩教学（已暂停）",
+				"body": "点左上角「盾」或按 F 开启防护罩\n开启后继续前进",
+			}
+		"sandstorm":
+			return {
+				"title": "沙尘暴教学（已暂停）",
+				"body": "前方沙尘侵蚀货物\n开启防护罩，或换到安全车道后继续",
+			}
+		"fork":
+			return {
+				"title": "分叉教学（已暂停）",
+				"body": "前方道路分叉\n左右换道选择岔路后继续",
+			}
+		_:
+			return {"title": "操作提示（已暂停）", "body": ""}
+
+
+func _show_coach_tip(key: String, until_d: float) -> void:
+	if key == "" or not Global.should_show_runner_tutorial(key):
+		return
+	if _is_wall_tut_panel_busy():
+		return
+	_coach_tip_key = key
+	_coach_tip_until_d = until_d
+	var expect := key
+	_begin_tutorial_pause(expect)
+	var copy := _coach_tip_copy(key)
+	if _wall_tut_panel == null:
+		return
+	_wall_tut_panel.visible = true
+	_wall_tut_title.text = String(copy.get("title", "操作提示"))
+	_wall_tut_body.text = String(copy.get("body", ""))
+
+
+func _complete_coach_tip(key: String) -> void:
+	if key == "":
+		return
+	Global.mark_runner_tutorial_seen(key)
+	if _coach_tip_key == key:
+		_coach_tip_key = ""
+		_coach_tip_until_d = -1.0
+		_end_tutorial_pause()
+		if not _is_wall_tut_panel_busy() and _wall_tut_panel:
+			_wall_tut_panel.visible = false
+		_show_gate_toast("教学完成 · 继续前进")
+
+
+func _refresh_active_tutorial_panel() -> void:
+	if _is_wall_tut_panel_busy():
+		_refresh_wall_tut_panel(_wall_tut_side_name(_wall_tut_zone))
+		return
+	if _coach_tip_key == "":
+		return
+	var copy := _coach_tip_copy(_coach_tip_key)
+	if _wall_tut_panel:
+		_wall_tut_panel.visible = true
+		_wall_tut_title.text = String(copy.get("title", ""))
+		_wall_tut_body.text = String(copy.get("body", ""))
+
+
+func _find_upcoming_coach_obstacle(types: Array, look_ahead: float = 18.0, min_ahead: float = 8.0) -> Dictionary:
+	var best: Dictionary = {}
+	var best_d := INF
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		var otype := String(obstacle.get("type", ""))
+		if not types.has(otype):
+			continue
+		if int(obstacle.get("layer", 0)) != track_layer:
+			continue
+		if bool(obstacle.get("hit", false)):
+			continue
+		var obs_d: float = float(obstacle["distance"]) + float(obstacle.get("move_offset", 0.0))
+		var delta_d := obs_d - track_distance
+		# 靠近后再暂停，做完动作刚好能过障
+		if delta_d < min_ahead or delta_d > look_ahead:
+			continue
+		if delta_d < best_d:
+			best_d = delta_d
+			best = obstacle
+	return best
+
+
+func _update_runner_coach_tips(_delta: float) -> void:
+	if not Global.is_runner_tutorial_enabled():
+		if _coach_tip_key != "":
+			_coach_tip_key = ""
+			_end_tutorial_pause()
+			if _wall_tut_panel:
+				_wall_tut_panel.visible = false
+		return
+	if is_intro or is_failed or is_finished or not gameplay_active:
+		return
+	if _tutorial_paused or _is_wall_tut_panel_busy():
+		return
+	if _coach_tip_key != "":
+		return
+
+	# 靠近障碍/区域时暂停教学，完成指定操作后再继续
+	var jump_obs := _find_upcoming_coach_obstacle(["jump", "low_barrier"], 11.0, 5.0)
+	if not jump_obs.is_empty() and Global.should_show_runner_tutorial("jump"):
+		var jd: float = float(jump_obs["distance"]) + float(jump_obs.get("move_offset", 0.0))
+		_show_coach_tip("jump", jd + 4.0)
+		return
+
+	var slide_obs := _find_upcoming_coach_obstacle(["slide", "high_bar"], 11.0, 5.0)
+	if not slide_obs.is_empty() and Global.should_show_runner_tutorial("slide"):
+		var sd: float = float(slide_obs["distance"]) + float(slide_obs.get("move_offset", 0.0))
+		_show_coach_tip("slide", sd + 4.0)
+		return
+
+	var lane_obs := _find_upcoming_coach_obstacle(["train", "train_moving"], 14.0, 6.0)
+	if not lane_obs.is_empty() and Global.should_show_runner_tutorial("lane"):
+		var ld: float = float(lane_obs["distance"]) + float(lane_obs.get("move_offset", 0.0))
+		_show_coach_tip("lane", ld + 4.0)
+		return
+
+	if Global.should_show_runner_tutorial("sandstorm") or Global.should_show_runner_tutorial("shield"):
+		for zone in _sandstorm_zones():
+			var start := float(zone.get("start", 0.0))
+			if track_distance < start - 18.0 or track_distance > start - 6.0:
+				continue
+			if Global.should_show_runner_tutorial("shield"):
+				_show_coach_tip("shield", start + float(zone.get("length", 40.0)))
+			elif Global.should_show_runner_tutorial("sandstorm"):
+				_show_coach_tip("sandstorm", start + float(zone.get("length", 40.0)))
+			return
+
+	if Global.should_show_runner_tutorial("fork"):
+		for zone in _junction_zones():
+			var at_d := float(zone.get("distance", 0.0))
+			if track_distance < at_d - 18.0 or track_distance > at_d - 8.0:
+				continue
+			_show_coach_tip("fork", at_d + 8.0)
+			return
 
 
 func _enforce_track_layer() -> void:
@@ -2361,6 +2925,7 @@ func _build_side_runway_tracks() -> void:
 	# main_block：沿路径挖坑+警示，避免长方体在弯道斜出跑道外
 	for gap in _main_block_road_gaps():
 		_attach_main_block_path_pit(gap, kit)
+	_setup_wall_run_tutorial_markers()
 
 
 func _build_sandstorm_zones() -> void:
@@ -5421,6 +5986,31 @@ func _build_ui() -> void:
 	intro_body.add_theme_font_size_override("font_size", 24)
 	intro_box.add_child(intro_body)
 	intro_panel.visible = true
+
+	_wall_tut_panel = PanelContainer.new()
+	_wall_tut_panel.name = "WallRunTutorialPanel"
+	_wall_tut_panel.visible = false
+	_wall_tut_panel.custom_minimum_size = Vector2(520, 150)
+	_wall_tut_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_wall_tut_panel.offset_left = -260.0
+	_wall_tut_panel.offset_right = 260.0
+	_wall_tut_panel.offset_top = -220.0
+	_wall_tut_panel.offset_bottom = -60.0
+	center.add_child(_wall_tut_panel)
+	var tut_box := VBoxContainer.new()
+	tut_box.add_theme_constant_override("separation", 8)
+	_wall_tut_panel.add_child(tut_box)
+	_wall_tut_title = Label.new()
+	_wall_tut_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wall_tut_title.add_theme_font_size_override("font_size", 28)
+	_wall_tut_title.modulate = Color(0.45, 1.0, 0.85)
+	tut_box.add_child(_wall_tut_title)
+	_wall_tut_body = Label.new()
+	_wall_tut_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wall_tut_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_wall_tut_body.custom_minimum_size = Vector2(480, 0)
+	_wall_tut_body.add_theme_font_size_override("font_size", 22)
+	tut_box.add_child(_wall_tut_body)
 
 	pause_button = Button.new()
 	pause_button.text = "Ⅱ"
