@@ -19,8 +19,8 @@ const ORB_SMALL_SCALE := ORB_SMALL_SPAN / ORB_TARGET_HEIGHT
 const ORB_LARGE_SCALE := ORB_LARGE_SPAN / ORB_TARGET_HEIGHT
 const ORB_VISUAL_BASE_Y := 0.85
 const IMPORTED_SCENE_FALLBACKS := {
-	"res://3d素材/障碍物-需跳跃.glb": "res://.godot/imported/障碍物-需跳跃.glb-46f57db02e27254a677214f954ab0d83.scn",
-	"res://3d素材/障碍物-需跳跃2.glb": "res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn",
+	"res://assets/maps/route_levels/models/obstacles/jump/barrier_01.glb": "res://.godot/imported/障碍物-需跳跃.glb-46f57db02e27254a677214f954ab0d83.scn",
+	"res://assets/maps/route_levels/models/obstacles/jump/barrier_02.glb": "res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn",
 }
 
 var _jump_paths: Array[String] = []

@@ -273,20 +273,22 @@ const THEME := {
 	"surroundings": "desert_crystal",
 }
 
-const ELSA_ACTION_ROOT := "res://elsa动作/"
-const MVP_ROOT := "res://mvp素材第一批/"
+const ELSA_ACTION_ROOT := "res://assets/maps/route_levels/models/characters/elsa/"
+const ROOK_ROOT := "res://assets/maps/route_levels/models/characters/rook/"
+const BUILDINGS_ROOT := "res://assets/maps/route_levels/models/environment/buildings/"
+const MAPS_2D_ROOT := "res://assets/maps/route_levels/models/environment/buildings/_extras_2d/"
 const MVP2_ROOT := "res://mvp素材第二批/"
 const MVP2_CARGO_ROOT := MVP2_ROOT + "运输包2d/"
 
 const PLAYER_ELSA := {
-	"model": ELSA_ACTION_ROOT + "elsa正面.glb",
-	"run_left": ELSA_ACTION_ROOT + "elsa奔跑左腿前.glb",
-	"run_right": ELSA_ACTION_ROOT + "elsa奔跑右腿前.glb",
-	"jump_start": ELSA_ACTION_ROOT + "elsa起跳.glb",
-	"jump_peak": ELSA_ACTION_ROOT + "elsa跳跃高点.glb",
-	"landing": ELSA_ACTION_ROOT + "跳跃落地.glb",
-	"slide": ELSA_ACTION_ROOT + "滑铲.glb",
-	"animated_model": ELSA_ACTION_ROOT + "Running.fbx",
+	"model": ELSA_ACTION_ROOT + "idle.glb",
+	"run_left": ELSA_ACTION_ROOT + "run_left.glb",
+	"run_right": ELSA_ACTION_ROOT + "run_right.glb",
+	"jump_start": ELSA_ACTION_ROOT + "jump_start.glb",
+	"jump_peak": ELSA_ACTION_ROOT + "jump_apex.glb",
+	"landing": ELSA_ACTION_ROOT + "jump_land.glb",
+	"slide": ELSA_ACTION_ROOT + "slide.glb",
+	"animated_model": ELSA_ACTION_ROOT + "animated.fbx",
 	"run_anim": "mixamo_com",
 	"run_anim_speed": 1.0,
 	"surface_texture": ELSA_ACTION_ROOT + "elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg",
@@ -298,60 +300,60 @@ const PLAYER_ELSA := {
 }
 
 const PLAYER_ROOK := {
-	"model": MVP2_ROOT + "rook/rook立体.glb",
-	"run_left": MVP2_ROOT + "rook/rook跑步1 左腿蹬地右腿在前.glb",
-	"run_right": MVP2_ROOT + "rook/rook跑步2 右腿前踩地左腿空中.glb",
-	"run_alt": MVP2_ROOT + "rook/rook跑步3.glb",
-	"jump_start": MVP2_ROOT + "rook/rook起跳.glb",
-	"jump_peak": MVP2_ROOT + "rook/rook跳跃高点.glb",
-	"landing": MVP2_ROOT + "rook/rook跳跃落地.glb",
-	"slide": MVP2_ROOT + "rook/rook滑铲.glb",
-	"portrait": MVP2_ROOT + "rook/rook正面.jpg",
+	"model": ROOK_ROOT + "idle.glb",
+	"run_left": ROOK_ROOT + "run_01.glb",
+	"run_right": ROOK_ROOT + "run_02.glb",
+	"run_alt": ROOK_ROOT + "run_03.glb",
+	"jump_start": ROOK_ROOT + "jump_start.glb",
+	"jump_peak": ROOK_ROOT + "jump_apex.glb",
+	"landing": ROOK_ROOT + "jump_land.glb",
+	"slide": ROOK_ROOT + "slide.glb",
+	"portrait": ROOK_ROOT + "portrait.jpg",
 	"model_yaw": 180.0,
 	"slide_yaw": 180.0,
 	"intro_body_yaw": 0.0,
 }
 
 const ASSETS := {
-	"panorama": "res://3d素材/三拼地图.png",
+	"panorama": "res://assets/maps/route_levels/models/backgrounds/panoramas/triptych.png",
 	"jump_obstacles": [
-		"res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）.glb",
-		"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
+		"res://assets/maps/route_levels/models/obstacles/jump/spiky_barrier.glb",
+		"res://assets/maps/route_levels/models/obstacles/jump/thorn_bush.glb",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
 	],
-	"slide_obstacle": "res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
+	"slide_obstacle": "res://assets/maps/route_levels/models/obstacles/slide/ruined_billboard.glb",
 	"slide_obstacles": [
-		"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
-		"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
+		"res://assets/maps/route_levels/models/obstacles/slide/ruined_billboard.glb",
+		"res://assets/maps/route_levels/models/obstacles/slide/energy_barrier.glb",
 	],
 	"side_props": [],
 	"midground_props": [
-		"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
-		"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
-		"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
-		"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
+		"res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral.glb",
+		"res://assets/maps/route_levels/models/environment/midground/glowing_energy_meteorite.glb",
+		"res://assets/maps/route_levels/models/environment/midground/neon_sign_prop.glb",
+		"res://assets/maps/route_levels/models/environment/midground/cracked_sphere_robot.glb",
 	],
 	"landmark_props": [
-		"res://mvp素材第一批/居民穹顶3d.glb",
-		"res://mvp素材第一批/水源据点3d.glb",
-		"res://mvp素材第一批/星火中继站3d.glb",
-		"res://mvp素材第一批/防御哨站3d.glb",
+		"res://assets/maps/route_levels/models/environment/buildings/dome_habitat.glb",
+		"res://assets/maps/route_levels/models/environment/buildings/water_outpost.glb",
+		"res://assets/maps/route_levels/models/environment/buildings/spark_relay.glb",
+		"res://assets/maps/route_levels/models/environment/buildings/defense_post.glb",
 	],
 	# 极远天际线（v2）：水晶塔可成群，辅以 pod / spaceship 锚点
 	"distant_tower_props": [
-		"res://assets/maps/route_levels/runner_60s/distant_props/fantasy_crystal_tower.glb",
+		"res://assets/maps/route_levels/models/environment/distant/fantasy_crystal_tower.glb",
 	],
 	"distant_pod_props": [
-		"res://assets/maps/route_levels/runner_60s/distant_props/futuristic_pod.glb",
+		"res://assets/maps/route_levels/models/environment/distant/futuristic_pod.glb",
 	],
 	"distant_spaceship_props": [
-		"res://assets/maps/route_levels/runner_60s/distant_props/futuristic_spaceship.glb",
+		"res://assets/maps/route_levels/models/environment/distant/futuristic_spaceship.glb",
 	],
 	"distant_hearth_props": [
-		"res://mvp素材第一批/居民穹顶3d.glb",
+		"res://assets/maps/route_levels/models/environment/buildings/dome_habitat.glb",
 	],
-	"hearth": "res://mvp素材第一批/居民穹顶3d.glb",
+	"hearth": "res://assets/maps/route_levels/models/environment/buildings/dome_habitat.glb",
 	"players": {
 		"elsa": PLAYER_ELSA,
 		"rook": PLAYER_ROOK,
@@ -360,32 +362,32 @@ const ASSETS := {
 }
 
 const MVP_MAPS := {
-	"explore_zh": MVP_ROOT + "晶砂荒原中文地图9：16.webp",
-	"explore_en": MVP_ROOT + "晶砂荒原地图9：16英文.webp",
-	"preview_zh": MVP_ROOT + "晶砂荒原地图中文.webp",
-	"preview_en": MVP_ROOT + "晶砂荒原地图英文.webp",
+	"explore_zh": MAPS_2D_ROOT + "晶砂荒原中文地图9：16.webp",
+	"explore_en": MAPS_2D_ROOT + "晶砂荒原地图9：16英文.webp",
+	"preview_zh": MAPS_2D_ROOT + "晶砂荒原地图中文.webp",
+	"preview_en": MAPS_2D_ROOT + "晶砂荒原地图英文.webp",
 }
 
 const MVP_LOCATIONS := {
 	"dome": {
-		"preview_2d": MVP_ROOT + "居民穹顶2d展示图.webp",
-		"model_3d": MVP_ROOT + "居民穹顶3d.glb",
+		"preview_2d": MAPS_2D_ROOT + "居民穹顶2d展示图.webp",
+		"model_3d": BUILDINGS_ROOT + "dome_habitat.glb",
 	},
 	"reservoir": {
-		"preview_2d": MVP_ROOT + "水源据点2d.webp",
-		"model_3d": MVP_ROOT + "水源据点3d.glb",
+		"preview_2d": MAPS_2D_ROOT + "水源据点2d.webp",
+		"model_3d": BUILDINGS_ROOT + "water_outpost.glb",
 	},
 	"medical": {
-		"preview_2d": MVP_ROOT + "医疗据点2d.webp",
-		"model_3d": MVP_ROOT + "医疗据点3d.glb",
+		"preview_2d": MAPS_2D_ROOT + "医疗据点2d.webp",
+		"model_3d": BUILDINGS_ROOT + "medical_outpost.glb",
 	},
 	"relay": {
-		"preview_2d": MVP_ROOT + "星火中继站2d.webp",
-		"model_3d": MVP_ROOT + "星火中继站3d.glb",
+		"preview_2d": MAPS_2D_ROOT + "星火中继站2d.webp",
+		"model_3d": BUILDINGS_ROOT + "spark_relay.glb",
 	},
 	"gate": {
-		"preview_2d": MVP_ROOT + "防御哨站2d.webp",
-		"model_3d": MVP_ROOT + "防御哨站3d.glb",
+		"preview_2d": MAPS_2D_ROOT + "防御哨站2d.webp",
+		"model_3d": BUILDINGS_ROOT + "defense_post.glb",
 	},
 }
 

@@ -10,16 +10,16 @@ const GALAXY_MAP_SCENE := "res://assets/maps/route_levels/galaxy_map/galaxy_map.
 const EXPLORATION_SCENE := "res://assets/maps/route_levels/planet_explore/planet_explore.tscn"
 const MOBILE_HOME_SCENE := "res://assets/maps/route_levels/mobile_home/mobile_home.tscn"
 
-const PLANET_DIR := "res://3d素材/行星/"
-const PLANET_MODEL_CRYSTAL := PLANET_DIR + "带纹理的行星3d模型.glb"
-const PLANET_MODEL_3D := PLANET_DIR + "三维星球模型.glb"
-const PLANET_MODEL_BLUE := PLANET_DIR + "蓝色星球3d模型.glb"
-const PLANET_MODEL_GENERIC := PLANET_DIR + "行星+3d+模型.glb"
+const PLANET_DIR := "res://assets/maps/route_levels/models/environment/planets/"
+const PLANET_MODEL_CRYSTAL := PLANET_DIR + "crystal_planet.glb"
+const PLANET_MODEL_3D := PLANET_DIR + "planet_3d.glb"
+const PLANET_MODEL_BLUE := PLANET_DIR + "blue_planet.glb"
+const PLANET_MODEL_GENERIC := PLANET_DIR + "generic_planet.glb"
 const PLANET_VISUAL_SIZE := 1.85
-const STAR_DIR := "res://3d素材/恒星/"
-const STAR_MODEL := STAR_DIR + "太阳型星体3d模型.glb"
+const STAR_DIR := "res://assets/maps/route_levels/models/environment/stars/"
+const STAR_MODEL := STAR_DIR + "sun_star.glb"
 const STAR_VISUAL_SIZE := 2.35
-const DEFAULT_SHIP_MODEL := "res://3d素材/fighter+spaceship+3d+model.glb"
+const DEFAULT_SHIP_MODEL := "res://assets/maps/route_levels/models/environment/ships/fighter_spaceship.glb"
 const SHIP_VISUAL_SIZE := 1.55
 
 const GAME_MODES := {
