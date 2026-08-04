@@ -1024,22 +1024,25 @@ func _load_planet(planet_id: String) -> void:
 	_bake_path()
 	_rebuild_track_mesh()
 	if ObstacleLayout.has_layout(_planet_id):
+		var layout_root: Dictionary = ObstacleLayout.load_root(_planet_id)
 		_items = ObstacleLayout.sort_items(ObstacleLayout.load_items(_planet_id))
-		_side_zones = ObstacleLayout.load_side_runway_zones(_planet_id)
-		if _side_zones.is_empty():
+		# 有 key 即采用（含空数组 = 刻意清空）；无 key 才回退星球默认
+		if layout_root.has("side_runway_zones"):
+			_side_zones = ObstacleLayout.load_side_runway_zones(_planet_id)
+		else:
 			_side_zones = _planet_default_side_zones()
-		_sand_zones = ObstacleLayout.load_sandstorm_zones(_planet_id)
-		if _sand_zones.is_empty():
+		if layout_root.has("sandstorm_zones"):
+			_sand_zones = ObstacleLayout.load_sandstorm_zones(_planet_id)
+		else:
 			_sand_zones = _planet_default_sand_zones()
 		var saved_segs := ObstacleLayout.load_track_segments(_planet_id)
 		if not saved_segs.is_empty():
 			_track_segments = saved_segs
 			_bake_path()
 			_rebuild_track_mesh()
-		var saved_forks := ObstacleLayout.load_junction_zones(_planet_id)
 		# 有 key 即采用（含空数组）；无 key 保留星球默认
-		if ObstacleLayout.load_root(_planet_id).has("junction_zones"):
-			_junctions = saved_forks
+		if layout_root.has("junction_zones"):
+			_junctions = ObstacleLayout.load_junction_zones(_planet_id)
 	elif LevelConfig != null and LevelConfig.has_method("_default_obstacles"):
 		_items = ObstacleLayout.sort_items(LevelConfig._default_obstacles())
 		_side_zones = _planet_default_side_zones()

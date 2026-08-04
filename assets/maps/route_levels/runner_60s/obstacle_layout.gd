@@ -279,8 +279,48 @@ static func bake_y_fork_branch_polyline(
 	var yaw := start_yaw
 	var dist := 0.0
 	samples.append({"d": 0.0, "pos": pos, "yaw": yaw})
-	var state := _bake_append_y_fork_side(samples, pos, yaw, dist, branch_length, angle, side_sign, step)
+	_bake_append_y_fork_side(samples, pos, yaw, dist, branch_length, angle, side_sign, step)
 	return samples
+
+
+## 返回 Y 分叉区间：主路径已含左岔；另附右岔绝对距离采样，供运行时按 _fork_side 切换。
+## [{ d_start, d_end, branch_length, angle, right: Array[{d,pos,yaw}] }]
+static func bake_y_fork_regions(segments: Array, step: float = 2.0) -> Array:
+	var regions: Array = []
+	for entry in segment_start_poses(segments, step):
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = entry.get("segment", {})
+		if not is_y_fork_segment(seg):
+			continue
+		var d_start := float(entry.get("dist", 0.0))
+		var branch := float(seg.get("branch_length", 50.0))
+		var ang := float(seg.get("angle", deg_to_rad(45.0)))
+		var local_right: Array = bake_y_fork_branch_polyline(
+			entry.get("pos", Vector3.ZERO),
+			float(entry.get("yaw", 0.0)),
+			branch,
+			ang,
+			-1.0,
+			step
+		)
+		var abs_right: Array = []
+		for s in local_right:
+			if typeof(s) != TYPE_DICTIONARY:
+				continue
+			abs_right.append({
+				"d": d_start + float(s.get("d", 0.0)),
+				"pos": s.get("pos", Vector3.ZERO),
+				"yaw": float(s.get("yaw", 0.0)),
+			})
+		regions.append({
+			"d_start": d_start,
+			"d_end": d_start + branch * 2.0,
+			"branch_length": branch,
+			"angle": ang,
+			"right": abs_right,
+		})
+	return regions
 
 
 static func _bake_append_y_fork_side(

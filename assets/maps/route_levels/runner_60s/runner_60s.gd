@@ -206,6 +206,10 @@ var _fork_side := 0
 var _active_fork_index := -1
 var _path_yaw := 0.0
 var _fork_approach_warned: Array[int] = []
+var _y_fork_regions: Array = []
+var passed_y_forks: Array[int] = []
+var _active_y_fork_index := -1
+var _y_fork_approach_warned: Array[int] = []
 
 var chaser: Node3D
 var chaser_body: MeshInstance3D
@@ -521,6 +525,8 @@ func _physics_process(delta: float) -> void:
 	_update_chaser(delta)
 	_check_fork_approach()
 	_check_junctions()
+	_check_y_fork_approach()
+	_check_y_forks()
 	if not _is_sliding():
 		current_lateral = lerpf(current_lateral, target_lane_x, 1.0 - exp(-lane_change_ease * delta))
 
@@ -719,6 +725,7 @@ func _bake_track_path() -> void:
 		if typeof(s) == TYPE_DICTIONARY:
 			_path_samples.append(s)
 	_path_length = float(baked.get("length", 0.0))
+	_y_fork_regions = ObstacleLayout.bake_y_fork_regions(segments, 2.0)
 	if _path_length < _track_length:
 		# 不足时直线补齐到终点
 		var pos: Vector3 = baked.get("end_pos", Vector3.ZERO)
@@ -740,20 +747,32 @@ func _sample_path(distance: float) -> Dictionary:
 	if _path_samples.is_empty():
 		_bake_track_path()
 	var d := clampf(distance, 0.0, maxf(_path_length, 0.0))
-	if _path_samples.size() == 1:
-		var only: Dictionary = _path_samples[0]
-		return _pack_path_sample(only["pos"], float(only["yaw"]))
+	# Y 分叉选右岔时，改采右支几何（左支已烘焙进主路径）
+	if _y_fork_side_at(d) > 0:
+		var region := _y_fork_region_at(d)
+		var right_samples: Array = region.get("right", [])
+		if right_samples.size() >= 2:
+			return _sample_path_samples(right_samples, d)
+	return _sample_path_samples(_path_samples, d)
 
+
+func _sample_path_samples(samples: Array, distance: float) -> Dictionary:
+	if samples.is_empty():
+		return _pack_path_sample(Vector3.ZERO, 0.0)
+	var d := distance
+	if samples.size() == 1:
+		var only: Dictionary = samples[0]
+		return _pack_path_sample(only["pos"], float(only["yaw"]))
 	var lo := 0
-	var hi := _path_samples.size() - 1
+	var hi := samples.size() - 1
 	while lo < hi - 1:
 		var mid := (lo + hi) >> 1
-		if float(_path_samples[mid]["d"]) <= d:
+		if float((samples[mid] as Dictionary)["d"]) <= d:
 			lo = mid
 		else:
 			hi = mid
-	var a: Dictionary = _path_samples[lo]
-	var b: Dictionary = _path_samples[hi]
+	var a: Dictionary = samples[lo]
+	var b: Dictionary = samples[hi]
 	var da := float(a["d"])
 	var db := float(b["d"])
 	var t := 0.0 if db <= da + 0.0001 else clampf((d - da) / (db - da), 0.0, 1.0)
@@ -1051,7 +1070,7 @@ func _sync_player_position() -> void:
 	player.position = placed["pos"]
 	_path_yaw = float(placed["yaw"]) + _fork_yaw_nudge(track_distance, current_lateral)
 	# 岔路上用前方真实落点推朝向，比单点 yaw nudge 更贴路面
-	if not _fork_zone_at(track_distance).is_empty():
+	if not _fork_zone_at(track_distance).is_empty() or not _y_fork_region_at(track_distance).is_empty():
 		var ahead := _world_on_path(track_distance + 8.0, current_lateral, keep_y)
 		var delta: Vector3 = (ahead["pos"] as Vector3) - (placed["pos"] as Vector3)
 		delta.y = 0.0
@@ -1111,7 +1130,8 @@ func _check_junctions() -> void:
 		var end_d := float(active["distance"]) + float(active.get("length", 70.0))
 		if track_distance > end_d + 1.0:
 			_active_fork_index = -1
-			_fork_side = 0
+			if _y_fork_region_at(track_distance).is_empty():
+				_fork_side = 0
 
 
 func _enforce_active_fork_side() -> void:
@@ -1146,6 +1166,94 @@ func _check_fork_approach() -> void:
 			String(zone.get("label_a", "左")),
 			String(zone.get("label_b", "右")),
 		])
+
+
+func _y_fork_region_at(distance: float) -> Dictionary:
+	for region in _y_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		var d0 := float(region.get("d_start", 0.0))
+		var d1 := float(region.get("d_end", 0.0))
+		if distance >= d0 and distance <= d1:
+			return region
+	return {}
+
+
+func _y_fork_side_at(distance: float) -> int:
+	if _y_fork_region_at(distance).is_empty():
+		return 0
+	if _fork_side != 0:
+		return _fork_side
+	# 尚未锁定时按当前车道预览（铺路/摆障碍时 _fork_side=0 → 走左岔主路径）
+	if not gameplay_active:
+		return 0
+	return _resolve_fork_side(current_lateral)
+
+
+func _check_y_fork_approach() -> void:
+	for i in _y_fork_regions.size():
+		if _y_fork_approach_warned.has(i) or passed_y_forks.has(i):
+			continue
+		var region: Dictionary = _y_fork_regions[i]
+		var at_distance := float(region.get("d_start", 0.0))
+		if track_distance < at_distance - 38.0 or track_distance > at_distance - 28.0:
+			continue
+		_y_fork_approach_warned.append(i)
+		_show_gate_toast("前方 Y 分叉 · 左道走左岔 · 右道走右岔")
+
+
+func _check_y_forks() -> void:
+	for i in _y_fork_regions.size():
+		if passed_y_forks.has(i):
+			continue
+		var region: Dictionary = _y_fork_regions[i]
+		var at_distance := float(region.get("d_start", 0.0))
+		if track_distance < at_distance or track_distance > at_distance + 4.0:
+			continue
+		passed_y_forks.append(i)
+		_active_y_fork_index = i
+		if lane_index <= 0:
+			_fork_side = -1
+			_show_gate_toast("左岔路")
+		elif lane_index >= 2:
+			_fork_side = 1
+			_show_gate_toast("右岔路")
+		else:
+			_fork_side = _resolve_fork_side(current_lateral)
+			var fork_penalty := 8.0 * Global.get_cargo_damage_multiplier()
+			_apply_cargo_loss(fork_penalty)
+			if not is_failed:
+				if _hit_feedback != null and player != null:
+					_hit_feedback.apply_impact(
+						player.global_position + Vector3(0.0, 1.7, 0.0),
+						HitFeedback.Intensity.LIGHT,
+						fork_penalty,
+					)
+				_show_strike_warning("中间不能跑 · 已转入%s" % ("左岔" if _fork_side < 0 else "右岔"))
+	_enforce_active_y_fork_side()
+	if _active_y_fork_index >= 0 and _active_y_fork_index < _y_fork_regions.size():
+		var active: Dictionary = _y_fork_regions[_active_y_fork_index]
+		var end_d := float(active.get("d_end", 0.0))
+		if track_distance > end_d + 1.0:
+			_active_y_fork_index = -1
+			# 若仍在旧横向分叉区内，保留其 _fork_side
+			if _fork_zone_at(track_distance).is_empty():
+				_fork_side = 0
+
+
+func _enforce_active_y_fork_side() -> void:
+	var region := _y_fork_region_at(track_distance)
+	if region.is_empty():
+		return
+	if _fork_side == 0:
+		_fork_side = _resolve_fork_side(current_lateral)
+	if _active_y_fork_index < 0:
+		var d0 := float(region.get("d_start", -999.0))
+		for i in _y_fork_regions.size():
+			var r: Dictionary = _y_fork_regions[i]
+			if absf(float(r.get("d_start", -999.0)) - d0) < 0.5:
+				_active_y_fork_index = i
+				break
 
 
 func _apply_cargo_loss(amount: float) -> void:
