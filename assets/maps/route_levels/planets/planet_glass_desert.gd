@@ -315,37 +315,41 @@ const PLAYER_ROOK := {
 const ASSETS := {
 	"panorama": "res://3d素材/三拼地图.png",
 	"jump_obstacles": [
-		"res://mvp素材第二批/障碍物/全息跳跃栏.glb",
-		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_sprigs_2_5d.png",
+		"res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）.glb",
+		"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
 	],
-	"slide_obstacle": "res://mvp素材第二批/障碍物/全息下滑门.glb",
+	"slide_obstacle": "res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
 	"slide_obstacles": [
-		"res://mvp素材第二批/障碍物/全息下滑门.glb",
-		"res://mvp素材第二批/障碍物/全息闪避柱.glb",
-		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_phase_curtain_2_5d.png",
-		"res://mvp素材第二批/障碍物/锈蚀水管1.glb",
-		"res://mvp素材第二批/障碍物/坍塌广告牌.glb",
-		"res://mvp素材第二批/障碍物/能量裂缝.glb",
+		"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
+		"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
 	],
-	# 跑道两侧装饰（低模重复摆放，不参与碰撞）
-	"side_props": [
-		"res://mvp素材第二批/障碍物/晶砂倒刺1.glb",
-		"res://mvp素材第二批/障碍物/晶砂倒刺2.glb",
-		"res://mvp素材第二批/障碍物/锈蚀水管1.glb",
-		"res://mvp素材第二批/障碍物/高墙.glb",
-		"res://mvp素材第二批/障碍物/高墙2.glb",
-		"res://mvp素材第二批/障碍物/坍塌广告牌.glb",
-		"res://mvp素材第二批/障碍物/能量裂缝.glb",
-		"res://mvp素材第二批/障碍物/热浪喷口2.glb",
-		"res://mvp素材第二批/障碍物/热浪喷口3.glb",
+	"side_props": [],
+	"midground_props": [
+		"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+		"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+		"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+		"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
 	],
 	"landmark_props": [
 		"res://mvp素材第一批/居民穹顶3d.glb",
 		"res://mvp素材第一批/水源据点3d.glb",
 		"res://mvp素材第一批/星火中继站3d.glb",
 		"res://mvp素材第一批/防御哨站3d.glb",
+	],
+	# 极远天际线（v2）：水晶塔可成群，辅以 pod / spaceship 锚点
+	"distant_tower_props": [
+		"res://assets/maps/route_levels/runner_60s/distant_props/fantasy_crystal_tower.glb",
+	],
+	"distant_pod_props": [
+		"res://assets/maps/route_levels/runner_60s/distant_props/futuristic_pod.glb",
+	],
+	"distant_spaceship_props": [
+		"res://assets/maps/route_levels/runner_60s/distant_props/futuristic_spaceship.glb",
+	],
+	"distant_hearth_props": [
+		"res://mvp素材第一批/居民穹顶3d.glb",
 	],
 	"hearth": "res://mvp素材第一批/居民穹顶3d.glb",
 	"players": {
@@ -480,16 +484,10 @@ const SANDSTORM_ZONES := [
 ]
 
 const OBSTACLE_TYPES := {
-	"jump": "全息跳跃栏",
-	"slide": "全息下滑门",
-	"train": "坍塌广告牌",
-	"train_moving": "失控运输车",
-	"block_left": "全息闪避柱",
-	"block_right": "全息闪避柱",
-	"ramp": "沙丘跳板",
-	"main_block": "主路坍塌带",
-	"turn_left": "安全门",
-	"turn_right": "速通门",
+	"jump": "跳跃障碍",
+	"slide": "滑铲障碍",
+	"orb": "漂浮能量球",
+	"high_bar": "滑铲障碍",
 }
 
 
@@ -530,54 +528,50 @@ static func get_mission_batches() -> Array:
 static func get_jump_obstacle_label(asset_path: String) -> String:
 	if "energy_orb" in asset_path:
 		return "漂浮能量球"
-	if "energy_sprigs" in asset_path:
-		return "能量棱芽"
+	if "带刺" in asset_path:
+		return "带刺障碍"
+	if "荆棘" in asset_path:
+		return "荆棘丛"
 	return OBSTACLE_TYPES.get("jump", "跳跃障碍")
 
 
 static func build_obstacles() -> Array:
-	# 优先读关卡编辑器导出的 JSON；没有文件则用内置默认表
-	if ObstacleLayout.has_layout(PLANET_ID):
-		return _filter_obstacles_away_from_side_walls(ObstacleLayout.load_items(PLANET_ID))
 	return _filter_obstacles_away_from_side_walls(_default_obstacles())
 
 
 static func _default_obstacles() -> Array:
-	return [
-		{"lane": 0, "distance": 95.0, "type": "jump"},
-		{"lane": -1, "distance": 145.0, "type": "slide"},
-		{"lane": 1, "distance": 190.0, "type": "jump"},
-		{"lane": 0, "distance": 250.0, "type": "train"},
-		# 侧墙入口跳板 + 主路封堵（与 SIDE_RUNWAY_ZONES 对齐）
-		{"lane": 0, "distance": 277.0, "type": "ramp", "target_layer": 1, "layer": 0},
-		{"lane": 0, "distance": 312.0, "type": "main_block", "half_depth": 26.0, "layer": 0},
-		{"lane": 1, "distance": 360.0, "type": "jump"},
-		# 侧墙走廊结束后再放下滑门，避免缩放漂进墙跑区
-		{"lane": -1, "distance": 375.0, "type": "slide"},
-		{"lane": 1, "distance": 100.0, "type": "turn_left"},
-		{"lane": -1, "distance": 100.0, "type": "turn_right"},
-		{"lane": 0, "distance": 350.0, "type": "train_moving", "move_speed": -10.0},
-		{"lane": 1, "distance": 430.0, "type": "jump"},
-		{"lane": -1, "distance": 480.0, "type": "jump"},
-		{"lane": 0, "distance": 540.0, "type": "ramp", "target_layer": 1, "layer": 0},
-		{"lane": 0, "distance": 575.0, "type": "main_block", "half_depth": 26.0, "layer": 0},
-		# 注意：勿在 SIDE_RUNWAY 入口再放 slide（曾导致「看不见却撞上全息下滑门」）
-		{"lane": 1, "distance": 410.0, "type": "turn_left"},
-		{"lane": -1, "distance": 410.0, "type": "turn_right"},
-		{"lane": 1, "distance": 650.0, "type": "block_right"},
-		{"lane": -1, "distance": 680.0, "type": "jump"},
-		{"lane": 0, "distance": 740.0, "type": "train_moving", "move_speed": 11.0},
-		{"lane": 1, "distance": 800.0, "type": "jump"},
-		{"lane": -1, "distance": 710.0, "type": "turn_left"},
-		{"lane": 1, "distance": 710.0, "type": "turn_right"},
-		{"lane": -1, "distance": 860.0, "type": "slide"},
-		{"lane": 0, "distance": 920.0, "type": "train"},
-		{"lane": 1, "distance": 980.0, "type": "block_left"},
-		{"lane": 0, "distance": 1040.0, "type": "jump"},
-		{"lane": -1, "distance": 1100.0, "type": "train_moving", "move_speed": -12.0},
-		{"lane": 1, "distance": 1160.0, "type": "slide"},
-		{"lane": 0, "distance": 1220.0, "type": "jump"},
-	]
+	var out: Array = []
+	var d := 80.0
+	var pattern_i := 0
+	while d < 1180.0:
+		if _obstacle_in_side_wall_corridor(d):
+			d += 18.0
+			continue
+		match pattern_i % 4:
+			0:
+				out.append({"lane": 0, "distance": d, "type": "jump"})
+				out.append({"lane": -1, "distance": d + 16.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": 1, "distance": d + 24.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": 0, "distance": d + 34.0, "type": "orb", "orb_size": "large"})
+			1:
+				out.append({"lane": 0, "distance": d, "type": "slide"})
+				out.append({"lane": 1, "distance": d + 18.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": -1, "distance": d + 26.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": 0, "distance": d + 36.0, "type": "orb", "orb_size": "large"})
+			2:
+				out.append({"lane": -1, "distance": d, "type": "jump"})
+				out.append({"lane": 0, "distance": d + 14.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": 1, "distance": d + 22.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": -1, "distance": d + 30.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": 1, "distance": d + 38.0, "type": "orb", "orb_size": "large"})
+			3:
+				out.append({"lane": 1, "distance": d, "type": "slide"})
+				out.append({"lane": -1, "distance": d + 16.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": 0, "distance": d + 24.0, "type": "orb", "orb_size": "small"})
+				out.append({"lane": 1, "distance": d + 32.0, "type": "orb", "orb_size": "large"})
+		d += 58.0
+		pattern_i += 1
+	return out
 
 
 static func _obstacle_in_side_wall_corridor(distance: float) -> bool:
@@ -635,20 +629,24 @@ static func build_main_runway_coins() -> Array:
 		if on_side:
 			cursor += 38.0
 			continue
-		# 交替投放：S 形一段、单列一段、横排一段
-		var kind := pattern_i % 3
-		if kind == 0:
-			_append_coin_pattern(coins, cursor, 0, "s_curve", 7, 6.0)
-			cursor += 7.0 * 6.0 + 18.0
-		elif kind == 1:
-			# pattern_i%3 在 column 分支恒为 1，用整轮次轮换左/中/右列
+		# 零散 : 密集单列 = 3 : 1；段内间距收紧，段间空隙缩短
+		var kind := pattern_i % 4
+		if kind == 3:
 			var col_lanes: Array[int] = [-1, 0, 1]
-			var col_lane: int = col_lanes[int(pattern_i / 3) % 3]
-			_append_coin_pattern(coins, cursor, 0, "column", 6, 5.5, col_lane)
-			cursor += 5.5 * 5.0 + 20.0
+			var col_lane: int = col_lanes[int(pattern_i / 4) % 3]
+			_append_coin_pattern(coins, cursor, 0, "column", 15, 1.65, col_lane)
+			cursor += 15.0 * 1.65 + 12.0
+		elif kind == 0:
+			_append_coin_pattern(coins, cursor, 0, "s_curve", 9, 4.2)
+			cursor += 9.0 * 4.2 + 10.0
+		elif kind == 1:
+			var cluster_lanes: Array[int] = [-1, 0, 1]
+			var cluster_lane: int = cluster_lanes[int(pattern_i / 5) % 3]
+			_append_coin_pattern(coins, cursor, 0, "cluster", 8, 2.8, cluster_lane)
+			cursor += 8.0 * 2.8 + 10.0
 		else:
-			_append_coin_pattern(coins, cursor, 0, "row", 1, 8.0)
-			cursor += 38.0
+			_append_coin_pattern(coins, cursor, 0, "zigzag", 9, 4.0)
+			cursor += 9.0 * 4.0 + 10.0
 		pattern_i += 1
 	return coins
 
@@ -664,12 +662,16 @@ static func _append_coin_pattern(
 ) -> void:
 	# S 形序列：左右摆动形成连贯曲线
 	var s_seq: Array[int] = [-1, 0, 1, 1, 0, -1]
+	var scatter_lanes: Array[int] = [-1, 0, 1, 0, -1, 1, 0, -1, 0, 1]
 	for i in count:
 		var dist := start + float(i) * step
 		match pattern:
 			"row":
 				for lane in [-1, 0, 1]:
 					out.append({"distance": dist, "lane": lane, "layer": layer, "pattern": pattern})
+			"scatter":
+				var sc_lane: int = scatter_lanes[i % scatter_lanes.size()]
+				out.append({"distance": dist, "lane": sc_lane, "layer": layer, "pattern": pattern})
 			"zigzag":
 				var z_lane := -1 if i % 2 == 0 else 1
 				out.append({"distance": dist, "lane": z_lane, "layer": layer, "pattern": pattern})
@@ -680,6 +682,11 @@ static func _append_coin_pattern(
 				out.append({"distance": dist, "lane": s_lane, "layer": layer, "pattern": pattern})
 			"column", "stream":
 				out.append({"distance": dist, "lane": lane_hint, "layer": layer, "pattern": "column"})
+			"cluster":
+				out.append({"distance": dist, "lane": lane_hint, "layer": layer, "pattern": "cluster"})
+			"multi_column":
+				for lane in [-1, 0, 1]:
+					out.append({"distance": dist, "lane": lane, "layer": layer, "pattern": "multi_column"})
 			"gap_center":
 				out.append({"distance": dist, "lane": -1, "layer": layer, "pattern": pattern})
 				out.append({"distance": dist, "lane": 1, "layer": layer, "pattern": pattern})
@@ -689,12 +696,12 @@ static func _append_coin_pattern(
 
 static func build_side_runway_coins() -> Array:
 	var coins: Array = []
-	# 第一段外径墙：S 形 → 中列单列
-	_append_coin_pattern(coins, 290.0, 1, "s_curve", 8, 5.5)
-	_append_coin_pattern(coins, 318.0, 1, "column", 5, 5.0, 0)
-	# 第二段外径墙：左列单列 → S 形
-	_append_coin_pattern(coins, 552.0, 1, "column", 6, 5.0, -1)
-	_append_coin_pattern(coins, 580.0, 1, "s_curve", 7, 5.5)
+	_append_coin_pattern(coins, 290.0, 1, "s_curve", 8, 5.0)
+	_append_coin_pattern(coins, 312.0, 1, "cluster", 7, 2.6, 0)
+	_append_coin_pattern(coins, 334.0, 1, "column", 12, 1.7, 0)
+	_append_coin_pattern(coins, 552.0, 1, "zigzag", 8, 4.2)
+	_append_coin_pattern(coins, 572.0, 1, "cluster", 7, 2.5, -1)
+	_append_coin_pattern(coins, 592.0, 1, "column", 12, 1.65, -1)
 	return coins
 
 

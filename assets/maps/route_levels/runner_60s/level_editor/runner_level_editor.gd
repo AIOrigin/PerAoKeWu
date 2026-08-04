@@ -14,7 +14,7 @@ const LANE_WIDTH := 4.0
 const LANES := [-1, 0, 1]
 const GROUND_Y := 0.85
 const PLACE_TYPES: Array[String] = [
-	"jump", "slide", "train", "train_moving",
+	"jump", "slide", "orb", "train", "train_moving",
 	"block_left", "block_right", "ramp", "main_block",
 	"turn_left", "turn_right",
 ]
@@ -681,7 +681,7 @@ func _build_ui() -> void:
 	kit_hint.text = "套件 = 侧墙 + ramp + main_block；单独放 main_block 也会自动补侧墙与跳板"
 	_obstacle_panel.add_child(kit_hint)
 
-	_obstacle_panel.add_child(_make_label("沙尘暴"))
+	_obstacle_panel.add_child(_make_label("沙尘暴（可设覆盖车道）"))
 	var sand_row := HBoxContainer.new()
 	sand_row.add_theme_constant_override("separation", 6)
 	_obstacle_panel.add_child(sand_row)
@@ -733,7 +733,7 @@ func _build_ui() -> void:
 	sand_row2.add_child(_sand_dps_spin)
 	var sand_presets := HBoxContainer.new()
 	sand_presets.add_theme_constant_override("separation", 4)
-	v.add_child(sand_presets)
+	_obstacle_panel.add_child(sand_presets)
 	sand_presets.add_child(_make_button("全宽", func() -> void: _set_sand_coverage_ui(3, 1)))
 	sand_presets.add_child(_make_button("仅中", func() -> void: _set_sand_coverage_ui(1, 1)))
 	sand_presets.add_child(_make_button("左+中", func() -> void: _set_sand_coverage_ui(2, 0)))
@@ -767,8 +767,9 @@ func _build_ui() -> void:
 	sand_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sand_hint.add_theme_font_size_override("font_size", 11)
 	sand_hint.modulate = Color(0.95, 0.8, 0.55)
-	sand_hint.text = "占2列时「左道起」=左+中，「中道起」=中+右；占3列时覆盖全宽"
+	sand_hint.text = "覆盖范围：占N列 + 起点道。场景橙色带=受影响车道；未覆盖道可换道躲避。保存进自定义关后运行时生效。默认星球仍是全宽三道。"
 	_obstacle_panel.add_child(sand_hint)
+	_refresh_sand_lane_option_labels()
 	_sync_sand_lane_option_enabled()
 
 	_obstacle_panel.add_child(_make_label("障碍列表（点击选中）"))

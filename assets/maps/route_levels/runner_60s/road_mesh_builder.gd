@@ -81,19 +81,21 @@ func rebuild(
 		var underlay := make_mat(Color(0.02, 0.06, 0.1), Color(0.15, 0.45, 0.62), 0.55)
 		if style == "energy_neon":
 			underlay = make_mat(Color(0.01, 0.02, 0.04), Color(0.08, 0.28, 0.42), 0.35)
-		# 实心底盘：编辑器可读 + 实机托底一致
-		var solid := make_mat(Color(0.06, 0.14, 0.2), Color(0.12, 0.4, 0.55), 0.45)
-		_strip(parent, sample_path, 0.0, track_end, apron_half, lane_y - 0.028, solid, step_main, 0.0, style, gaps, cast_off)
-		_strip(parent, sample_path, 0.0, track_end, apron_half, lane_y - 0.018, underlay, step_main, 0.0, style, gaps, cast_off)
+		elif style == "holographic":
+			# 暗托底 + 与路同宽，避免弯道外侧冒出青蓝块
+			underlay = make_mat(Color(0.015, 0.03, 0.05), Color(0.04, 0.1, 0.14), 0.08)
+		var underlay_half := road_half if style == "holographic" else apron_half
+		if style == "energy_neon":
+			# 霓虹轨保留实心底盘，编辑器/实机可读
+			var solid := make_mat(Color(0.06, 0.14, 0.2), Color(0.12, 0.4, 0.55), 0.45)
+			_strip(parent, sample_path, 0.0, track_end, apron_half, lane_y - 0.028, solid, step_main, 0.0, style, gaps, cast_off)
+		_strip(parent, sample_path, 0.0, track_end, underlay_half, lane_y - 0.018, underlay, step_main, 0.0, style, gaps, cast_off)
 		_strip(parent, sample_path, 0.0, track_end, road_half, lane_y, kit["road"], step_main, 0.0, style, gaps, cast_off)
-		_strip(parent, sample_path, 0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], step_main, -shoulder_lat, style, gaps, cast_off)
-		_strip(parent, sample_path, 0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], step_main, shoulder_lat, style, gaps, cast_off)
+		if style != "holographic":
+			_strip(parent, sample_path, 0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], step_main, -shoulder_lat, style, gaps, cast_off)
+			_strip(parent, sample_path, 0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], step_main, shoulder_lat, style, gaps, cast_off)
 		if style == "holographic":
-			var curb_lat := road_half - 0.02
-			_strip(parent, sample_path, 0.0, track_end, 0.07, lane_y + 0.012, kit["curb"], step_main, -curb_lat, style, gaps, cast_off)
-			_strip(parent, sample_path, 0.0, track_end, 0.07, lane_y + 0.012, kit["curb"], step_main, curb_lat, style, gaps, cast_off)
-			_strip(parent, sample_path, 0.0, track_end, 0.055, lane_y + 0.01, kit["line"], step_main, -(curb_lat + 0.14), style, gaps, cast_off)
-			_strip(parent, sample_path, 0.0, track_end, 0.055, lane_y + 0.01, kit["line"], step_main, curb_lat + 0.14, style, gaps, cast_off)
+			# 仅三道分隔线；不铺外侧发光路缘
 			_strip(parent, sample_path, 0.0, track_end, 0.04, lane_y + 0.014, kit["line"], step_main, -LANE_WIDTH, style, gaps, cast_off)
 			_strip(parent, sample_path, 0.0, track_end, 0.04, lane_y + 0.014, kit["line"], step_main, LANE_WIDTH, style, gaps, cast_off)
 	else:

@@ -31,6 +31,8 @@ const RUNNER_PRELOAD_PATHS := [
 	"res://mvp素材第二批/rook/rook滑铲.glb",
 	"res://3d素材/障碍物-需跳跃.glb",
 	"res://3d素材/障碍物-需滑铲.glb",
+	"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
+	"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
 ]
 
 var _location_data: Array[Dictionary] = []
