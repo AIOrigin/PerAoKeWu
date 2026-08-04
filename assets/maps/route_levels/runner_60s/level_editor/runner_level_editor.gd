@@ -112,8 +112,9 @@ func _ready() -> void:
 	_setup_world()
 	_planet_id = "glass_desert"
 	_load_planet(_planet_id)
-	# 新建编辑：从一条初始直线开始，在尽头点「＋」接下一段
+	# 新建编辑：从一条初始直线开始，不带星球默认障碍
 	_reset_to_initial_straight(false)
+	_dirty = false
 	_set_edit_mode(EDIT_MODE_TRACK)
 	_refresh_all()
 
@@ -683,18 +684,19 @@ func _build_ui() -> void:
 	_sand_lanes_option = OptionButton.new()
 	_sand_lanes_option.add_item("占1列", 1)
 	_sand_lanes_option.add_item("占2列", 2)
-	_sand_lanes_option.add_item("占3列", 3)
+	_sand_lanes_option.add_item("占3列(全宽)", 3)
 	_sand_lanes_option.select(2)
 	_sand_lanes_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sand_lanes_option.item_selected.connect(func(_i: int) -> void:
+		_refresh_sand_lane_option_labels()
 		_sync_sand_lane_option_enabled()
 		_apply_sand_params_to_selected({})
 	)
 	sand_row.add_child(_sand_lanes_option)
 	_sand_lane_option = OptionButton.new()
-	_sand_lane_option.add_item("左道起", 0)
-	_sand_lane_option.add_item("中道起", 1)
-	_sand_lane_option.add_item("右道", 2)
+	_sand_lane_option.add_item("仅左道", 0)
+	_sand_lane_option.add_item("仅中道", 1)
+	_sand_lane_option.add_item("仅右道", 2)
 	_sand_lane_option.select(1)
 	_sand_lane_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sand_lane_option.item_selected.connect(func(_i: int) -> void:
@@ -725,6 +727,13 @@ func _build_ui() -> void:
 		_apply_sand_params_to_selected({"dps": vv})
 	)
 	sand_row2.add_child(_sand_dps_spin)
+	var sand_presets := HBoxContainer.new()
+	sand_presets.add_theme_constant_override("separation", 4)
+	v.add_child(sand_presets)
+	sand_presets.add_child(_make_button("全宽", func() -> void: _set_sand_coverage_ui(3, 1)))
+	sand_presets.add_child(_make_button("仅中", func() -> void: _set_sand_coverage_ui(1, 1)))
+	sand_presets.add_child(_make_button("左+中", func() -> void: _set_sand_coverage_ui(2, 0)))
+	sand_presets.add_child(_make_button("中+右", func() -> void: _set_sand_coverage_ui(2, 1)))
 	var sand_btns := HBoxContainer.new()
 	sand_btns.add_theme_constant_override("separation", 6)
 	_obstacle_panel.add_child(sand_btns)
@@ -1497,6 +1506,80 @@ func _sync_sand_lane_option_enabled() -> void:
 		_sand_lane_option.select(1)
 
 
+func _refresh_sand_lane_option_labels() -> void:
+	if _sand_lane_option == null or _sand_lanes_option == null:
+		return
+	var count := _sand_lanes_option.get_selected_id()
+	var keep := _sand_lane_option.selected
+	_sand_lane_option.clear()
+	match count:
+		1:
+			_sand_lane_option.add_item("仅左道", 0)
+			_sand_lane_option.add_item("仅中道", 1)
+			_sand_lane_option.add_item("仅右道", 2)
+		2:
+			_sand_lane_option.add_item("左+中", 0)
+			_sand_lane_option.add_item("中+右", 1)
+			# 占位，保持索引稳定；选到会自动钳回
+			_sand_lane_option.add_item("(不可用)", 2)
+			_sand_lane_option.set_item_disabled(2, true)
+		_:
+			_sand_lane_option.add_item("全宽三道", 0)
+			_sand_lane_option.add_item("全宽三道", 1)
+			_sand_lane_option.add_item("全宽三道", 2)
+	if count == 2:
+		_sand_lane_option.select(clampi(keep, 0, 1))
+	elif count >= 3:
+		_sand_lane_option.select(1)
+	else:
+		_sand_lane_option.select(clampi(keep, 0, 2))
+
+
+func _set_sand_coverage_ui(lane_count: int, lane_option_index: int) -> void:
+	if _sand_lanes_option == null:
+		return
+	var count := clampi(lane_count, 1, 3)
+	for i in _sand_lanes_option.item_count:
+		if _sand_lanes_option.get_item_id(i) == count:
+			_sand_lanes_option.select(i)
+			break
+	_refresh_sand_lane_option_labels()
+	_sync_sand_lane_option_enabled()
+	if _sand_lane_option and not _sand_lane_option.disabled:
+		_sand_lane_option.select(clampi(lane_option_index, 0, 2 if count == 1 else 1))
+	if _selected_sand >= 0:
+		_apply_sand_params_to_selected({})
+	else:
+		_flash_status("已设覆盖：%s（再点「添加沙尘暴」放到游标处）" % _sand_coverage_label_from_ui())
+
+
+func _sand_coverage_label_from_ui() -> String:
+	var count := _sand_lanes_option.get_selected_id() if _sand_lanes_option else 3
+	count = clampi(count, 1, 3)
+	var lane_idx := _sand_lane_option.selected if _sand_lane_option else 1
+	var anchor := lane_idx - 1
+	if count == 2:
+		anchor = -1 if lane_idx <= 0 else 0
+	elif count == 3:
+		anchor = 0
+	return _covered_lanes_label(ObstacleLayout.sandstorm_covered_lanes(count, anchor))
+
+
+func _covered_lanes_label(covered: Array) -> String:
+	if covered.is_empty() or covered.size() >= 3:
+		return "全宽(左中右)"
+	var names: PackedStringArray = PackedStringArray()
+	for v in covered:
+		match int(v):
+			-1:
+				names.append("左")
+			0:
+				names.append("中")
+			1:
+				names.append("右")
+	return "+".join(names)
+
+
 func _select_sand_options_from_zone(zone: Dictionary) -> void:
 	if _sand_lanes_option == null:
 		return
@@ -1505,6 +1588,7 @@ func _select_sand_options_from_zone(zone: Dictionary) -> void:
 		if _sand_lanes_option.get_item_id(i) == count:
 			_sand_lanes_option.select(i)
 			break
+	_refresh_sand_lane_option_labels()
 	var anchor := int(zone.get("lane", 0))
 	var lane_idx := clampi(anchor + 1, 0, 2)
 	if count == 2:
@@ -1575,9 +1659,10 @@ func _add_sand_zone_at_cursor() -> void:
 	_refresh_sand_list()
 	_refresh_sand_visuals()
 	_update_status()
-	_flash_status("已添加沙尘暴 · 占%d列 · 长%.0f" % [
-		int(zone.get("lane_count", 3)),
+	_flash_status("已添加沙尘暴 · %s · 长%.0f · dps%.1f" % [
+		_covered_lanes_label(zone.get("covered_lanes", [])),
 		float(zone.get("length", 0.0)),
+		float(zone.get("dps", DEFAULT_SAND_DPS)),
 	])
 
 
@@ -1609,12 +1694,11 @@ func _refresh_sand_list() -> void:
 	for i in _sand_zones.size():
 		var z: Dictionary = _sand_zones[i]
 		var covered: Array = z.get("covered_lanes", [])
-		_sand_list.add_item("%02d  %.0f→%.0f  %d列%s  dps=%.1f" % [
+		_sand_list.add_item("%02d  %.0f→%.0f  %s  dps=%.1f" % [
 			i,
 			float(z.get("start", 0.0)),
 			float(z.get("start", 0.0)) + float(z.get("length", 0.0)),
-			int(z.get("lane_count", 3)),
-			str(covered),
+			_covered_lanes_label(covered),
 			float(z.get("dps", DEFAULT_SAND_DPS)),
 		])
 	if _selected_sand >= 0 and _selected_sand < _sand_zones.size():
@@ -1749,9 +1833,13 @@ func _reset_to_initial_straight(flash: bool = true) -> void:
 	})]
 	_junctions = []
 	_side_zones = []
+	_sand_zones = []
+	_items.clear()
 	_selected_seg = 0
 	_selected_fork = -1
 	_selected_side = -1
+	_selected_sand = -1
+	_selected = -1
 	_dirty = true
 	if _seg_len_spin:
 		_seg_len_spin.set_value_no_signal(DEFAULT_SEG_LENGTH)
@@ -1762,10 +1850,13 @@ func _reset_to_initial_straight(flash: bool = true) -> void:
 	_refresh_seg_list()
 	_refresh_fork_list()
 	_refresh_side_list()
+	_refresh_sand_list()
+	_refresh_list()
+	_refresh_markers()
 	_rebuild_path_preview()
 	_set_cursor_d(_path_length)
 	if flash:
-		_flash_status("已重置为初始直线（%.0fm）· 点尽头「＋」接下一段" % DEFAULT_SEG_LENGTH)
+		_flash_status("已重置为初始直线（%.0fm）· 障碍已清空 · 点尽头「＋」接下一段" % DEFAULT_SEG_LENGTH)
 
 
 func _load_default_track_segments() -> void:
@@ -2036,9 +2127,9 @@ func _make_sand_zone_visual(zone: Dictionary, selected: bool) -> Node3D:
 		mi.material_override = mat
 		root.add_child(mi)
 	var label := Label3D.new()
-	label.text = "%s\n%d列 %.0fm" % [
+	label.text = "%s\n%s · %.0fm" % [
 		String(zone.get("label", "沙尘暴")),
-		int(zone.get("lane_count", 3)),
+		_covered_lanes_label(covered),
 		length,
 	]
 	label.font_size = 40
@@ -2361,9 +2452,11 @@ func _save_layout() -> void:
 	_refresh_custom_level_ui()
 	_update_status()
 	if ok:
-		_flash_status("已上架关卡：%s（%s）" % [
+		_flash_status("已上架关卡：%s（%s）· 障碍 %d · 路段 %d" % [
 			String(entry.get("name", "")),
 			String(entry.get("id", "")),
+			_items.size(),
+			_track_segments.size(),
 		])
 	else:
 		_flash_status("保存失败")
