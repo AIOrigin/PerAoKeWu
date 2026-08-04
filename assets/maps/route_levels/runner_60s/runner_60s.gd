@@ -5,6 +5,7 @@ const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
 const CustomLevels = preload("res://assets/maps/route_levels/runner_60s/custom_levels.gd")
 const ObstacleLayout = preload("res://assets/maps/route_levels/runner_60s/obstacle_layout.gd")
+const RoadMeshBuilder = preload("res://assets/maps/route_levels/runner_60s/road_mesh_builder.gd")
 const CharacterRoster = preload("res://assets/maps/route_levels/character_roster.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
 const HitFeedback = preload("res://assets/systems/hit_feedback/hit_feedback.gd")
@@ -12,16 +13,8 @@ const ROAD_ENERGY_NEON_SHADER = preload("res://assets/maps/route_levels/runner_6
 const ROAD_ALIEN_ENERGY_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_alien_energy.gdshader")
 const ROAD_HOLOGRAPHIC_SHADER = preload("res://assets/maps/route_levels/runner_60s/road_holographic.gdshader")
 
-const ROAD_STYLE_ORDER: Array[String] = ["holographic", "alien_energy", "energy_neon", "planet", "coarse_desert", "rust_metal", "void_crystal"]
-const ROAD_STYLE_LABELS := {
-	"holographic": "全息能量轨",
-	"alien_energy": "异星能量轨",
-	"planet": "星球默认",
-	"coarse_desert": "粗粝沙漠",
-	"energy_neon": "能量霓虹",
-	"rust_metal": "锈蚀金属",
-	"void_crystal": "虚空晶体",
-}
+const ROAD_STYLE_ORDER: Array[String] = RoadMeshBuilder.STYLE_ORDER
+const ROAD_STYLE_LABELS := RoadMeshBuilder.STYLE_LABELS
 # 概念资产 holographic_energy_runway.png → 全息能量轨 / 能量霓虹
 # 异星能量轨 = 固态能量 shader；星球默认 = 晶砂实心路；粗粝沙漠 = 砾石沙面 shader
 
@@ -146,6 +139,7 @@ var _world_ready := false
 var _side_dressing_root: Node3D
 var _road_root: Node3D
 var _world_environment: WorldEnvironment
+var _road_mesh: RoadMeshBuilder = RoadMeshBuilder.new()
 var _road_style_id := "holographic"
 var _background_style_id := "desert_crystal"
 var _path_baked := false
@@ -2401,64 +2395,34 @@ func _build_path_track() -> void:
 	else:
 		while _road_root.get_child_count() > 0:
 			_road_root.get_child(0).free()
-	var kit := _make_road_style_kit(_road_style_id)
 	var lane_y := GROUND_Y - 0.05
-	var track_end := maxf(_path_length, _track_length) + 28.0
-	var theme: Dictionary = LevelConfig.get_theme()
-	# 全息轨：托底也用暗砂，别用高亮橙沙把赛道「架空」
-	var sand_mat: Material = kit.get("island", kit["shoulder"])
-	if _road_style_id == "holographic":
-		sand_mat = kit["island"]
-	elif _road_style_id == "energy_neon":
-		sand_mat = kit["island"]
-	elif _road_style_id == "coarse_desert":
-		sand_mat = kit["shoulder"]
-	elif sand_mat == null:
-		sand_mat = _make_material(theme.get("sand", Color(0.76, 0.43, 0.16)), Color(1.0, 0.55, 0.18), 0.1)
-
-	# 连续挤出：托底/路肩可贯通；主路面在岔口中段挖空，改由左右岔路承接（中间禁跑）
-	if _road_style_id in ["holographic", "energy_neon"]:
-		var road_half := 6.4 if _road_style_id == "energy_neon" else 6.0
-		var shoulder_half := 1.6
-		var shoulder_lat := road_half + shoulder_half
-		var apron_half := shoulder_lat + shoulder_half + 0.2
-		var underlay := _make_material(Color(0.02, 0.06, 0.1), Color(0.15, 0.45, 0.62), 0.55)
-		if _road_style_id == "energy_neon":
-			underlay = _make_material(Color(0.01, 0.02, 0.04), Color(0.08, 0.28, 0.42), 0.35)
-		# 托底也挖中段，避免中间仍像可跑路面
-		_attach_path_strip(0.0, track_end, apron_half, lane_y - 0.018, underlay, 1.75, 0.0, true)
-		_attach_path_strip(0.0, track_end, road_half, lane_y, kit["road"], 1.75, 0.0, true)
-		_attach_path_strip(0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], 1.75, -shoulder_lat, true)
-		_attach_path_strip(0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], 1.75, shoulder_lat, true)
-		if _road_style_id == "holographic":
-			var curb_half := 0.07
-			var curb_lat := road_half - 0.02
-			_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, -curb_lat, true)
-			_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, curb_lat, true)
-			_attach_path_strip(0.0, track_end, 0.055, lane_y + 0.01, kit["line"], 1.75, -(curb_lat + 0.14), true)
-			_attach_path_strip(0.0, track_end, 0.055, lane_y + 0.01, kit["line"], 1.75, curb_lat + 0.14, true)
-			# 主路三道分隔线（岔口中段同样挖空）
-			_attach_path_strip(0.0, track_end, 0.04, lane_y + 0.014, kit["line"], 1.75, -LANE_WIDTH, true)
-			_attach_path_strip(0.0, track_end, 0.04, lane_y + 0.014, kit["line"], 1.75, LANE_WIDTH, true)
-	else:
-		var foundation_half := 14.0 if _road_style_id == "planet" else (16.0 if _road_style_id == "coarse_desert" else 21.0)
-		var foundation_mat: Material = kit["island"] if _road_style_id in ["planet", "coarse_desert"] else sand_mat
-		var foundation_y := lane_y - 0.012 if _road_style_id in ["planet", "coarse_desert"] else GROUND_Y - 0.14
-		_attach_path_strip(0.0, track_end, foundation_half, foundation_y, foundation_mat, 2.5, 0.0, true)
-		var shoulder_half := 9.2 if _road_style_id != "coarse_desert" else (foundation_half - 6.5)
-		_attach_path_strip(0.0, track_end, shoulder_half, lane_y - 0.012, kit["shoulder"], 2.0, 0.0, true)
-		var road_half := 6.0 if _road_style_id == "alien_energy" else (6.5 if _road_style_id == "coarse_desert" else 6.3)
-		if _road_style_id in ["alien_energy", "planet", "coarse_desert"]:
-			var opaque_road := _make_opaque_road_base_material(_road_style_id)
-			_attach_path_strip(0.0, track_end, road_half, lane_y - 0.03 if _road_style_id == "coarse_desert" else lane_y - 0.02, opaque_road, 1.75, 0.0, true)
-		_attach_path_strip(0.0, track_end, road_half, lane_y, kit["road"], 1.75, 0.0, true)
-		var curb_half := 0.07
-		var curb_lat := road_half - 0.02
-		_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, -curb_lat, true)
-		_attach_path_strip(0.0, track_end, curb_half, lane_y + 0.012, kit["curb"], 1.75, curb_lat, true)
-		if _road_style_id == "alien_energy":
-			_attach_path_strip(0.0, track_end, 0.05, lane_y + 0.008, kit["line"], 1.75, 0.0, true)
-
+	var theme: Dictionary = LevelConfig.get_theme() if LevelConfig != null else {}
+	var extra_gaps: Array = []
+	for zone in _side_runway_zones():
+		var pit: Vector2 = _side_runway_pit_range(zone)
+		if pit.y > pit.x + 4.0:
+			extra_gaps.append(pit)
+	for gap2 in _main_block_road_gaps():
+		if gap2.y > gap2.x + 2.0:
+			extra_gaps.append(gap2)
+	# 主路挤出与编辑器共用 RoadMeshBuilder；起点垫仍用实机专用造型
+	var kit: Dictionary = _road_mesh.rebuild(
+		_road_root,
+		Callable(self, "_sample_path"),
+		maxf(_path_length, _track_length),
+		_road_style_id,
+		_junction_zones(),
+		{
+			"track_pad": 28.0,
+			"extra_gaps": extra_gaps,
+			"clear_children": false,
+			"include_start_pad": false,
+			"cast_shadow_off": true,
+			"theme": theme,
+		}
+	)
+	if kit.is_empty():
+		kit = _make_road_style_kit(_road_style_id)
 	_build_start_pad(kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["post"], lane_y)
 	for zone in _junction_zones():
 		_build_fork_branch_roads(zone, kit["road"], kit["shoulder"], kit["curb"], kit["line"], kit["island"], lane_y)
@@ -2891,81 +2855,8 @@ func _path_strip_point(distance: float, half_width: float, y: float, lateral_bia
 
 
 func _make_road_style_kit(style_id: String) -> Dictionary:
-	var theme: Dictionary = LevelConfig.get_theme()
-	match style_id:
-		"holographic":
-			return {
-				"road": _make_holographic_road_material(),
-				"shoulder": _make_material(Color(0.02, 0.05, 0.08), Color(0.1, 0.4, 0.5), 0.2),
-				"curb": _make_material(Color(0.08, 0.04, 0.14), Color(0.75, 0.35, 0.95), 1.6),
-				"line": _make_material(Color(0.06, 0.14, 0.18), Color(0.45, 0.92, 1.0), 1.4),
-				"post": _make_material(Color(0.03, 0.05, 0.08), Color(0.35, 0.7, 0.85), 0.5),
-				"island": _make_material(Color(0.01, 0.03, 0.06), Color(0.06, 0.28, 0.38), 0.25),
-			}
-		"alien_energy":
-			return {
-				"road": _make_alien_energy_road_material(),
-				"shoulder": _make_material(Color(0.04, 0.09, 0.14), Color(0.28, 0.62, 0.78), 0.28),
-				"curb": _make_material(Color(0.06, 0.14, 0.2), Color(0.5, 0.95, 1.0), 2.2),
-				"line": _make_material(Color(0.1, 0.22, 0.3), Color(0.45, 0.95, 1.0), 2.4),
-				"post": _make_material(Color(0.05, 0.1, 0.15), Color(0.4, 0.85, 1.0), 0.75),
-				"island": _make_material(Color(0.03, 0.06, 0.1), Color(0.2, 0.48, 0.62), 0.18),
-			}
-		"energy_neon":
-			return {
-				"road": _make_energy_neon_road_material(),
-				"shoulder": _make_material(Color(0.01, 0.03, 0.06), Color(0.1, 0.38, 0.52), 0.22),
-				"curb": _make_material(Color(0.1, 0.04, 0.18), Color(0.78, 0.32, 0.98), 2.6),
-				"line": _make_material(Color(0.08, 0.2, 0.28), Color(0.35, 0.98, 1.0), 3.2),
-				"post": _make_material(Color(0.03, 0.05, 0.08), Color(0.35, 0.85, 1.0), 0.55),
-				"island": _make_material(Color(0.008, 0.02, 0.04), Color(0.08, 0.32, 0.48), 0.2),
-			}
-		"rust_metal":
-			return {
-				"road": _make_material(Color(0.22, 0.16, 0.12), Color(0.55, 0.28, 0.1), 0.2),
-				"shoulder": _make_material(Color(0.32, 0.2, 0.12), Color(0.7, 0.35, 0.12), 0.35),
-				"curb": _make_material(Color(0.45, 0.26, 0.12), Color(0.95, 0.45, 0.15), 1.1),
-				"line": _make_material(Color(0.95, 0.7, 0.25), Color(1.0, 0.7, 0.2), 1.8),
-				"post": _make_material(Color(0.16, 0.12, 0.1), Color(0.85, 0.4, 0.15), 0.6),
-				"island": _make_material(Color(0.28, 0.18, 0.12), Color(0.55, 0.3, 0.12), 0.15),
-			}
-		"void_crystal":
-			return {
-				"road": _make_material(Color(0.06, 0.05, 0.12), Color(0.45, 0.25, 1.0), 0.55),
-				"shoulder": _make_material(Color(0.1, 0.08, 0.18), Color(0.55, 0.35, 1.0), 0.7),
-				"curb": _make_material(Color(0.12, 0.1, 0.22), Color(0.7, 0.45, 1.0), 2.8),
-				"line": _make_material(Color(0.75, 0.55, 1.0), Color(0.85, 0.65, 1.0), 2.6),
-				"post": _make_material(Color(0.08, 0.06, 0.14), Color(0.4, 0.9, 1.0), 1.4),
-				"island": _make_material(Color(0.07, 0.05, 0.12), Color(0.5, 0.3, 0.9), 0.25),
-			}
-		"planet":
-			return {
-				"road": _make_planet_road_material(),
-				"shoulder": _make_material(Color(0.34, 0.24, 0.16), Color(0.42, 0.3, 0.18), 0.08),
-				"curb": _make_material(Color(0.4, 0.3, 0.18), Color(0.72, 0.52, 0.26), 0.42),
-				"line": _make_material(theme.get("lane_line", Color(1.0, 0.86, 0.42)), Color(1.0, 0.78, 0.28), 1.15),
-				"post": _make_material(Color(0.18, 0.18, 0.16), Color(0.85, 0.62, 0.34), 0.35),
-				"island": _make_material(Color(0.2, 0.14, 0.1), Color(0.32, 0.22, 0.14), 0.06),
-			}
-		"coarse_desert":
-			return {
-				"road": _make_coarse_desert_road_material(),
-				"shoulder": _make_opaque_desert_surface_material(Color(0.5, 0.32, 0.17)),
-				"curb": _make_opaque_desert_surface_material(Color(0.42, 0.27, 0.14)),
-				"line": _make_opaque_desert_surface_material(Color(0.72, 0.56, 0.32), Color(0.85, 0.66, 0.36), 0.08),
-				"post": _make_opaque_desert_surface_material(Color(0.34, 0.22, 0.13)),
-				"island": _make_opaque_desert_surface_material(Color(0.46, 0.3, 0.15)),
-			}
-		_:
-			# 星球默认：路面要能看见；路肩/托底降饱和，避免「悬空橙板」抢戏
-			return {
-				"road": _make_material(theme.get("road", Color(0.28, 0.26, 0.22)), Color(0.55, 0.48, 0.32), 0.12),
-				"shoulder": _make_material(Color(0.28, 0.2, 0.14), Color(0.4, 0.28, 0.16), 0.06),
-				"curb": _make_material(Color(0.42, 0.32, 0.18), Color(0.7, 0.5, 0.22), 0.35),
-				"line": _make_material(theme.get("lane_line", Color(1.0, 0.86, 0.42)), Color(1.0, 0.78, 0.28), 1.2),
-				"post": _make_material(Color(0.18, 0.18, 0.16), Color(0.85, 0.62, 0.34), 0.35),
-				"island": _make_material(Color(0.24, 0.17, 0.12), Color(0.35, 0.22, 0.12), 0.04),
-			}
+	var theme: Dictionary = LevelConfig.get_theme() if LevelConfig != null else {}
+	return RoadMeshBuilder.make_kit(style_id, theme)
 
 
 func _make_opaque_road_base_material(style_id: String) -> StandardMaterial3D:
@@ -3268,8 +3159,8 @@ func _build_path_road_slice(
 			_attach_road(post)
 
 
-func _build_y_fork_branch_roads(kit: Dictionary, lane_y: float) -> void:
-	# 主路径已沿左岔；补画右岔实心路面
+func _build_y_fork_branch_roads(_kit: Dictionary, _lane_y: float) -> void:
+	# 主路径已沿左岔；补画右岔实心路面（与编辑器共用 polyline 挤出）
 	var segments: Array = _active_track_segments()
 	for entry in ObstacleLayout.segment_start_poses(segments, 2.0):
 		if typeof(entry) != TYPE_DICTIONARY:
@@ -3285,15 +3176,7 @@ func _build_y_fork_branch_roads(kit: Dictionary, lane_y: float) -> void:
 			-1.0,
 			2.0
 		)
-		var road_half := 6.0 if _road_style_id == "holographic" else 6.3
-		_attach_polyline_strip(poly, road_half + 1.4, lane_y - 0.012, kit.get("island", kit["shoulder"]))
-		_attach_polyline_strip(poly, road_half, lane_y, kit["road"])
-		if kit.get("line"):
-			_attach_polyline_strip(poly, 0.04, lane_y + 0.014, kit["line"], -LANE_WIDTH)
-			_attach_polyline_strip(poly, 0.04, lane_y + 0.014, kit["line"], LANE_WIDTH)
-		if kit.get("curb"):
-			_attach_polyline_strip(poly, 0.07, lane_y + 0.012, kit["curb"], -(road_half - 0.02))
-			_attach_polyline_strip(poly, 0.07, lane_y + 0.012, kit["curb"], road_half - 0.02)
+		_road_mesh.add_polyline_road(_road_root, poly, _road_style_id, true)
 
 
 func _attach_polyline_strip(

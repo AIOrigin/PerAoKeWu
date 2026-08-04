@@ -41,18 +41,33 @@
 			"created_at": "2026-08-03T15:12:30",
 			"duration": 52.0,
 			"id": "custom_04",
-			"junction_count": 0,
+			"junction_count": 0.0,
 			"name": "自定义04",
-			"obstacle_count": 30,
+			"obstacle_count": 30.0,
 			"planet_id": "glass_desert",
 			"road_style": "holographic",
-			"sandstorm_count": 3,
-			"side_runway_count": 3,
+			"sandstorm_count": 3.0,
+			"side_runway_count": 3.0,
+			"task_type": "Supply Run",
+			"track_segment_count": 6.0
+		},
+		{
+			"base_planet_id": "glass_desert",
+			"created_at": "2026-08-04T08:37:50",
+			"duration": 52.0,
+			"id": "custom_05",
+			"junction_count": 0,
+			"name": "自定义05",
+			"obstacle_count": 3,
+			"planet_id": "glass_desert",
+			"road_style": "holographic",
+			"sandstorm_count": 2,
+			"side_runway_count": 1,
 			"task_type": "Supply Run",
 			"track_segment_count": 6
 		}
 	],
 	"note": "Filled by runner level editor when saving custom levels",
-	"updated_at": "2026-08-03T15:12:30",
+	"updated_at": "2026-08-04T08:37:50",
 	"version": 1
 }

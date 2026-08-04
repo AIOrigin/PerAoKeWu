@@ -372,6 +372,7 @@ static func _bake_append_straight(
 	return {"pos": pos, "yaw": yaw, "dist": dist}
 
 
+## 恒定曲率圆弧（圆角）。比逐步「先拧 yaw 再走」更贴真实弯道，急弯自动加密采样。
 static func _bake_append_arc(
 	samples: Array,
 	pos: Vector3,
@@ -383,16 +384,30 @@ static func _bake_append_arc(
 ) -> Dictionary:
 	if length <= 0.001:
 		return {"pos": pos, "yaw": yaw, "dist": dist}
-	var steps := maxi(1, int(ceil(length / maxf(step, 0.5))))
-	var ds := length / float(steps)
-	var dyaw := turn / float(steps)
-	for _i in steps:
-		yaw += dyaw
-		var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
-		pos += forward * ds
-		dist += ds
+	if absf(turn) < 0.00015:
+		return _bake_append_straight(samples, pos, yaw, dist, length, step)
+
+	# 至少约每 6° 一个点，且不超过 step 米；上限防止超长弯爆炸
+	var steps_by_angle := maxi(1, int(ceil(absf(turn) / deg_to_rad(6.0))))
+	var steps_by_len := maxi(1, int(ceil(length / maxf(step, 0.5))))
+	var steps := clampi(maxi(steps_by_angle, steps_by_len), 2, 320)
+
+	var kappa := turn / length
+	var yaw0 := yaw
+	var x0 := pos.x
+	var z0 := pos.z
+	var dist0 := dist
+	for i in range(1, steps + 1):
+		var s := length * (float(i) / float(steps))
+		var yaw_s := yaw0 + kappa * s
+		# ∫ forward：forward=(-sin(yaw),0,-cos(yaw))
+		var x := x0 + (cos(yaw0 + kappa * s) - cos(yaw0)) / kappa
+		var z := z0 - (sin(yaw0 + kappa * s) - sin(yaw0)) / kappa
+		pos = Vector3(x, 0.0, z)
+		yaw = yaw_s
+		dist = dist0 + s
 		samples.append({"d": dist, "pos": pos, "yaw": yaw})
-	return {"pos": pos, "yaw": yaw, "dist": dist}
+	return {"pos": pos, "yaw": yaw, "dist": dist0 + length}
 
 
 ## 沿路段推进，返回每个路段起点的位姿（用于画 Y 右岔等）

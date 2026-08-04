@@ -1,0 +1,105 @@
+{
+	"base_planet_id": "glass_desert",
+	"junction_zones": [],
+	"level_id": "custom_05",
+	"level_name": "自定义05",
+	"note": "Custom level from runner level editor",
+	"obstacles": [
+		{
+			"distance": 265.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 437.0,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 473.0,
+			"half_depth": 24.75,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		}
+	],
+	"planet_id": "custom_05",
+	"road_style": "holographic",
+	"sandstorm_zones": [
+		{
+			"covered_lanes": [
+				-1,
+				0,
+				1
+			],
+			"dps": 9.0,
+			"label": "沙尘暴",
+			"lane": -1,
+			"lane_count": 3,
+			"length": 42.0,
+			"start": 253.0
+		},
+		{
+			"covered_lanes": [
+				-1,
+				0,
+				1
+			],
+			"dps": 9.0,
+			"label": "沙尘暴",
+			"lane": -1,
+			"lane_count": 3,
+			"length": 42.0,
+			"start": 277.0
+		}
+	],
+	"side_runway_zones": [
+		{
+			"entry_window": 10.0,
+			"fallback_side": 1,
+			"lateral_offset": 7.2,
+			"layer": 1,
+			"length": 55.0,
+			"side": "outer",
+			"start": 445.0
+		}
+	],
+	"track_segments": [
+		{
+			"length": 80.0,
+			"turn": 0.0,
+			"type": "arc"
+		},
+		{
+			"length": 70.0,
+			"turn": 1.5707963267949,
+			"type": "arc"
+		},
+		{
+			"length": 80.0,
+			"turn": 0.0,
+			"type": "arc"
+		},
+		{
+			"length": 55.0,
+			"turn": -0.785398163397448,
+			"type": "arc"
+		},
+		{
+			"angle": 0.785398163397448,
+			"branch_length": 40.0,
+			"length": 80.0,
+			"turn": 0.0,
+			"type": "y_fork"
+		},
+		{
+			"length": 80.0,
+			"turn": 0.0,
+			"type": "arc"
+		}
+	],
+	"updated_at": "2026-08-04T08:37:50",
+	"version": 1
+}

@@ -1164,7 +1164,8 @@ func _rebuild_track_mesh() -> void:
 		Callable(self, "_sample_path"),
 		_path_length,
 		_road_style_id,
-		_junctions
+		_junctions,
+		{"track_pad": 12.0, "include_start_pad": true}
 	)
 	_rebuild_y_fork_branch_meshes()
 
