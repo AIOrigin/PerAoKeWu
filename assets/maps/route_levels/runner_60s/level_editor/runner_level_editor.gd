@@ -18,6 +18,23 @@ const PLACE_TYPES: Array[String] = [
 	"block_left", "block_right", "ramp", "main_block",
 	"turn_left", "turn_right",
 ]
+const PLACE_TYPE_LABELS := {
+	"jump": "跳跃",
+	"slide": "滑铲",
+	"orb": "能量球",
+	"train": "火车",
+	"train_moving": "移动火车",
+	"block_left": "左侧挡墙",
+	"block_right": "右侧挡墙",
+	"ramp": "跳板",
+	"main_block": "主路封堵",
+	"turn_left": "左转提示",
+	"turn_right": "右转提示",
+}
+
+
+static func place_type_label(type_id: String) -> String:
+	return String(PLACE_TYPE_LABELS.get(type_id, type_id))
 
 var LevelConfig: Script
 var _visual_factory: ObstacleVisualFactory = ObstacleVisualFactory.new()
@@ -50,6 +67,9 @@ var _sand_root: Node3D
 var _fork_root: Node3D
 var _cursor_marker: MeshInstance3D
 var _camera: Camera3D
+## 镜头远近倍率：Ctrl+滚轮缩放（1=默认，越大越远）
+var _cam_zoom := 1.35
+var _cam_overview_frames := 0
 var _status: Label
 var _list: ItemList
 var _side_list: ItemList
@@ -123,10 +143,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
-			_set_cursor_d(_cursor_d + (8.0 if not Input.is_key_pressed(KEY_SHIFT) else 2.0))
+			if mb.ctrl_pressed or Input.is_key_pressed(KEY_CTRL):
+				_cam_zoom = clampf(_cam_zoom * 0.88, 0.55, 4.0)
+				_update_camera()
+			else:
+				_set_cursor_d(_cursor_d + (8.0 if not Input.is_key_pressed(KEY_SHIFT) else 2.0))
 			get_viewport().set_input_as_handled()
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
-			_set_cursor_d(_cursor_d - (8.0 if not Input.is_key_pressed(KEY_SHIFT) else 2.0))
+			if mb.ctrl_pressed or Input.is_key_pressed(KEY_CTRL):
+				_cam_zoom = clampf(_cam_zoom * 1.14, 0.55, 4.0)
+				_update_camera()
+			else:
+				_set_cursor_d(_cursor_d - (8.0 if not Input.is_key_pressed(KEY_SHIFT) else 2.0))
 			get_viewport().set_input_as_handled()
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			if _edit_mode == EDIT_MODE_OBSTACLES:
@@ -191,6 +219,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				if key.ctrl_pressed:
 					_playtest_layout()
 					get_viewport().set_input_as_handled()
+			KEY_F:
+				# 俯视整条已烘焙赛道
+				_frame_whole_track()
+				get_viewport().set_input_as_handled()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
 				if _edit_mode == EDIT_MODE_OBSTACLES:
 					var idx := key.keycode - KEY_1
@@ -199,7 +231,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	_update_camera()
+	if _cam_overview_frames > 0:
+		_cam_overview_frames -= 1
+	else:
+		_update_camera()
 	_update_cursor_marker()
 	_update_end_add_affordance()
 
@@ -209,10 +244,10 @@ func _setup_world() -> void:
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	# 编辑器需要高对比：亮背景 + 强环境光，避免赛道「融进黑底」
-	environment.background_color = Color(0.42, 0.48, 0.55)
+	environment.background_color = Color(0.22, 0.26, 0.32)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.92, 0.95, 1.0)
-	environment.ambient_light_energy = 1.35
+	environment.ambient_light_color = Color(0.75, 0.82, 0.9)
+	environment.ambient_light_energy = 0.95
 	environment.glow_enabled = false
 	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	_world_environment.environment = environment
@@ -231,17 +266,18 @@ func _setup_world() -> void:
 	fill.light_color = Color(0.75, 0.85, 1.0)
 	add_child(fill)
 
-	# 地面参考面，方便判断方向与距离
+	# 地面参考面：略暗，避免亮环境光洗成白墙挡住跑道
 	var ground := MeshInstance3D.new()
 	ground.name = "EditorGround"
 	var ground_mesh := PlaneMesh.new()
-	ground_mesh.size = Vector2(4000, 4000)
+	ground_mesh.size = Vector2(1200, 1200)
 	ground.mesh = ground_mesh
 	var ground_mat := StandardMaterial3D.new()
-	ground_mat.albedo_color = Color(0.55, 0.58, 0.52)
+	ground_mat.albedo_color = Color(0.14, 0.16, 0.18)
 	ground_mat.roughness = 1.0
+	ground_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	ground.material_override = ground_mat
-	ground.position.y = GROUND_Y - 0.08
+	ground.position.y = GROUND_Y - 0.12
 	add_child(ground)
 
 	_track_root = Node3D.new()
@@ -261,12 +297,12 @@ func _setup_world() -> void:
 	add_child(_fork_root)
 
 	_camera = Camera3D.new()
-	_camera.fov = 55.0
-	_camera.near = 0.15
-	_camera.far = 4000.0
+	_camera.fov = 62.0
+	_camera.near = 0.2
+	_camera.far = 6000.0
 	_camera.current = true
-	# 左侧面板约占视口，水平偏移让跑道落在右侧可见区中心
-	_camera.h_offset = 4.5
+	# 左侧面板约占视口，水平偏移让跑道落在可见区
+	_camera.h_offset = 3.2
 	add_child(_camera)
 
 	_cursor_marker = MeshInstance3D.new()
@@ -616,7 +652,7 @@ func _build_ui() -> void:
 	_obstacle_panel.add_child(_make_label("障碍类型（1-9 快捷键）"))
 	_type_option = OptionButton.new()
 	for t in PLACE_TYPES:
-		_type_option.add_item(t)
+		_type_option.add_item(place_type_label(t))
 	_type_option.item_selected.connect(func(i: int) -> void:
 		_place_type = PLACE_TYPES[i]
 		_update_status()
@@ -1273,7 +1309,7 @@ func _make_obstacle_marker(item: Dictionary, selected: bool) -> Node3D:
 		root.add_child(ring)
 
 	var label := Label3D.new()
-	label.text = "%s\n%.0f" % [otype, dist]
+	label.text = "%s\n%.0f" % [place_type_label(otype), dist]
 	label.font_size = 42 if selected else 36
 	label.pixel_size = 0.012
 	label.position = Vector3(0.0, 2.6 if selected else 2.2, 0.0)
@@ -1295,7 +1331,7 @@ func _refresh_list() -> void:
 			i,
 			float(it.get("distance", 0.0)),
 			int(it.get("lane", 0)),
-			String(it.get("type", "?")),
+			place_type_label(String(it.get("type", "?"))),
 		])
 	if _selected >= 0 and _selected < _items.size():
 		_list.select(_selected)
@@ -2301,13 +2337,33 @@ func _update_camera() -> void:
 	var pos: Vector3 = sample["pos"]
 	var forward: Vector3 = sample["forward"]
 	var right: Vector3 = sample["right"]
-	# 拼赛道时拉高看清整段；摆障碍时略近
-	var back := 22.0 if _edit_mode == EDIT_MODE_TRACK else 8.5
-	var up := 14.0 if _edit_mode == EDIT_MODE_TRACK else 5.2
-	var look_ahead := 16.0 if _edit_mode == EDIT_MODE_TRACK else 8.0
-	var cam_pos := pos - forward * back + Vector3(0.0, up, 0.0) + right * 1.6
+	# 抬高后拉，能看见前方长段赛道；避免贴地只看到地面白片
+	var back := (48.0 if _edit_mode == EDIT_MODE_TRACK else 32.0) * _cam_zoom
+	var up := (36.0 if _edit_mode == EDIT_MODE_TRACK else 22.0) * _cam_zoom
+	var look_ahead := (48.0 if _edit_mode == EDIT_MODE_TRACK else 36.0) * sqrt(_cam_zoom)
+	var cam_pos := pos - forward * back + Vector3(0.0, up, 0.0) + right * 2.4
 	_camera.global_position = cam_pos
-	_camera.look_at(pos + forward * look_ahead + Vector3(0.0, 0.4, 0.0), Vector3.UP)
+	_camera.look_at(pos + forward * look_ahead + Vector3(0.0, 0.2, 0.0), Vector3.UP)
+
+
+func _frame_whole_track() -> void:
+	## 俯视整条路径中点，便于看清完整跑道走向
+	if _camera == null or _path_length < 1.0:
+		return
+	var mid := _sample_path(_path_length * 0.5)
+	var start := _sample_path(0.0)
+	var end := _sample_path(_path_length)
+	var center: Vector3 = (start["pos"] as Vector3 + end["pos"] as Vector3 + mid["pos"] as Vector3) / 3.0
+	center.y = GROUND_Y
+	var span := maxf(_path_length, (start["pos"] as Vector3).distance_to(end["pos"]))
+	var height := clampf(span * 0.55, 40.0, 280.0)
+	_cam_zoom = clampf(height / 36.0, 0.8, 4.0)
+	var forward: Vector3 = mid["forward"]
+	_camera.global_position = center - forward * (span * 0.12) + Vector3(0.0, height, 0.0) + (mid["right"] as Vector3) * (span * 0.05)
+	_camera.look_at(center, Vector3.UP)
+	_flash_status("俯视整轨 · Ctrl+滚轮缩放 · F 再按可刷新")
+	# 短暂锁定俯视，避免下一帧被游标跟随镜头顶掉
+	_cam_overview_frames = 90
 
 
 func _update_status() -> void:
@@ -2315,7 +2371,7 @@ func _update_status() -> void:
 		return
 	var flag := " *" if _dirty else ""
 	var phase := "拼赛道" if _edit_mode == EDIT_MODE_TRACK else "摆障碍"
-	var tip := "点尽头「＋」/Space 选下一段 · Ctrl+P 试玩 · Tab 切阶段" if _edit_mode == EDIT_MODE_TRACK else "左键放置/拖拽 · Space 放置 · Ctrl+P 试玩 · Tab 切阶段"
+	var tip := "点尽头「＋」/Space · F 俯视整轨 · Ctrl+滚轮缩放 · Ctrl+P 试玩 · Tab" if _edit_mode == EDIT_MODE_TRACK else "左键放置/拖拽 · F 俯视 · Ctrl+滚轮缩放 · Ctrl+P 试玩 · Tab"
 	_status.text = "[%s] %s%s | d=%.0f | 跑道=%s\n路段 %d · 分叉 %d · 侧墙 %d · 障碍 %d · 沙尘 %d → 下次 %s\n%s · Ctrl+S 保存" % [
 		phase,
 		_planet_id,

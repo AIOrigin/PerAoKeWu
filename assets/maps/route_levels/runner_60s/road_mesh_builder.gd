@@ -132,19 +132,19 @@ func apply_environment(env: Environment, style_id: String) -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	match style:
 		"holographic", "energy_neon", "alien_energy", "void_crystal":
-			env.background_color = Color(0.38, 0.45, 0.52)
+			env.background_color = Color(0.2, 0.24, 0.3)
 			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-			env.ambient_light_color = Color(0.9, 0.95, 1.0)
-			env.ambient_light_energy = 1.4
+			env.ambient_light_color = Color(0.72, 0.8, 0.9)
+			env.ambient_light_energy = 1.05
 		"coarse_desert", "planet", "rust_metal":
-			env.background_color = Color(0.55, 0.48, 0.38)
+			env.background_color = Color(0.32, 0.28, 0.22)
 			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-			env.ambient_light_color = Color(1.0, 0.92, 0.78)
-			env.ambient_light_energy = 1.35
+			env.ambient_light_color = Color(0.9, 0.82, 0.7)
+			env.ambient_light_energy = 1.05
 		_:
-			env.background_color = Color(0.42, 0.45, 0.48)
-			env.ambient_light_color = Color(0.92, 0.94, 0.96)
-			env.ambient_light_energy = 1.3
+			env.background_color = Color(0.24, 0.26, 0.28)
+			env.ambient_light_color = Color(0.82, 0.86, 0.9)
+			env.ambient_light_energy = 1.0
 
 
 static func fork_gaps(junctions: Array) -> Array:
