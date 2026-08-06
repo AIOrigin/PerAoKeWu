@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bygkb2kqnb1gg"
-path.s3tc="res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-95f8605a451e9e38e458ed9982332c3a.s3tc.ctex"
-path.etc2="res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-95f8605a451e9e38e458ed9982332c3a.etc2.ctex"
+path.s3tc="res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-9ed681e6641524a4f9ef484dfe34a72c.s3tc.ctex"
+path.etc2="res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-9ed681e6641524a4f9ef484dfe34a72c.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/高墙2_h-shaped_gate_frame_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-95f8605a451e9e38e458ed9982332c3a.s3tc.ctex", "res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-95f8605a451e9e38e458ed9982332c3a.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/block/高墙2_h-shaped_gate_frame_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-9ed681e6641524a4f9ef484dfe34a72c.s3tc.ctex", "res://.godot/imported/高墙2_h-shaped_gate_frame_3d_model_normal.jpg-9ed681e6641524a4f9ef484dfe34a72c.etc2.ctex"]
 
 [params]
 

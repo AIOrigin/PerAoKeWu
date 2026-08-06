@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://d0yv37dsg0xy4"
-path="res://.godot/imported/elsa正面.glb-1a505d913af7ea2e6cf61b3e9078f770.scn"
+path="res://.godot/imported/idle.glb-fd0199f5db1e4cd2a8e10d608ed2602e.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/elsa/idle.glb"
-dest_files=["res://.godot/imported/elsa正面.glb-1a505d913af7ea2e6cf61b3e9078f770.scn"]
+dest_files=["res://.godot/imported/idle.glb-fd0199f5db1e4cd2a8e10d608ed2602e.scn"]
 
 [params]
 

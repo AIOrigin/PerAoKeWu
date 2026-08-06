@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://4ug05cskiieu"
-path="res://.godot/imported/model.glb-47dd7ed6dcdc0ca2a2d3f13ea766952d.scn"
+path="res://.godot/imported/model.glb-6e2948d405f2f220ee55c77ac80ef28a.scn"
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/holographic_tripo/slide/tripo-out/holo-slide-decimate-6d7d9fc3/model.glb"
-dest_files=["res://.godot/imported/model.glb-47dd7ed6dcdc0ca2a2d3f13ea766952d.scn"]
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/holographic_tripo/slide/tripo-out/holo-slide-decimate-6d7d9fc3/model.glb"
+dest_files=["res://.godot/imported/model.glb-6e2948d405f2f220ee55c77ac80ef28a.scn"]
 
 [params]
 

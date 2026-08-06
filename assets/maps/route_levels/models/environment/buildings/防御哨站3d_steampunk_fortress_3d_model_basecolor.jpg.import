@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ctg8mp8w8oeq6"
-path.s3tc="res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-42a05bc2a16447ce0a8f0a1874cb825b.s3tc.ctex"
-path.etc2="res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-42a05bc2a16447ce0a8f0a1874cb825b.etc2.ctex"
+path.s3tc="res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-4a1123ad71b1cf8fcb57b14792642769.s3tc.ctex"
+path.etc2="res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-4a1123ad71b1cf8fcb57b14792642769.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第一批/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-42a05bc2a16447ce0a8f0a1874cb825b.s3tc.ctex", "res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-42a05bc2a16447ce0a8f0a1874cb825b.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-4a1123ad71b1cf8fcb57b14792642769.s3tc.ctex", "res://.godot/imported/防御哨站3d_steampunk_fortress_3d_model_basecolor.jpg-4a1123ad71b1cf8fcb57b14792642769.etc2.ctex"]
 
 [params]
 

@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bw2584kx7rfua"
-path.s3tc="res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-9781641f666c407e41855bc405caca3e.s3tc.ctex"
-path.etc2="res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-9781641f666c407e41855bc405caca3e.etc2.ctex"
+path.s3tc="res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-5fef914b4f7a7fdd501fe70f245fd32b.s3tc.ctex"
+path.etc2="res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-5fef914b4f7a7fdd501fe70f245fd32b.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg"
-dest_files=["res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-9781641f666c407e41855bc405caca3e.s3tc.ctex", "res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-9781641f666c407e41855bc405caca3e.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/jump/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg"
+dest_files=["res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-5fef914b4f7a7fdd501fe70f245fd32b.s3tc.ctex", "res://.godot/imported/障碍物-需跳跃2_crystal+pipe+obstacle+3d+model_rm.jpg-5fef914b4f7a7fdd501fe70f245fd32b.etc2.ctex"]
 
 [params]
 

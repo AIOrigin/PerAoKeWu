@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://i06yitwi7ag4"
-path="res://.godot/imported/futuristic_pod.glb-5be98ab2b6232fc9adc0b3c6c24cf86a.scn"
+path="res://.godot/imported/futuristic_pod.glb-4b86e28fa1e8bdbf86f357f65d8708a6.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/futuristic_pod.glb"
-dest_files=["res://.godot/imported/futuristic_pod.glb-5be98ab2b6232fc9adc0b3c6c24cf86a.scn"]
+source_file="res://assets/maps/route_levels/models/environment/distant/futuristic_pod.glb"
+dest_files=["res://.godot/imported/futuristic_pod.glb-4b86e28fa1e8bdbf86f357f65d8708a6.scn"]
 
 [params]
 

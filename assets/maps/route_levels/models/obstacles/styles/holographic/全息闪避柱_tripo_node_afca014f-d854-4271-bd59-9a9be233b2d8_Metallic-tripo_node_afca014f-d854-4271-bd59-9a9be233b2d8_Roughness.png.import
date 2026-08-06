@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://day160nd80q2h"
-path.s3tc="res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-c4cb9546f551da9f43d686bd1b8aa09e.s3tc.ctex"
-path.etc2="res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-c4cb9546f551da9f43d686bd1b8aa09e.etc2.ctex"
+path.s3tc="res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-6b16a4e1c31562eb26e3c08c3069c165.s3tc.ctex"
+path.etc2="res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-6b16a4e1c31562eb26e3c08c3069c165.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png"
-dest_files=["res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-c4cb9546f551da9f43d686bd1b8aa09e.s3tc.ctex", "res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-c4cb9546f551da9f43d686bd1b8aa09e.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/styles/holographic/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png"
+dest_files=["res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-6b16a4e1c31562eb26e3c08c3069c165.s3tc.ctex", "res://.godot/imported/全息闪避柱_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-6b16a4e1c31562eb26e3c08c3069c165.etc2.ctex"]
 
 [params]
 

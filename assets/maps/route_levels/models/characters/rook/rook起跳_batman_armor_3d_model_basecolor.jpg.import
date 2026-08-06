@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dunbsjvn7chuy"
-path.s3tc="res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-fe9b0ce19a96c1a053e9fc46a434b8ea.s3tc.ctex"
-path.etc2="res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-fe9b0ce19a96c1a053e9fc46a434b8ea.etc2.ctex"
+path.s3tc="res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-7676ef38dfc464ede89539ba3f1ab122.s3tc.ctex"
+path.etc2="res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-7676ef38dfc464ede89539ba3f1ab122.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/rook/rook起跳_batman_armor_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-fe9b0ce19a96c1a053e9fc46a434b8ea.s3tc.ctex", "res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-fe9b0ce19a96c1a053e9fc46a434b8ea.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/rook/rook起跳_batman_armor_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-7676ef38dfc464ede89539ba3f1ab122.s3tc.ctex", "res://.godot/imported/rook起跳_batman_armor_3d_model_basecolor.jpg-7676ef38dfc464ede89539ba3f1ab122.etc2.ctex"]
 
 [params]
 

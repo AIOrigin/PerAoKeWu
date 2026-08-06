@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://eo5c587e1ff6"
-path="res://.godot/imported/neon_sign_prop.glb-847460998fec22dc749ad4c53004cb78.scn"
+path="res://.godot/imported/neon_sign_prop.glb-53146fe90d3a01ec6e45499ca4d115f4.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb"
-dest_files=["res://.godot/imported/neon_sign_prop.glb-847460998fec22dc749ad4c53004cb78.scn"]
+source_file="res://assets/maps/route_levels/models/environment/midground/neon_sign_prop.glb"
+dest_files=["res://.godot/imported/neon_sign_prop.glb-53146fe90d3a01ec6e45499ca4d115f4.scn"]
 
 [params]
 

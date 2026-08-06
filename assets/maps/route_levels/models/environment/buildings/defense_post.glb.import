@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bqvphg1ida4y6"
-path="res://.godot/imported/防御哨站3d.glb-913066a7362885e92e2ffc83b68a9ee7.scn"
+path="res://.godot/imported/defense_post.glb-c34d39e7a6e1d830d19ddb0f8b654e04.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/buildings/defense_post.glb"
-dest_files=["res://.godot/imported/防御哨站3d.glb-913066a7362885e92e2ffc83b68a9ee7.scn"]
+dest_files=["res://.godot/imported/defense_post.glb-c34d39e7a6e1d830d19ddb0f8b654e04.scn"]
 
 [params]
 

@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dufac2ck2t3v6"
-path.s3tc="res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-db821ff54bd27b514494f4525079cad5.s3tc.ctex"
-path.etc2="res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-db821ff54bd27b514494f4525079cad5.etc2.ctex"
+path.s3tc="res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-0ea91d769912f3fbc5299aca31d4b01c.s3tc.ctex"
+path.etc2="res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-0ea91d769912f3fbc5299aca31d4b01c.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第一批/居民穹顶3d_glass_dome_3d_model_rm.jpg"
-dest_files=["res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-db821ff54bd27b514494f4525079cad5.s3tc.ctex", "res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-db821ff54bd27b514494f4525079cad5.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/居民穹顶3d_glass_dome_3d_model_rm.jpg"
+dest_files=["res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-0ea91d769912f3fbc5299aca31d4b01c.s3tc.ctex", "res://.godot/imported/居民穹顶3d_glass_dome_3d_model_rm.jpg-0ea91d769912f3fbc5299aca31d4b01c.etc2.ctex"]
 
 [params]
 

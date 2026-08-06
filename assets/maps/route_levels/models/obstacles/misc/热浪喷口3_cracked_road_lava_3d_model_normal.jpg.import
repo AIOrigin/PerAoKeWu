@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bwgrrb73yu3f"
-path.s3tc="res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-c67d279246fe402fdcce4b82f6b14a74.s3tc.ctex"
-path.etc2="res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-c67d279246fe402fdcce4b82f6b14a74.etc2.ctex"
+path.s3tc="res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-69242681312c1e7937f4ee3d1b8cc8f7.s3tc.ctex"
+path.etc2="res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-69242681312c1e7937f4ee3d1b8cc8f7.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/热浪喷口3_cracked_road_lava_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-c67d279246fe402fdcce4b82f6b14a74.s3tc.ctex", "res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-c67d279246fe402fdcce4b82f6b14a74.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/misc/热浪喷口3_cracked_road_lava_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-69242681312c1e7937f4ee3d1b8cc8f7.s3tc.ctex", "res://.godot/imported/热浪喷口3_cracked_road_lava_3d_model_normal.jpg-69242681312c1e7937f4ee3d1b8cc8f7.etc2.ctex"]
 
 [params]
 

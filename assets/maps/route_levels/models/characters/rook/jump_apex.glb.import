@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cuwodkovjvq3o"
-path="res://.godot/imported/rook跳跃高点.glb-8d71c8b428f7894f229ba0f335f80d20.scn"
+path="res://.godot/imported/jump_apex.glb-541fcb73388a4c75d1054d06bef21804.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/rook/jump_apex.glb"
-dest_files=["res://.godot/imported/rook跳跃高点.glb-8d71c8b428f7894f229ba0f335f80d20.scn"]
+dest_files=["res://.godot/imported/jump_apex.glb-541fcb73388a4c75d1054d06bef21804.scn"]
 
 [params]
 

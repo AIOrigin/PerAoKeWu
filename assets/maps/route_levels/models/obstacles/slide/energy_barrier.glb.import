@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bnu4ddmcwbfkb"
-path="res://.godot/imported/能量屏障（滑铲）.glb-99f1ed09295e494fe1077e7e314813a3.scn"
+path="res://.godot/imported/energy_barrier.glb-85db4de2df5837179b89b973d953c81f.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/slide/energy_barrier.glb"
-dest_files=["res://.godot/imported/能量屏障（滑铲）.glb-99f1ed09295e494fe1077e7e314813a3.scn"]
+dest_files=["res://.godot/imported/energy_barrier.glb-85db4de2df5837179b89b973d953c81f.scn"]
 
 [params]
 

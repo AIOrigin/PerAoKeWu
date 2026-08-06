@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://eu6mmhr3sw6q"
-path.s3tc="res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-65ee1807f24445a3e953bb15f01fa60e.s3tc.ctex"
-path.etc2="res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-65ee1807f24445a3e953bb15f01fa60e.etc2.ctex"
+path.s3tc="res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-183cc6129fe9eda6ff3c2ae1f90b7c10.s3tc.ctex"
+path.etc2="res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-183cc6129fe9eda6ff3c2ae1f90b7c10.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/高墙_rusty_barrier_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-65ee1807f24445a3e953bb15f01fa60e.s3tc.ctex", "res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-65ee1807f24445a3e953bb15f01fa60e.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/block/高墙_rusty_barrier_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-183cc6129fe9eda6ff3c2ae1f90b7c10.s3tc.ctex", "res://.godot/imported/高墙_rusty_barrier_3d_model_basecolor.jpg-183cc6129fe9eda6ff3c2ae1f90b7c10.etc2.ctex"]
 
 [params]
 

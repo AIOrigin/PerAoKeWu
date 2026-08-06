@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://bn2sgp5tsn0yl"
+path.s3tc="res://.godot/imported/tree_lollipop_tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_metallic-tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_roughness.png-f178c77692211e70f367fbde329db967.s3tc.ctex"
+path.etc2="res://.godot/imported/tree_lollipop_tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_metallic-tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_roughness.png-f178c77692211e70f367fbde329db967.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "f97d36a2b4bf06c5d1024b392359ae00"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/environment/tree_lollipop_tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_metallic-tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_roughness.png"
+dest_files=["res://.godot/imported/tree_lollipop_tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_metallic-tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_roughness.png-f178c77692211e70f367fbde329db967.s3tc.ctex", "res://.godot/imported/tree_lollipop_tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_metallic-tripo_node_f5c93cb7-bf9a-4d26-8111-6e0202fad297_roughness.png-f178c77692211e70f367fbde329db967.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

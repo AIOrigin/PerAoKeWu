@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cgl3yb13u41wp"
-path="res://.godot/imported/跳跃落地.glb-74945f751610a5f6711653cbd7c4ae39.scn"
+path="res://.godot/imported/jump_land.glb-a8bcd75cd15a6a89624edd5f0900bd89.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/elsa/jump_land.glb"
-dest_files=["res://.godot/imported/跳跃落地.glb-74945f751610a5f6711653cbd7c4ae39.scn"]
+dest_files=["res://.godot/imported/jump_land.glb-a8bcd75cd15a6a89624edd5f0900bd89.scn"]
 
 [params]
 

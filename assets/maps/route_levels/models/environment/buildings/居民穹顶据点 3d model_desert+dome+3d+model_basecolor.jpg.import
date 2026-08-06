@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ocw184jdukkg"
-path.s3tc="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-c5ddfcc19f198f3be283bdc9590a4607.s3tc.ctex"
-path.etc2="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-c5ddfcc19f198f3be283bdc9590a4607.etc2.ctex"
+path.s3tc="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-e2d3adec7d043b5e7dd36aeec6b0adca.s3tc.ctex"
+path.etc2="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-e2d3adec7d043b5e7dd36aeec6b0adca.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-c5ddfcc19f198f3be283bdc9590a4607.s3tc.ctex", "res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-c5ddfcc19f198f3be283bdc9590a4607.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-e2d3adec7d043b5e7dd36aeec6b0adca.s3tc.ctex", "res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_basecolor.jpg-e2d3adec7d043b5e7dd36aeec6b0adca.etc2.ctex"]
 
 [params]
 

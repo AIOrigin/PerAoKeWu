@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dgrocg40uf13r"
-path.s3tc="res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-52b237d7f394134d6bbf7809df6ceb80.s3tc.ctex"
-path.etc2="res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-52b237d7f394134d6bbf7809df6ceb80.etc2.ctex"
+path.s3tc="res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-2698d9987185d62c8cc2c9a6cafdf4e9.s3tc.ctex"
+path.etc2="res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-2698d9987185d62c8cc2c9a6cafdf4e9.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-52b237d7f394134d6bbf7809df6ceb80.s3tc.ctex", "res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-52b237d7f394134d6bbf7809df6ceb80.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/jump/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-2698d9987185d62c8cc2c9a6cafdf4e9.s3tc.ctex", "res://.godot/imported/晶砂倒刺2_glass_tunnel_arches_3d_model_normal.jpg-2698d9987185d62c8cc2c9a6cafdf4e9.etc2.ctex"]
 
 [params]
 

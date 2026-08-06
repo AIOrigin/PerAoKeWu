@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bm8dpyo8du1co"
-path="res://.godot/imported/rendered_image.webp-d02e018bca2defd1351c510980918979.ctex"
+path="res://.godot/imported/rendered_image.webp-7d39dca536ddd40753fceb14105ba92c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/holographic_tripo/slide/tripo-out/holo-slide-decimate-6d7d9fc3/rendered_image.webp"
-dest_files=["res://.godot/imported/rendered_image.webp-d02e018bca2defd1351c510980918979.ctex"]
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/holographic_tripo/slide/tripo-out/holo-slide-decimate-6d7d9fc3/rendered_image.webp"
+dest_files=["res://.godot/imported/rendered_image.webp-7d39dca536ddd40753fceb14105ba92c.ctex"]
 
 [params]
 

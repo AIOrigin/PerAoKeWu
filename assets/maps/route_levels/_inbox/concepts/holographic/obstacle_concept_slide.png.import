@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cn4f2ehr0e68b"
-path="res://.godot/imported/obstacle_concept_slide.png-4458dd1243ccd5d237d6463f6ccb1240.ctex"
+path="res://.godot/imported/obstacle_concept_slide.png-36be8a8d4f8eac85abe9d5bea48039f8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/holographic_concepts/obstacle_concept_slide.png"
-dest_files=["res://.godot/imported/obstacle_concept_slide.png-4458dd1243ccd5d237d6463f6ccb1240.ctex"]
+source_file="res://assets/maps/route_levels/_inbox/concepts/holographic/obstacle_concept_slide.png"
+dest_files=["res://.godot/imported/obstacle_concept_slide.png-36be8a8d4f8eac85abe9d5bea48039f8.ctex"]
 
 [params]
 

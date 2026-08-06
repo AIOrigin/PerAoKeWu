@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c6vaqvrabdubd"
-path.s3tc="res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-64e57cb4322d09c98e6be82c9e3ac464.s3tc.ctex"
-path.etc2="res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-64e57cb4322d09c98e6be82c9e3ac464.etc2.ctex"
+path.s3tc="res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-bdf3a1c86f4e382c1253e87861916e4c.s3tc.ctex"
+path.etc2="res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-bdf3a1c86f4e382c1253e87861916e4c.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg"
-dest_files=["res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-64e57cb4322d09c98e6be82c9e3ac464.s3tc.ctex", "res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-64e57cb4322d09c98e6be82c9e3ac464.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/jump/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg"
+dest_files=["res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-bdf3a1c86f4e382c1253e87861916e4c.s3tc.ctex", "res://.godot/imported/障碍物-需跳跃_blue+crystal+cluster+3d+model_normal.jpg-bdf3a1c86f4e382c1253e87861916e4c.etc2.ctex"]
 
 [params]
 

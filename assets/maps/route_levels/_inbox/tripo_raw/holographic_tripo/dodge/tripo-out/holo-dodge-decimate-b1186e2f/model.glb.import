@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://br6wyemhg20x0"
-path="res://.godot/imported/model.glb-bc7cad7696fb82e99cc45959bea2af24.scn"
+path="res://.godot/imported/model.glb-e447fb0777866bb397db759137d5a7c1.scn"
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/holographic_tripo/dodge/tripo-out/holo-dodge-decimate-b1186e2f/model.glb"
-dest_files=["res://.godot/imported/model.glb-bc7cad7696fb82e99cc45959bea2af24.scn"]
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/holographic_tripo/dodge/tripo-out/holo-dodge-decimate-b1186e2f/model.glb"
+dest_files=["res://.godot/imported/model.glb-e447fb0777866bb397db759137d5a7c1.scn"]
 
 [params]
 

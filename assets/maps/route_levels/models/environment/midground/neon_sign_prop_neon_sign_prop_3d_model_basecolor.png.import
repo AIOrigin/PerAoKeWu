@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://qiudsv72uq5q"
-path.s3tc="res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-8f621c817fdbb1550c84389be4cc59e8.s3tc.ctex"
-path.etc2="res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-8f621c817fdbb1550c84389be4cc59e8.etc2.ctex"
+path.s3tc="res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-293dc73aeb0d72a24e065f534cf93a36.s3tc.ctex"
+path.etc2="res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-293dc73aeb0d72a24e065f534cf93a36.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png"
-dest_files=["res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-8f621c817fdbb1550c84389be4cc59e8.s3tc.ctex", "res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-8f621c817fdbb1550c84389be4cc59e8.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png"
+dest_files=["res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-293dc73aeb0d72a24e065f534cf93a36.s3tc.ctex", "res://.godot/imported/neon_sign_prop_neon_sign_prop_3d_model_basecolor.png-293dc73aeb0d72a24e065f534cf93a36.etc2.ctex"]
 
 [params]
 

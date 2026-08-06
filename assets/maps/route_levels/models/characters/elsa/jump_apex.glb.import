@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c4j7gh6eq054u"
-path="res://.godot/imported/elsa跳跃高点.glb-5c1e4e6f68b5e411bfb786df18bd3370.scn"
+path="res://.godot/imported/jump_apex.glb-db4bcff6be64ac17ae4b1f23ccca2e66.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/elsa/jump_apex.glb"
-dest_files=["res://.godot/imported/elsa跳跃高点.glb-5c1e4e6f68b5e411bfb786df18bd3370.scn"]
+dest_files=["res://.godot/imported/jump_apex.glb-db4bcff6be64ac17ae4b1f23ccca2e66.scn"]
 
 [params]
 

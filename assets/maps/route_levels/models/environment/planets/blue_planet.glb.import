@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://tuam0lj7l483"
-path="res://.godot/imported/蓝色星球3d模型.glb-6c48c86b8e9dda0fba29105de387f783.scn"
+path="res://.godot/imported/blue_planet.glb-ee6af82cb80655c014c1b2801c04076f.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/planets/blue_planet.glb"
-dest_files=["res://.godot/imported/蓝色星球3d模型.glb-6c48c86b8e9dda0fba29105de387f783.scn"]
+dest_files=["res://.godot/imported/blue_planet.glb-ee6af82cb80655c014c1b2801c04076f.scn"]
 
 [params]
 

@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d3riykdjfowem"
-path.s3tc="res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-2a25baf1f9a709cd756971ea13476fad.s3tc.ctex"
-path.etc2="res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-2a25baf1f9a709cd756971ea13476fad.etc2.ctex"
+path.s3tc="res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-38d177a0f37bf298de5038ad94273191.s3tc.ctex"
+path.etc2="res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-38d177a0f37bf298de5038ad94273191.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-2a25baf1f9a709cd756971ea13476fad.s3tc.ctex", "res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-2a25baf1f9a709cd756971ea13476fad.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/jump/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-38d177a0f37bf298de5038ad94273191.s3tc.ctex", "res://.godot/imported/带刺障碍（跳跃）_thorny_barrier_3d_model_normal.jpg-38d177a0f37bf298de5038ad94273191.etc2.ctex"]
 
 [params]
 

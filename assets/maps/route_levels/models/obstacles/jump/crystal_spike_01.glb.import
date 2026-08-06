@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cmwme8o0pq0a1"
-path="res://.godot/imported/晶砂倒刺1.glb-52b608566425ae3ae8faa98a687f37f6.scn"
+path="res://.godot/imported/crystal_spike_01.glb-10e4ab745efc2317200247c577aec3d5.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/jump/crystal_spike_01.glb"
-dest_files=["res://.godot/imported/晶砂倒刺1.glb-52b608566425ae3ae8faa98a687f37f6.scn"]
+dest_files=["res://.godot/imported/crystal_spike_01.glb-10e4ab745efc2317200247c577aec3d5.scn"]
 
 [params]
 

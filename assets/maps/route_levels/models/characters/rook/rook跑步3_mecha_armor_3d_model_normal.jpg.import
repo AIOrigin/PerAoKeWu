@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c06iixrlj4uh1"
-path.s3tc="res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-a46989e26b88494f7d03540494d1215f.s3tc.ctex"
-path.etc2="res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-a46989e26b88494f7d03540494d1215f.etc2.ctex"
+path.s3tc="res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-2cf56c14aedeefc317a0bffd75cb8c66.s3tc.ctex"
+path.etc2="res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-2cf56c14aedeefc317a0bffd75cb8c66.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/rook/rook跑步3_mecha_armor_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-a46989e26b88494f7d03540494d1215f.s3tc.ctex", "res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-a46989e26b88494f7d03540494d1215f.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/rook/rook跑步3_mecha_armor_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-2cf56c14aedeefc317a0bffd75cb8c66.s3tc.ctex", "res://.godot/imported/rook跑步3_mecha_armor_3d_model_normal.jpg-2cf56c14aedeefc317a0bffd75cb8c66.etc2.ctex"]
 
 [params]
 

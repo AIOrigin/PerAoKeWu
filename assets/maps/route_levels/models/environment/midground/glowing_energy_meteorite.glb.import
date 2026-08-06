@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://42d5f0epbp7m"
-path="res://.godot/imported/glowing_energy_meteorite.glb-e7b505c7a1a7baf3a958f4edbfa4e9c6.scn"
+path="res://.godot/imported/glowing_energy_meteorite.glb-2f7f400ab806447ea33df307f085aca8.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb"
-dest_files=["res://.godot/imported/glowing_energy_meteorite.glb-e7b505c7a1a7baf3a958f4edbfa4e9c6.scn"]
+source_file="res://assets/maps/route_levels/models/environment/midground/glowing_energy_meteorite.glb"
+dest_files=["res://.godot/imported/glowing_energy_meteorite.glb-2f7f400ab806447ea33df307f085aca8.scn"]
 
 [params]
 

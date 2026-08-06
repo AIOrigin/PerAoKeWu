@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://icxngu288rrq"
-path.s3tc="res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-8e35f7453d6b19ebdf3a72fb6f513ba2.s3tc.ctex"
-path.etc2="res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-8e35f7453d6b19ebdf3a72fb6f513ba2.etc2.ctex"
+path.s3tc="res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-beb51215d88048a614f0952493296a86.s3tc.ctex"
+path.etc2="res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-beb51215d88048a614f0952493296a86.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/rook/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg"
-dest_files=["res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-8e35f7453d6b19ebdf3a72fb6f513ba2.s3tc.ctex", "res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-8e35f7453d6b19ebdf3a72fb6f513ba2.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/rook/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg"
+dest_files=["res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-beb51215d88048a614f0952493296a86.s3tc.ctex", "res://.godot/imported/rook跑步2 右腿前踩地左腿空中_futuristic_soldier_3d_model_rm.jpg-beb51215d88048a614f0952493296a86.etc2.ctex"]
 
 [params]
 

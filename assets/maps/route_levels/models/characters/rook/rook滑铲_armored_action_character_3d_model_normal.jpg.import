@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://u8divko6rwnp"
-path.s3tc="res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-5876085e2dfa16d5649180f15550ddb9.s3tc.ctex"
-path.etc2="res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-5876085e2dfa16d5649180f15550ddb9.etc2.ctex"
+path.s3tc="res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-da41d637e2693f54da33044a550dd743.s3tc.ctex"
+path.etc2="res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-da41d637e2693f54da33044a550dd743.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/rook/rook滑铲_armored_action_character_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-5876085e2dfa16d5649180f15550ddb9.s3tc.ctex", "res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-5876085e2dfa16d5649180f15550ddb9.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/rook/rook滑铲_armored_action_character_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-da41d637e2693f54da33044a550dd743.s3tc.ctex", "res://.godot/imported/rook滑铲_armored_action_character_3d_model_normal.jpg-da41d637e2693f54da33044a550dd743.etc2.ctex"]
 
 [params]
 

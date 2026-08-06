@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bw2vdvgc0la0o"
-path="res://.godot/imported/水源据点2d.webp-e811f171e6b2422b0159910f24c49808.ctex"
+path="res://.godot/imported/水源据点2d.webp-46ea20da4b5c785e8b20bc40b55baada.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://mvp素材第一批/水源据点2d.webp"
-dest_files=["res://.godot/imported/水源据点2d.webp-e811f171e6b2422b0159910f24c49808.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/_extras_2d/水源据点2d.webp"
+dest_files=["res://.godot/imported/水源据点2d.webp-46ea20da4b5c785e8b20bc40b55baada.ctex"]
 
 [params]
 

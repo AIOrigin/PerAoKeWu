@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://pc6fd2e7j1lu"
-path.s3tc="res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-f0dd30ca16c105f654692467ca3ae9c9.s3tc.ctex"
-path.etc2="res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-f0dd30ca16c105f654692467ca3ae9c9.etc2.ctex"
+path.s3tc="res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-e3f5f1c0b935cb409ce8ddd7f222c4bd.s3tc.ctex"
+path.etc2="res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-e3f5f1c0b935cb409ce8ddd7f222c4bd.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/rook/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-f0dd30ca16c105f654692467ca3ae9c9.s3tc.ctex", "res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-f0dd30ca16c105f654692467ca3ae9c9.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/rook/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-e3f5f1c0b935cb409ce8ddd7f222c4bd.s3tc.ctex", "res://.godot/imported/rook跑步1 左腿蹬地右腿在前_exosuit_soldier_3d_model_basecolor.jpg-e3f5f1c0b935cb409ce8ddd7f222c4bd.etc2.ctex"]
 
 [params]
 

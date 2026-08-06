@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://esx0l006uqxt"
-path.s3tc="res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-9fb04424d83091a05a27dee1aa97782c.s3tc.ctex"
-path.etc2="res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-9fb04424d83091a05a27dee1aa97782c.etc2.ctex"
+path.s3tc="res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-977d1144b3b43827d48ed12a842a5ffb.s3tc.ctex"
+path.etc2="res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-977d1144b3b43827d48ed12a842a5ffb.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/能量裂缝_glowing_crack_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-9fb04424d83091a05a27dee1aa97782c.s3tc.ctex", "res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-9fb04424d83091a05a27dee1aa97782c.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/dodge/能量裂缝_glowing_crack_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-977d1144b3b43827d48ed12a842a5ffb.s3tc.ctex", "res://.godot/imported/能量裂缝_glowing_crack_3d_model_basecolor.jpg-977d1144b3b43827d48ed12a842a5ffb.etc2.ctex"]
 
 [params]
 

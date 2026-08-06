@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cgucy8crh4tpl"
-path="res://.godot/imported/荆棘丛（跳跃）.glb-e880794c3ce990e56561d24a977c9a58.scn"
+path="res://.godot/imported/thorn_bush.glb-ecd96871ccec0fa2c6445e4348dbf5a8.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/jump/thorn_bush.glb"
-dest_files=["res://.godot/imported/荆棘丛（跳跃）.glb-e880794c3ce990e56561d24a977c9a58.scn"]
+dest_files=["res://.godot/imported/thorn_bush.glb-ecd96871ccec0fa2c6445e4348dbf5a8.scn"]
 
 [params]
 

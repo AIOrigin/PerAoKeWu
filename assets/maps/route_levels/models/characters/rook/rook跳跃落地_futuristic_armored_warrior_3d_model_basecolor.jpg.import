@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://broq50enb4404"
-path.s3tc="res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-3a398b6e167932b4943d7e4a7ed6c895.s3tc.ctex"
-path.etc2="res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-3a398b6e167932b4943d7e4a7ed6c895.etc2.ctex"
+path.s3tc="res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-06db47b54e1393a8187bb0bde273f101.s3tc.ctex"
+path.etc2="res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-06db47b54e1393a8187bb0bde273f101.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/rook/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-3a398b6e167932b4943d7e4a7ed6c895.s3tc.ctex", "res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-3a398b6e167932b4943d7e4a7ed6c895.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/rook/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-06db47b54e1393a8187bb0bde273f101.s3tc.ctex", "res://.godot/imported/rook跳跃落地_futuristic_armored_warrior_3d_model_basecolor.jpg-06db47b54e1393a8187bb0bde273f101.etc2.ctex"]
 
 [params]
 

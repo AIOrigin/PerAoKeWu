@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b1yg8lhor22ht"
-path="res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn"
+path="res://.godot/imported/barrier_02.glb-afc03a6965bb02949655f0c86f407571.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/jump/barrier_02.glb"
-dest_files=["res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn"]
+dest_files=["res://.godot/imported/barrier_02.glb-afc03a6965bb02949655f0c86f407571.scn"]
 
 [params]
 

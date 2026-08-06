@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dny8jpukeoup0"
-path.s3tc="res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-03d26aaf76754bd9c810aa4d3e9af696.s3tc.ctex"
-path.etc2="res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-03d26aaf76754bd9c810aa4d3e9af696.etc2.ctex"
+path.s3tc="res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-bc9a9688aea8d36ca40ea03bd63591d1.s3tc.ctex"
+path.etc2="res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-bc9a9688aea8d36ca40ea03bd63591d1.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://elsa动作/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg"
-dest_files=["res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-03d26aaf76754bd9c810aa4d3e9af696.s3tc.ctex", "res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-03d26aaf76754bd9c810aa4d3e9af696.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/elsa/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg"
+dest_files=["res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-bc9a9688aea8d36ca40ea03bd63591d1.s3tc.ctex", "res://.godot/imported/elsa正面_tripo_image_e7db2388-3d5b-4a2d-ab57-950535a6e250_0_0.jpg-bc9a9688aea8d36ca40ea03bd63591d1.etc2.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://djjuot30tusyd"
-path="res://.godot/imported/防御哨站2d.webp-a818feb92b15d66d385563cc40616163.ctex"
+path="res://.godot/imported/防御哨站2d.webp-b2b3125bf9ecb7a7a3de78497fa41ee7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://mvp素材第一批/防御哨站2d.webp"
-dest_files=["res://.godot/imported/防御哨站2d.webp-a818feb92b15d66d385563cc40616163.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/_extras_2d/防御哨站2d.webp"
+dest_files=["res://.godot/imported/防御哨站2d.webp-b2b3125bf9ecb7a7a3de78497fa41ee7.ctex"]
 
 [params]
 

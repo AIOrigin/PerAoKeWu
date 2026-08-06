@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://chim4tblq5lir"
-path="res://.godot/imported/futuristic_spaceship.glb-bf4096ade25c7a73b16a3f2001febb7f.scn"
+path="res://.godot/imported/futuristic_spaceship.glb-2b43efb1a97bea21400f311148b46fc9.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/futuristic_spaceship.glb"
-dest_files=["res://.godot/imported/futuristic_spaceship.glb-bf4096ade25c7a73b16a3f2001febb7f.scn"]
+source_file="res://assets/maps/route_levels/models/environment/distant/futuristic_spaceship.glb"
+dest_files=["res://.godot/imported/futuristic_spaceship.glb-2b43efb1a97bea21400f311148b46fc9.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dnhf4mt6ob7fg"
-path="res://.godot/imported/水源据点3d.glb-6227a4a16dfc32ba556df4f0d3e87c93.scn"
+path="res://.godot/imported/water_outpost.glb-f59439960fe6e422d1ca2d7c6d9974f3.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/buildings/water_outpost.glb"
-dest_files=["res://.godot/imported/水源据点3d.glb-6227a4a16dfc32ba556df4f0d3e87c93.scn"]
+dest_files=["res://.godot/imported/water_outpost.glb-f59439960fe6e422d1ca2d7c6d9974f3.scn"]
 
 [params]
 

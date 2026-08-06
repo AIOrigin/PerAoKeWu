@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://qtpmnpirskfk"
-path="res://.godot/imported/医疗据点3d.glb-00e740fe7f4800b8dfffe6a458b99bee.scn"
+path="res://.godot/imported/medical_outpost.glb-d95d97bc374120b53b30ee3a44826d2e.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/buildings/medical_outpost.glb"
-dest_files=["res://.godot/imported/医疗据点3d.glb-00e740fe7f4800b8dfffe6a458b99bee.scn"]
+dest_files=["res://.godot/imported/medical_outpost.glb-d95d97bc374120b53b30ee3a44826d2e.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://50qdyv2nbiph"
-path="res://.godot/imported/rook跑步3.glb-4a554f2b19d185b07416e988b9819c03.scn"
+path="res://.godot/imported/run_03.glb-53d44a92530c7cb81cf688bfd7cae1d3.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/rook/run_03.glb"
-dest_files=["res://.godot/imported/rook跑步3.glb-4a554f2b19d185b07416e988b9819c03.scn"]
+dest_files=["res://.godot/imported/run_03.glb-53d44a92530c7cb81cf688bfd7cae1d3.scn"]
 
 [params]
 

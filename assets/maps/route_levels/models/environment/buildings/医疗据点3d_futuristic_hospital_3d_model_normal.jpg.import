@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cqvye81lpep0f"
-path.s3tc="res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-9a7957913548b6dc28eb93a17e83fcff.s3tc.ctex"
-path.etc2="res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-9a7957913548b6dc28eb93a17e83fcff.etc2.ctex"
+path.s3tc="res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-efbc5ca8c1137d03b21f363b37f7c27e.s3tc.ctex"
+path.etc2="res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-efbc5ca8c1137d03b21f363b37f7c27e.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第一批/医疗据点3d_futuristic_hospital_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-9a7957913548b6dc28eb93a17e83fcff.s3tc.ctex", "res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-9a7957913548b6dc28eb93a17e83fcff.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/医疗据点3d_futuristic_hospital_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-efbc5ca8c1137d03b21f363b37f7c27e.s3tc.ctex", "res://.godot/imported/医疗据点3d_futuristic_hospital_3d_model_normal.jpg-efbc5ca8c1137d03b21f363b37f7c27e.etc2.ctex"]
 
 [params]
 

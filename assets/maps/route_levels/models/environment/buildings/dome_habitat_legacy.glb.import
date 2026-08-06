@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://wbxkb7c8mdyb"
-path="res://.godot/imported/居民穹顶据点 3d model.glb-f6066a8ae2d51e15aff61146c4296099.scn"
+path="res://.godot/imported/dome_habitat_legacy.glb-407fdefe1e03e6025f58894849542f85.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/buildings/dome_habitat_legacy.glb"
-dest_files=["res://.godot/imported/居民穹顶据点 3d model.glb-f6066a8ae2d51e15aff61146c4296099.scn"]
+dest_files=["res://.godot/imported/dome_habitat_legacy.glb-407fdefe1e03e6025f58894849542f85.scn"]
 
 [params]
 

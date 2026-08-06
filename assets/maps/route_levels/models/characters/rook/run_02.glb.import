@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cxb1k3rnbttwp"
-path="res://.godot/imported/rook跑步2 右腿前踩地左腿空中.glb-ad756774a9e261dc2aca9f4477880b25.scn"
+path="res://.godot/imported/run_02.glb-656d0ed4a72de7548688ec1763db79f2.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/rook/run_02.glb"
-dest_files=["res://.godot/imported/rook跑步2 右腿前踩地左腿空中.glb-ad756774a9e261dc2aca9f4477880b25.scn"]
+dest_files=["res://.godot/imported/run_02.glb-656d0ed4a72de7548688ec1763db79f2.scn"]
 
 [params]
 

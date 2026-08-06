@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b4123k68qayfi"
-path.s3tc="res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-7b37cc7e4b07c8189835e243645d9071.s3tc.ctex"
-path.etc2="res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-7b37cc7e4b07c8189835e243645d9071.etc2.ctex"
+path.s3tc="res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-ef9a50cfba9a0ecb4d4f483c06e4b5f5.s3tc.ctex"
+path.etc2="res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-ef9a50cfba9a0ecb4d4f483c06e4b5f5.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://elsa动作/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png"
-dest_files=["res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-7b37cc7e4b07c8189835e243645d9071.s3tc.ctex", "res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-7b37cc7e4b07c8189835e243645d9071.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/elsa/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png"
+dest_files=["res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-ef9a50cfba9a0ecb4d4f483c06e4b5f5.s3tc.ctex", "res://.godot/imported/elsa跳跃高点_futuristic_armor_3d_model_metallic-futuristic_armor_3d_model_roughness.png-ef9a50cfba9a0ecb4d4f483c06e4b5f5.etc2.ctex"]
 
 [params]
 

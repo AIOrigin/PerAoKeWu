@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dxfsah2le3dxi"
-path="res://.godot/imported/cracked_sphere_robot.glb-b89f4250c5a95ec5fccaddc0ca72c927.scn"
+path="res://.godot/imported/cracked_sphere_robot.glb-91ce7db920a6d835bff80909afbe6606.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb"
-dest_files=["res://.godot/imported/cracked_sphere_robot.glb-b89f4250c5a95ec5fccaddc0ca72c927.scn"]
+source_file="res://assets/maps/route_levels/models/environment/midground/cracked_sphere_robot.glb"
+dest_files=["res://.godot/imported/cracked_sphere_robot.glb-91ce7db920a6d835bff80909afbe6606.scn"]
 
 [params]
 

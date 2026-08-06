@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cenaqmbfkvjcy"
-path.s3tc="res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-b97772fb619fb2c0763ef13aadad99de.s3tc.ctex"
-path.etc2="res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-b97772fb619fb2c0763ef13aadad99de.etc2.ctex"
+path.s3tc="res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-f6924481e3aa5b3d0da6f921ca3aec39.s3tc.ctex"
+path.etc2="res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-f6924481e3aa5b3d0da6f921ca3aec39.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/行星/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg"
-dest_files=["res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-b97772fb619fb2c0763ef13aadad99de.s3tc.ctex", "res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-b97772fb619fb2c0763ef13aadad99de.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/planets/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg"
+dest_files=["res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-f6924481e3aa5b3d0da6f921ca3aec39.s3tc.ctex", "res://.godot/imported/带纹理的行星3d模型_带纹理的行星3d模型_normal.jpg-f6924481e3aa5b3d0da6f921ca3aec39.etc2.ctex"]
 
 [params]
 

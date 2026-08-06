@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://d24op8032lw8v"
-path="res://.godot/imported/行星+3d+模型.glb-1da315d318efd62fc2fce841a4a8da79.scn"
+path="res://.godot/imported/generic_planet.glb-4d641212e54d3e2be182b454eebb3d55.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/planets/generic_planet.glb"
-dest_files=["res://.godot/imported/行星+3d+模型.glb-1da315d318efd62fc2fce841a4a8da79.scn"]
+dest_files=["res://.godot/imported/generic_planet.glb-4d641212e54d3e2be182b454eebb3d55.scn"]
 
 [params]
 

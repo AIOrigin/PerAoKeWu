@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://mo6ookx8cvw3"
-path.s3tc="res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-05c31872ea5d9adf94bc8fdc038997a2.s3tc.ctex"
-path.etc2="res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-05c31872ea5d9adf94bc8fdc038997a2.etc2.ctex"
+path.s3tc="res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-35d3ef73194dbc77170882e806be6f0a.s3tc.ctex"
+path.etc2="res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-35d3ef73194dbc77170882e806be6f0a.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/rook/rook立体_futuristic_soldier_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-05c31872ea5d9adf94bc8fdc038997a2.s3tc.ctex", "res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-05c31872ea5d9adf94bc8fdc038997a2.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/rook/rook立体_futuristic_soldier_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-35d3ef73194dbc77170882e806be6f0a.s3tc.ctex", "res://.godot/imported/rook立体_futuristic_soldier_3d_model_basecolor.jpg-35d3ef73194dbc77170882e806be6f0a.etc2.ctex"]
 
 [params]
 

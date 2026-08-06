@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cebqd4jbl1ixb"
-path.s3tc="res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-6a070df5ccf4ab4bce36741540eaf4a9.s3tc.ctex"
-path.etc2="res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-6a070df5ccf4ab4bce36741540eaf4a9.etc2.ctex"
+path.s3tc="res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-c1be8dcd14e4641268ba1540ab1b0c62.s3tc.ctex"
+path.etc2="res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-c1be8dcd14e4641268ba1540ab1b0c62.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://elsa动作/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg"
-dest_files=["res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-6a070df5ccf4ab4bce36741540eaf4a9.s3tc.ctex", "res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-6a070df5ccf4ab4bce36741540eaf4a9.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/elsa/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg"
+dest_files=["res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-c1be8dcd14e4641268ba1540ab1b0c62.s3tc.ctex", "res://.godot/imported/elsa奔跑右腿前_tripo_image_f30d4578-d19c-4e66-92de-18b2729dbfd8_0_3.jpg-c1be8dcd14e4641268ba1540ab1b0c62.etc2.ctex"]
 
 [params]
 

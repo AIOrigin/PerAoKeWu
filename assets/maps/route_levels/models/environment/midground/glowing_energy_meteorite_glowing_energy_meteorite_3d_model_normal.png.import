@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bsp7vpm5d2by4"
-path.s3tc="res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-bdbdf50bb494b43aa5b72c996ab79e23.s3tc.ctex"
-path.etc2="res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-bdbdf50bb494b43aa5b72c996ab79e23.etc2.ctex"
+path.s3tc="res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-9ba833dd9012f825c2226cd8e18008b8.s3tc.ctex"
+path.etc2="res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-9ba833dd9012f825c2226cd8e18008b8.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png"
-dest_files=["res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-bdbdf50bb494b43aa5b72c996ab79e23.s3tc.ctex", "res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-bdbdf50bb494b43aa5b72c996ab79e23.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png"
+dest_files=["res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-9ba833dd9012f825c2226cd8e18008b8.s3tc.ctex", "res://.godot/imported/glowing_energy_meteorite_glowing_energy_meteorite_3d_model_normal.png-9ba833dd9012f825c2226cd8e18008b8.etc2.ctex"]
 
 [params]
 

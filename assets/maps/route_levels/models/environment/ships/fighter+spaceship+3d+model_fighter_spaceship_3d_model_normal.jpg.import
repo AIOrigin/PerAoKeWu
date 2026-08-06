@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bu2rdleir7qxy"
-path.s3tc="res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-13ecd143432d6073b737f5b50b42d413.s3tc.ctex"
-path.etc2="res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-13ecd143432d6073b737f5b50b42d413.etc2.ctex"
+path.s3tc="res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-fb68a65158ca29b207b3c3f6fc46665b.s3tc.ctex"
+path.etc2="res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-fb68a65158ca29b207b3c3f6fc46665b.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-13ecd143432d6073b737f5b50b42d413.s3tc.ctex", "res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-13ecd143432d6073b737f5b50b42d413.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/ships/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-fb68a65158ca29b207b3c3f6fc46665b.s3tc.ctex", "res://.godot/imported/fighter+spaceship+3d+model_fighter_spaceship_3d_model_normal.jpg-fb68a65158ca29b207b3c3f6fc46665b.etc2.ctex"]
 
 [params]
 

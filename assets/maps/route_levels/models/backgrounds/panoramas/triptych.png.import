@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://baqjiwvmody4m"
-path="res://.godot/imported/三拼地图.png-5b716a263a9d4277c14d4d10795620f0.ctex"
+path="res://.godot/imported/triptych.png-72a047d9cf278056260acec51e2e624d.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/maps/route_levels/models/backgrounds/panoramas/triptych.png"
-dest_files=["res://.godot/imported/三拼地图.png-5b716a263a9d4277c14d4d10795620f0.ctex"]
+dest_files=["res://.godot/imported/triptych.png-72a047d9cf278056260acec51e2e624d.ctex"]
 
 [params]
 

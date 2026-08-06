@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cb2skdqrhg73l"
-path="res://.godot/imported/居民穹顶2d展示图.webp-54546ed678d1ad76609662f20b27f62a.ctex"
+path="res://.godot/imported/居民穹顶2d展示图.webp-dccfdd10e74c8b0e21d439c08f884ecc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://mvp素材第一批/居民穹顶2d展示图.webp"
-dest_files=["res://.godot/imported/居民穹顶2d展示图.webp-54546ed678d1ad76609662f20b27f62a.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/_extras_2d/居民穹顶2d展示图.webp"
+dest_files=["res://.godot/imported/居民穹顶2d展示图.webp-dccfdd10e74c8b0e21d439c08f884ecc.ctex"]
 
 [params]
 

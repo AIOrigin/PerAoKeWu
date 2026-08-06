@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://374yptvmrvfc"
-path="res://.godot/imported/晶砂荒原地图中文.webp-6054f270775a7b04dd32b85b6a248861.ctex"
+path="res://.godot/imported/晶砂荒原地图中文.webp-3beab490cde10fcf3f3f6abcabe0bdaa.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://mvp素材第一批/晶砂荒原地图中文.webp"
-dest_files=["res://.godot/imported/晶砂荒原地图中文.webp-6054f270775a7b04dd32b85b6a248861.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/_extras_2d/晶砂荒原地图中文.webp"
+dest_files=["res://.godot/imported/晶砂荒原地图中文.webp-3beab490cde10fcf3f3f6abcabe0bdaa.ctex"]
 
 [params]
 

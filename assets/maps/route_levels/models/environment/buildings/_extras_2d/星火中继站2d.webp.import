@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b1qf8kfcvsk4q"
-path="res://.godot/imported/星火中继站2d.webp-baba0b854a32fdd28190c9d257a8fb04.ctex"
+path="res://.godot/imported/星火中继站2d.webp-aaefcbee23a2c606f9441556dc9fd91a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://mvp素材第一批/星火中继站2d.webp"
-dest_files=["res://.godot/imported/星火中继站2d.webp-baba0b854a32fdd28190c9d257a8fb04.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/_extras_2d/星火中继站2d.webp"
+dest_files=["res://.godot/imported/星火中继站2d.webp-aaefcbee23a2c606f9441556dc9fd91a.ctex"]
 
 [params]
 

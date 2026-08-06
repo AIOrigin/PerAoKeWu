@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bi5c0sq5x1oer"
-path.s3tc="res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-bb22ffbdd2b9766ec3ae2119df944c1f.s3tc.ctex"
-path.etc2="res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-bb22ffbdd2b9766ec3ae2119df944c1f.etc2.ctex"
+path.s3tc="res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-be039f28a728cf34537d7511d42402a4.s3tc.ctex"
+path.etc2="res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-be039f28a728cf34537d7511d42402a4.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/锈蚀水管1_rusted_pipe_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-bb22ffbdd2b9766ec3ae2119df944c1f.s3tc.ctex", "res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-bb22ffbdd2b9766ec3ae2119df944c1f.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/misc/锈蚀水管1_rusted_pipe_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-be039f28a728cf34537d7511d42402a4.s3tc.ctex", "res://.godot/imported/锈蚀水管1_rusted_pipe_3d_model_normal.jpg-be039f28a728cf34537d7511d42402a4.etc2.ctex"]
 
 [params]
 

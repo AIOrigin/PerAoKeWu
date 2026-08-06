@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://e7dym4mcb5kr"
-path.s3tc="res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-0cb12c6a8a6b1f3cfcde1caacfd5eb40.s3tc.ctex"
-path.etc2="res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-0cb12c6a8a6b1f3cfcde1caacfd5eb40.etc2.ctex"
+path.s3tc="res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-f95945e834d6445fe342615f40de9b14.s3tc.ctex"
+path.etc2="res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-f95945e834d6445fe342615f40de9b14.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-0cb12c6a8a6b1f3cfcde1caacfd5eb40.s3tc.ctex", "res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-0cb12c6a8a6b1f3cfcde1caacfd5eb40.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-f95945e834d6445fe342615f40de9b14.s3tc.ctex", "res://.godot/imported/cracked_sphere_robot_cracked_sphere_robot_3d_model_basecolor.jpg-f95945e834d6445fe342615f40de9b14.etc2.ctex"]
 
 [params]
 

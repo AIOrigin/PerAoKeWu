@@ -3,20 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bijxngr0wbla"
-path.s3tc="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-e32c69fe9968144d27ef138c1b543438.s3tc.ctex"
-path.etc2="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-e32c69fe9968144d27ef138c1b543438.etc2.ctex"
+path.s3tc="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-a6495ad8134d9cb408a7b33aba62dd4d.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-a6495ad8134d9cb408a7b33aba62dd4d.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "4eb49f493bd1588bf7139f7a9b8fb1fa"
+"md5": "072880f60a8ce531fe003c49309c8835"
 }
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/holographic_tripo/dodge/tripo-out/holo-dodge-decimate-b1186e2f/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg"
-dest_files=["res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-e32c69fe9968144d27ef138c1b543438.s3tc.ctex", "res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-e32c69fe9968144d27ef138c1b543438.etc2.ctex"]
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/holographic_tripo/dodge/tripo-out/holo-dodge-decimate-b1186e2f/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg"
+dest_files=["res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-a6495ad8134d9cb408a7b33aba62dd4d.s3tc.ctex", "res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-a6495ad8134d9cb408a7b33aba62dd4d.etc2.ctex"]
 
 [params]
 

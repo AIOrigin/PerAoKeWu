@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://crx37er6fljqm"
-path="res://.godot/imported/带纹理的行星3d模型.glb-3cf5c171bb6865e6b0591b9909e57605.scn"
+path="res://.godot/imported/crystal_planet.glb-baf6439107fa6965a0978070dfeed499.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/planets/crystal_planet.glb"
-dest_files=["res://.godot/imported/带纹理的行星3d模型.glb-3cf5c171bb6865e6b0591b9909e57605.scn"]
+dest_files=["res://.godot/imported/crystal_planet.glb-baf6439107fa6965a0978070dfeed499.scn"]
 
 [params]
 

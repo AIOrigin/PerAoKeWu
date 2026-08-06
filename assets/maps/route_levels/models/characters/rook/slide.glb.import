@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dyaau5m5bgv7j"
-path="res://.godot/imported/rook滑铲.glb-afb87d55e8f221d3cac11d452dae948a.scn"
+path="res://.godot/imported/slide.glb-e61cc8b34a2cddda5f53c3219e234a15.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/rook/slide.glb"
-dest_files=["res://.godot/imported/rook滑铲.glb-afb87d55e8f221d3cac11d452dae948a.scn"]
+dest_files=["res://.godot/imported/slide.glb-e61cc8b34a2cddda5f53c3219e234a15.scn"]
 
 [params]
 

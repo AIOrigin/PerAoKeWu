@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://k8yidlrfa7m5"
-path.s3tc="res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-4ed58eaf5542f0c970ab1dfbf70cabea.s3tc.ctex"
-path.etc2="res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-4ed58eaf5542f0c970ab1dfbf70cabea.etc2.ctex"
+path.s3tc="res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-f66d140995c31e254e290d30fc02901c.s3tc.ctex"
+path.etc2="res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-f66d140995c31e254e290d30fc02901c.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg"
-dest_files=["res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-4ed58eaf5542f0c970ab1dfbf70cabea.s3tc.ctex", "res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-4ed58eaf5542f0c970ab1dfbf70cabea.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/jump/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg"
+dest_files=["res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-f66d140995c31e254e290d30fc02901c.s3tc.ctex", "res://.godot/imported/荆棘丛（跳跃）_spiky_crystal_log_3d_model_rm.jpg-f66d140995c31e254e290d30fc02901c.etc2.ctex"]
 
 [params]
 

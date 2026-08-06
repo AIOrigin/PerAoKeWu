@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c110chaocvhb4"
-path="res://.godot/imported/amber_crystal_coral.glb-ae76eb87f7821cf2566e79ef5c2da628.scn"
+path="res://.godot/imported/amber_crystal_coral.glb-b0eea116397ba7f8c5c00c5953ba4c99.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb"
-dest_files=["res://.godot/imported/amber_crystal_coral.glb-ae76eb87f7821cf2566e79ef5c2da628.scn"]
+source_file="res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral.glb"
+dest_files=["res://.godot/imported/amber_crystal_coral.glb-b0eea116397ba7f8c5c00c5953ba4c99.scn"]
 
 [params]
 

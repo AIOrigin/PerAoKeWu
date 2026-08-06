@@ -1,7 +1,8 @@
 class_name ModelPaths
 extends RefCounted
 
-## 跑酷正式 3D 资源根路径（见 docs/3D资源目录规划.md）
+## 星火信使跑酷正式 3D 资源根路径（见 docs/3D资源目录规划.md）
+## Capybara Rush 请用 capybara_rush/model_paths.gd（CapybaraRushPaths），勿混入本树。
 
 const ROOT := "res://assets/maps/route_levels/models/"
 

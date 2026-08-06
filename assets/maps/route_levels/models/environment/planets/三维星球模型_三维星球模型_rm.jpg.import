@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://boqnuirpb7dh1"
-path.s3tc="res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-111615f35b8edecddee2489712fb3d8e.s3tc.ctex"
-path.etc2="res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-111615f35b8edecddee2489712fb3d8e.etc2.ctex"
+path.s3tc="res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-c22d6252293a96aabe285b3567cfb74b.s3tc.ctex"
+path.etc2="res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-c22d6252293a96aabe285b3567cfb74b.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/行星/三维星球模型_三维星球模型_rm.jpg"
-dest_files=["res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-111615f35b8edecddee2489712fb3d8e.s3tc.ctex", "res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-111615f35b8edecddee2489712fb3d8e.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/planets/三维星球模型_三维星球模型_rm.jpg"
+dest_files=["res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-c22d6252293a96aabe285b3567cfb74b.s3tc.ctex", "res://.godot/imported/三维星球模型_三维星球模型_rm.jpg-c22d6252293a96aabe285b3567cfb74b.etc2.ctex"]
 
 [params]
 

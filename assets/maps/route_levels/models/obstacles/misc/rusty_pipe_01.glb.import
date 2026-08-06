@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dgxjpourivcs4"
-path="res://.godot/imported/锈蚀水管1.glb-3f509440748a62d042bb74948d765c63.scn"
+path="res://.godot/imported/rusty_pipe_01.glb-418c99774304a9f27a937419328ea728.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/misc/rusty_pipe_01.glb"
-dest_files=["res://.godot/imported/锈蚀水管1.glb-3f509440748a62d042bb74948d765c63.scn"]
+dest_files=["res://.godot/imported/rusty_pipe_01.glb-418c99774304a9f27a937419328ea728.scn"]
 
 [params]
 

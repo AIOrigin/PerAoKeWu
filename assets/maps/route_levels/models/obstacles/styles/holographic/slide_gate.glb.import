@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://588san3dehpu"
-path="res://.godot/imported/全息下滑门.glb-31351b6cda12c54f19a945453d92f9db.scn"
+path="res://.godot/imported/slide_gate.glb-5eaa3ed124e0dae14bd681e3c429bd71.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/styles/holographic/slide_gate.glb"
-dest_files=["res://.godot/imported/全息下滑门.glb-31351b6cda12c54f19a945453d92f9db.scn"]
+dest_files=["res://.godot/imported/slide_gate.glb-5eaa3ed124e0dae14bd681e3c429bd71.scn"]
 
 [params]
 

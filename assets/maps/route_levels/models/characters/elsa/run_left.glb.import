@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bbaktkkg76vor"
-path="res://.godot/imported/elsa奔跑左腿前.glb-9a4453c1c22e7949042bc26e000faf83.scn"
+path="res://.godot/imported/run_left.glb-c0dfac164b597c7c4cc70127da53e50e.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/elsa/run_left.glb"
-dest_files=["res://.godot/imported/elsa奔跑左腿前.glb-9a4453c1c22e7949042bc26e000faf83.scn"]
+dest_files=["res://.godot/imported/run_left.glb-c0dfac164b597c7c4cc70127da53e50e.scn"]
 
 [params]
 

@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://m47wn0n8vkkf"
-path.s3tc="res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-dc66ab06c757c274cca24229a6c365f6.s3tc.ctex"
-path.etc2="res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-dc66ab06c757c274cca24229a6c365f6.etc2.ctex"
+path.s3tc="res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-56fb4860df6428b61554676f451f8d63.s3tc.ctex"
+path.etc2="res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-56fb4860df6428b61554676f451f8d63.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-dc66ab06c757c274cca24229a6c365f6.s3tc.ctex", "res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-dc66ab06c757c274cca24229a6c365f6.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/obstacles/slide/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-56fb4860df6428b61554676f451f8d63.s3tc.ctex", "res://.godot/imported/障碍物-需滑铲_desert+obstacle+3d+model_basecolor.jpg-56fb4860df6428b61554676f451f8d63.etc2.ctex"]
 
 [params]
 

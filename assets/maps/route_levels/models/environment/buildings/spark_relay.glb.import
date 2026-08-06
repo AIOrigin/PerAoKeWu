@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dy1cnnwq6j35n"
-path="res://.godot/imported/星火中继站3d.glb-e76b6463fa73f95874794a3062f92944.scn"
+path="res://.godot/imported/spark_relay.glb-47fb06564049d5668b6da8bbdcb1e246.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/buildings/spark_relay.glb"
-dest_files=["res://.godot/imported/星火中继站3d.glb-e76b6463fa73f95874794a3062f92944.scn"]
+dest_files=["res://.godot/imported/spark_relay.glb-47fb06564049d5668b6da8bbdcb1e246.scn"]
 
 [params]
 

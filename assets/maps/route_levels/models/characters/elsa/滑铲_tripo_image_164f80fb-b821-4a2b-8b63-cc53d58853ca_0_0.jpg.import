@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://h15do3kcqnx8"
-path.s3tc="res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-4c45493fb4535f6456758da4e13a463d.s3tc.ctex"
-path.etc2="res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-4c45493fb4535f6456758da4e13a463d.etc2.ctex"
+path.s3tc="res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-a33e54bcd132c4e20e1add2763657770.s3tc.ctex"
+path.etc2="res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-a33e54bcd132c4e20e1add2763657770.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://elsa动作/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg"
-dest_files=["res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-4c45493fb4535f6456758da4e13a463d.s3tc.ctex", "res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-4c45493fb4535f6456758da4e13a463d.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/elsa/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg"
+dest_files=["res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-a33e54bcd132c4e20e1add2763657770.s3tc.ctex", "res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_0.jpg-a33e54bcd132c4e20e1add2763657770.etc2.ctex"]
 
 [params]
 

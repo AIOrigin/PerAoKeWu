@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b4yvubbwlb8vu"
-path="res://.godot/imported/rook立体.glb-1a34de1871014ce1bd653fb57cd53eba.scn"
+path="res://.godot/imported/idle.glb-664533ef5a810abecf419777dd06ad04.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/rook/idle.glb"
-dest_files=["res://.godot/imported/rook立体.glb-1a34de1871014ce1bd653fb57cd53eba.scn"]
+dest_files=["res://.godot/imported/idle.glb-664533ef5a810abecf419777dd06ad04.scn"]
 
 [params]
 

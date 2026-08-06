@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://62aerr2yektg"
-path="res://.godot/imported/废旧广告牌（滑铲）.glb-ffaae134fb266e9de5ea707810265ea7.scn"
+path="res://.godot/imported/ruined_billboard.glb-8360c50ba5437810c9eb5007803f2f17.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/slide/ruined_billboard.glb"
-dest_files=["res://.godot/imported/废旧广告牌（滑铲）.glb-ffaae134fb266e9de5ea707810265ea7.scn"]
+dest_files=["res://.godot/imported/ruined_billboard.glb-8360c50ba5437810c9eb5007803f2f17.scn"]
 
 [params]
 

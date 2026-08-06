@@ -3,20 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ddqr3jgh5oe5s"
-path.s3tc="res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-a0615db97a43dbe9c8e79738431ba506.s3tc.ctex"
-path.etc2="res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-a0615db97a43dbe9c8e79738431ba506.etc2.ctex"
+path.s3tc="res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-93328612cc174d168542e4cfa49ecd87.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-93328612cc174d168542e4cfa49ecd87.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "78b62f3ca8fddf758d9751c6d7285d86"
+"md5": "5e9869a8c14cd84064a338913cce6409"
 }
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/holographic_tripo/jump/tripo-out/holo-jump-decimate-4c411aab/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg"
-dest_files=["res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-a0615db97a43dbe9c8e79738431ba506.s3tc.ctex", "res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-a0615db97a43dbe9c8e79738431ba506.etc2.ctex"]
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/holographic_tripo/jump/tripo-out/holo-jump-decimate-4c411aab/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg"
+dest_files=["res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-93328612cc174d168542e4cfa49ecd87.s3tc.ctex", "res://.godot/imported/model_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_Normal_Bake.jpg-93328612cc174d168542e4cfa49ecd87.etc2.ctex"]
 
 [params]
 

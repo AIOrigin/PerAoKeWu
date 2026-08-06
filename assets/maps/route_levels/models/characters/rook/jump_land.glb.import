@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://vgg0kp8lbkn5"
-path="res://.godot/imported/rook跳跃落地.glb-6e07c54d73eb87c34c6d9be8cb43862b.scn"
+path="res://.godot/imported/jump_land.glb-ab51828df7e2d0daaa48d5d03bb4c10b.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/rook/jump_land.glb"
-dest_files=["res://.godot/imported/rook跳跃落地.glb-6e07c54d73eb87c34c6d9be8cb43862b.scn"]
+dest_files=["res://.godot/imported/jump_land.glb-ab51828df7e2d0daaa48d5d03bb4c10b.scn"]
 
 [params]
 

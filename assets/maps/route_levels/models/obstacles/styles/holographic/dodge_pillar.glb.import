@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://ccpuyp8fiuctq"
-path="res://.godot/imported/全息闪避柱.glb-8050085accf8511bef1ad26865ffecfe.scn"
+path="res://.godot/imported/dodge_pillar.glb-12d82f2a6fcc1b25f3845da34de2679d.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/styles/holographic/dodge_pillar.glb"
-dest_files=["res://.godot/imported/全息闪避柱.glb-8050085accf8511bef1ad26865ffecfe.scn"]
+dest_files=["res://.godot/imported/dodge_pillar.glb-12d82f2a6fcc1b25f3845da34de2679d.scn"]
 
 [params]
 

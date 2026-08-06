@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b3804knaqwrm2"
-path.s3tc="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-21b2dbf58c73bda8c702640909725f54.s3tc.ctex"
-path.etc2="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-21b2dbf58c73bda8c702640909725f54.etc2.ctex"
+path.s3tc="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-fb0f1f14a5e39135cb9171dd1d5c635b.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-fb0f1f14a5e39135cb9171dd1d5c635b.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第二批/障碍物/holographic_tripo/dodge/tripo-out/holo-dodge-decimate-b1186e2f/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png"
-dest_files=["res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-21b2dbf58c73bda8c702640909725f54.s3tc.ctex", "res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-21b2dbf58c73bda8c702640909725f54.etc2.ctex"]
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/holographic_tripo/dodge/tripo-out/holo-dodge-decimate-b1186e2f/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png"
+dest_files=["res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-fb0f1f14a5e39135cb9171dd1d5c635b.s3tc.ctex", "res://.godot/imported/model_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Metallic-tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Roughness.png-fb0f1f14a5e39135cb9171dd1d5c635b.etc2.ctex"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c036yknw52oyy"
-path="res://.godot/imported/fighter+spaceship+3d+model.glb-e610fd7fa31b27552428e842b2a6774c.scn"
+path="res://.godot/imported/fighter_spaceship.glb-dd81e65b806ee942cfd3eead40c2014b.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/environment/ships/fighter_spaceship.glb"
-dest_files=["res://.godot/imported/fighter+spaceship+3d+model.glb-e610fd7fa31b27552428e842b2a6774c.scn"]
+dest_files=["res://.godot/imported/fighter_spaceship.glb-dd81e65b806ee942cfd3eead40c2014b.scn"]
 
 [params]
 

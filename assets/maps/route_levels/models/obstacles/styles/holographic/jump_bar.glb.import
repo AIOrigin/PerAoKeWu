@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://casqboxcm1t2i"
-path="res://.godot/imported/全息跳跃栏.glb-98dcbad214cf4aa835cc7bf08a7a9a30.scn"
+path="res://.godot/imported/jump_bar.glb-5ed5890d432888cd6108494da1d428b5.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/styles/holographic/jump_bar.glb"
-dest_files=["res://.godot/imported/全息跳跃栏.glb-98dcbad214cf4aa835cc7bf08a7a9a30.scn"]
+dest_files=["res://.godot/imported/jump_bar.glb-5ed5890d432888cd6108494da1d428b5.scn"]
 
 [params]
 

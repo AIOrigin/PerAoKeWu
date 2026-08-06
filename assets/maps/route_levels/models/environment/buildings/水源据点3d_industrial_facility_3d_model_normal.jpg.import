@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://xusvfeq6mmgh"
-path.s3tc="res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-79e40b797cdb1eea6cf81507cc860190.s3tc.ctex"
-path.etc2="res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-79e40b797cdb1eea6cf81507cc860190.etc2.ctex"
+path.s3tc="res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-68f61e816a251b976989dd2b7868acf4.s3tc.ctex"
+path.etc2="res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-68f61e816a251b976989dd2b7868acf4.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://mvp素材第一批/水源据点3d_industrial_facility_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-79e40b797cdb1eea6cf81507cc860190.s3tc.ctex", "res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-79e40b797cdb1eea6cf81507cc860190.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/水源据点3d_industrial_facility_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-68f61e816a251b976989dd2b7868acf4.s3tc.ctex", "res://.godot/imported/水源据点3d_industrial_facility_3d_model_normal.jpg-68f61e816a251b976989dd2b7868acf4.etc2.ctex"]
 
 [params]
 

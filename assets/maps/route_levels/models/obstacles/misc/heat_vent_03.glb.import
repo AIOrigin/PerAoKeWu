@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b8bm71glpwb80"
-path="res://.godot/imported/热浪喷口3.glb-32f1bb0def4f67f9dbab065d1a131de7.scn"
+path="res://.godot/imported/heat_vent_03.glb-821404e826ecf3351452fbd5f62b4a8a.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/misc/heat_vent_03.glb"
-dest_files=["res://.godot/imported/热浪喷口3.glb-32f1bb0def4f67f9dbab065d1a131de7.scn"]
+dest_files=["res://.godot/imported/heat_vent_03.glb-821404e826ecf3351452fbd5f62b4a8a.scn"]
 
 [params]
 

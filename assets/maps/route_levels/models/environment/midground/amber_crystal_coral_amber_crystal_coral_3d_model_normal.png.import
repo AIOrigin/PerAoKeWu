@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cpjcrpah4ri3f"
-path.s3tc="res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-22918416a1d0d9dc4e6102d26fa4d3e4.s3tc.ctex"
-path.etc2="res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-22918416a1d0d9dc4e6102d26fa4d3e4.etc2.ctex"
+path.s3tc="res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-752555615000aac13b5da78884ee6ed5.s3tc.ctex"
+path.etc2="res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-752555615000aac13b5da78884ee6ed5.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png"
-dest_files=["res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-22918416a1d0d9dc4e6102d26fa4d3e4.s3tc.ctex", "res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-22918416a1d0d9dc4e6102d26fa4d3e4.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png"
+dest_files=["res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-752555615000aac13b5da78884ee6ed5.s3tc.ctex", "res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-752555615000aac13b5da78884ee6ed5.etc2.ctex"]
 
 [params]
 

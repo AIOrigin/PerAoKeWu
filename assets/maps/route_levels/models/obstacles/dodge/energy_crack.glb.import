@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cogf7e0cgmt84"
-path="res://.godot/imported/能量裂缝.glb-25e7b814aa19bcba60499d8c7b577195.scn"
+path="res://.godot/imported/energy_crack.glb-081298adafd3e33ce12689c82a61087e.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/dodge/energy_crack.glb"
-dest_files=["res://.godot/imported/能量裂缝.glb-25e7b814aa19bcba60499d8c7b577195.scn"]
+dest_files=["res://.godot/imported/energy_crack.glb-081298adafd3e33ce12689c82a61087e.scn"]
 
 [params]
 

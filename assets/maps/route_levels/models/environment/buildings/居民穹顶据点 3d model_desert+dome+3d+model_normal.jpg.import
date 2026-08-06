@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ctvfie258jbyk"
-path.s3tc="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-c978933dfa76508c26bb8b89246dba77.s3tc.ctex"
-path.etc2="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-c978933dfa76508c26bb8b89246dba77.etc2.ctex"
+path.s3tc="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-7e8ec6914fae11f146eb32a1c64e40f4.s3tc.ctex"
+path.etc2="res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-7e8ec6914fae11f146eb32a1c64e40f4.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://3d素材/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg"
-dest_files=["res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-c978933dfa76508c26bb8b89246dba77.s3tc.ctex", "res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-c978933dfa76508c26bb8b89246dba77.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/buildings/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg"
+dest_files=["res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-7e8ec6914fae11f146eb32a1c64e40f4.s3tc.ctex", "res://.godot/imported/居民穹顶据点 3d model_desert+dome+3d+model_normal.jpg-7e8ec6914fae11f146eb32a1c64e40f4.etc2.ctex"]
 
 [params]
 

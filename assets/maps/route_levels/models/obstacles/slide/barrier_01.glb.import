@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://oqohur56nqri"
-path="res://.godot/imported/障碍物-需滑铲.glb-4c536f7d5bdcd4cbaa4de6c968932f0e.scn"
+path="res://.godot/imported/barrier_01.glb-6b23ee1609052108756e098e5aa8c813.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/slide/barrier_01.glb"
-dest_files=["res://.godot/imported/障碍物-需滑铲.glb-4c536f7d5bdcd4cbaa4de6c968932f0e.scn"]
+dest_files=["res://.godot/imported/barrier_01.glb-6b23ee1609052108756e098e5aa8c813.scn"]
 
 [params]
 

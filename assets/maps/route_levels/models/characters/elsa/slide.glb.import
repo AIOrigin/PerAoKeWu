@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dk6clqjq2r4wi"
-path="res://.godot/imported/滑铲.glb-545f6dc4f29e988ec81ae3803297a739.scn"
+path="res://.godot/imported/slide.glb-c8397aebfe74379dc50f0a84afd6a7b3.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/characters/elsa/slide.glb"
-dest_files=["res://.godot/imported/滑铲.glb-545f6dc4f29e988ec81ae3803297a739.scn"]
+dest_files=["res://.godot/imported/slide.glb-c8397aebfe74379dc50f0a84afd6a7b3.scn"]
 
 [params]
 

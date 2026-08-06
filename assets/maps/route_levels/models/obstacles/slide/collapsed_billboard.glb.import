@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c00ln0rado4vk"
-path="res://.godot/imported/坍塌广告牌.glb-f82db0ad488078e4938216f3d83afebf.scn"
+path="res://.godot/imported/collapsed_billboard.glb-a0260ecdb2cd155ca446f2ba63ec4a70.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/slide/collapsed_billboard.glb"
-dest_files=["res://.godot/imported/坍塌广告牌.glb-f82db0ad488078e4938216f3d83afebf.scn"]
+dest_files=["res://.godot/imported/collapsed_billboard.glb-a0260ecdb2cd155ca446f2ba63ec4a70.scn"]
 
 [params]
 

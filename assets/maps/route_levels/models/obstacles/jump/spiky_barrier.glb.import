@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dll8wa6us40e0"
-path="res://.godot/imported/带刺障碍（跳跃）.glb-5b4d2b03d1f09488483011d5c446d0ed.scn"
+path="res://.godot/imported/spiky_barrier.glb-e1f5173c0407fbcfcb3d2a9bd115cc7d.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/jump/spiky_barrier.glb"
-dest_files=["res://.godot/imported/带刺障碍（跳跃）.glb-5b4d2b03d1f09488483011d5c446d0ed.scn"]
+dest_files=["res://.godot/imported/spiky_barrier.glb-e1f5173c0407fbcfcb3d2a9bd115cc7d.scn"]
 
 [params]
 

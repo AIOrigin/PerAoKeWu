@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bk6w3xj0vf7kk"
-path.s3tc="res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-0d3acf1d507dc8e2dbba0afcf9c82130.s3tc.ctex"
-path.etc2="res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-0d3acf1d507dc8e2dbba0afcf9c82130.etc2.ctex"
+path.s3tc="res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-fc80712497f745a3dc5b71f917c1e521.s3tc.ctex"
+path.etc2="res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-fc80712497f745a3dc5b71f917c1e521.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://elsa动作/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg"
-dest_files=["res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-0d3acf1d507dc8e2dbba0afcf9c82130.s3tc.ctex", "res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-0d3acf1d507dc8e2dbba0afcf9c82130.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/elsa/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg"
+dest_files=["res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-fc80712497f745a3dc5b71f917c1e521.s3tc.ctex", "res://.godot/imported/跳跃落地_tripo_image_6da76bd5-0ea3-4c2c-bc99-7d959824e1db_0_3.jpg-fc80712497f745a3dc5b71f917c1e521.etc2.ctex"]
 
 [params]
 

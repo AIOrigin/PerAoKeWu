@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dphodnkn384ew"
-path.s3tc="res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-6fb78240944ed480a6fbb4596f42e44e.s3tc.ctex"
-path.etc2="res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-6fb78240944ed480a6fbb4596f42e44e.etc2.ctex"
+path.s3tc="res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-d7f293d76ca95f744d3e6488cb6718f0.s3tc.ctex"
+path.etc2="res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-d7f293d76ca95f744d3e6488cb6718f0.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://elsa动作/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg"
-dest_files=["res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-6fb78240944ed480a6fbb4596f42e44e.s3tc.ctex", "res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-6fb78240944ed480a6fbb4596f42e44e.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/elsa/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg"
+dest_files=["res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-d7f293d76ca95f744d3e6488cb6718f0.s3tc.ctex", "res://.godot/imported/elsa跳跃高点_tripo_image_91f19872-8523-4142-82ee-a6170d20f57d_0_0.jpg-d7f293d76ca95f744d3e6488cb6718f0.etc2.ctex"]
 
 [params]
 

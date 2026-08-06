@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://nhm3p0o277wr"
-path="res://.godot/imported/fantasy_crystal_tower.glb-8b3be09132c5502722d773fbf974f26e.scn"
+path="res://.godot/imported/fantasy_crystal_tower.glb-3805903685c9c3fa8ad54856fb3a294c.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/fantasy_crystal_tower.glb"
-dest_files=["res://.godot/imported/fantasy_crystal_tower.glb-8b3be09132c5502722d773fbf974f26e.scn"]
+source_file="res://assets/maps/route_levels/models/environment/distant/fantasy_crystal_tower.glb"
+dest_files=["res://.godot/imported/fantasy_crystal_tower.glb-3805903685c9c3fa8ad54856fb3a294c.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://wvxcsblyq5lo"
-path="res://.godot/imported/高墙.glb-f519161472192f328bd0d9a9fc0f1713.scn"
+path="res://.godot/imported/high_wall_01.glb-147cc49c27ffc78421fc91ca0156f76d.scn"
 
 [deps]
 
 source_file="res://assets/maps/route_levels/models/obstacles/block/high_wall_01.glb"
-dest_files=["res://.godot/imported/高墙.glb-f519161472192f328bd0d9a9fc0f1713.scn"]
+dest_files=["res://.godot/imported/high_wall_01.glb-147cc49c27ffc78421fc91ca0156f76d.scn"]
 
 [params]
 

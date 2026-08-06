@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dxb6q5ymusgau"
-path.s3tc="res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-f13eac8df8126ebf963b3c4179abbb71.s3tc.ctex"
-path.etc2="res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-f13eac8df8126ebf963b3c4179abbb71.etc2.ctex"
+path.s3tc="res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-69381b174f417999c9cdbcbd9f2fa5ca.s3tc.ctex"
+path.etc2="res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-69381b174f417999c9cdbcbd9f2fa5ca.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://elsa动作/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png"
-dest_files=["res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-f13eac8df8126ebf963b3c4179abbb71.s3tc.ctex", "res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-f13eac8df8126ebf963b3c4179abbb71.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/characters/elsa/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png"
+dest_files=["res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-69381b174f417999c9cdbcbd9f2fa5ca.s3tc.ctex", "res://.godot/imported/elsa奔跑右腿前_sci-fi_armored_soldier_3d_model_metallic-sci-fi_armored_soldier_3d_model_roughness.png-69381b174f417999c9cdbcbd9f2fa5ca.etc2.ctex"]
 
 [params]
 
