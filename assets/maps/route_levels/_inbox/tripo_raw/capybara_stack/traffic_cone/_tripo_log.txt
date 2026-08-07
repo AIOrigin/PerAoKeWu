@@ -1,0 +1,26 @@
+(node:18515) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created 440c4243-bf22-41bd-a63c-8d0c5fa62843 (@capy-traffic-cone)
+image_to_model · queued
+image_to_model · running 11% · 440c4243
+image_to_model · running 20% · 440c4243
+image_to_model · running 34% · 440c4243
+image_to_model · running 53% · 440c4243
+image_to_model · running 77% · 440c4243
+image_to_model · success 100% · 440c4243
+✓ image_to_model · 440c4243-bf22-41bd-a63c-8d0c5fa62843 · 50 credits
+task created afa95ee8-5eb2-4954-bd47-1cf9207e0e26 (@capy-traffic-cone-texture)
+texture_model · queued
+texture_model · running 9% · afa95ee8
+texture_model · running 20% · afa95ee8
+texture_model · running 31% · afa95ee8
+texture_model · running 48% · afa95ee8
+texture_model · running 73% · afa95ee8
+texture_model · success 100% · afa95ee8
+✓ texture_model · afa95ee8-5eb2-4954-bd47-1cf9207e0e26 · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/traffic_cone/tripo-out/capy-traffic-cone-texture-afa95ee8
+{"task_id":"afa95ee8-5eb2-4954-bd47-1cf9207e0e26","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/traffic_cone/tripo-out/capy-traffic-cone-texture-afa95ee8","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/traffic_cone/tripo-out/capy-traffic-cone-texture-afa95ee8/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/traffic_cone/tripo-out/capy-traffic-cone-texture-afa95ee8/preview.png","chain":[{"task_id":"afa95ee8-5eb2-4954-bd47-1cf9207e0e26","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/traffic_cone/tripo-out/capy-traffic-cone-texture-afa95ee8","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/traffic_cone/tripo-out/capy-traffic-cone-texture-afa95ee8/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/traffic_cone/tripo-out/capy-traffic-cone-texture-afa95ee8/preview.png"}],"source_task_id":"440c4243-bf22-41bd-a63c-8d0c5fa62843"}

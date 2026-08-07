@@ -1,0 +1,26 @@
+(node:18782) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created 4a443a1d-b137-4674-bed5-fb1bc9b0924c (@capy-pickup-glow-pad)
+text_to_model · queued
+text_to_model · running 13% · 4a443a1d
+text_to_model · running 21% · 4a443a1d
+text_to_model · running 36% · 4a443a1d
+text_to_model · running 53% · 4a443a1d
+text_to_model · running 77% · 4a443a1d
+text_to_model · success 100% · 4a443a1d
+✓ text_to_model · 4a443a1d-b137-4674-bed5-fb1bc9b0924c · 40 credits
+task created 76854947-51fc-4aaa-b0eb-0a633257c253 (@capy-pickup-glow-pad-texture)
+texture_model · queued
+texture_model · running 8% · 76854947
+texture_model · running 16% · 76854947
+texture_model · running 27% · 76854947
+texture_model · running 39% · 76854947
+texture_model · running 58% · 76854947
+texture_model · success 100% · 76854947
+✓ texture_model · 76854947-51fc-4aaa-b0eb-0a633257c253 · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pickup_glow_pad/tripo-out/capy-pickup-glow-pad-texture-76854947
+{"task_id":"76854947-51fc-4aaa-b0eb-0a633257c253","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pickup_glow_pad/tripo-out/capy-pickup-glow-pad-texture-76854947","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pickup_glow_pad/tripo-out/capy-pickup-glow-pad-texture-76854947/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pickup_glow_pad/tripo-out/capy-pickup-glow-pad-texture-76854947/preview.png","chain":[{"task_id":"76854947-51fc-4aaa-b0eb-0a633257c253","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pickup_glow_pad/tripo-out/capy-pickup-glow-pad-texture-76854947","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pickup_glow_pad/tripo-out/capy-pickup-glow-pad-texture-76854947/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pickup_glow_pad/tripo-out/capy-pickup-glow-pad-texture-76854947/preview.png"}],"source_task_id":"4a443a1d-b137-4674-bed5-fb1bc9b0924c"}

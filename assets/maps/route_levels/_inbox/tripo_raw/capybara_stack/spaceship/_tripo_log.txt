@@ -1,0 +1,26 @@
+(node:25614) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created b28a107b-fcd8-45d1-bfce-8a1fdb21a526 (@capy-spaceship)
+image_to_model · queued
+image_to_model · running 9% · b28a107b
+image_to_model · running 17% · b28a107b
+image_to_model · running 27% · b28a107b
+image_to_model · running 43% · b28a107b
+image_to_model · running 65% · b28a107b
+image_to_model · success 100% · b28a107b
+✓ image_to_model · b28a107b-fcd8-45d1-bfce-8a1fdb21a526 · 50 credits
+task created dfac85a4-9145-4ab8-b4b7-be7dc4a49c1b (@capy-spaceship-texture)
+texture_model · queued
+texture_model · running 8% · dfac85a4
+texture_model · running 15% · dfac85a4
+texture_model · running 24% · dfac85a4
+texture_model · running 37% · dfac85a4
+texture_model · running 56% · dfac85a4
+texture_model · success 100% · dfac85a4
+✓ texture_model · dfac85a4-9145-4ab8-b4b7-be7dc4a49c1b · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/spaceship/tripo-out/capy-spaceship-texture-dfac85a4
+{"task_id":"dfac85a4-9145-4ab8-b4b7-be7dc4a49c1b","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/spaceship/tripo-out/capy-spaceship-texture-dfac85a4","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/spaceship/tripo-out/capy-spaceship-texture-dfac85a4/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/spaceship/tripo-out/capy-spaceship-texture-dfac85a4/preview.png","chain":[{"task_id":"dfac85a4-9145-4ab8-b4b7-be7dc4a49c1b","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/spaceship/tripo-out/capy-spaceship-texture-dfac85a4","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/spaceship/tripo-out/capy-spaceship-texture-dfac85a4/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/spaceship/tripo-out/capy-spaceship-texture-dfac85a4/preview.png"}],"source_task_id":"b28a107b-fcd8-45d1-bfce-8a1fdb21a526"}

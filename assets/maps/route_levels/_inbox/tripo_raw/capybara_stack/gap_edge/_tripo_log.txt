@@ -1,0 +1,26 @@
+(node:17741) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created d89b10f5-8f14-48b5-a033-d83e68257f12 (@capy-gap-edge)
+image_to_model · queued
+image_to_model · running 8% · d89b10f5
+image_to_model · running 14% · d89b10f5
+image_to_model · running 22% · d89b10f5
+image_to_model · running 32% · d89b10f5
+image_to_model · running 49% · d89b10f5
+image_to_model · success 100% · d89b10f5
+✓ image_to_model · d89b10f5-8f14-48b5-a033-d83e68257f12 · 50 credits
+task created 8653bd9d-d434-4081-8c62-393c8764e05b (@capy-gap-edge-texture)
+texture_model · queued
+texture_model · running 4% · 8653bd9d
+texture_model · running 7% · 8653bd9d
+texture_model · running 10% · 8653bd9d
+texture_model · running 15% · 8653bd9d
+texture_model · running 23% · 8653bd9d
+texture_model · success 100% · 8653bd9d
+✓ texture_model · 8653bd9d-d434-4081-8c62-393c8764e05b · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/gap_edge/tripo-out/capy-gap-edge-texture-8653bd9d
+{"task_id":"8653bd9d-d434-4081-8c62-393c8764e05b","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/gap_edge/tripo-out/capy-gap-edge-texture-8653bd9d","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/gap_edge/tripo-out/capy-gap-edge-texture-8653bd9d/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/gap_edge/tripo-out/capy-gap-edge-texture-8653bd9d/preview.png","chain":[{"task_id":"8653bd9d-d434-4081-8c62-393c8764e05b","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/gap_edge/tripo-out/capy-gap-edge-texture-8653bd9d","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/gap_edge/tripo-out/capy-gap-edge-texture-8653bd9d/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/gap_edge/tripo-out/capy-gap-edge-texture-8653bd9d/preview.png"}],"source_task_id":"d89b10f5-8f14-48b5-a033-d83e68257f12"}

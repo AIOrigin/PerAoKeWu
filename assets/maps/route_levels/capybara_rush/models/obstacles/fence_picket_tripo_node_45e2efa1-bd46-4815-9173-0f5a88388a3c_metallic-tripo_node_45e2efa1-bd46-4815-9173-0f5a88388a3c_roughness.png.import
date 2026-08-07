@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://canmry1akghe5"
+path.s3tc="res://.godot/imported/fence_picket_tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_metallic-tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_roughness.png-ade1630596b26d8ad13172c369038004.s3tc.ctex"
+path.etc2="res://.godot/imported/fence_picket_tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_metallic-tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_roughness.png-ade1630596b26d8ad13172c369038004.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "75fff084d2d23db4c249eb7a65fdb28a"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/obstacles/fence_picket_tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_metallic-tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_roughness.png"
+dest_files=["res://.godot/imported/fence_picket_tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_metallic-tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_roughness.png-ade1630596b26d8ad13172c369038004.s3tc.ctex", "res://.godot/imported/fence_picket_tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_metallic-tripo_node_45e2efa1-bd46-4815-9173-0f5a88388a3c_roughness.png-ade1630596b26d8ad13172c369038004.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

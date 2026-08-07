@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://qejh2gi55ieu"
+path.s3tc="res://.godot/imported/model_tripo_normal_3dae8079-094a-416c-9cf6-3013ab2a1ecd.jpg-6c304c2dc39f7955d9a77ce669d4f57d.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_normal_3dae8079-094a-416c-9cf6-3013ab2a1ecd.jpg-6c304c2dc39f7955d9a77ce669d4f57d.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "1fefea7fd1ac73d16f502bb97b5a1e09"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079/model_tripo_normal_3dae8079-094a-416c-9cf6-3013ab2a1ecd.jpg"
+dest_files=["res://.godot/imported/model_tripo_normal_3dae8079-094a-416c-9cf6-3013ab2a1ecd.jpg-6c304c2dc39f7955d9a77ce669d4f57d.s3tc.ctex", "res://.godot/imported/model_tripo_normal_3dae8079-094a-416c-9cf6-3013ab2a1ecd.jpg-6c304c2dc39f7955d9a77ce669d4f57d.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079/model_tripo_normal_3dae8079-094a-416c-9cf6-3013ab2a1ecd.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

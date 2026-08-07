@@ -1,0 +1,18 @@
+(node:32772) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created 6c5c47a0-638e-4c18-9c38-260d96167a72 (@capy-speed-orb)
+image_to_model · queued
+image_to_model · running 7% · 6c5c47a0
+image_to_model · running 13% · 6c5c47a0
+image_to_model · running 20% · 6c5c47a0
+image_to_model · running 30% · 6c5c47a0
+image_to_model · running 44% · 6c5c47a0
+image_to_model · running 66% · 6c5c47a0
+image_to_model · success 100% · 6c5c47a0
+✓ image_to_model · 6c5c47a0-638e-4c18-9c38-260d96167a72 · 50 credits
+{"error":"Insufficient credits (You don't have enough credit to create this task)","exit_code":4,"api_code":2010,"request_id":"c26b5f903a683f714a55f840d8142807","http_status":403,"suggestion":"Please purchase more credit"}
+✗ Insufficient credits (You don't have enough credit to create this task)
+  → Please purchase more credit
+  request_id: c26b5f903a683f714a55f840d8142807

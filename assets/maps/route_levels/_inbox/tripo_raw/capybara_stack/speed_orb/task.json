@@ -1,0 +1,33 @@
+{
+  "task_id": "6c5c47a0-638e-4c18-9c38-260d96167a72",
+  "type": "image_to_model",
+  "status": "success",
+  "input": {
+    "pbr": true,
+    "file": {
+      "type": "jpeg",
+      "object": {
+        "key": "tcli_cfa02994bbfc427db30c0c9775947982/20260807/6c5c47a0-638e-4c18-9c38-260d96167a72/image.jpeg",
+        "bucket": "cn-openapi"
+      }
+    },
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 15000,
+    "model_version": "P1-20260311",
+    "texture_quality": "standard",
+    "enable_image_autofix": false
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url"
+  ],
+  "credits_consumed": 50,
+  "created_at": "2026-08-07T01:48:39.846338Z",
+  "completed_at": "2026-08-07T01:50:13.774063Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "preview.png"
+  ]
+}

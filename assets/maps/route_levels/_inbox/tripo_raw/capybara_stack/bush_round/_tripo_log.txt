@@ -1,0 +1,26 @@
+(node:18099) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created ad0b3fc9-6e47-45b9-8e51-6c9f005e415a (@capy-bush-round)
+image_to_model · queued
+image_to_model · running 12% · ad0b3fc9
+image_to_model · running 24% · ad0b3fc9
+image_to_model · running 39% · ad0b3fc9
+image_to_model · running 64% · ad0b3fc9
+image_to_model · running 99% · ad0b3fc9
+image_to_model · success 100% · ad0b3fc9
+✓ image_to_model · ad0b3fc9-6e47-45b9-8e51-6c9f005e415a · 50 credits
+task created eaa3da5e-89b6-4387-9e32-4a554d89d87c (@capy-bush-round-texture)
+texture_model · queued
+texture_model · running 10% · eaa3da5e
+texture_model · running 16% · eaa3da5e
+texture_model · running 25% · eaa3da5e
+texture_model · running 37% · eaa3da5e
+texture_model · running 54% · eaa3da5e
+texture_model · success 100% · eaa3da5e
+✓ texture_model · eaa3da5e-89b6-4387-9e32-4a554d89d87c · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/bush_round/tripo-out/capy-bush-round-texture-eaa3da5e
+{"task_id":"eaa3da5e-89b6-4387-9e32-4a554d89d87c","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/bush_round/tripo-out/capy-bush-round-texture-eaa3da5e","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/bush_round/tripo-out/capy-bush-round-texture-eaa3da5e/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/bush_round/tripo-out/capy-bush-round-texture-eaa3da5e/preview.png","chain":[{"task_id":"eaa3da5e-89b6-4387-9e32-4a554d89d87c","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/bush_round/tripo-out/capy-bush-round-texture-eaa3da5e","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/bush_round/tripo-out/capy-bush-round-texture-eaa3da5e/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/bush_round/tripo-out/capy-bush-round-texture-eaa3da5e/preview.png"}],"source_task_id":"ad0b3fc9-6e47-45b9-8e51-6c9f005e415a"}

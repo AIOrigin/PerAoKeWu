@@ -444,8 +444,8 @@ func _polyline_strip(
 static func _holographic_road() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	var tex := _load_tex([
-		"res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png",
-		"res://assets/maps/route_levels/runner_60s/holographic_energy_runway.png",
+		"res://assets/maps/route_levels/models/track/textures/holographic_road_topdown.png",
+		"res://assets/maps/route_levels/models/track/textures/holographic_energy_runway.png",
 	])
 	if tex:
 		mat.albedo_texture = tex
@@ -463,7 +463,7 @@ static func _holographic_road() -> StandardMaterial3D:
 
 static func _energy_neon_road() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
-	var tex := _load_tex(["res://assets/maps/route_levels/runner_60s/energy_neon_runway.png"])
+	var tex := _load_tex(["res://assets/maps/route_levels/models/track/textures/energy_neon_runway.png"])
 	if tex:
 		mat.albedo_texture = tex
 		mat.emission_texture = tex
@@ -506,7 +506,7 @@ static func _planet_road() -> StandardMaterial3D:
 
 static func _coarse_desert_road() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
-	var tex := _load_tex(["res://assets/maps/route_levels/runner_60s/textures/white_sandstone_blocks_02_diff_1k.jpg"])
+	var tex := _load_tex(["res://assets/maps/route_levels/models/track/textures/white_sandstone_blocks_02_diff_1k.jpg"])
 	if tex:
 		mat.albedo_texture = tex
 	mat.albedo_color = Color(0.78, 0.58, 0.36)
