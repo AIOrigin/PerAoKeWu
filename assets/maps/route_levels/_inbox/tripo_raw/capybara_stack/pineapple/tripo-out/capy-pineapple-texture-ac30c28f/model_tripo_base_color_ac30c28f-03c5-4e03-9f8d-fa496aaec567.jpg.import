@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dxyy8wbqwle6j"
+path.s3tc="res://.godot/imported/model_tripo_base_color_ac30c28f-03c5-4e03-9f8d-fa496aaec567.jpg-713ee297325d396d816191321ae53656.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_base_color_ac30c28f-03c5-4e03-9f8d-fa496aaec567.jpg-713ee297325d396d816191321ae53656.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "db221f705c86b2d0ff447f8935800702"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/pineapple/tripo-out/capy-pineapple-texture-ac30c28f/model_tripo_base_color_ac30c28f-03c5-4e03-9f8d-fa496aaec567.jpg"
+dest_files=["res://.godot/imported/model_tripo_base_color_ac30c28f-03c5-4e03-9f8d-fa496aaec567.jpg-713ee297325d396d816191321ae53656.s3tc.ctex", "res://.godot/imported/model_tripo_base_color_ac30c28f-03c5-4e03-9f8d-fa496aaec567.jpg-713ee297325d396d816191321ae53656.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

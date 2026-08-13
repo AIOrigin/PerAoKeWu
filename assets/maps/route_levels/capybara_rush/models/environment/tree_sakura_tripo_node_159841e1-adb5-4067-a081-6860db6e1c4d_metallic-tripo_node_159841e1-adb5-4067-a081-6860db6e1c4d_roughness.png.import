@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dg7u1hqtfwibb"
+path.s3tc="res://.godot/imported/tree_sakura_tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_metallic-tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_roughness.png-ebd26982e0c5f97a1ad87b10e2ab10f7.s3tc.ctex"
+path.etc2="res://.godot/imported/tree_sakura_tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_metallic-tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_roughness.png-ebd26982e0c5f97a1ad87b10e2ab10f7.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "67ec7cda92b11b1b5377575885c45aff"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/environment/tree_sakura_tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_metallic-tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_roughness.png"
+dest_files=["res://.godot/imported/tree_sakura_tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_metallic-tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_roughness.png-ebd26982e0c5f97a1ad87b10e2ab10f7.s3tc.ctex", "res://.godot/imported/tree_sakura_tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_metallic-tripo_node_159841e1-adb5-4067-a081-6860db6e1c4d_roughness.png-ebd26982e0c5f97a1ad87b10e2ab10f7.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

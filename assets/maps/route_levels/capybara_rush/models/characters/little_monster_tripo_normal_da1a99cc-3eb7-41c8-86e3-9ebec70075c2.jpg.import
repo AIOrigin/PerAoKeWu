@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://brrgsca2vy63s"
+path.s3tc="res://.godot/imported/little_monster_tripo_normal_da1a99cc-3eb7-41c8-86e3-9ebec70075c2.jpg-58cefe59545a396a92e8ef055ce0a43f.s3tc.ctex"
+path.etc2="res://.godot/imported/little_monster_tripo_normal_da1a99cc-3eb7-41c8-86e3-9ebec70075c2.jpg-58cefe59545a396a92e8ef055ce0a43f.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "c99de64a25573221b89b12176fa107d9"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/characters/little_monster_tripo_normal_da1a99cc-3eb7-41c8-86e3-9ebec70075c2.jpg"
+dest_files=["res://.godot/imported/little_monster_tripo_normal_da1a99cc-3eb7-41c8-86e3-9ebec70075c2.jpg-58cefe59545a396a92e8ef055ce0a43f.s3tc.ctex", "res://.godot/imported/little_monster_tripo_normal_da1a99cc-3eb7-41c8-86e3-9ebec70075c2.jpg-58cefe59545a396a92e8ef055ce0a43f.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/capybara_rush/models/characters/little_monster_tripo_normal_da1a99cc-3eb7-41c8-86e3-9ebec70075c2.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

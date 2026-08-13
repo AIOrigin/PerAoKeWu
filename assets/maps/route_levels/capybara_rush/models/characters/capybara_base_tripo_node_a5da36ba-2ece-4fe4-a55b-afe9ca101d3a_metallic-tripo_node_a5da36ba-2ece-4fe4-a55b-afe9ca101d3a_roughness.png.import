@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://c34mt5lklv8xf"
+path.s3tc="res://.godot/imported/capybara_base_tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_metallic-tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_roughness.png-c22b95ce6ae6f03ba02a18ebd26ffe2a.s3tc.ctex"
+path.etc2="res://.godot/imported/capybara_base_tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_metallic-tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_roughness.png-c22b95ce6ae6f03ba02a18ebd26ffe2a.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "4e117c6f4fb73a860dea752f7cbe31e0"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/characters/capybara_base_tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_metallic-tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_roughness.png"
+dest_files=["res://.godot/imported/capybara_base_tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_metallic-tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_roughness.png-c22b95ce6ae6f03ba02a18ebd26ffe2a.s3tc.ctex", "res://.godot/imported/capybara_base_tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_metallic-tripo_node_a5da36ba-2ece-4fe4-a55b-afe9ca101d3a_roughness.png-c22b95ce6ae6f03ba02a18ebd26ffe2a.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

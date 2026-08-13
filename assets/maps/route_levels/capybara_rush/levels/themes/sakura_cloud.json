@@ -1,0 +1,83 @@
+{
+  "id": "sakura_cloud",
+  "display_name": "粉樱云谷",
+  "sky_color": [
+    0.96,
+    0.77,
+    0.85
+  ],
+  "fog_color": [
+    0.95,
+    0.82,
+    0.88
+  ],
+  "ambient_color": [
+    0.98,
+    0.9,
+    0.94
+  ],
+  "ambient_energy": 0.95,
+  "road_color": [
+    0.98,
+    0.94,
+    0.96
+  ],
+  "lane_line_color": [
+    0.95,
+    0.45,
+    0.65
+  ],
+  "water_color": [
+    0.72,
+    0.78,
+    0.92
+  ],
+  "sun_color": [
+    1.0,
+    0.9,
+    0.92
+  ],
+  "sun_energy": 1.15,
+  "block_albedo": [
+    0.95,
+    0.72,
+    0.82
+  ],
+  "stripe_colors": [
+    [
+      0.92,
+      0.45,
+      0.62
+    ],
+    [
+      1.0,
+      0.95,
+      0.97
+    ]
+  ],
+  "trampoline_rim": [
+    1.0,
+    0.55,
+    0.78
+  ],
+  "props": {
+    "tree": "res://assets/maps/route_levels/capybara_rush/models/environment/tree_sakura.glb",
+    "bush": "res://assets/maps/route_levels/capybara_rush/models/environment/bush_round.glb",
+    "cloud": "res://assets/maps/route_levels/capybara_rush/models/environment/cloud_fluffy.glb",
+    "side_prop": "res://assets/maps/route_levels/capybara_rush/models/environment/rock_edge.glb"
+  },
+  "obstacles": {
+    "stripe_model": "res://assets/maps/route_levels/capybara_rush/models/obstacles/lantern_barrier.glb",
+    "block_model": null
+  },
+  "dice_albedo": [
+    1.0,
+    0.94,
+    0.96
+  ],
+  "dice_pip": [
+    0.72,
+    0.28,
+    0.42
+  ]
+}

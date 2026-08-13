@@ -1,0 +1,27 @@
+{
+  "id": 1,
+  "name": "湖边散步",
+  "theme_id": "lake_clear",
+  "track_length": 228.0,
+  "run_speed": 9.5,
+  "time_limit_sec": 0,
+  "cliffs": 0,
+  "cliff_gap_len": 11.0,
+  "hazard_seed": 4017,
+  "hazard_pattern": "tutorial",
+  "max_stair_rows": 3,
+  "allow_full_row_blocks": true,
+  "full_row_max_rows": 1,
+  "pickup_spacing": [
+    12,
+    16
+  ],
+  "fruit_spacing": [
+    18,
+    24
+  ],
+  "finish_stairs": true,
+  "stair_kind": "dice",
+  "dice_hazards": true,
+  "difficulty": 1
+}

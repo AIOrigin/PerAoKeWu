@@ -1,0 +1,32 @@
+{
+  "id": 22,
+  "name": "发光矮墙",
+  "theme_id": "dusk_neon",
+  "track_length": 360.0,
+  "run_speed": 15.0,
+  "time_limit_sec": 0,
+  "cliffs": 1,
+  "cliff_gap_len": 11.0,
+  "hazard_seed": 4374,
+  "hazard_pattern": "difficulty_mix",
+  "max_stair_rows": 4,
+  "allow_full_row_blocks": true,
+  "full_row_max_rows": 1,
+  "pickup_spacing": [
+    8,
+    12
+  ],
+  "fruit_spacing": [
+    12,
+    16
+  ],
+  "finish_stairs": true,
+  "dice_hazards": true,
+  "dice_spacing": [
+    22,
+    30
+  ],
+  "stair_kind": "dice",
+  "difficulty": 4,
+  "sweeper_speed": 2.4
+}

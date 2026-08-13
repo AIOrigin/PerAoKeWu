@@ -1,0 +1,27 @@
+{
+  "id": 8,
+  "name": "草垛迷宫",
+  "theme_id": "honey_pasture",
+  "track_length": 288.0,
+  "run_speed": 12.0,
+  "time_limit_sec": 0,
+  "cliffs": 0,
+  "cliff_gap_len": 11.0,
+  "hazard_seed": 4136,
+  "hazard_pattern": "difficulty_mix",
+  "max_stair_rows": 4,
+  "allow_full_row_blocks": true,
+  "full_row_max_rows": 1,
+  "pickup_spacing": [
+    11,
+    15
+  ],
+  "fruit_spacing": [
+    16,
+    22
+  ],
+  "finish_stairs": true,
+  "stair_kind": "dice",
+  "dice_hazards": true,
+  "difficulty": 2
+}

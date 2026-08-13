@@ -34,4 +34,5 @@ capybara_rush/
 
 路径常量：`model_paths.gd`（`CapybaraRushPaths`）  
 生成原料：`../_inbox/concepts/capybara_stack/`、`../_inbox/tripo_raw/capybara_stack/`  
-规划：`../docs/capybara_stack_tripo_规划.md`
+规划：`../docs/capybara_stack_tripo_规划.md`  
+**30 关 / 五基调**：`levels/LEVEL_PLAN_30.md`

@@ -1,0 +1,31 @@
+{
+  "id": 14,
+  "name": "花篱走廊",
+  "theme_id": "sakura_cloud",
+  "track_length": 312.0,
+  "run_speed": 13.0,
+  "time_limit_sec": 0,
+  "cliffs": 0,
+  "cliff_gap_len": 11.0,
+  "hazard_seed": 4238,
+  "hazard_pattern": "difficulty_mix",
+  "max_stair_rows": 4,
+  "allow_full_row_blocks": true,
+  "full_row_max_rows": 1,
+  "pickup_spacing": [
+    8,
+    12
+  ],
+  "fruit_spacing": [
+    12,
+    16
+  ],
+  "finish_stairs": true,
+  "dice_hazards": true,
+  "dice_spacing": [
+    16,
+    22
+  ],
+  "stair_kind": "dice",
+  "difficulty": 3
+}

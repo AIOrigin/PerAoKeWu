@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dt6scm4xnjdw"
+path.s3tc="res://.godot/imported/model_tripo_normal_31eea9ea-c8b9-4c50-adaf-7f64d59aea7a.jpg-c3d35da61ea96b9c2fce43c54c62b512.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_normal_31eea9ea-c8b9-4c50-adaf-7f64d59aea7a.jpg-c3d35da61ea96b9c2fce43c54c62b512.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "0cd3c97abd4176a32b2507eac9ffe51e"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/stone_lantern_barrier/tripo-out/capy-stone-lantern-barrier-textu-31eea9ea/model_tripo_normal_31eea9ea-c8b9-4c50-adaf-7f64d59aea7a.jpg"
+dest_files=["res://.godot/imported/model_tripo_normal_31eea9ea-c8b9-4c50-adaf-7f64d59aea7a.jpg-c3d35da61ea96b9c2fce43c54c62b512.s3tc.ctex", "res://.godot/imported/model_tripo_normal_31eea9ea-c8b9-4c50-adaf-7f64d59aea7a.jpg-c3d35da61ea96b9c2fce43c54c62b512.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/stone_lantern_barrier/tripo-out/capy-stone-lantern-barrier-textu-31eea9ea/model_tripo_normal_31eea9ea-c8b9-4c50-adaf-7f64d59aea7a.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

@@ -1,0 +1,44 @@
+{
+  "id": 33,
+  "name": "道具障碍博览",
+  "theme_id": "lake_clear",
+  "track_length": 480.0,
+  "run_speed": 8.5,
+  "time_limit_sec": 0,
+  "cliffs": 1,
+  "cliff_gap_len": 11.0,
+  "hazard_seed": 3301,
+  "hazard_pattern": "showcase",
+  "sweeper_speed": 1.1,
+  "showcase_swing_speed": 0.85,
+  "showcase_ring_speed": 1.25,
+  "showcase_spacing": [
+    32,
+    38
+  ],
+  "max_stair_rows": 3,
+  "allow_full_row_blocks": false,
+  "full_row_max_rows": 1,
+  "pickup_spacing": [
+    8,
+    12
+  ],
+  "fruit_spacing": [
+    10,
+    14
+  ],
+  "fruit_pool": [
+    "orange",
+    "apple",
+    "banana",
+    "pineapple",
+    "durian",
+    "icecream",
+    "crystal"
+  ],
+  "showcase_props": true,
+  "finish_stairs": true,
+  "stair_kind": "dice",
+  "dice_hazards": true,
+  "difficulty": 1
+}

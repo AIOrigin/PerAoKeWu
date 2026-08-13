@@ -73,13 +73,17 @@ func apply_to(node: Node3D, dist: float, lateral: float, y: float = 0.0, yaw_ext
 	node.rotation = Vector3(0.0, yaw + yaw_extra, node.rotation.z)
 
 
-func build_road_mesh(half_w: float, thickness: float = 0.18) -> ArrayMesh:
+func build_road_mesh(half_w: float, thickness: float = 0.18, gaps: Array = []) -> ArrayMesh:
+	## gaps: [{dist0, dist1}, ...] 断崖区间不铺路面，中间留空
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var step := 1.4
 	var d := 0.0
 	while d < length:
 		var d2 := minf(d + step, length)
+		if _segment_overlaps_gap(d, d2, gaps):
+			d = d2
+			continue
 		var f0 := frame_at(d)
 		var f1 := frame_at(d2)
 		var p0: Vector3 = f0["pos"]
@@ -102,6 +106,19 @@ func build_road_mesh(half_w: float, thickness: float = 0.18) -> ArrayMesh:
 		d = d2
 	st.generate_normals()
 	return st.commit()
+
+
+func _segment_overlaps_gap(d0: float, d1: float, gaps: Array) -> bool:
+	for g in gaps:
+		if typeof(g) != TYPE_DICTIONARY:
+			continue
+		var a := float(g.get("dist0", -1.0))
+		var b := float(g.get("dist1", -1.0))
+		if b <= a:
+			continue
+		if d1 > a and d0 < b:
+			return true
+	return false
 
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3) -> void:
