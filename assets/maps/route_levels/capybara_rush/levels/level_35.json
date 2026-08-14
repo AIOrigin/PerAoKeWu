@@ -1,0 +1,76 @@
+{
+  "id": 35,
+  "name": "节奏试玩",
+  "theme_id": "sakura_cloud",
+  "track_length": 480.0,
+  "run_speed": 8.5,
+  "time_limit_sec": 0,
+  "cliffs": 1,
+  "cliff_gap_len": 11.0,
+  "hazard_seed": 3501,
+  "hazard_pattern": "segmented",
+  "test_level": true,
+  "pacing_beat_sec_min": 1.28,
+  "pacing_beat_sec_max": 1.58,
+  "pacing_recovery_sec_min": 1.9,
+  "pacing_recovery_sec_max": 2.2,
+  "showcase_swing_speed": 0.88,
+  "rotator_speed": 0.95,
+  "hazard_segments": [
+    {
+      "length": 95.0,
+      "spacing_sec": [1.45, 1.65],
+      "beats": [
+        "stair_weave",
+        "hurdle_single",
+        "stair_weave",
+        "recovery",
+        "combo_stair_hurdle"
+      ]
+    },
+    {
+      "length": 110.0,
+      "spacing_sec": [1.35, 1.55],
+      "beats": [
+        "stair_ascend",
+        "sweeper_single",
+        "recovery",
+        "combo_stair_hurdle",
+        "hurdle_wide"
+      ]
+    },
+    {
+      "length": 120.0,
+      "spacing_sec": [1.32, 1.52],
+      "beats": [
+        "pendulum_triple",
+        "recovery",
+        "stair_weave",
+        "sweeper_duel",
+        "recovery"
+      ]
+    },
+    {
+      "length": 90.0,
+      "spacing_sec": [1.38, 1.58],
+      "beats": [
+        "swing_hoop",
+        "recovery",
+        "l_gate",
+        "recovery",
+        "stair_wave"
+      ]
+    }
+  ],
+  "max_stair_rows": 3,
+  "pickup_spacing": [12, 16],
+  "fruit_spacing": [10, 14],
+  "fruit_pool": ["orange", "apple", "banana", "pineapple"],
+  "showcase_props": true,
+  "speed_lane_mul": 1.42,
+  "speed_lane_fruit_spacing": 2.5,
+  "finish_stairs": true,
+  "stair_kind": "dice",
+  "dice_hazards": true,
+  "difficulty": 2
+}

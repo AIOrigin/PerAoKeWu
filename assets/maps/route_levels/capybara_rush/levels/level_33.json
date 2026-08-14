@@ -37,6 +37,8 @@
     "crystal"
   ],
   "showcase_props": true,
+  "speed_lane_mul": 1.48,
+  "speed_lane_fruit_spacing": 2.4,
   "finish_stairs": true,
   "stair_kind": "dice",
   "dice_hazards": true,
