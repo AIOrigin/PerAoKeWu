@@ -1,27 +1,28 @@
 {
   "id": 17,
-  "name": "灯笼夜樱",
-  "theme_id": "sakura_cloud",
-  "track_length": 348.0,
-  "run_speed": 14.5,
+  "name": "旋转扫臂",
+  "theme_id": "lake_clear",
+  "track_length": 320.0,
+  "run_speed": 13.2,
   "time_limit_sec": 0,
   "cliffs": 1,
   "cliff_gap_len": 11.0,
-  "hazard_seed": 4289,
-  "hazard_pattern": "difficulty_mix",
+  "hazard_seed": 5202,
+  "hazard_pattern": "sweeper_gauntlet",
+  "sweeper_speed": 2.25,
   "max_stair_rows": 4,
-  "allow_full_row_blocks": true,
+  "allow_full_row_blocks": false,
   "full_row_max_rows": 1,
   "pickup_spacing": [
-    7,
-    11
+    10,
+    14
   ],
   "fruit_spacing": [
-    11,
-    15
+    14,
+    18
   ],
   "finish_stairs": true,
   "stair_kind": "dice",
   "dice_hazards": true,
-  "difficulty": 3
+  "difficulty": 5
 }

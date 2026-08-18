@@ -37,3 +37,41 @@ __pycache__/
 
 # Runtime scratch
 addons/timer/time.txt
+
+# GDAI MCP（付费插件，勿提交到公开仓库；见 https://gdaimcp.com）
+addons/gdai-mcp-plugin-godot/
+addons/gdai-mcp-server-godot/
+
+# Web / 本地导出产物
+/build/
+
+# Capybara Rush 编辑草稿、备份、未进游戏的模型
+assets/maps/route_levels/capybara_rush/_tmp_edit/
+assets/maps/route_levels/capybara_rush/_tmp_edit2/
+assets/maps/route_levels/capybara_rush/**/*.bak
+assets/maps/route_levels/capybara_rush/**/*.bak_*
+assets/maps/route_levels/capybara_rush/models/characters/_tmp_*
+assets/maps/route_levels/capybara_rush/models/characters/*_flat_test*
+assets/maps/route_levels/capybara_rush/models/characters/*_gpu_test*
+assets/maps/route_levels/capybara_rush/models/characters/little_monster_cleaned_attempt*
+assets/maps/route_levels/capybara_rush/models/characters/little_monster_hollow_cutout*
+assets/maps/route_levels/capybara_rush/models/characters/little_monster_with_desk*
+assets/maps/route_levels/capybara_rush/models/characters/little_monster_with_props*
+assets/maps/route_levels/capybara_rush/models/characters/little_rabbit_tripo_backup*
+assets/maps/route_levels/capybara_rush/models/characters/qingqing_unrigged_backup*
+assets/maps/route_levels/capybara_rush/models/environment/palm_tree_high.glb
+assets/maps/route_levels/capybara_rush/models/environment/palm_tree_high.glb.import
+assets/maps/route_levels/capybara_rush/models/obstacles/gap_edge.glb
+assets/maps/route_levels/capybara_rush/models/obstacles/gap_edge.glb.import
+assets/maps/route_levels/capybara_rush/models/obstacles/low_wall.glb
+assets/maps/route_levels/capybara_rush/models/obstacles/low_wall.glb.import
+assets/maps/route_levels/capybara_rush/models/obstacles/wood_crate.glb
+assets/maps/route_levels/capybara_rush/models/obstacles/wood_crate.glb.import
+assets/maps/route_levels/capybara_rush/models/props/golden_bell_shield.glb
+assets/maps/route_levels/capybara_rush/models/props/golden_bell_shield.glb.import
+assets/maps/route_levels/capybara_rush/models/characters/*_albedo_clean.png
+assets/maps/route_levels/capybara_rush/models/characters/*_albedo_clean.png.import
+assets/maps/route_levels/capybara_rush/models/characters/*_albedo_flat_test*
+assets/maps/route_levels/capybara_rush/models/characters/*_albedo_gpu_test*
+assets/maps/route_levels/capybara_rush/models/characters/*_tripo_albedo.png
+assets/maps/route_levels/capybara_rush/models/characters/*_tripo_albedo.png.import

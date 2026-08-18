@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://capybara_level_editor"]
+
+[ext_resource type="Script" path="res://assets/maps/route_levels/capybara_rush/level_editor/capybara_level_editor.gd" id="1_editor"]
+
+[node name="CapybaraLevelEditor" type="Node3D"]
+script = ExtResource("1_editor")

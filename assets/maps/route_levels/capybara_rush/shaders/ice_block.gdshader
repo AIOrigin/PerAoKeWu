@@ -16,7 +16,7 @@ uniform float roughness : hint_range(0.0, 1.0) = 0.08;
 uniform float metallic : hint_range(0.0, 1.0) = 0.35;
 uniform float refractive_index = 0.14;
 uniform float fresnel_power : hint_range(0.5, 5.0) = 2.6;
-uniform float alpha_base : hint_range(0.2, 1.0) = 0.82;
+uniform float alpha_base : hint_range(0.2, 1.0) = 0.92;
 uniform float emission_mul : hint_range(0.0, 2.0) = 0.28;
 uniform float uv_scale = 1.35;
 
@@ -59,7 +59,7 @@ void fragment() {
 	ice = mix(ice, top_color.rgb, fres * 0.35);
 
 	ALBEDO = ice;
-	ALPHA = clamp(alpha_base + fres * 0.12, 0.45, 0.95);
+	ALPHA = clamp(alpha_base + fres * 0.06, 0.84, 0.98);
 	ROUGHNESS = mix(roughness, 0.35, fres * 0.25);
 	METALLIC = metallic;
 	SPECULAR = 0.85;

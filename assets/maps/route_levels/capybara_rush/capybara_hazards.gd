@@ -4,6 +4,8 @@ extends RefCounted
 ## 障碍生成、运动更新与碰撞检测（从 capybara_rush.gd 拆出）
 ## Host 为 capybara_rush 根节点，需提供 _world、_path_place、关卡配置等。
 
+const MeshUtil := preload("res://assets/maps/route_levels/capybara_rush/capybara_mesh_util.gd")
+
 const LANE_COUNT := 3
 const LANE_WIDTH := 1.08
 const ROAD_HALF_W := 2.05
@@ -24,15 +26,25 @@ const PACING_RECOVERY_SEC_MIN := 1.85
 const PACING_RECOVERY_SEC_MAX := 2.25
 const PENDULUM_TRIPLE_COUNT := 3
 const PENDULUM_TRIPLE_SPACING := 4.6
+const PENDULUM_TRIPLE_SPACING_FROST := 8.2
 const PENDULUM_TRIPLE_HANG := 3.6
 const PENDULUM_TRIPLE_PIVOT_Y := 4.4
 const FIRE_GATE_GAP_WIDTH := LANE_WIDTH * 1.02
+const FIRE_GATE_GAP_WIDTH_FROST := LANE_WIDTH * 1.48
 const FIRE_GATE_SLIDE_AMP := LANE_WIDTH * 1.05
 const FIRE_GATE_WALL_H := 1.08
+const FIRE_GATE_WALL_H_FROST := 2.55
 const FIRE_GATE_HALF_LEN := 0.88
 const FIRE_GATE_SLIDE_SPEED := 1.65
+const FIRE_GATE_BASE_LIFT := 0.12
+const FIRE_GATE_PANEL_DEPTH := 0.52
 const ROTATOR_ARENA_RADIUS := 3.2
 const ROTATOR_ANG_SPEED := 1.05
+const CROSS_ROTATOR_ARM_HALF := ROTATOR_ARENA_RADIUS * 0.88
+const CROSS_ROTATOR_ARM_THICK := 0.24
+const CROSS_ROTATOR_ARM_Y := 0.52
+const CROSS_ROTATOR_HUB_R := 0.28
+const CROSS_ROTATOR_ANG_SPEED := 1.35
 const TRAMPOLINE_APPROACH_MARGIN := 24.0
 const PICKUP_RADIUS_X := 1.15
 
@@ -68,20 +80,44 @@ func overlap(h: Dictionary, progress: float, lane_x: float, air_y: float) -> boo
 	return _hazard_overlap(h, progress, lane_x, air_y)
 
 
+func _rbox(size: Vector3, radius: float = -1.0) -> ArrayMesh:
+	return MeshUtil.rounded_box(size, radius)
+
+
 func clear_near_cliff_approach(tramp_dist: float, lane: int) -> void:
-	var lateral := _host._lane_to_x(lane)
+	var lateral: float = _host._lane_to_x(lane)
 	var keep: Array[Dictionary] = []
 	for h in items:
+		var kind := String(h.get("kind", ""))
+		if _is_moving_hazard_kind(kind):
+			keep.append(h)
+			continue
 		var hd := float(h.get("dist", -999.0))
 		var hl := float(h.get("lateral", 0.0))
 		if absf(hd - tramp_dist) <= TRAMPOLINE_APPROACH_MARGIN:
 			if absf(hl - lateral) <= LANE_WIDTH * 1.35:
-				var node: Node3D = h.get("node")
-				if node != null and is_instance_valid(node):
-					node.queue_free()
+				_free_hazard_nodes(h)
 				continue
 		keep.append(h)
 	items = keep
+
+
+func _is_moving_hazard_kind(kind: String) -> bool:
+	return kind in [
+		"pendulum_triple", "pendulum", "swing_hoop", "sweeper", "l_gate",
+		"center_rotator", "spin_ring", "fire_gate", "cross_rotator",
+	]
+
+
+func _free_hazard_nodes(h: Dictionary) -> void:
+	var node: Node3D = h.get("node") as Node3D
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+		return
+	for m in h.get("members", []):
+		var mn: Node3D = m.get("node") as Node3D
+		if mn != null and is_instance_valid(mn):
+			mn.queue_free()
 
 
 func _hazard_rng() -> RandomNumberGenerator:
@@ -177,13 +213,19 @@ func _setpiece_meta(setpiece_id: String) -> Dictionary:
 		"sweeper_duel":
 			return {"kind": "moving", "half_len": 4.4, "hard": true}
 		"pendulum_triple":
-			return {"kind": "moving", "half_len": PENDULUM_TRIPLE_SPACING + 1.5, "hard": true}
+			return {
+				"kind": "moving",
+				"half_len": _pendulum_triple_spacing() * float(PENDULUM_TRIPLE_COUNT - 1) * 0.5 + 1.4,
+				"hard": true,
+			}
 		"swing_hoop", "spin_ring":
 			return {"kind": "moving", "half_len": 1.05, "hard": true}
 		"l_gate":
 			return {"kind": "moving", "half_len": 2.6, "hard": true}
 		"fire_gate":
 			return {"kind": "moving", "half_len": FIRE_GATE_HALF_LEN, "hard": true}
+		"cross_rotator":
+			return {"kind": "rotator", "half_len": ROTATOR_ARENA_RADIUS * 0.98, "hard": true}
 		_:
 			return {"kind": "stack", "half_len": 1.25, "hard": false}
 
@@ -196,14 +238,32 @@ func _difficulty_setpiece_pool() -> Array[String]:
 		2:
 			return ["stair_ascend", "hurdle_wide", "combo_stair_hurdle", "sweeper_single", "stair_weave"]
 		3:
-			return ["stair_weave", "sweeper_duel", "fire_gate", "pendulum_triple", "combo_stair_hurdle", "spin_ring"]
+			return ["stair_weave", "sweeper_duel", "fire_gate", "pendulum_triple", "combo_stair_hurdle", "cross_rotator"]
 		4:
-			return ["pendulum_triple", "fire_gate", "swing_hoop", "sweeper_duel", "l_gate", "stair_ascend"]
+			return ["pendulum_triple", "fire_gate", "swing_hoop", "cross_rotator", "l_gate", "stair_ascend"]
 		_:
-			return ["fire_gate", "pendulum_triple", "sweeper_duel", "l_gate", "swing_hoop", "combo_stair_hurdle"]
+			return ["fire_gate", "pendulum_triple", "cross_rotator", "l_gate", "swing_hoop", "combo_stair_hurdle"]
 
 
-func _spawn_setpiece(setpiece_id: String, z: float, rng: RandomNumberGenerator) -> Dictionary:
+func _spawn_manual_hazards() -> void:
+	var placed: Array = _host._level_cfg.get("placed_setpieces", [])
+	if typeof(placed) != TYPE_ARRAY or placed.is_empty():
+		return
+	var rng := _hazard_rng()
+	for raw in placed:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var p: Dictionary = raw
+		var sid := String(p.get("type", ""))
+		if sid.is_empty() or sid in ["recovery", "rest"]:
+			continue
+		var z := float(p.get("dist", 0.0))
+		if z < 8.0 or z > _host._track_len() - 20.0:
+			continue
+		_spawn_setpiece(sid, z, rng, p)
+
+
+func _spawn_setpiece(setpiece_id: String, z: float, rng: RandomNumberGenerator, overrides: Dictionary = {}) -> Dictionary:
 	var meta := _setpiece_meta(setpiece_id)
 	if setpiece_id in ["recovery", "rest"]:
 		return meta
@@ -211,6 +271,7 @@ func _spawn_setpiece(setpiece_id: String, z: float, rng: RandomNumberGenerator) 
 	var d := _level_difficulty()
 	var spd := 1.35 + float(d) * 0.26
 	var swing := float(_host._level_cfg.get("showcase_swing_speed", 0.9))
+	var lane_override := int(overrides.get("lane", -1))
 	match setpiece_id:
 		"stair_weave":
 			_spawn_stair_hazard_row(z, [1, 2, 1], rng)
@@ -219,11 +280,14 @@ func _spawn_setpiece(setpiece_id: String, z: float, rng: RandomNumberGenerator) 
 		"stair_wave":
 			_spawn_stair_hazard_row(z, [2, 1, 2], rng)
 		"hurdle_single":
-			_spawn_hurdle_bar_at(z, 1, 0.95)
+			_spawn_hurdle_bar_at(z, lane_override if lane_override >= 0 else 1, 0.95)
 		"hurdle_wide":
-			_spawn_hurdle_bar_at(z, 2, 1.05)
+			_spawn_hurdle_bar_at(z, lane_override if lane_override >= 0 else 2, 1.05)
 		"stripe_single":
-			_spawn_stripe_barrier(z, rng.randi_range(0, LANE_COUNT - 1))
+			_spawn_stripe_barrier(
+				z,
+				lane_override if lane_override >= 0 else rng.randi_range(0, LANE_COUNT - 1)
+			)
 		"combo_stair_hurdle":
 			_spawn_stair_hazard_row(z, [1, 2, 1], rng)
 			_spawn_hurdle_bar_at(z + 9.0, 2, 1.0)
@@ -242,7 +306,11 @@ func _spawn_setpiece(setpiece_id: String, z: float, rng: RandomNumberGenerator) 
 		"swing_hoop":
 			_spawn_swing_hoop_at(z, _sync_swing_phase(z, spd * 0.8, 0.5), spd * 0.8, 0.65)
 		"spin_ring":
-			_spawn_spin_ring_at(z, rng.randi_range(0, LANE_COUNT - 1), spd)
+			_spawn_spin_ring_at(
+				z,
+				lane_override if lane_override >= 0 else rng.randi_range(0, LANE_COUNT - 1),
+				spd
+			)
 		"l_gate":
 			_spawn_l_gate_at(
 				z,
@@ -256,6 +324,12 @@ func _spawn_setpiece(setpiece_id: String, z: float, rng: RandomNumberGenerator) 
 				spd * 0.72,
 				_sync_swing_phase(z, spd * 0.72, float(rng.randi_range(0, 2)) * PI * 0.33)
 			)
+		"cross_rotator":
+			_spawn_cross_rotator_at(
+				z,
+				float(_host._level_cfg.get("cross_rotator_speed", CROSS_ROTATOR_ANG_SPEED)),
+				_sync_swing_phase(z, spd * 0.95, float(rng.randi_range(0, 3)) * 0.35)
+			)
 		_:
 			_spawn_stair_hazard_row(z, [1, 2, 1], rng)
 	return meta
@@ -268,7 +342,7 @@ func _spawn_segmented_hazards() -> void:
 		return
 	var rng := _hazard_rng()
 	var z := 28.0
-	var track_end := _host._track_len() - 36.0
+	var track_end: float = _host._track_len() - 36.0
 	var need_recovery := false
 	var beat_i := 0
 	for seg_v in segments as Array:
@@ -308,13 +382,16 @@ func _spawn_segmented_hazards() -> void:
 func _spawn_hazards() -> void:
 	## 按关卡 hazard_pattern / max_stair_rows 刷怪；断崖附近留空
 	var pattern := String(_host._level_cfg.get("hazard_pattern", "theme_exam"))
+	if pattern == "manual":
+		_spawn_manual_hazards()
+		return
 	if pattern == "segmented":
 		_spawn_segmented_hazards()
 		_spawn_extra_stair_hazards(_hazard_rng())
 		return
 	var z := 28.0
 	var i := 0
-	var track_len := _host._track_len()
+	var track_len: float = _host._track_len()
 	var max_rows := int(_host._level_cfg.get("max_stair_rows", 3))
 	var rng := _hazard_rng()
 	var spawn_kind := "moving" if pattern == "sweeper_gauntlet" else "stack"
@@ -370,7 +447,21 @@ func _spawn_hazards() -> void:
 				_spawn_stair_hazard_row(z, heights_i, rng, "ice")
 				if i % 3 == 2:
 					_spawn_stack_lane_wall(z + 10.0, 1, rng, "ice")
+				if i > 0 and i % 3 == 0:
+					_spawn_frost_moving_beat(z + 14.0, i, rng, false)
 				z += rng.randf_range(24.0, 32.0)
+			"frost_mix":
+				var hi_f := mini(maxi(max_rows, 2), 4)
+				var heights_f: Array = [1, 2, hi_f] if i % 2 == 0 else [hi_f, 1, 2]
+				var move_z := z + 16.0
+				if i % 2 == 0:
+					_spawn_stair_hazard_row(z, heights_f, rng, "ice")
+				else:
+					move_z = z + 10.0
+				_spawn_frost_moving_beat(move_z, i, rng, true)
+				if i % 4 == 3:
+					_spawn_stack_lane_wall(z + 18.0, 1, rng, "ice")
+				z += rng.randf_range(26.0, 34.0)
 			"dice_weave":
 				# 换道阶梯：矮→高或高→矮，整组堆在一起
 				var hi_w := mini(maxi(max_rows, 2), 4)
@@ -473,7 +564,7 @@ func _spawn_center_rotators() -> void:
 	spd = clampf(spd, 0.65, 1.45)
 	var z := 52.0
 	var i := 0
-	var track_len := _host._track_len()
+	var track_len: float = _host._track_len()
 	while z < track_len - 30.0:
 		if _host._near_cliff_zone(z, TRAMPOLINE_APPROACH_MARGIN):
 			z += 10.0
@@ -520,6 +611,114 @@ func _pick_stack_kind(rng: RandomNumberGenerator) -> String:
 	if bool(_host._level_cfg.get("dice_hazards", true)) or _level_uses_dice():
 		return "dice"
 	return "dice" if rng.randf() > 0.2 else "carrot"
+
+
+func _motion_hazard_frost() -> bool:
+	return _host._is_frost_theme()
+
+
+func _motion_hazard_palette(seed_v: float = 0.0) -> Dictionary:
+	## 动态障碍统一配色：pole / pole_dark / arm / accent / glow
+	if _motion_hazard_frost():
+		var ice_col := CapybaraLevelCatalog.color3(
+			_host._theme_cfg.get("ice_albedo"), Color(0.58, 0.86, 1.0, 0.94)
+		)
+		var edge_col := CapybaraLevelCatalog.color3(
+			_host._theme_cfg.get("ice_edge"), Color(0.85, 0.95, 1.0, 0.92)
+		)
+		var deep := Color(
+			clampf(ice_col.r * 0.35, 0.0, 1.0),
+			clampf(ice_col.g * 0.55, 0.0, 1.0),
+			clampf(ice_col.b * 0.75, 0.0, 1.0),
+			0.92
+		)
+		var pole := StandardMaterial3D.new()
+		pole.albedo_color = Color(ice_col.r * 0.92 + 0.06, ice_col.g * 0.94 + 0.04, 1.0)
+		pole.roughness = 0.14
+		pole.metallic = 0.28
+		var pole_dark := pole.duplicate() as StandardMaterial3D
+		pole_dark.albedo_color = Color(deep.r * 0.7 + 0.18, deep.g * 0.75 + 0.18, deep.b * 0.85 + 0.12)
+		pole_dark.roughness = 0.18
+		var accent := StandardMaterial3D.new()
+		accent.albedo_color = Color(edge_col.r, edge_col.g, edge_col.b, 1.0)
+		accent.roughness = 0.1
+		accent.metallic = 0.35
+		accent.emission_enabled = true
+		accent.emission = Color(0.72, 0.9, 1.0)
+		accent.emission_energy_multiplier = 0.38
+		var glow := accent.duplicate() as StandardMaterial3D
+		glow.emission_energy_multiplier = 0.58
+		var arm: Material = _make_ice_shader_material(ice_col, deep, seed_v)
+		return {"pole": pole, "pole_dark": pole_dark, "arm": arm, "accent": accent, "glow": glow}
+	var yellow := StandardMaterial3D.new()
+	yellow.albedo_color = Color(1.0, 0.78, 0.12)
+	yellow.roughness = 0.45
+	yellow.metallic = 0.15
+	var yellow_dark := StandardMaterial3D.new()
+	yellow_dark.albedo_color = Color(0.92, 0.65, 0.08)
+	yellow_dark.roughness = 0.55
+	var red := StandardMaterial3D.new()
+	red.albedo_color = Color(0.92, 0.16, 0.18)
+	red.roughness = 0.35
+	red.metallic = 0.08
+	red.emission_enabled = true
+	red.emission = Color(0.75, 0.08, 0.1)
+	red.emission_energy_multiplier = 0.35
+	var purple := StandardMaterial3D.new()
+	purple.albedo_color = Color(0.62, 0.28, 0.95)
+	purple.roughness = 0.25
+	purple.emission_enabled = true
+	purple.emission = Color(0.5, 0.2, 0.9)
+	purple.emission_energy_multiplier = 0.45
+	return {"pole": yellow, "pole_dark": yellow_dark, "arm": red, "accent": red, "glow": purple}
+
+
+func _spawn_frost_moving_beat(z: float, beat_i: int, rng: RandomNumberGenerator, heavy: bool = false) -> void:
+	## 冰雪关动态机关：扫臂 / 左右滑动冰闸 / 摆锤 / 冰环
+	var ang_spd := float(_host._level_cfg.get("sweeper_speed", 2.15))
+	var swing := float(_host._level_cfg.get("showcase_swing_speed", 0.85))
+	var slide_spd := float(_host._level_cfg.get("fire_gate_slide_speed", ang_spd * 0.72))
+	var phase := _sync_swing_phase(z, ang_spd, float(beat_i) * 0.55)
+	var cycle := 5 if heavy else 6
+	var slot := beat_i % cycle
+	if slot == 1:
+		_spawn_sliding_gate_at(
+			z,
+			slide_spd,
+			_sync_swing_phase(z, slide_spd, float(beat_i) * 0.33)
+		)
+	elif slot == 2:
+		_spawn_sweeper_at(z, -1 if beat_i % 2 == 0 else 1, ang_spd, phase, true)
+	elif slot == 3:
+		_spawn_sweeper_pair(z, ang_spd, phase, rng)
+	elif slot == 0:
+		_spawn_pendulum_triple_at(z, float(beat_i) * 0.65, swing * 0.9, 0.68)
+	elif heavy and slot == 4:
+		_spawn_cross_rotator_at(
+			z,
+			float(_host._level_cfg.get("cross_rotator_speed", CROSS_ROTATOR_ANG_SPEED)),
+			_sync_swing_phase(z, ang_spd, float(beat_i) * 0.42)
+		)
+	elif not heavy and slot == 5:
+		_spawn_pendulum_triple_at(z, float(beat_i) * 0.65, swing * 0.9, 0.68)
+
+
+func _pendulum_triple_spacing() -> float:
+	if _motion_hazard_frost():
+		return float(_host._level_cfg.get("pendulum_triple_spacing", PENDULUM_TRIPLE_SPACING_FROST))
+	return PENDULUM_TRIPLE_SPACING
+
+
+func _sliding_gate_gap_width() -> float:
+	if _motion_hazard_frost():
+		return float(_host._level_cfg.get("fire_gate_gap_width", FIRE_GATE_GAP_WIDTH_FROST))
+	return float(_host._level_cfg.get("fire_gate_gap_width", FIRE_GATE_GAP_WIDTH))
+
+
+func _sliding_gate_wall_height() -> float:
+	if _motion_hazard_frost():
+		return float(_host._level_cfg.get("fire_gate_wall_height", FIRE_GATE_WALL_H_FROST))
+	return float(_host._level_cfg.get("fire_gate_wall_height", FIRE_GATE_WALL_H))
 
 
 func _spawn_stack_lane_wall(dist: float, rows: int, rng: RandomNumberGenerator, kind_override: String = "") -> void:
@@ -575,9 +774,9 @@ func _spawn_extra_stair_hazards(rng: RandomNumberGenerator) -> void:
 	## 在主 pattern 空隙补少量阶梯组（不再散落单件）
 	var pattern := String(_host._level_cfg.get("hazard_pattern", ""))
 	# 已是密集阶梯的 pattern 不再追加，避免过挤
-	if pattern in ["tutorial", "stair_intro", "dice_weave", "dice_wall", "sakura_tall", "volcano_intro", "ice_stair", "sweeper_gauntlet", "difficulty_mix", "showcase", "test_all", "segmented"]:
+	if pattern in ["tutorial", "stair_intro", "dice_weave", "dice_wall", "sakura_tall", "volcano_intro", "ice_stair", "frost_mix", "sweeper_gauntlet", "difficulty_mix", "showcase", "test_all", "segmented"]:
 		return
-	var track_len := _host._track_len()
+	var track_len: float = _host._track_len()
 	var max_rows := int(_host._level_cfg.get("max_stair_rows", 3))
 	var z := 52.0
 	var n := 0
@@ -601,7 +800,7 @@ func _spawn_block_hazard_at(dist: float, lane: int, cols: int, rows: int, cell_w
 		_spawn_stack_lane_wall(dist, maxi(rows, 1), rng)
 		return
 	var cw := BLOCK_SIZE if cell_w < 0.0 else cell_w
-	var lateral := _host._lane_to_x(lane)
+	var lateral: float = _host._lane_to_x(lane)
 	var visual := _make_clean_block_hazard(cols, rows, cw)
 	var holder := Node3D.new()
 	_host._world.add_child(holder)
@@ -632,7 +831,7 @@ func _spawn_carrot_lane_wall(dist: float) -> void:
 
 
 func _spawn_stripe_barrier(dist: float, lane: int) -> void:
-	var lateral := _host._lane_to_x(lane)
+	var lateral: float = _host._lane_to_x(lane)
 	var visual := _make_stripe_barrier()
 	var holder := Node3D.new()
 	_host._world.add_child(holder)
@@ -661,7 +860,8 @@ func _spawn_sweeper_pair(dist: float, ang_speed: float, phase: float, rng: Rando
 
 
 func _rotator_pillar_stack_h() -> float:
-	return float(ROTATOR_PILLAR_ROWS) * (ROTATOR_PILLAR_CELL + BLOCK_GAP) - BLOCK_GAP
+	var cube_h := ROTATOR_PILLAR_CELL * 0.96
+	return float(ROTATOR_PILLAR_ROWS) * cube_h
 
 
 func _rotator_pillar_radius(cell: float) -> float:
@@ -694,17 +894,9 @@ func _spawn_center_rotator_l_at(dist: float, ang_speed: float, phase: float) -> 
 		"radius": ROTATOR_ARENA_RADIUS,
 	})
 
-	var yellow := StandardMaterial3D.new()
-	yellow.albedo_color = Color(1.0, 0.78, 0.12)
-	yellow.roughness = 0.45
-	yellow.metallic = 0.12
-	var red := StandardMaterial3D.new()
-	red.albedo_color = Color(0.92, 0.16, 0.18)
-	red.roughness = 0.35
-	red.metallic = 0.08
-	red.emission_enabled = true
-	red.emission = Color(0.75, 0.08, 0.1)
-	red.emission_energy_multiplier = 0.35
+	var pal := _motion_hazard_palette(dist)
+	var yellow: Material = pal["pole"]
+	var red: Material = pal["arm"]
 
 	var pivot := Node3D.new()
 	pivot.name = "RotPivot"
@@ -763,17 +955,9 @@ func _spawn_center_rotator_pillars_at(dist: float, ang_speed: float, phase: floa
 		"radius": ROTATOR_ARENA_RADIUS,
 	})
 
-	var yellow := StandardMaterial3D.new()
-	yellow.albedo_color = Color(1.0, 0.78, 0.12)
-	yellow.roughness = 0.45
-	yellow.metallic = 0.12
-	var red := StandardMaterial3D.new()
-	red.albedo_color = Color(0.92, 0.16, 0.18)
-	red.roughness = 0.35
-	red.metallic = 0.08
-	red.emission_enabled = true
-	red.emission = Color(0.75, 0.08, 0.1)
-	red.emission_energy_multiplier = 0.35
+	var pal := _motion_hazard_palette(dist)
+	var yellow: Material = pal["pole"]
+	var red: Material = pal["arm"]
 
 	var pivot := Node3D.new()
 	pivot.name = "RotPivot"
@@ -815,8 +999,90 @@ func _spawn_center_rotator_pillars_at(dist: float, ang_speed: float, phase: floa
 	})
 
 
+func _spawn_cross_rotator_at(dist: float, ang_speed: float, phase: float) -> void:
+	## 圆形平台 + 绕圆心水平旋转的十字杆（四向扫过，需走位躲杆）
+	var arm_half := float(_host._level_cfg.get("cross_rotator_arm_half", CROSS_ROTATOR_ARM_HALF))
+	var arm_thick := CROSS_ROTATOR_ARM_THICK
+	var arm_y := CROSS_ROTATOR_ARM_Y
+	var hub_r := CROSS_ROTATOR_HUB_R
+	var arena_half := ROTATOR_ARENA_RADIUS * 0.98
+	var holder := Node3D.new()
+	holder.name = "CrossRotator"
+	_host._world.add_child(holder)
+	_host._path_place(holder, dist, 0.0, ROAD_SURFACE_Y, 0.0)
+
+	_spawn_rotator_arena_platform(holder)
+	_host._rotator_arenas.append({
+		"dist": dist,
+		"half_len": arena_half,
+		"radius": ROTATOR_ARENA_RADIUS,
+	})
+
+	var pal := _motion_hazard_palette(dist)
+	var hub_mat: Material = pal["pole"]
+	var arm_mat: Material = pal["arm"]
+	var tip_mat: Material = pal["accent"]
+
+	var pivot := Node3D.new()
+	pivot.name = "CrossPivot"
+	pivot.position = Vector3(0.0, arm_y, 0.0)
+	pivot.rotation.y = phase
+	holder.add_child(pivot)
+
+	var hub := MeshInstance3D.new()
+	var hub_mesh := CylinderMesh.new()
+	hub_mesh.top_radius = hub_r
+	hub_mesh.bottom_radius = hub_r * 1.08
+	hub_mesh.height = arm_thick * 1.35
+	hub.mesh = hub_mesh
+	hub.material_override = hub_mat
+	pivot.add_child(hub)
+
+	for arm_i in 2:
+		var arm := MeshInstance3D.new()
+		arm.mesh = _rbox(Vector3(arm_half * 2.0, arm_thick, arm_thick * 1.15), arm_thick * 0.42)
+		arm.material_override = arm_mat
+		if arm_i == 1:
+			arm.rotation.y = PI * 0.5
+		pivot.add_child(arm)
+		for side: float in [-1.0, 1.0]:
+			var tip := MeshInstance3D.new()
+			var tip_mesh := SphereMesh.new()
+			tip_mesh.radius = arm_thick * 0.72
+			tip_mesh.height = arm_thick * 1.44
+			tip.mesh = tip_mesh
+			tip.material_override = tip_mat
+			var along := Vector3(side * arm_half, 0.0, 0.0)
+			if arm_i == 1:
+				along = Vector3(0.0, 0.0, side * arm_half)
+			tip.position = along
+			pivot.add_child(tip)
+
+	_host._disable_subtree_shadows(holder)
+	var hit_top := arm_y + arm_thick * 0.5 + 0.18 + ROAD_SURFACE_Y
+	var hit_r := arm_thick * 0.62 + 0.1
+	items.append({
+		"node": holder,
+		"pivot": pivot,
+		"lane": 1,
+		"dist": dist,
+		"lateral": 0.0,
+		"arm_half": arm_half,
+		"hit_radius": hit_r,
+		"hub_hit_r": hub_r + 0.12,
+		"half_lat": ROTATOR_ARENA_RADIUS + 0.15,
+		"half_len": arena_half,
+		"clear_y": hit_top - 0.1,
+		"hit_top": hit_top,
+		"rows": 1,
+		"hit": false,
+		"kind": "cross_rotator",
+		"ang_speed": ang_speed,
+	})
+
+
 func _spawn_rotator_center_fruits(dist: float, pillar_r: float, rng: RandomNumberGenerator) -> void:
-	var pool := _host._fruit_pool_for_level()
+	var pool: Array = _host._fruit_pool_for_level()
 	if pool.is_empty():
 		return
 	var count := clampi(int(_host._level_cfg.get("rotator_fruit_count", ROTATOR_CENTER_FRUIT_COUNT)), 1, 5)
@@ -828,7 +1094,7 @@ func _spawn_rotator_center_fruits(dist: float, pillar_r: float, rng: RandomNumbe
 		ang += rng.randf_range(-0.12, 0.12)
 		var lateral := cos(ang) * fruit_r
 		var dist_off := sin(ang) * fruit_r * 0.32
-		var visual := _host._make_fruit_visual(kind)
+		var visual: Node3D = _host._make_fruit_visual(kind)
 		var holder := Node3D.new()
 		holder.name = "RotatorFruit"
 		_host._world.add_child(holder)
@@ -852,6 +1118,10 @@ func _spawn_rotator_arena_platform(parent: Node3D) -> void:
 		_host._theme_cfg.get("road_color"), Color(0.86, 0.82, 0.94)
 	)
 	var rim_col := Color(1.0, 0.82, 0.15)
+	if _motion_hazard_frost():
+		rim_col = CapybaraLevelCatalog.color3(
+			_host._theme_cfg.get("ice_edge"), Color(0.85, 0.95, 1.0, 0.92)
+		)
 	var plat := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
 	cyl.top_radius = ROTATOR_ARENA_RADIUS
@@ -886,17 +1156,16 @@ func _add_rotator_pillar(
 	mount: Node3D,
 	cell: float,
 	rows: int,
-	bottom_mat: StandardMaterial3D,
-	top_mat: StandardMaterial3D,
+	bottom_mat: Material,
+	top_mat: Material,
 ) -> void:
-	## 双格矩形立柱：下层黄、上层红
+	## 双格矩形立柱：下层 / 上层贴紧堆叠，不留缝
+	var cube_h := cell * 0.96
 	for row in rows:
 		var cube := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(cell * 0.96, cell * 0.96, cell * 0.96)
-		cube.mesh = bm
+		cube.mesh = _rbox(Vector3(cell * 0.96, cube_h, cell * 0.96), cell * 0.14)
 		cube.material_override = bottom_mat if row == 0 else top_mat
-		cube.position.y = cell * 0.5 + float(row) * (cell + BLOCK_GAP)
+		cube.position.y = cube_h * 0.5 + float(row) * cube_h
 		mount.add_child(cube)
 
 
@@ -908,8 +1177,8 @@ func _add_rotator_hammer(
 	cap_h: float,
 	cap_d: float,
 	pole_r: float,
-	pole_mat: StandardMaterial3D,
-	cap_mat: StandardMaterial3D,
+	pole_mat: Material,
+	cap_mat: Material,
 ) -> void:
 	## 倒 L：顶块从杆顶向圆心方向伸出（非 T 形居中）
 	var pole := MeshInstance3D.new()
@@ -922,9 +1191,7 @@ func _add_rotator_hammer(
 	pole.position.y = pole_h * 0.5
 	mount.add_child(pole)
 	var cap := MeshInstance3D.new()
-	var cap_mesh := BoxMesh.new()
-	cap_mesh.size = Vector3(cap_w, cap_h, cap_d)
-	cap.mesh = cap_mesh
+	cap.mesh = _rbox(Vector3(cap_w, cap_h, cap_d), minf(cap_h, cap_d) * 0.28)
 	cap.material_override = cap_mat
 	cap.position.y = pole_h + cap_h * 0.5
 	cap.position.x = -mount_side * cap_w * 0.5
@@ -949,17 +1216,9 @@ func _spawn_sweeper_at(
 	_host._world.add_child(holder)
 	_host._path_place(holder, dist, 0.0, ROAD_SURFACE_Y, 0.0)
 
-	var yellow := StandardMaterial3D.new()
-	yellow.albedo_color = Color(1.0, 0.78, 0.12)
-	yellow.roughness = 0.45
-	yellow.metallic = 0.15
-	var red := StandardMaterial3D.new()
-	red.albedo_color = Color(0.92, 0.16, 0.18)
-	red.roughness = 0.35
-	red.metallic = 0.08
-	red.emission_enabled = true
-	red.emission = Color(0.75, 0.08, 0.1)
-	red.emission_energy_multiplier = 0.35
+	var pal := _motion_hazard_palette(dist)
+	var yellow: Material = pal["pole"]
+	var red: Material = pal["arm"]
 
 	# 黄柱底座
 	var base := MeshInstance3D.new()
@@ -1047,40 +1306,46 @@ func _spawn_sweeper_at(
 
 
 func _update_moving_hazards(delta: float) -> void:
-	for h in items:
+	for i in items.size():
+		var h: Dictionary = items[i]
 		var kind := String(h.get("kind", ""))
 		if kind == "pendulum_triple":
-			h["phase"] = float(h.get("phase", 0.0)) + float(h.get("swing_speed", 1.2)) * delta
-			var ph := float(h["phase"])
+			var ph := float(h.get("phase", 0.0)) + float(h.get("swing_speed", 1.2)) * delta
+			h["phase"] = ph
 			var a := float(h.get("amp", 0.72))
 			for m in h.get("members", []):
 				var mp: Node3D = m.get("pivot") as Node3D
 				if mp != null and is_instance_valid(mp):
 					mp.rotation.z = sin(ph + float(m.get("phase_off", 0.0))) * a
+			items[i] = h
 			continue
 		if kind == "fire_gate":
-			h["phase"] = float(h.get("phase", 0.0)) + float(h.get("slide_speed", FIRE_GATE_SLIDE_SPEED)) * delta
+			var fg_ph := float(h.get("phase", 0.0)) + float(h.get("slide_speed", FIRE_GATE_SLIDE_SPEED)) * delta
+			h["phase"] = fg_ph
 			var slider_fg: Node3D = h.get("slider") as Node3D
 			if slider_fg != null and is_instance_valid(slider_fg):
-				slider_fg.position.x = sin(float(h["phase"])) * float(h.get("slide_amp", FIRE_GATE_SLIDE_AMP))
-			var flick := 0.82 + 0.18 * sin(float(h["phase"]) * 5.3)
+				slider_fg.position.x = sin(fg_ph) * float(h.get("slide_amp", FIRE_GATE_SLIDE_AMP))
+			var flick := 0.82 + 0.18 * sin(fg_ph * 5.3)
 			for mat in h.get("fire_mats", []):
 				if mat is StandardMaterial3D:
 					(mat as StandardMaterial3D).emission_energy_multiplier = float(h.get("em_base", 1.0)) * flick
+			items[i] = h
 			continue
 		var pivot: Node3D = h.get("pivot") as Node3D
 		if pivot == null or not is_instance_valid(pivot):
 			continue
 		match kind:
-			"sweeper", "l_gate", "center_rotator":
+			"sweeper", "l_gate", "center_rotator", "cross_rotator":
 				pivot.rotation.y += float(h.get("ang_speed", 2.0)) * delta
 			"pendulum", "swing_hoop":
-				h["phase"] = float(h.get("phase", 0.0)) + float(h.get("swing_speed", 1.6)) * delta
-				pivot.rotation.z = sin(float(h["phase"])) * float(h.get("amp", 0.85))
+				var ph2 := float(h.get("phase", 0.0)) + float(h.get("swing_speed", 1.6)) * delta
+				h["phase"] = ph2
+				pivot.rotation.z = sin(ph2) * float(h.get("amp", 0.85))
 			"spin_ring":
 				pivot.rotation.z += float(h.get("ang_speed", 2.4)) * delta
 			_:
 				pass
+		items[i] = h
 
 
 func _level_difficulty() -> int:
@@ -1107,7 +1372,7 @@ func _spawn_test_all_beat(z: float, i: int, rng: RandomNumberGenerator) -> void:
 	var sweep := float(_host._level_cfg.get("sweeper_speed", 1.0))
 	var swing := float(_host._level_cfg.get("showcase_swing_speed", 0.85))
 	var ring := float(_host._level_cfg.get("showcase_ring_speed", 1.15))
-	match i % 17:
+	match i % 18:
 		0:
 			_spawn_stair_hazard_row(z, [1, 2, 1], rng, "dice")
 		1:
@@ -1142,6 +1407,12 @@ func _spawn_test_all_beat(z: float, i: int, rng: RandomNumberGenerator) -> void:
 			_spawn_fire_sliding_gate_at(z, sweep * 0.72, float(i) * 0.45)
 		15:
 			_spawn_stair_hazard_row(z, [1, 3, 2], rng, "dice")
+		16:
+			_spawn_cross_rotator_at(
+				z,
+				float(_host._level_cfg.get("cross_rotator_speed", CROSS_ROTATOR_ANG_SPEED)),
+				float(i) * 0.55
+			)
 		_:
 			_spawn_hurdle_bar_at(z, 2, 1.05)
 			_spawn_stair_hazard_row(z + 10.0, [2, 1, 3], rng, "carrot")
@@ -1189,7 +1460,7 @@ func _spawn_hurdle_bar_at(dist: float, lane_span: int, bar_y: float) -> void:
 		mid_lane = 1
 	elif lane_span == 2:
 		mid_lane = 0 if int(dist) % 2 == 0 else 1
-	var lateral := 0.0 if lane_span >= 3 else _host._lane_to_x(mid_lane)
+	var lateral: float = 0.0 if lane_span >= 3 else _host._lane_to_x(mid_lane)
 	if lane_span == 2:
 		lateral = (_host._lane_to_x(mid_lane) + _host._lane_to_x(mini(mid_lane + 1, 2))) * 0.5
 	var width := float(lane_span) * LANE_WIDTH * 0.95
@@ -1221,9 +1492,7 @@ func _spawn_hurdle_bar_at(dist: float, lane_span: int, bar_y: float) -> void:
 		holder.add_child(post)
 
 	var bar := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3(width * 0.92, 0.12, 0.12)
-	bar.mesh = bm
+	bar.mesh = _rbox(Vector3(width * 0.92, 0.12, 0.12), 0.05)
 	bar.material_override = red
 	bar.position = Vector3(0.0, bar_y, 0.0)
 	holder.add_child(bar)
@@ -1254,22 +1523,12 @@ func _spawn_pendulum_at(dist: float, phase: float, swing_speed: float, amp: floa
 	_host._world.add_child(holder)
 	_host._path_place(holder, dist, 0.0, ROAD_SURFACE_Y, 0.0)
 
-	var pink := StandardMaterial3D.new()
-	pink.albedo_color = Color(0.95, 0.45, 0.75)
-	pink.roughness = 0.35
-	var crystal := StandardMaterial3D.new()
-	crystal.albedo_color = Color(0.55, 0.35, 0.95, 0.92)
-	crystal.roughness = 0.15
-	crystal.metallic = 0.2
-	crystal.emission_enabled = true
-	crystal.emission = Color(0.45, 0.25, 0.9)
-	crystal.emission_energy_multiplier = 0.55
-	crystal.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var pal := _motion_hazard_palette(dist)
+	var pink: Material = pal["pole"]
+	var crystal: Material = pal["glow"] if _motion_hazard_frost() else pal["arm"]
 
 	var beam := MeshInstance3D.new()
-	var beam_m := BoxMesh.new()
-	beam_m.size = Vector3(ROAD_HALF_W * 2.2, 0.1, 0.12)
-	beam.mesh = beam_m
+	beam.mesh = _rbox(Vector3(ROAD_HALF_W * 2.2, 0.1, 0.12), 0.04)
 	beam.material_override = pink
 	beam.position = Vector3(0.0, pivot_y + 0.15, 0.0)
 	holder.add_child(beam)
@@ -1329,20 +1588,12 @@ func _spawn_pendulum_triple_at(dist: float, phase: float, swing_speed: float, am
 	amp = clampf(amp, 0.45, 1.05)
 	var hang := PENDULUM_TRIPLE_HANG
 	var pivot_y := PENDULUM_TRIPLE_PIVOT_Y
-	var spacing := PENDULUM_TRIPLE_SPACING
+	var spacing := _pendulum_triple_spacing()
 
-	var orange := StandardMaterial3D.new()
-	orange.albedo_color = Color(1.0, 0.52, 0.10)
-	orange.roughness = 0.55
-	var orange_dark := StandardMaterial3D.new()
-	orange_dark.albedo_color = Color(0.92, 0.42, 0.08)
-	orange_dark.roughness = 0.62
-	var red := StandardMaterial3D.new()
-	red.albedo_color = Color(0.92, 0.16, 0.20)
-	red.roughness = 0.42
-	red.emission_enabled = true
-	red.emission = Color(0.55, 0.08, 0.10)
-	red.emission_energy_multiplier = 0.2
+	var pal := _motion_hazard_palette(dist)
+	var orange: Material = pal["pole"]
+	var orange_dark: Material = pal["pole_dark"]
+	var red: Material = pal["arm"]
 
 	var members: Array = []
 	for i in PENDULUM_TRIPLE_COUNT:
@@ -1364,9 +1615,7 @@ func _spawn_pendulum_triple_at(dist: float, phase: float, swing_speed: float, am
 		holder.add_child(post)
 
 		var base_bar := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(ROAD_HALF_W * 1.85, 0.16, 0.16)
-		base_bar.mesh = bm
+		base_bar.mesh = _rbox(Vector3(ROAD_HALF_W * 1.85, 0.16, 0.16), 0.06)
 		base_bar.material_override = red
 		base_bar.position = Vector3(0.0, 0.42, 0.0)
 		holder.add_child(base_bar)
@@ -1398,9 +1647,7 @@ func _spawn_pendulum_triple_at(dist: float, phase: float, swing_speed: float, am
 		pivot.add_child(rod)
 
 		var weight := MeshInstance3D.new()
-		var wm := BoxMesh.new()
-		wm.size = Vector3(0.82, 1.05, 0.62)
-		weight.mesh = wm
+		weight.mesh = _rbox(Vector3(0.82, 1.05, 0.62), 0.14)
 		weight.material_override = red
 		weight.position = Vector3(0.0, -hang, 0.0)
 		pivot.add_child(weight)
@@ -1448,20 +1695,12 @@ func _spawn_swing_hoop_at(dist: float, phase: float, swing_speed: float, amp: fl
 	_host._world.add_child(holder)
 	_host._path_place(holder, dist, 0.0, ROAD_SURFACE_Y, 0.0)
 
-	var yellow := StandardMaterial3D.new()
-	yellow.albedo_color = Color(1.0, 0.8, 0.15)
-	yellow.roughness = 0.45
-	var purple := StandardMaterial3D.new()
-	purple.albedo_color = Color(0.62, 0.28, 0.95)
-	purple.roughness = 0.25
-	purple.emission_enabled = true
-	purple.emission = Color(0.5, 0.2, 0.9)
-	purple.emission_energy_multiplier = 0.45
+	var pal := _motion_hazard_palette(dist)
+	var yellow: Material = pal["pole"]
+	var purple: Material = pal["glow"]
 
 	var bar := MeshInstance3D.new()
-	var bar_m := BoxMesh.new()
-	bar_m.size = Vector3(ROAD_HALF_W * 2.0, 0.1, 0.1)
-	bar.mesh = bar_m
+	bar.mesh = _rbox(Vector3(ROAD_HALF_W * 2.0, 0.1, 0.1), 0.04)
 	bar.material_override = yellow
 	bar.position = Vector3(0.0, pivot_y + 0.12, 0.0)
 	holder.add_child(bar)
@@ -1519,7 +1758,7 @@ func _spawn_swing_hoop_at(dist: float, phase: float, swing_speed: float, amp: fl
 
 func _spawn_spin_ring_at(dist: float, lane: int, ang_speed: float) -> void:
 	## 橙色立式旋转环：占一道，跳或换道
-	var lateral := _host._lane_to_x(lane)
+	var lateral: float = _host._lane_to_x(lane)
 	var holder := Node3D.new()
 	holder.name = "SpinRing"
 	_host._world.add_child(holder)
@@ -1598,18 +1837,14 @@ func _spawn_l_gate_at(dist: float, side: int, ang_speed: float, phase: float) ->
 	# 水平臂 4 块
 	for i in 4:
 		var b := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(cell * 0.92, cell * 0.92, cell * 0.92)
-		b.mesh = bm
+		b.mesh = _rbox(Vector3(cell * 0.92, cell * 0.92, cell * 0.92), cell * 0.14)
 		b.material_override = red
 		b.position = Vector3(cell * (0.5 + float(i)), 0.0, 0.0)
 		pivot.add_child(b)
 	# 竖直端 2 块（L）
 	for j in 2:
 		var b2 := MeshInstance3D.new()
-		var bm2 := BoxMesh.new()
-		bm2.size = Vector3(cell * 0.92, cell * 0.92, cell * 0.92)
-		b2.mesh = bm2
+		b2.mesh = _rbox(Vector3(cell * 0.92, cell * 0.92, cell * 0.92), cell * 0.14)
 		b2.material_override = red
 		b2.position = Vector3(cell * 3.5, cell * (1.0 + float(j)), 0.0)
 		pivot.add_child(b2)
@@ -1647,36 +1882,80 @@ func _make_fire_gate_material(em_base: float = 1.15) -> StandardMaterial3D:
 	return mat
 
 
-func _make_fire_gate_panel(width: float, height: float, mat: StandardMaterial3D) -> Node3D:
+func _make_fire_gate_panel(width: float, height: float, mat: Material, base_y: float = -1.0) -> Node3D:
+	var floor_y := base_y if base_y >= 0.0 else ROAD_SURFACE_Y + FIRE_GATE_BASE_LIFT
 	var root := Node3D.new()
+	var plinth := MeshInstance3D.new()
+	plinth.mesh = _rbox(Vector3(maxf(width, 0.08), 0.16, FIRE_GATE_PANEL_DEPTH + 0.08), 0.05)
+	var plinth_mat := StandardMaterial3D.new()
+	if _motion_hazard_frost():
+		plinth_mat.albedo_color = Color(0.62, 0.86, 1.0)
+		plinth_mat.emission = Color(0.45, 0.82, 1.0)
+	else:
+		plinth_mat.albedo_color = Color(0.72, 0.22, 0.06)
+		plinth_mat.emission = Color(1.0, 0.38, 0.05)
+	plinth_mat.emission_enabled = true
+	plinth_mat.emission_energy_multiplier = 0.42
+	plinth_mat.roughness = 0.55
+	plinth.material_override = plinth_mat
+	plinth.position.y = floor_y + 0.08
+	plinth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(plinth)
+
 	var body := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3(maxf(width, 0.08), height, 0.34)
-	body.mesh = bm
-	body.material_override = mat
-	body.position.y = height * 0.5
+	body.mesh = _rbox(Vector3(maxf(width, 0.08), height, FIRE_GATE_PANEL_DEPTH), 0.08)
+	var body_mat: Material = mat.duplicate() if mat != null else null
+	if body_mat != null:
+		body_mat.render_priority = 1
+	body.material_override = body_mat
+	body.position.y = floor_y + height * 0.5
 	root.add_child(body)
 	var crest := MeshInstance3D.new()
-	var cm := BoxMesh.new()
-	cm.size = Vector3(maxf(width * 0.94, 0.06), height * 0.16, 0.26)
-	crest.mesh = cm
-	var crest_mat := mat.duplicate() as StandardMaterial3D
-	crest_mat.emission = Color(1.0, 0.72, 0.12)
-	crest_mat.emission_energy_multiplier = mat.emission_energy_multiplier * 1.35
-	crest.material_override = crest_mat
-	crest.position.y = height + height * 0.06
+	crest.mesh = _rbox(Vector3(maxf(width * 0.94, 0.06), height * 0.16, FIRE_GATE_PANEL_DEPTH * 0.82), 0.04)
+	if mat is StandardMaterial3D:
+		var crest_mat := (mat as StandardMaterial3D).duplicate()
+		if _motion_hazard_frost():
+			crest_mat.emission = Color(0.85, 0.96, 1.0)
+		else:
+			crest_mat.emission = Color(1.0, 0.72, 0.12)
+		crest_mat.emission_energy_multiplier = (mat as StandardMaterial3D).emission_energy_multiplier * 1.35
+		crest_mat.render_priority = 2
+		crest.material_override = crest_mat
+	elif mat != null:
+		var crest_mat := mat.duplicate()
+		crest_mat.render_priority = 2
+		crest.material_override = crest_mat
+	crest.position.y = floor_y + height + height * 0.06
 	root.add_child(crest)
 	return root
 
 
-func _spawn_fire_sliding_gate_at(dist: float, slide_speed: float, phase: float) -> void:
-	## 左右循环滑动火焰墙：中间留一车道宽缺口，其余为火焰不可通过
-	var gap_half := FIRE_GATE_GAP_WIDTH * 0.5
+func _sliding_gate_wall_material(seed_v: float = 0.0) -> Material:
+	if _motion_hazard_frost():
+		var ice_col := CapybaraLevelCatalog.color3(
+			_host._theme_cfg.get("ice_albedo"), Color(0.58, 0.86, 1.0, 0.94)
+		)
+		var deep := Color(
+			clampf(ice_col.r * 0.35, 0.0, 1.0),
+			clampf(ice_col.g * 0.55, 0.0, 1.0),
+			clampf(ice_col.b * 0.75, 0.0, 1.0),
+			0.92
+		)
+		return _make_ice_shader_material(ice_col, deep, seed_v)
+	return _make_fire_gate_material(1.15)
+
+
+func _spawn_sliding_gate_at(dist: float, slide_speed: float, phase: float) -> void:
+	## 左右循环滑动墙：中间留一车道宽缺口（冰雪关为冰墙，其它主题为火焰）
+	var gap_w := _sliding_gate_gap_width()
+	var wall_h := _sliding_gate_wall_height()
+	var gap_half := gap_w * 0.5
 	var panel_w := maxf(ROAD_HALF_W - gap_half, 0.35)
 	var holder := Node3D.new()
-	holder.name = "FireSlidingGate"
+	holder.name = "IceSlidingGate" if _motion_hazard_frost() else "FireSlidingGate"
 	_host._world.add_child(holder)
-	_host._path_place(holder, dist, 0.0, ROAD_SURFACE_Y, 0.0)
+	_host._path_place(holder, dist, 0.0, 0.0, 0.0)
+	var floor_y := ROAD_SURFACE_Y + FIRE_GATE_BASE_LIFT
 
 	var slider := Node3D.new()
 	slider.name = "Slider"
@@ -1685,43 +1964,45 @@ func _spawn_fire_sliding_gate_at(dist: float, slide_speed: float, phase: float) 
 
 	var fire_mats: Array = []
 	var em_base := 1.15
-	var left_mat := _make_fire_gate_material(em_base)
-	var right_mat := _make_fire_gate_material(em_base)
-	fire_mats.append(left_mat)
-	fire_mats.append(right_mat)
+	var left_mat := _sliding_gate_wall_material(dist)
+	var right_mat := _sliding_gate_wall_material(dist + 17.0)
+	if left_mat is StandardMaterial3D:
+		fire_mats.append(left_mat)
+		fire_mats.append(right_mat)
 
-	var left := _make_fire_gate_panel(panel_w, FIRE_GATE_WALL_H, left_mat)
+	var left := _make_fire_gate_panel(panel_w, wall_h, left_mat, floor_y)
 	left.position.x = -(gap_half + panel_w * 0.5)
 	slider.add_child(left)
 
-	var right := _make_fire_gate_panel(panel_w, FIRE_GATE_WALL_H, right_mat)
+	var right := _make_fire_gate_panel(panel_w, wall_h, right_mat, floor_y)
 	right.position.x = gap_half + panel_w * 0.5
 	slider.add_child(right)
 
-	# 缺口标记：暗色安全框（非碰撞，仅提示）
 	var safe := MeshInstance3D.new()
-	var safe_mesh := BoxMesh.new()
-	safe_mesh.size = Vector3(FIRE_GATE_GAP_WIDTH * 0.92, 0.06, 0.42)
-	safe.mesh = safe_mesh
+	safe.mesh = _rbox(Vector3(gap_w * 0.92, 0.06, 0.42), 0.02)
 	var safe_mat := StandardMaterial3D.new()
-	safe_mat.albedo_color = Color(0.18, 0.72, 0.95, 0.55)
+	if _motion_hazard_frost():
+		safe_mat.albedo_color = Color(0.72, 0.92, 1.0, 0.62)
+		safe_mat.emission = Color(0.55, 0.88, 1.0)
+	else:
+		safe_mat.albedo_color = Color(0.18, 0.72, 0.95, 0.55)
+		safe_mat.emission = Color(0.2, 0.85, 1.0)
 	safe_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	safe_mat.emission_enabled = true
-	safe_mat.emission = Color(0.2, 0.85, 1.0)
 	safe_mat.emission_energy_multiplier = 0.35
 	safe.material_override = safe_mat
-	safe.position.y = 0.03
+	safe.position.y = floor_y + 0.03
 	slider.add_child(safe)
 
 	_host._disable_subtree_shadows(holder)
-	var hit_top := FIRE_GATE_WALL_H + ROAD_SURFACE_Y
+	var hit_top := floor_y + wall_h
 	items.append({
 		"node": holder,
 		"slider": slider,
 		"lane": -1,
 		"dist": dist,
 		"lateral": 0.0,
-		"gap_width": FIRE_GATE_GAP_WIDTH,
+		"gap_width": gap_w,
 		"slide_amp": FIRE_GATE_SLIDE_AMP,
 		"half_lat": ROAD_HALF_W + 0.2,
 		"half_len": FIRE_GATE_HALF_LEN,
@@ -1736,11 +2017,15 @@ func _spawn_fire_sliding_gate_at(dist: float, slide_speed: float, phase: float) 
 		"em_base": em_base,
 	})
 
+
+func _spawn_fire_sliding_gate_at(dist: float, slide_speed: float, phase: float) -> void:
+	_spawn_sliding_gate_at(dist, slide_speed, phase)
+
 func _make_stripe_barrier() -> Node3D:
 	## 主题色斜纹路障；有主题模型则优先用
-	var model_path := _theme_obstacle_path("stripe_model")
+	var model_path: String = _host._track_sys.theme_obstacle_path("stripe_model")
 	if not model_path.is_empty():
-		var fitted := _instance_fitted(model_path, 1.15, 0.0)
+		var fitted: Node3D = _host._instance_fitted(model_path, 1.15, 0.0)
 		if fitted != null:
 			return fitted
 	var root := Node3D.new()
@@ -1748,9 +2033,7 @@ func _make_stripe_barrier() -> Node3D:
 	var c0 := CapybaraLevelCatalog.color3(cols[0] if cols.size() > 0 else null, Color(1.0, 0.55, 0.12))
 	var c1 := CapybaraLevelCatalog.color3(cols[1] if cols.size() > 1 else null, Color(0.98, 0.98, 0.98))
 	var board := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(1.7, 0.28, 0.16)
-	board.mesh = box
+	board.mesh = _rbox(Vector3(1.7, 0.28, 0.16), 0.05)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = c0
 	mat.roughness = 0.55
@@ -1759,9 +2042,7 @@ func _make_stripe_barrier() -> Node3D:
 	root.add_child(board)
 	for s in 4:
 		var stripe := MeshInstance3D.new()
-		var sb := BoxMesh.new()
-		sb.size = Vector3(0.22, 0.3, 0.18)
-		stripe.mesh = sb
+		stripe.mesh = _rbox(Vector3(0.22, 0.3, 0.18), 0.04)
 		var sm := StandardMaterial3D.new()
 		sm.albedo_color = c1
 		stripe.material_override = sm
@@ -1772,9 +2053,7 @@ func _make_stripe_barrier() -> Node3D:
 	leg_mat.albedo_color = Color(0.35, 0.35, 0.38)
 	for side in [-1.0, 1.0]:
 		var leg := MeshInstance3D.new()
-		var lc := BoxMesh.new()
-		lc.size = Vector3(0.08, 0.55, 0.08)
-		leg.mesh = lc
+		leg.mesh = _rbox(Vector3(0.08, 0.55, 0.08), 0.028)
 		leg.material_override = leg_mat
 		leg.position = Vector3(side * 0.55, 0.28, 0.0)
 		leg.rotation.z = side * 0.35
@@ -1787,9 +2066,6 @@ func _make_clean_block_hazard(cols: int, rows: int, cell_w: float = -1.0) -> Nod
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = CapybaraLevelCatalog.color3(_host._theme_cfg.get("block_albedo"), Color(0.62, 0.82, 0.95))
 	mat.roughness = 0.55
-	var edge := StandardMaterial3D.new()
-	edge.albedo_color = Color(0.92, 0.96, 1.0)
-	edge.roughness = 0.4
 	var size_y := BLOCK_SIZE
 	var size_z := BLOCK_SIZE
 	var size_x := BLOCK_SIZE if cell_w < 0.0 else cell_w
@@ -1798,20 +2074,9 @@ func _make_clean_block_hazard(cols: int, rows: int, cell_w: float = -1.0) -> Nod
 		for c in cols:
 			var cell := Node3D.new()
 			var body := MeshInstance3D.new()
-			var box := BoxMesh.new()
-			box.size = Vector3(size_x, size_y, size_z)
-			body.mesh = box
+			body.mesh = _rbox(Vector3(size_x, size_y, size_z), minf(size_x, size_y) * 0.14)
 			body.material_override = mat
 			cell.add_child(body)
-			var frame := MeshInstance3D.new()
-			var fb := BoxMesh.new()
-			fb.size = Vector3(size_x + 0.04, size_y + 0.04, size_z + 0.04)
-			frame.mesh = fb
-			var fm := edge.duplicate() as StandardMaterial3D
-			fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			fm.albedo_color = Color(1.0, 1.0, 1.0, 0.22)
-			frame.material_override = fm
-			cell.add_child(frame)
 			var ox := (float(c) - float(cols - 1) * 0.5) * (size_x + gap)
 			cell.position = Vector3(ox, size_y * 0.5 + float(r) * (size_y + gap), 0.0)
 			root.add_child(cell)
@@ -1828,6 +2093,8 @@ func _hazard_overlap(h: Dictionary, progress: float, lane_x: float, air_y: float
 			return _sweeper_overlap(h, progress, lane_x, air_y)
 		"center_rotator":
 			return _center_rotator_overlap(h, progress, lane_x, air_y)
+		"cross_rotator":
+			return _cross_rotator_overlap(h, progress, lane_x, air_y)
 		"pendulum":
 			return _pendulum_overlap(h, progress, lane_x, air_y)
 		"pendulum_triple":
@@ -1886,6 +2153,61 @@ func _sweeper_overlap(h: Dictionary, progress: float, lane_x: float, air_y: floa
 	return dx * dx + dz * dz <= hit_r * hit_r
 
 
+func _segment_point_dist_sq(
+	ax: float,
+	az: float,
+	bx: float,
+	bz: float,
+	px: float,
+	pz: float
+) -> float:
+	var abx := bx - ax
+	var abz := bz - az
+	var apx := px - ax
+	var apz := pz - az
+	var ab2 := abx * abx + abz * abz
+	var t := 0.0
+	if ab2 > 0.0001:
+		t = clampf((apx * abx + apz * abz) / ab2, 0.0, 1.0)
+	var cx := ax + abx * t
+	var cz := az + abz * t
+	var dx := px - cx
+	var dz := pz - cz
+	return dx * dx + dz * dz
+
+
+func _cross_rotator_overlap(h: Dictionary, progress: float, lane_x: float, air_y: float) -> bool:
+	## 十字杆：两根过圆心的旋转臂 + 中心 hub
+	var dist := float(h.get("dist", -9999.0))
+	var half_len := float(h.get("half_len", ROTATOR_ARENA_RADIUS))
+	if absf(dist - progress) > half_len:
+		return false
+	var pivot: Node3D = h.get("pivot") as Node3D
+	var yaw := pivot.rotation.y if pivot != null and is_instance_valid(pivot) else 0.0
+	var arm_half := float(h.get("arm_half", CROSS_ROTATOR_ARM_HALF))
+	var hit_r := float(h.get("hit_radius", CROSS_ROTATOR_ARM_THICK * 0.62 + 0.1))
+	var hub_r := float(h.get("hub_hit_r", CROSS_ROTATOR_HUB_R + 0.12))
+	var px := lane_x
+	var pz := progress - dist
+	var c := cos(yaw)
+	var s := sin(yaw)
+	# 局部 X 臂
+	var ax0 := -c * arm_half
+	var az0 := s * arm_half
+	var bx0 := c * arm_half
+	var bz0 := -s * arm_half
+	if _segment_point_dist_sq(ax0, az0, bx0, bz0, px, pz) <= hit_r * hit_r:
+		return true
+	# 局部 Z 臂
+	var ax1 := s * arm_half
+	var az1 := c * arm_half
+	var bx1 := -s * arm_half
+	var bz1 := -c * arm_half
+	if _segment_point_dist_sq(ax1, az1, bx1, bz1, px, pz) <= hit_r * hit_r:
+		return true
+	return px * px + pz * pz <= hub_r * hub_r
+
+
 func _fire_gate_overlap(h: Dictionary, progress: float, lane_x: float, air_y: float) -> bool:
 	## 左右滑动火焰门：仅缺口内可过；火焰区命中
 	var dist := float(h.get("dist", -9999.0))
@@ -1895,7 +2217,7 @@ func _fire_gate_overlap(h: Dictionary, progress: float, lane_x: float, air_y: fl
 	var slider: Node3D = h.get("slider") as Node3D
 	var gap_center := slider.position.x if slider != null and is_instance_valid(slider) else 0.0
 	var gap_half := float(h.get("gap_width", FIRE_GATE_GAP_WIDTH)) * 0.5
-	var margin := LANE_WIDTH * 0.08
+	var margin := LANE_WIDTH * (0.14 if _motion_hazard_frost() else 0.08)
 	if lane_x >= gap_center - gap_half - margin and lane_x <= gap_center + gap_half + margin:
 		return false
 	return true
@@ -2018,7 +2340,7 @@ func _swing_hoop_overlap(h: Dictionary, progress: float, lane_x: float, air_y: f
 
 func _hazard_kind_group(kind: String) -> String:
 	match kind:
-		"center_rotator":
+		"center_rotator", "cross_rotator":
 			return "rotator"
 		"sweeper", "l_gate", "pendulum", "pendulum_triple", "swing_hoop", "spin_ring", "fire_gate":
 			return "moving"
@@ -2056,7 +2378,7 @@ func _spawn_carrot_stack_column(
 	var scl := 1.12
 	var step_y := 0.58
 	var bury := 0.12
-	var lateral := _host._lane_to_x(lane)
+	var lateral: float = _host._lane_to_x(lane)
 	var holder := Node3D.new()
 	holder.name = "CarrotStack"
 	_host._world.add_child(holder)
@@ -2090,26 +2412,23 @@ func _spawn_ice_stack_column(
 	rows: int,
 	rng: RandomNumberGenerator
 ) -> void:
-	## 冰块阶梯柱：半透明冰砖，贴车道宽堆叠
+	## 冰块阶梯柱：冰砖紧密堆叠
 	rows = clampi(rows, 1, 6)
 	var cell := LANE_WIDTH - 0.06
-	var step := cell - 0.01
-	var lateral := _host._lane_to_x(lane)
+	var block_h := cell
+	var overlap := 0.04
+	var lateral: float = _host._lane_to_x(lane)
 	var holder := Node3D.new()
 	holder.name = "IceStack"
 	_host._world.add_child(holder)
 	_host._path_place(holder, dist, lateral, ROAD_SURFACE_Y, 0.0)
 	for i in rows:
-		var ice := _make_ice_block(cell, rng)
-		ice.position = Vector3(0.0, cell * 0.5 + float(i) * step, 0.0)
-		ice.rotation = Vector3(
-			deg_to_rad(rng.randf_range(-3.0, 3.0)),
-			deg_to_rad(rng.randf_range(-12.0, 12.0)),
-			deg_to_rad(rng.randf_range(-3.0, 3.0))
-		)
+		var ice := _make_ice_block(cell, rng, true)
+		ice.position = Vector3(0.0, block_h * 0.5 + float(i) * (block_h - overlap), 0.0)
+		ice.rotation = Vector3(0.0, deg_to_rad(rng.randf_range(-6.0, 6.0)), 0.0)
 		holder.add_child(ice)
 	_host._disable_subtree_shadows(holder)
-	var hit_h := cell * 0.5 + float(rows - 1) * step + cell * 0.5 + ROAD_SURFACE_Y
+	var hit_h := block_h * 0.5 + float(rows - 1) * (block_h - overlap) + block_h * 0.5 + ROAD_SURFACE_Y
 	items.append({
 		"node": holder,
 		"lane": lane,
@@ -2126,8 +2445,8 @@ func _spawn_ice_stack_column(
 	})
 
 
-func _make_ice_block(size: float = 1.0, rng: RandomNumberGenerator = null) -> Node3D:
-	## 更真实的冰块：不规则外形 + 冰面着色器（菲涅尔/霜/裂纹/气泡）
+func _make_ice_block(size: float = 1.0, rng: RandomNumberGenerator = null, for_stack: bool = false) -> Node3D:
+	## 更真实的冰块：不规则外形 + 冰面着色器；for_stack 时尺寸统一、无装饰，便于无缝堆叠
 	var local_rng := rng
 	if local_rng == null:
 		local_rng = RandomNumberGenerator.new()
@@ -2136,7 +2455,7 @@ func _make_ice_block(size: float = 1.0, rng: RandomNumberGenerator = null) -> No
 	root.name = "IceBlock"
 
 	var ice_col := CapybaraLevelCatalog.color3(
-		_host._theme_cfg.get("ice_albedo"), Color(0.58, 0.86, 1.0, 0.78)
+		_host._theme_cfg.get("ice_albedo"), Color(0.58, 0.86, 1.0, 0.94)
 	)
 	var deep := Color(
 		clampf(ice_col.r * 0.35, 0.0, 1.0),
@@ -2145,30 +2464,32 @@ func _make_ice_block(size: float = 1.0, rng: RandomNumberGenerator = null) -> No
 		0.92
 	)
 
-	# 略不规则，避免完美正方体
-	var sx := size * local_rng.randf_range(0.92, 1.04)
-	var sy := size * local_rng.randf_range(0.88, 1.02)
-	var sz := size * local_rng.randf_range(0.92, 1.04)
+	var sx := size
+	var sy := size
+	var sz := size
+	if not for_stack:
+		sx = size * local_rng.randf_range(0.92, 1.04)
+		sy = size * local_rng.randf_range(0.88, 1.02)
+		sz = size * local_rng.randf_range(0.92, 1.04)
 
 	var body := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(sx, sy, sz)
-	body.mesh = box
+	body.mesh = _rbox(Vector3(sx, sy, sz), minf(sx, minf(sy, sz)) * 0.16)
 	body.material_override = _make_ice_shader_material(ice_col, deep, local_rng.randf() * 40.0)
 	root.add_child(body)
 
+	if for_stack:
+		return root
+
 	# 切角碎冰：边角小块，打破塑料感
 	var chip_mat := _make_ice_shader_material(
-		Color(ice_col.r + 0.08, ice_col.g + 0.05, ice_col.b, 0.7),
+		Color(ice_col.r + 0.08, ice_col.g + 0.05, ice_col.b, maxf(ice_col.a, 0.9)),
 		deep,
 		local_rng.randf() * 40.0 + 11.0
 	)
 	for _k in local_rng.randi_range(2, 4):
 		var chip := MeshInstance3D.new()
-		var cb := BoxMesh.new()
 		var cs := local_rng.randf_range(0.12, 0.22) * size
-		cb.size = Vector3(cs, cs * local_rng.randf_range(0.5, 1.1), cs * local_rng.randf_range(0.4, 0.9))
-		chip.mesh = cb
+		chip.mesh = _rbox(Vector3(cs, cs * local_rng.randf_range(0.5, 1.1), cs * local_rng.randf_range(0.4, 0.9)), cs * 0.22)
 		chip.material_override = chip_mat
 		var side := 1.0 if local_rng.randf() > 0.5 else -1.0
 		chip.position = Vector3(
@@ -2268,7 +2589,7 @@ func _make_ice_shader_material(ice_col: Color, deep_col: Color, seed_v: float) -
 	sm.set_shader_parameter("metallic", 0.32)
 	sm.set_shader_parameter("refractive_index", 0.12)
 	sm.set_shader_parameter("fresnel_power", 2.7)
-	sm.set_shader_parameter("alpha_base", clampf(ice_col.a, 0.55, 0.9))
+	sm.set_shader_parameter("alpha_base", clampf(maxf(ice_col.a, 0.88), 0.88, 0.97))
 	sm.set_shader_parameter("emission_mul", 0.3)
 	sm.set_shader_parameter("uv_scale", 1.2 + fmod(seed_v, 5.0) * 0.08)
 	return sm
@@ -2283,8 +2604,9 @@ func _spawn_dice_stack_column(
 	## 正方体骰子竖叠：边长贴近车道宽，三列几乎无缝
 	rows = clampi(rows, 1, 6)
 	var cell := LANE_WIDTH - 0.06
-	var step := cell - 0.01
-	var lateral := _host._lane_to_x(lane)
+	var block_h := cell
+	var overlap := 0.02
+	var lateral: float = _host._lane_to_x(lane)
 	var holder := Node3D.new()
 	holder.name = "DiceStack"
 	_host._world.add_child(holder)
@@ -2292,11 +2614,11 @@ func _spawn_dice_stack_column(
 	for i in rows:
 		var face_up := ((i + lane + int(dist)) % 6) + 1
 		var dice := _make_dice_obstacle(face_up, Vector3(cell, cell, cell), true, false, i > 0)
-		dice.position = Vector3(0.0, cell * 0.5 + float(i) * step, 0.0)
+		dice.position = Vector3(0.0, block_h * 0.5 + float(i) * (block_h - overlap), 0.0)
 		dice.rotation = Vector3(0.0, deg_to_rad(float((i + lane) % 4) * 90.0), 0.0)
 		holder.add_child(dice)
 	_host._disable_subtree_shadows(holder)
-	var hit_h := cell * 0.5 + float(rows - 1) * step + cell * 0.5 + ROAD_SURFACE_Y
+	var hit_h := block_h * 0.5 + float(rows - 1) * (block_h - overlap) + block_h * 0.5 + ROAD_SURFACE_Y
 	items.append({
 		"node": holder,
 		"lane": lane,
@@ -2353,26 +2675,12 @@ func _make_dice_obstacle(
 	var pip_col := Color(0.06, 0.05, 0.07)
 
 	var body := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3.ONE * s
-	body.mesh = box
+	body.mesh = _rbox(Vector3.ONE * s, s * 0.14)
 	var bm := StandardMaterial3D.new()
 	bm.albedo_color = body_col
 	bm.roughness = 0.5
 	body.material_override = bm
 	root.add_child(body)
-
-	# 深色细线框（略大一圈的空心感用更深描边盒透明度很低）
-	var rim := MeshInstance3D.new()
-	var rb := BoxMesh.new()
-	rb.size = Vector3.ONE * (s + 0.01)
-	rim.mesh = rb
-	var rm := StandardMaterial3D.new()
-	rm.albedo_color = Color(0.25, 0.18, 0.12, 0.18)
-	rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	rm.roughness = 0.8
-	rim.material_override = rm
-	root.add_child(rim)
 
 	var pip_mat := StandardMaterial3D.new()
 	pip_mat.albedo_color = pip_col

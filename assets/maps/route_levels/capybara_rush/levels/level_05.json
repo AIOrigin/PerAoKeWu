@@ -1,27 +1,27 @@
 {
   "id": 5,
-  "name": "断崖预习",
-  "theme_id": "lake_clear",
-  "track_length": 276.0,
-  "run_speed": 11.5,
+  "name": "牧场断桥",
+  "theme_id": "honey_pasture",
+  "track_length": 300.0,
+  "run_speed": 12.5,
   "time_limit_sec": 0,
   "cliffs": 1,
   "cliff_gap_len": 11.0,
-  "hazard_seed": 4085,
+  "hazard_seed": 4170,
   "hazard_pattern": "difficulty_mix",
-  "max_stair_rows": 3,
+  "max_stair_rows": 4,
   "allow_full_row_blocks": true,
   "full_row_max_rows": 1,
   "pickup_spacing": [
-    11,
-    15
+    10,
+    14
   ],
   "fruit_spacing": [
-    16,
-    22
+    15,
+    20
   ],
   "finish_stairs": true,
   "stair_kind": "dice",
   "dice_hazards": true,
-  "difficulty": 1
+  "difficulty": 2
 }

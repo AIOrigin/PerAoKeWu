@@ -1,15 +1,15 @@
 {
   "id": 4,
-  "name": "第一次跳",
-  "theme_id": "lake_clear",
+  "name": "牧场大门",
+  "theme_id": "honey_pasture",
   "track_length": 276.0,
   "run_speed": 11.5,
   "time_limit_sec": 0,
   "cliffs": 0,
   "cliff_gap_len": 11.0,
-  "hazard_seed": 4068,
+  "hazard_seed": 4119,
   "hazard_pattern": "difficulty_mix",
-  "max_stair_rows": 3,
+  "max_stair_rows": 4,
   "allow_full_row_blocks": true,
   "full_row_max_rows": 1,
   "pickup_spacing": [
@@ -17,11 +17,11 @@
     15
   ],
   "fruit_spacing": [
-    17,
+    16,
     22
   ],
   "finish_stairs": true,
   "stair_kind": "dice",
   "dice_hazards": true,
-  "difficulty": 1
+  "difficulty": 2
 }

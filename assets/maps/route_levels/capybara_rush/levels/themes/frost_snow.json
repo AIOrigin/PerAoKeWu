@@ -65,13 +65,13 @@
     0.55,
     0.86,
     1.0,
-    0.75
+    0.94
   ],
   "ice_edge": [
     0.85,
     0.95,
     1.0,
-    0.55
+    0.92
   ],
   "dice_albedo": [
     0.82,
@@ -92,5 +92,10 @@
   "obstacles": {
     "stripe_model": null,
     "block_model": null
+  },
+  "hazard_motion": {
+    "pole_tint": [0.72, 0.92, 1.0],
+    "arm_tint": [0.55, 0.86, 1.0],
+    "glow_tint": [0.85, 0.95, 1.0]
   }
 }

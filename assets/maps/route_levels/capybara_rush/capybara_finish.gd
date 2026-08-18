@@ -4,6 +4,7 @@ extends RefCounted
 ## 终点台阶生成、爬阶 ceremony、齐舞与镜头（从 capybara_rush.gd 拆出）
 
 const CapybaraRushPaths := preload("res://assets/maps/route_levels/capybara_rush/model_paths.gd")
+const MeshUtil := preload("res://assets/maps/route_levels/capybara_rush/capybara_mesh_util.gd")
 
 const LANE_COUNT := 3
 const STACK_STEP_Y := 0.88
@@ -58,7 +59,7 @@ func update_camera(delta: float) -> void:
 
 
 func _finish_end_frame() -> Dictionary:
-	var track_len := _host._track_len()
+	var track_len: float = _host._track_len()
 	if _host._path != null:
 		return _host._path.frame_at(track_len)
 	return {
@@ -105,9 +106,7 @@ func _spawn_finish_stairs() -> void:
 
 		# 绿色草皮块
 		var body := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(FINISH_STEP_WIDTH, step_h, FINISH_STEP_DEPTH * 0.92)
-		body.mesh = box
+		body.mesh = MeshUtil.rounded_box(Vector3(FINISH_STEP_WIDTH, step_h, FINISH_STEP_DEPTH * 0.92), 0.08)
 		body.position = Vector3(0.0, -step_h * 0.5, 0.0)
 		body.material_override = grass
 		body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -115,9 +114,7 @@ func _spawn_finish_stairs() -> void:
 
 		# 侧面泥土
 		var side_mi := MeshInstance3D.new()
-		var side_box := BoxMesh.new()
-		side_box.size = Vector3(FINISH_STEP_WIDTH * 0.98, step_h * 0.85, 0.12)
-		side_mi.mesh = side_box
+		side_mi.mesh = MeshUtil.rounded_box(Vector3(FINISH_STEP_WIDTH * 0.98, step_h * 0.85, 0.12), 0.04)
 		side_mi.position = Vector3(0.0, -step_h * 0.45, FINISH_STEP_DEPTH * 0.42)
 		side_mi.material_override = dirt
 		side_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -126,9 +123,7 @@ func _spawn_finish_stairs() -> void:
 		# 三道浅色落脚道（左/中/右），与赛道车道对齐
 		for lane_i in LANE_COUNT:
 			var path_mi := MeshInstance3D.new()
-			var path_box := BoxMesh.new()
-			path_box.size = Vector3(FINISH_PATH_WIDTH, 0.06, FINISH_STEP_DEPTH * 0.78)
-			path_mi.mesh = path_box
+			path_mi.mesh = MeshUtil.rounded_box(Vector3(FINISH_PATH_WIDTH, 0.06, FINISH_STEP_DEPTH * 0.78), 0.025)
 			path_mi.position = Vector3(_host._lane_to_x(lane_i), 0.02, 0.0)
 			path_mi.material_override = path_mat
 			path_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -180,8 +175,8 @@ func _finish_climb_point(step: Dictionary, lane: int = -1) -> Vector3:
 
 func _finish_land_for_lane(step: Dictionary, lane: int = -1) -> Vector3:
 	## 台阶落点按当前（或指定）车道横移，避免左道冲线却落到正中间
-	var use_lane := _host._lane if lane < 0 else lane
-	var lat := _host._lane_to_x(use_lane)
+	var use_lane: int = _host._lane if lane < 0 else lane
+	var lat: float = _host._lane_to_x(use_lane)
 	var right: Vector3 = step.get("right", Vector3.RIGHT)
 	if right.length_squared() < 0.0001:
 		right = Vector3.RIGHT
@@ -192,7 +187,7 @@ func _finish_land_for_lane(step: Dictionary, lane: int = -1) -> Vector3:
 
 func _make_watermelon_slice() -> Node3D:
 	## 优先 Tripo 西瓜切片；缺模型时回退程序楔形
-	var fitted := _host._instance_fitted(CapybaraRushPaths.WATERMELON_SLICE, 0.72, 0.0)
+	var fitted: Node3D = _host._instance_fitted(CapybaraRushPaths.WATERMELON_SLICE, 0.72, 0.0)
 	if fitted != null:
 		fitted.name = "Watermelon"
 		return fitted
@@ -480,7 +475,7 @@ func _run_finish_stairs_race() -> void:
 		_host._show_result_screen()
 		return
 
-	var finish_lane := _host._lane
+	var finish_lane: int = _host._lane
 	dancers.clear()
 	var actor: Node3D = actors[0]
 	# 单角色连续爬几阶吃西瓜
@@ -572,8 +567,7 @@ func _leave_one_on_finish_step(step_i: int, step_yaw: float) -> void:
 	_host._world.add_child(layer)
 	layer.rotation = Vector3(0.0, step_yaw + _host._character_yaw(), 0.0)
 	_place_actor_on_finish_land(layer, land, floor_y)
-	# 先朝上阶站定；全员到齐后再齐舞
-	_host._play_capy_clip(layer, ["run"], true)
+	_host._stack_sys.park_stack_rider(layer)
 	_register_finish_dancer(layer, step_yaw, floor_y, step_i)
 	_host._repack_stack_heights()
 
@@ -609,7 +603,7 @@ func _park_remaining_finish_stack() -> void:
 		return
 	var remain: Array[Node3D] = _host._stack.duplicate()
 	_host._stack.clear()
-	var gpos := _host._tower.global_position
+	var gpos: Vector3 = _host._tower.global_position
 	for layer in remain:
 		if layer == null or not is_instance_valid(layer):
 			continue
@@ -625,7 +619,7 @@ func _park_remaining_finish_stack() -> void:
 		_host._world.add_child(layer)
 		layer.rotation = Vector3(0.0, step_yaw + _host._character_yaw(), 0.0)
 		_place_actor_on_finish_land(layer, land, floor_y)
-		_host._play_capy_clip(layer, ["run"], true)
+		_host._stack_sys.park_stack_rider(layer)
 		_register_finish_dancer(layer, step_yaw, floor_y, step_i)
 	_host._tower.global_position = gpos
 
@@ -724,7 +718,7 @@ func _on_finish_turned_to_camera(actor: Node3D, face: float, target: Basis, floo
 	_set_actor_basis(actor, target)
 	_seat_actor_on_floor_y(actor, floor_y)
 	_host._play_capy_clip(actor, ["dance", "idle", "run"], true)
-	_loop_finish_lean_dance(actor, face, floor_y)
+	_seat_actor_on_floor_y(actor, floor_y)
 
 
 func _loop_finish_lean_dance(actor: Node3D, face_yaw: float, floor_y: float) -> void:

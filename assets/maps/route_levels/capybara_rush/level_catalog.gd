@@ -6,7 +6,7 @@ extends RefCounted
 const LEVELS_DIR := "res://assets/maps/route_levels/capybara_rush/levels/"
 const THEMES_DIR := LEVELS_DIR + "themes/"
 const PROGRESS_PATH := "user://capybara_rush_progress.cfg"
-const LEVEL_COUNT := 35
+const LEVEL_COUNT := 18
 
 
 static func level_path(level_id: int) -> String:

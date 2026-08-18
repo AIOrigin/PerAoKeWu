@@ -1,31 +1,27 @@
 {
   "id": 2,
-  "name": "黄线练习",
+  "name": "小阶梯",
   "theme_id": "lake_clear",
-  "track_length": 240.0,
-  "run_speed": 10.0,
+  "track_length": 264.0,
+  "run_speed": 11.0,
   "time_limit_sec": 0,
   "cliffs": 0,
   "cliff_gap_len": 11.0,
-  "hazard_seed": 4034,
+  "hazard_seed": 4051,
   "hazard_pattern": "stair_intro",
   "max_stair_rows": 3,
   "allow_full_row_blocks": true,
   "full_row_max_rows": 1,
   "pickup_spacing": [
-    12,
-    16
+    11,
+    15
   ],
   "fruit_spacing": [
-    18,
-    24
+    17,
+    22
   ],
   "finish_stairs": true,
-  "dice_hazards": true,
-  "dice_spacing": [
-    20,
-    28
-  ],
   "stair_kind": "dice",
+  "dice_hazards": true,
   "difficulty": 1
 }
