@@ -1,0 +1,107 @@
+func _can_smash_obstacle(obstacle: Dictionary) -> bool:
+	var otype := String(obstacle.get("type", ""))
+	# 熔岩封路仍不可撞碎，必须上墙绕过
+	return otype != "main_block" and otype != "ramp" and otype != "turn_left" and otype != "turn_right"
+
+
+func _shatter_obstacle(obstacle: Dictionary) -> void:
+	obstacle["hit"] = true
+	obstacle["smashed"] = true
+	var node = obstacle.get("node", null)
+	var blast_pos := player.global_position + Vector3(0.0, 1.1, 0.0) if player else Vector3.ZERO
+	if node != null and is_instance_valid(node) and node is Node3D:
+		blast_pos = (node as Node3D).global_position + Vector3(0.0, 0.9, 0.0)
+		_play_obstacle_shatter_fx(node as Node3D)
+		obstacle["node"] = null
+	else:
+		_spawn_shatter_burst(blast_pos)
+
+
+func _play_obstacle_shatter_fx(node: Node3D) -> void:
+	_spawn_shatter_burst(node.global_position + Vector3(0.0, 0.9, 0.0))
+	# 障碍本体快速炸开缩放并淡出
+	var tw := create_tween()
+	tw.set_parallel(true)
+	var base_scale := node.scale
+	tw.tween_property(node, "scale", base_scale * Vector3(1.35, 0.55, 1.35), 0.08)
+	tw.tween_property(node, "scale", Vector3(0.05, 0.05, 0.05), 0.28).set_delay(0.06)
+	for child in node.find_children("*", "GeometryInstance3D", true, false):
+		if child is GeometryInstance3D:
+			var gi := child as GeometryInstance3D
+			tw.tween_property(gi, "transparency", 1.0, 0.28)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(node):
+			node.visible = false
+			node.queue_free()
+	)
+
+
+func _spawn_shatter_burst(world_pos: Vector3) -> void:
+	if track_root == null:
+		return
+	var particles := GPUParticles3D.new()
+	particles.name = "ObstacleShatterFx"
+	particles.one_shot = true
+	particles.emitting = true
+	particles.amount = 22
+	particles.lifetime = 0.55
+	particles.explosiveness = 1.0
+	particles.fixed_fps = 0
+	track_root.add_child(particles)
+	particles.global_position = world_pos
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(0.0, 1.0, 0.0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = 3.2
+	mat.initial_velocity_max = 8.5
+	mat.gravity = Vector3(0.0, -14.0, 0.0)
+	mat.scale_min = 0.08
+	mat.scale_max = 0.22
+	mat.color = Color(0.95, 0.88, 0.65)
+	particles.process_material = mat
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.08
+	mesh.height = 0.16
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0.92, 0.78, 0.42)
+	sm.emission_enabled = true
+	sm.emission = Color(1.0, 0.72, 0.28)
+	sm.emission_energy_multiplier = 1.6
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mesh.material = sm
+	particles.draw_pass_1 = mesh
+	# 第二层碎屑火花
+	var sparks := GPUParticles3D.new()
+	sparks.one_shot = true
+	sparks.emitting = true
+	sparks.amount = 14
+	sparks.lifetime = 0.35
+	sparks.explosiveness = 1.0
+	track_root.add_child(sparks)
+	sparks.global_position = world_pos
+	var spark_mat := ParticleProcessMaterial.new()
+	spark_mat.direction = Vector3(0.0, 1.0, 0.0)
+	spark_mat.spread = 160.0
+	spark_mat.initial_velocity_min = 2.0
+	spark_mat.initial_velocity_max = 6.5
+	spark_mat.gravity = Vector3(0.0, -6.0, 0.0)
+	spark_mat.scale_min = 0.04
+	spark_mat.scale_max = 0.1
+	spark_mat.color = Color(1.0, 0.55, 0.2)
+	sparks.process_material = spark_mat
+	var spark_mesh := BoxMesh.new()
+	spark_mesh.size = Vector3(0.08, 0.08, 0.08)
+	var spark_sm := StandardMaterial3D.new()
+	spark_sm.albedo_color = Color(1.0, 0.6, 0.2)
+	spark_sm.emission_enabled = true
+	spark_sm.emission = Color(1.0, 0.45, 0.1)
+	spark_sm.emission_energy_multiplier = 2.2
+	spark_sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	spark_mesh.material = spark_sm
+	sparks.draw_pass_1 = spark_mesh
+	get_tree().create_timer(0.9).timeout.connect(func():
+		if is_instance_valid(particles):
+			particles.queue_free()
+		if is_instance_valid(sparks):
+			sparks.queue_free()
+	)

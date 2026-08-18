@@ -1,0 +1,63 @@
+	root.set_meta("blade_top", TRAIN_GATE_TOP)
+	root.set_meta("has_wave_blade", true)
+	_add_train_wave_blade(root, TRAIN_GATE_BLADE_SPAN)
+	_ensure_train_gate_buff_visual(root)
+
+
+func _ensure_train_gate_buff_visual(root: Node3D) -> Node3D:
+	var existing := root.get_node_or_null("GateSpeedBoost") as Node3D
+	if existing != null:
+		return existing
+	var boost := _make_speed_boost(0, 0.0, 0.0, 0, 0, true)
+	boost.name = "GateSpeedBoost"
+	root.add_child(boost)
+	# 固定在门洞下方（不随光波刀上下，刀抬起时正好在门内）
+	boost.position = Vector3(0.0, 1.08, 0.38)
+	boost.scale = Vector3(1.55, 1.55, 1.55)
+	boost.rotation = Vector3.ZERO
+	var halo := MeshInstance3D.new()
+	halo.name = "GateBoostHalo"
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.62
+	torus.outer_radius = 0.82
+	torus.rings = 12
+	torus.ring_segments = 24
+	var halo_mat := StandardMaterial3D.new()
+	halo_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	halo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	halo_mat.albedo_color = Color(1.0, 0.72, 0.18, 0.55)
+	halo_mat.emission_enabled = true
+	halo_mat.emission = Color(1.0, 0.58, 0.08)
+	halo_mat.emission_energy_multiplier = 2.4
+	torus.material = halo_mat
+	halo.mesh = torus
+	halo.position = Vector3(0.0, -0.02, 0.0)
+	halo.rotation_degrees = Vector3(90, 0, 0)
+	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	boost.add_child(halo)
+	return boost
+
+
+func _build_lane_block(root: Node3D, side: String) -> void:
+	# 左封：左道+中道；右封：中道+右道（须换到外侧车道；不是滑铲门/分叉）
+	var blocked_x := [-LANE_WIDTH, 0.0] if side == "left" else [0.0, LANE_WIDTH]
+	for i in blocked_x.size():
+		_add_lane_dodge_barrier(root, blocked_x[i], i, side)
+	# 仅地面淡标，不用绿色「换道」浮字（直线封道易与分叉混淆）
+	var safe_x := LANE_WIDTH if side == "left" else -LANE_WIDTH
+	var pad := MeshInstance3D.new()
+	pad.name = "LaneDodgeSafePad"
+	var pad_mesh := BoxMesh.new()
+	pad_mesh.size = Vector3(LANE_WIDTH * 0.62, 0.04, 1.35)
+	var pad_mat := StandardMaterial3D.new()
+	pad_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	pad_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pad_mat.albedo_color = Color(0.95, 0.78, 0.28, 0.28)
+	pad_mat.emission_enabled = true
+	pad_mat.emission = Color(1.0, 0.72, 0.22)
+	pad_mat.emission_energy_multiplier = 0.85
+	pad.mesh = pad_mesh
+	pad.material_override = pad_mat
+	pad.position = Vector3(safe_x, 0.03, 0.0)
+	pad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(pad)

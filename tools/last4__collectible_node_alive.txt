@@ -1,0 +1,8 @@
+func _collectible_node_alive(node: Node3D) -> bool:
+	return (
+		node != null
+		and is_instance_valid(node)
+		and node.is_inside_tree()
+		and not node.is_queued_for_deletion()
+		and not bool(node.get_meta("_disposed", false))
+	)

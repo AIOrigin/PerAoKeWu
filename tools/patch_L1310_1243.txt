@@ -1,0 +1,40 @@
+===OLD===
+func _pulse_coin_hud_feedback() -> void:
+	for label in [collectible_label, score_label]:
+		if label == null or not is_instance_valid(label):
+			continue
+		label.modulate = Color(1.0, 0.94, 0.28)
+		label.scale = Vector2(1.14, 1.14)
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(label, "modulate", Color(1, 1, 1), 0.32).set_ease(Tween.EASE_OUT)
+		tw.tween_property(label, "scale", Vector2.ONE, 0.32).set_ease(Tween.EASE_OUT)
+===NEW===
+func _pulse_coin_hud_feedback() -> void:
+	for label in [collectible_label, score_label]:
+		if label == null or not is_instance_valid(label):
+			continue
+		label.modulate = Color(1.0, 0.94, 0.28)
+		label.scale = Vector2(1.14, 1.14)
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(label, "modulate", Color(1, 1, 1), 0.32).set_ease(Tween.EASE_OUT)
+		tw.tween_property(label, "scale", Vector2.ONE, 0.32).set_ease(Tween.EASE_OUT)
+
+
+func _flash_coin_screen() -> void:
+	if hud_root == null:
+		return
+	if _coin_screen_flash == null or not is_instance_valid(_coin_screen_flash):
+		_coin_screen_flash = ColorRect.new()
+		_coin_screen_flash.name = "CoinPickupFlash"
+		_coin_screen_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_coin_screen_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_coin_screen_flash.color = Color(1.0, 0.86, 0.28, 0.0)
+		_coin_screen_flash.z_index = 80
+		hud_root.add_child(_coin_screen_flash)
+	if _coin_flash_tween != null and is_instance_valid(_coin_flash_tween):
+		_coin_flash_tween.kill()
+	_coin_screen_flash.color = Color(1.0, 0.9, 0.35, 0.28)
+	_coin_flash_tween = create_tween()
+	_coin_flash_tween.tween_property(_coin_screen_flash, "color:a", 0.0, 0.18).set_ease(Tween.EASE_OUT)

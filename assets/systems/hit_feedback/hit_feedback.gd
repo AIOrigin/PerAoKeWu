@@ -1,8 +1,7 @@
 extends Node
 class_name HitFeedback
 
-## 可复用受击反馈：震屏钩子、撞击粒子、闪白、飘字。
-## 跑酷 / 战斗 / 环境伤害都可调用 apply_*。
+## 可复用受击反馈：震屏钩子、撞击粒子、闪白、跑道旁飘字。
 
 enum Intensity { LIGHT, MEDIUM, HEAVY }
 
@@ -20,6 +19,12 @@ const INTENSITY_FLASH := {
 	Intensity.MEDIUM: 0.32,
 	Intensity.HEAVY: 0.48,
 }
+
+const RUNWAY_TIP_Y_MIN := 0.58
+const RUNWAY_TIP_Y_MAX := 0.76
+const RUNWAY_TIP_RIGHT_WORLD := 1.05
+const INTEGRITY_TIP_COLOR := Color(1.0, 0.94, 0.82)
+const INTEGRITY_TIP_FONT := 42
 
 var _ui_root: Control
 var _world_parent: Node3D
@@ -51,10 +56,11 @@ func apply_impact(
 	shake_requested.emit(shake)
 	_burst_impact(world_pos, intensity)
 	_flash_screen(float(INTENSITY_FLASH.get(intensity, 0.3)), color)
+	var tip_pos := world_pos
 	if damage > 0.01:
-		_spawn_float_text(world_pos, "-%0.0f" % damage, color)
-	if label != "":
-		_spawn_float_text(world_pos + Vector3(0, 0.35, 0), label, color.lightened(0.15))
+		spawn_runway_tip_at(tip_pos, "完整度 -%0.0f" % damage, INTEGRITY_TIP_COLOR)
+	elif label.strip_edges() != "":
+		spawn_runway_tip_at(tip_pos, _short_env_label(label), color)
 	hit_applied.emit({
 		"kind": "impact",
 		"intensity": intensity,
@@ -69,7 +75,7 @@ func apply_env_tick(damage: float, label: String = "热量侵蚀", color: Color 
 		return
 	_flash_screen(0.10, color)
 	flash_cargo()
-	_spawn_screen_float("-%0.0f  %s" % [damage, label], color)
+	spawn_runway_tip_screen(_format_env_tip(label, damage), color)
 	hit_applied.emit({
 		"kind": "env_tick",
 		"damage": damage,
@@ -80,18 +86,40 @@ func apply_env_tick(damage: float, label: String = "热量侵蚀", color: Color 
 func apply_env_tick_at(world_pos: Vector3, damage: float, label: String = "热量侵蚀") -> void:
 	if damage <= 0.01:
 		return
-	var color := Color(1.0, 0.55, 0.2)
+	var color := INTEGRITY_TIP_COLOR
+	if label.contains("防护"):
+		color = Color(0.55, 0.88, 1.0)
 	_flash_screen(0.08, color)
 	flash_cargo()
-	_spawn_float_text(world_pos + Vector3(0, 1.2, 0), "-%0.0f" % damage, color)
-	if label != "":
-		_spawn_float_text(world_pos + Vector3(0, 1.7, 0), label, color.lightened(0.12))
+	spawn_runway_tip_at(world_pos, _format_env_tip(label, damage), color)
 	hit_applied.emit({
 		"kind": "env_tick",
 		"damage": damage,
 		"label": label,
 		"world_pos": world_pos,
 	})
+
+
+func spawn_runway_tip_at(world_pos: Vector3, text: String, color: Color = Color(1.0, 0.72, 0.38)) -> void:
+	if text.strip_edges() == "":
+		return
+	_ensure_float_layer()
+	if _float_layer == null:
+		return
+	var subject_right := _tip_subject_right(text)
+	var anchor_pos := _world_pos_to_subject_right(world_pos) if subject_right else world_pos
+	var local := _project_runway_screen(anchor_pos)
+	_make_floating_label(local, text, color, true, subject_right)
+
+
+func spawn_runway_tip_screen(text: String, color: Color = Color(1.0, 0.72, 0.38)) -> void:
+	if text.strip_edges() == "":
+		return
+	_ensure_float_layer()
+	if _float_layer == null:
+		return
+	var screen := Vector2(_float_layer.size.x * 0.5, _float_layer.size.y * 0.66)
+	_make_floating_label(screen, text, color, true)
 
 
 func flash_cargo() -> void:
@@ -102,6 +130,58 @@ func flash_cargo() -> void:
 	_cargo_flash_target.modulate = Color(1.0, 0.35, 0.28, 1.0)
 	_cargo_flash_tween = create_tween()
 	_cargo_flash_tween.tween_property(_cargo_flash_target, "modulate", Color.WHITE, 0.35)
+
+
+func _format_env_tip(label: String, damage: float) -> String:
+	if label.contains("防护"):
+		return "防护罩 -%0.0f" % damage
+	return "完整度 -%0.0f" % damage
+
+
+func _tip_subject_right(text: String) -> bool:
+	return text.contains("完整度")
+
+
+func _world_pos_to_subject_right(world_pos: Vector3) -> Vector3:
+	if _ui_root == null:
+		return world_pos + Vector3(RUNWAY_TIP_RIGHT_WORLD, 0.0, 0.0)
+	var cam := _ui_root.get_viewport().get_camera_3d()
+	if cam == null or not is_instance_valid(cam):
+		return world_pos + Vector3(RUNWAY_TIP_RIGHT_WORLD, 0.0, 0.0)
+	var right := cam.global_transform.basis.x
+	right.y = 0.0
+	if right.length_squared() < 0.01:
+		return world_pos + Vector3(RUNWAY_TIP_RIGHT_WORLD, 0.0, 0.0)
+	return world_pos + right.normalized() * RUNWAY_TIP_RIGHT_WORLD
+
+
+func _short_env_label(label: String) -> String:
+	var trimmed := label.strip_edges()
+	if trimmed.contains("防护"):
+		return "防护罩 -"
+	if trimmed.contains("撞碎"):
+		return "完整度 -"
+	return trimmed.substr(0, mini(trimmed.length(), 10))
+
+
+func _project_runway_screen(world_pos: Vector3) -> Vector2:
+	var fallback := Vector2(
+		_float_layer.size.x * 0.5,
+		_float_layer.size.y * 0.66
+	)
+	if _ui_root == null:
+		return fallback
+	var cam := _ui_root.get_viewport().get_camera_3d()
+	if cam == null or not is_instance_valid(cam) or cam.is_position_behind(world_pos):
+		return fallback
+	var viewport_pos := cam.unproject_position(world_pos)
+	var local: Vector2 = _float_layer.get_global_transform_with_canvas().affine_inverse() * viewport_pos
+	var pad := 8.0
+	local.x = clampf(local.x, pad, maxf(_float_layer.size.x - pad, pad))
+	var y_min := _float_layer.size.y * RUNWAY_TIP_Y_MIN
+	var y_max := _float_layer.size.y * RUNWAY_TIP_Y_MAX
+	local.y = clampf(local.y, y_min, y_max)
+	return local
 
 
 func _ensure_flash() -> void:
@@ -188,47 +268,38 @@ func _flash_screen(alpha: float, color: Color) -> void:
 	_flash_tween.tween_property(_flash, "color:a", 0.0, 0.28)
 
 
-func _spawn_float_text(world_pos: Vector3, text: String, color: Color) -> void:
-	_ensure_float_layer()
-	if _float_layer == null or _ui_root == null:
-		return
-	# 手机画幅在 AspectRatioContainer 内；unproject 是整窗坐标，必须转到 float_layer 本地。
-	var local := Vector2(_float_layer.size.x * 0.5, _float_layer.size.y * 0.36)
-	var cam := _ui_root.get_viewport().get_camera_3d()
-	if cam and is_instance_valid(cam) and not cam.is_position_behind(world_pos):
-		var viewport_pos := cam.unproject_position(world_pos)
-		local = _float_layer.get_global_transform_with_canvas().affine_inverse() * viewport_pos
-	_make_floating_label(local, text, color)
-
-
-func _spawn_screen_float(text: String, color: Color) -> void:
-	_ensure_float_layer()
-	if _float_layer == null:
-		return
-	var screen := Vector2(_float_layer.size.x * 0.5, _float_layer.size.y * 0.32)
-	_make_floating_label(screen, text, color)
-
-
-func _make_floating_label(screen: Vector2, text: String, color: Color) -> void:
+func _make_floating_label(screen: Vector2, text: String, color: Color, runway: bool = false, anchor_right: bool = false) -> void:
 	var label := Label.new()
 	label.text = text
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 28)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if anchor_right else HORIZONTAL_ALIGNMENT_CENTER
+	var integrity_tip := runway and text.contains("完整度")
+	label.add_theme_font_size_override("font_size", INTEGRITY_TIP_FONT if integrity_tip else (34 if runway else 28))
 	label.add_theme_color_override("font_color", color)
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.75))
-	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.06, 0.92) if integrity_tip else Color(0.02, 0.04, 0.08, 0.96))
+	label.add_theme_constant_override("outline_size", 8 if integrity_tip else (6 if runway else 4))
 	_float_layer.add_child(label)
 	label.reset_size()
-	var jitter := Vector2(randf_range(-28.0, 28.0), randf_range(-10.0, 6.0))
-	var pos := screen + jitter - Vector2(label.size.x * 0.5, label.size.y * 0.5)
-	# 夹在画幅内，避免再漂到黑边
+	var jitter := Vector2.ZERO
+	if runway:
+		jitter = Vector2(randf_range(0.0, 6.0), randf_range(-3.0, 3.0)) if anchor_right else Vector2(randf_range(-12.0, 12.0), randf_range(-3.0, 3.0))
+	else:
+		jitter = Vector2(randf_range(-28.0, 28.0), randf_range(-10.0, 6.0))
+	var pos := screen + jitter
+	if anchor_right:
+		pos.y -= label.size.y * 0.5
+	else:
+		pos -= Vector2(label.size.x * 0.5, label.size.y * 0.5)
 	var pad := 8.0
 	pos.x = clampf(pos.x, pad, maxf(_float_layer.size.x - label.size.x - pad, pad))
-	pos.y = clampf(pos.y, pad, maxf(_float_layer.size.y - label.size.y - pad, pad))
+	var y_min := _float_layer.size.y * (RUNWAY_TIP_Y_MIN if runway else 0.48)
+	var y_max := _float_layer.size.y * (RUNWAY_TIP_Y_MAX if runway else 0.72)
+	pos.y = clampf(pos.y, y_min, maxf(y_max - label.size.y, y_min))
 	label.position = pos
+	var rise := 22.0 if runway else 70.0
+	var duration := 0.9 if runway else 0.75
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(label, "position:y", label.position.y - 70.0, 0.75).set_ease(Tween.EASE_OUT)
-	tw.tween_property(label, "modulate:a", 0.0, 0.75).set_delay(0.15)
+	tw.tween_property(label, "position:y", label.position.y - rise, duration).set_ease(Tween.EASE_OUT)
+	tw.tween_property(label, "modulate:a", 0.0, duration).set_delay(0.12)
 	tw.chain().tween_callback(label.queue_free)

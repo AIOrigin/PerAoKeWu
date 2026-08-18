@@ -1,0 +1,21 @@
+func _uses_smash_collision() -> bool:
+	# 先只在第二关试玩「装备撞碎障碍」
+	var layout_id := _mission_layout_id()
+	if layout_id != "" and SMASH_LAYOUT_IDS.has(layout_id):
+		return true
+	var mid := String(mission.get("mission_id", ""))
+	return mid != "" and SMASH_MISSION_IDS.has(mid)
+
+
+func _refresh_smash_budget() -> void:
+	_smash_obstacle_total = 0
+	if not _uses_smash_collision():
+		_smash_cargo_damage = 10.0
+		return
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if _can_smash_obstacle(obstacle):
+			_smash_obstacle_total += 1
+	# 可撞障碍数 = 撞碎次数上限：均分 100% 完整度
+	_smash_cargo_damage = 100.0 / maxf(float(_smash_obstacle_total), 1.0)

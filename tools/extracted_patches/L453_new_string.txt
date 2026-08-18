@@ -1,0 +1,245 @@
+func _can_smash_obstacle(obstacle: Dictionary) -> bool:
+	var otype := String(obstacle.get("type", ""))
+	# 熔岩封路仍不可撞碎，必须上墙绕过
+	return otype != "main_block" and otype != "ramp" and otype != "turn_left" and otype != "turn_right"
+
+
+func _is_large_smash_obstacle(obstacle_type: String) -> bool:
+	return obstacle_type in ["train", "train_moving", "slide", "high_bar", "block_left", "block_right"]
+
+
+func _smash_palette_for_type(obstacle_type: String) -> Dictionary:
+	match obstacle_type:
+		"jump", "low_barrier", "orb":
+			return {
+				"dust": Color(0.95, 0.86, 0.55),
+				"spark": Color(1.0, 0.72, 0.28),
+				"chunk": Color(0.9, 0.78, 0.48),
+				"emit": Color(1.0, 0.82, 0.4),
+			}
+		"slide", "high_bar":
+			return {
+				"dust": Color(0.45, 0.88, 1.0),
+				"spark": Color(0.35, 0.95, 1.0),
+				"chunk": Color(0.55, 0.72, 0.85),
+				"emit": Color(0.4, 0.9, 1.0),
+			}
+		"train", "train_moving":
+			return {
+				"dust": Color(0.72, 0.74, 0.78),
+				"spark": Color(1.0, 0.48, 0.18),
+				"chunk": Color(0.42, 0.44, 0.48),
+				"emit": Color(1.0, 0.55, 0.2),
+			}
+		"block_left", "block_right":
+			return {
+				"dust": Color(0.78, 0.55, 1.0),
+				"spark": Color(0.95, 0.45, 1.0),
+				"chunk": Color(0.55, 0.4, 0.72),
+				"emit": Color(0.85, 0.4, 1.0),
+			}
+		_:
+			return {
+				"dust": Color(0.9, 0.82, 0.6),
+				"spark": Color(1.0, 0.65, 0.25),
+				"chunk": Color(0.75, 0.7, 0.6),
+				"emit": Color(1.0, 0.7, 0.3),
+			}
+
+
+func _shatter_obstacle(obstacle: Dictionary) -> void:
+	obstacle["hit"] = true
+	obstacle["smashed"] = true
+	var otype := String(obstacle.get("type", ""))
+	var palette := _smash_palette_for_type(otype)
+	var node = obstacle.get("node", null)
+	var blast_pos := player.global_position + Vector3(0.0, 1.1, 0.0) if player else Vector3.ZERO
+	var forward := Vector3(0.0, 0.0, -1.0)
+	if player != null:
+		forward = (-player.global_transform.basis.z).normalized()
+	if node != null and is_instance_valid(node) and node is Node3D:
+		var n := node as Node3D
+		blast_pos = n.global_position + Vector3(0.0, 0.95, 0.0)
+		_play_obstacle_shatter_fx(n, otype, palette, forward)
+		obstacle["node"] = null
+	else:
+		_spawn_shatter_burst(blast_pos, palette, _is_large_smash_obstacle(otype), forward)
+
+
+func _play_obstacle_shatter_fx(node: Node3D, obstacle_type: String, palette: Dictionary, forward: Vector3) -> void:
+	var large := _is_large_smash_obstacle(obstacle_type)
+	var origin := node.global_position + Vector3(0.0, 0.95, 0.0)
+	_spawn_shatter_burst(origin, palette, large, forward)
+	if large:
+		_spawn_shatter_chunks(origin, palette, forward, 7 if obstacle_type.begins_with("train") else 5)
+	# 本体爆闪后碎缩消失
+	var tw := create_tween()
+	tw.set_parallel(true)
+	var base_scale := node.scale
+	tw.tween_property(node, "scale", base_scale * Vector3(1.45, 0.42, 1.45), 0.06)
+	tw.tween_property(node, "scale", Vector3(0.02, 0.02, 0.02), 0.26).set_delay(0.05)
+	for child in node.find_children("*", "GeometryInstance3D", true, false):
+		if child is GeometryInstance3D:
+			tw.tween_property(child as GeometryInstance3D, "transparency", 1.0, 0.24)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(node):
+			node.visible = false
+			node.queue_free()
+	)
+
+
+func _spawn_shatter_burst(world_pos: Vector3, palette: Dictionary, large: bool, forward: Vector3) -> void:
+	if track_root == null:
+		return
+	var dust_col: Color = palette.get("dust", Color(0.9, 0.8, 0.5))
+	var spark_col: Color = palette.get("spark", Color(1.0, 0.6, 0.2))
+	var emit_col: Color = palette.get("emit", spark_col)
+	# 主溅射：大量尘屑
+	var dust := _make_burst_particles(
+		28 if large else 18,
+		0.65 if large else 0.48,
+		dust_col,
+		emit_col,
+		3.5 if large else 2.4,
+		9.5 if large else 6.8,
+		0.07,
+		0.2
+	)
+	track_root.add_child(dust)
+	dust.global_position = world_pos
+	# 火花层
+	var sparks := _make_burst_particles(
+		18 if large else 12,
+		0.4,
+		spark_col,
+		emit_col,
+		4.0,
+		11.0 if large else 8.0,
+		0.04,
+		0.1,
+		true
+	)
+	track_root.add_child(sparks)
+	sparks.global_position = world_pos
+	# 冲击环
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.35
+	torus.outer_radius = 0.55
+	torus.rings = 12
+	torus.ring_segments = 24
+	var ring_mat := _make_material(Color(emit_col.r, emit_col.g, emit_col.b, 0.75), emit_col, 2.8)
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	torus.material = ring_mat
+	ring.mesh = torus
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	track_root.add_child(ring)
+	ring.global_position = world_pos
+	if forward.length_squared() > 0.01:
+		ring.look_at(world_pos + forward, Vector3.UP)
+	ring.rotate_object_local(Vector3.RIGHT, PI * 0.5)
+	var ring_tw := create_tween()
+	ring_tw.set_parallel(true)
+	ring_tw.tween_property(ring, "scale", Vector3(3.2 if large else 2.2, 3.2 if large else 2.2, 3.2 if large else 2.2), 0.28).set_ease(Tween.EASE_OUT)
+	ring_tw.tween_property(ring_mat, "albedo_color:a", 0.0, 0.28)
+	ring_tw.chain().tween_callback(ring.queue_free)
+	get_tree().create_timer(1.0).timeout.connect(func():
+		if is_instance_valid(dust):
+			dust.queue_free()
+		if is_instance_valid(sparks):
+			sparks.queue_free()
+	)
+
+
+func _make_burst_particles(
+	amount: int,
+	lifetime: float,
+	albedo: Color,
+	emit_col: Color,
+	vel_min: float,
+	vel_max: float,
+	scale_min: float,
+	scale_max: float,
+	as_sparks: bool = false
+) -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.one_shot = true
+	particles.emitting = true
+	particles.amount = amount
+	particles.lifetime = lifetime
+	particles.explosiveness = 1.0
+	particles.fixed_fps = 0
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(0.0, 1.0, 0.0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = vel_min
+	mat.initial_velocity_max = vel_max
+	mat.gravity = Vector3(0.0, -16.0 if as_sparks else -12.0, 0.0)
+	mat.scale_min = scale_min
+	mat.scale_max = scale_max
+	mat.color = albedo
+	particles.process_material = mat
+	var mesh: Mesh
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = albedo
+	sm.emission_enabled = true
+	sm.emission = emit_col
+	sm.emission_energy_multiplier = 2.4 if as_sparks else 1.5
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if as_sparks:
+		var box := BoxMesh.new()
+		box.size = Vector3(0.07, 0.07, 0.18)
+		box.material = sm
+		mesh = box
+	else:
+		var sphere := SphereMesh.new()
+		sphere.radius = 0.07
+		sphere.height = 0.14
+		sphere.material = sm
+		mesh = sphere
+	particles.draw_pass_1 = mesh
+	return particles
+
+
+func _spawn_shatter_chunks(world_pos: Vector3, palette: Dictionary, forward: Vector3, count: int) -> void:
+	if track_root == null:
+		return
+	var chunk_col: Color = palette.get("chunk", Color(0.7, 0.65, 0.55))
+	var emit_col: Color = palette.get("emit", Color(1.0, 0.7, 0.3))
+	var right := forward.cross(Vector3.UP)
+	if right.length_squared() < 0.01:
+		right = Vector3.RIGHT
+	right = right.normalized()
+	for i in count:
+		var chunk := MeshInstance3D.new()
+		var mesh: Mesh
+		if i % 3 == 0:
+			var prism := PrismMesh.new()
+			prism.size = Vector3(randf_range(0.25, 0.55), randf_range(0.18, 0.4), randf_range(0.2, 0.45))
+			mesh = prism
+		elif i % 3 == 1:
+			var box := BoxMesh.new()
+			box.size = Vector3(randf_range(0.22, 0.5), randf_range(0.16, 0.35), randf_range(0.2, 0.42))
+			mesh = box
+		else:
+			var sphere := SphereMesh.new()
+			sphere.radius = randf_range(0.12, 0.22)
+			sphere.height = sphere.radius * 2.0
+			mesh = sphere
+		var mat := _make_material(chunk_col, emit_col, 1.1)
+		if mesh is PrimitiveMesh:
+			(mesh as PrimitiveMesh).material = mat
+		chunk.mesh = mesh
+		chunk.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		track_root.add_child(chunk)
+		chunk.global_position = world_pos + right * randf_range(-0.6, 0.6) + Vector3(0.0, randf_range(0.1, 0.5), 0.0)
+		chunk.rotation_degrees = Vector3(randf_range(0.0, 360.0), randf_range(0.0, 360.0), randf_range(0.0, 360.0))
+		var dir := (forward * randf_range(0.35, 1.1) + right * randf_range(-1.0, 1.0) + Vector3.UP * randf_range(0.6, 1.4)).normalized()
+		var fly := dir * randf_range(2.8, 5.5)
+		var end_pos := chunk.global_position + fly + Vector3(0.0, -1.8, 0.0)
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(chunk, "global_position", end_pos, randf_range(0.42, 0.7)).set_ease(Tween.EASE_OUT)
+		tw.tween_property(chunk, "rotation_degrees", chunk.rotation_degrees + Vector3(randf_range(120.0, 420.0), randf_range(-180.0, 180.0), randf_range(90.0, 360.0)), 0.65)
+		tw.tween_property(chunk, "scale", Vector3(0.05, 0.05, 0.05), 0.55).set_delay(0.12)
+		tw.chain().tween_callback(chunk.queue_free)

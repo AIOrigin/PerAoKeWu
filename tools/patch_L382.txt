@@ -1,0 +1,24 @@
+func _register_speed_boost_data() -> void:
+	var items: Array = []
+	var layout_id := _mission_layout_id()
+	if layout_id != "":
+		items = ObstacleLayout.load_speed_boosts(layout_id)
+	# 关卡 JSON 可单独投放加速包；否则仅紧急/限时任务用默认刷点
+	if items.is_empty():
+		if not _speed_boosts_enabled():
+			return
+		items = _default_speed_boosts()
+	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
+	var boost_index := 0
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		var dist := float(item.get("distance", 0.0))
+		if dist < 20.0 or dist > finish_cut:
+			continue
+		var lane := int(item.get("lane", 0))
+		var layer := int(item.get("layer", 0))
+		var y: float = _speed_boost_collectible_y(boost_index, layer)
+		boost_index += 1
+		_register_collectible_data(lane, dist, y, layer, "speed_boost")

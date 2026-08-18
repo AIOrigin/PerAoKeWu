@@ -1,0 +1,97 @@
+func _ensure_train_gate_speed_boosts(items: Array) -> Array:
+	var train_dists: Array[float] = []
+	for raw in _raw_obstacles_for_run():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		if String(raw.get("type", "")) not in ["train", "train_moving"]:
+			continue
+		train_dists.append(float(raw.get("distance", 0.0)))
+	var out: Array = []
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw.duplicate(true)
+		if bool(item.get("gate_boost", false)):
+			out.append(item)
+			continue
+		var dist := float(item.get("distance", 0.0))
+		var near_gate := false
+		for td in train_dists:
+			if absf(dist - td) < 14.0:
+				near_gate = true
+				break
+		if near_gate:
+			continue
+		out.append(item)
+	for raw in _raw_obstacles_for_run():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var otype := String(raw.get("type", ""))
+		if otype not in ["train", "train_moving"]:
+			continue
+		var lane := int(raw.get("lane", 0))
+		var layer := int(raw.get("layer", 0))
+		var train_dist := float(raw.get("distance", 0.0))
+		var has_gate := false
+		for existing in out:
+			if typeof(existing) != TYPE_DICTIONARY:
+				continue
+			if not bool(existing.get("gate_boost", false)):
+				continue
+			if absf(float(existing.get("gate_train_dist", existing.get("distance", -999.0))) - train_dist) < 0.5:
+				has_gate = true
+				break
+		if has_gate:
+			continue
+		out.append({
+			"distance": train_dist,
+			"gate_train_dist": train_dist,
+			"lane": lane,
+			"layer": layer,
+			"gate_boost": true,
+		})
+	return out
+
+
+func _register_gate_boost_collectible(item: Dictionary) -> void:
+	var train_dist := float(item.get("gate_train_dist", item.get("distance", 0.0)))
+	collectibles.append({
+		"node": null,
+		"lane": int(item.get("lane", 0)),
+		"distance": train_dist,
+		"gate_train_dist": train_dist,
+		"y": _layer_height(int(item.get("layer", 0))) + 0.95,
+		"layer": int(item.get("layer", 0)),
+		"kind": "speed_boost",
+		"gate_boost": true,
+		"spawn_on_train": true,
+		"collected": false,
+	})
+
+
+func _try_attach_gate_boosts_for_train(obstacle: Dictionary) -> void:
+	var root := obstacle.get("node") as Node3D
+	if root == null or not is_instance_valid(root):
+		return
+	var train_dist := float(obstacle.get("distance", 0.0))
+	for collectible in collectibles:
+		if collectible.get("collected", false):
+			continue
+		if not bool(collectible.get("gate_boost", false)):
+			continue
+		if absf(float(collectible.get("gate_train_dist", -999.0)) - train_dist) > 0.5:
+			continue
+		if _collectible_node_alive(collectible.get("node") as Node3D):
+			continue
+		var lane := int(collectible.get("lane", 0))
+		var layer := int(collectible.get("layer", 0))
+		var y := float(collectible.get("y", _layer_height(layer) + 0.95))
+		var boost := _make_speed_boost(lane, train_dist, y, layer)
+		if boost.get_parent() != null:
+			boost.get_parent().remove_child(boost)
+		root.add_child(boost)
+		var blade_local_y := float(root.get_meta("blade_top", TRAIN_GATE_TOP)) - 1.08
+		boost.position = Vector3(0.0, blade_local_y, 0.34)
+		boost.rotation = Vector3.ZERO
+		collectible["node"] = boost
+		collectible["distance"] = train_dist

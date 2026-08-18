@@ -2,6 +2,7 @@
 	"base_planet_id": "glass_desert",
 	"level_id": "custom_03",
 	"level_name": "自定义03",
+	"road_style": "holographic",
 	"note": "Custom level from runner level editor",
 	"obstacles": [
 		{

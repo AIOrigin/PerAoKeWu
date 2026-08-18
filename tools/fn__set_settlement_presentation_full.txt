@@ -1,0 +1,45 @@
+func _set_settlement_presentation(active: bool, outpost_title: String = "") -> void:
+	_settlement_celebration_active = active
+	if _settlement_horizon_layer != null:
+		_settlement_horizon_layer.visible = active
+		if active:
+			_settlement_horizon_layer.configure(outpost_title, Global.runner_location_id, _hearth_scene_path)
+	if _settlement_horizon_header != null:
+		_settlement_horizon_header.visible = active
+		if active:
+			_settlement_horizon_header.configure(outpost_title)
+	if _buff_hud_panel != null:
+		_buff_hud_panel.visible = not active
+	if _cargo_hud_panel != null:
+		_cargo_hud_panel.visible = not active
+	if pause_button != null:
+		pause_button.visible = true
+		pause_button.z_index = 40 if active else 0
+	if shield_button != null:
+		shield_button.visible = true
+		shield_button.z_index = 40 if active else 0
+	if _finish_outpost_title_rig != null and is_instance_valid(_finish_outpost_title_rig):
+		_finish_outpost_title_rig.visible = not active
+	if _finish_portal_root != null and is_instance_valid(_finish_portal_root):
+		_finish_portal_root.visible = not active
+	if player != null and is_instance_valid(player):
+		player.visible = not active
+	if _state_wrap != null:
+		if active:
+			_state_wrap.z_index = 32
+			call_deferred("_sync_settlement_horizon_layout")
+		else:
+			_state_wrap.z_index = 0
+			_state_wrap.add_theme_constant_override("margin_top", 0)
+			_state_wrap.add_theme_constant_override("margin_left", 28)
+			_state_wrap.add_theme_constant_override("margin_right", 28)
+			_state_wrap.add_theme_constant_override("margin_bottom", 20)
+			if _state_outer != null:
+				_state_outer.alignment = BoxContainer.ALIGNMENT_END
+			if state_panel != null:
+				state_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+				state_panel.custom_minimum_size = Vector2.ZERO
+			if state_body != null:
+				state_body.add_theme_font_size_override("font_size", 17)
+				state_body.add_theme_color_override("font_color", Color("BFC3D8"))
+				state_body.add_theme_constant_override("line_spacing", 8)

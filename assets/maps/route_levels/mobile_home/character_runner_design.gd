@@ -1,11 +1,11 @@
 extends RefCounted
 class_name CharacterRunnerDesign
 
-## 星火信使 · 角色页设计稿坐标系（682×1228，与 HTML cqw/cqh 一致）
+## 星火信使 · 角色页设计稿坐标系（宽 1080 对齐手机视口，高 1228 保持纵向比例）
 
-const STAGE_W := 682.0
+const STAGE_W := 1080.0
 const STAGE_H := 1228.0
-const PAD_X := STAGE_W * 4.11 / 100.0
+const PAD_X := STAGE_W * 1.0 / 100.0
 const CONTENT_W := STAGE_W - PAD_X * 2.0
 const SCROLL_H := STAGE_H * (100.0 - 10.2 - 8.7) / 100.0
 
@@ -73,23 +73,23 @@ static func gear_style(accent: Color, dimmed: bool, corner_r: int) -> StyleBoxFl
 	var s := StyleBoxFlat.new()
 	s.set_corner_radius_all(corner_r)
 	if dimmed:
-		s.bg_color = Color(0.035, 0.078, 0.122, 0.72)
-		s.border_color = Color(0.42, 0.486, 0.561, 0.55)
+		s.bg_color = Color(0.028, 0.055, 0.092, 0.90)
+		s.border_color = Color(0.40, 0.48, 0.56, 0.62)
 		s.set_border_width_all(1)
 		return s
-	s.bg_color = Color(0.078, 0.141, 0.235, 0.78).lerp(accent, 0.22)
-	s.border_color = accent.lerp(Color.WHITE, 0.22)
-	s.set_border_width_all(1)
-	s.shadow_color = Color(accent.r, accent.g, accent.b, 0.34)
-	s.shadow_size = 12
+	s.bg_color = Color(0.025, 0.048, 0.082, 0.98)
+	s.border_color = accent.lerp(Color(0.78, 0.92, 1.0), 0.62)
+	s.set_border_width_all(2)
+	s.shadow_color = Color(accent.r, accent.g, accent.b, 0.30)
+	s.shadow_size = 10
 	s.draw_center = true
 	return s
 
 
 static func gear_rarity_style(accent: Color) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color(accent.r, accent.g, accent.b, 0.22)
-	s.border_color = Color(accent.r, accent.g, accent.b, 0.8)
+	s.bg_color = Color(accent.r * 0.22, accent.g * 0.22, accent.b * 0.22, 0.72)
+	s.border_color = Color(accent.r, accent.g, accent.b, 0.90)
 	s.set_border_width_all(1)
 	s.set_corner_radius_all(fs_cqw(1))
 	s.content_margin_left = fs_cqw(1.6)
@@ -102,6 +102,7 @@ static func gear_rarity_style(accent: Color) -> StyleBoxFlat:
 static func card_style() -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = PANEL_TOP.lerp(PANEL_BOT, 0.45)
+	s.bg_color.a = 0.92
 	s.border_color = LINE
 	s.set_border_width_all(1)
 	s.set_corner_radius_all(fs_cqw(2.2))

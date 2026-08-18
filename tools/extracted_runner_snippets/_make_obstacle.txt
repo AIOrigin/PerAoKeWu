@@ -1,0 +1,87 @@
+func _make_obstacle(lane: int, distance: float, obstacle_type: String, layer: int, item: Dictionary) -> Node3D:
+	var root := Node3D.new()
+	root.name = "%sObstacle" % obstacle_type.capitalize()
+	track_root.add_child(root)
+
+	if layer == WALL_RUN_LAYER and obstacle_type in ["jump", "low_barrier", "slide", "high_bar"]:
+		_build_wall_face_obstacle(root, item, obstacle_type)
+		return root
+
+	match obstacle_type:
+		"slide", "high_bar":
+			_build_high_bar(root, item)
+		"orb":
+			_build_energy_orb(root, item)
+		"train":
+			_build_train(root, false)
+		"train_moving":
+			_build_train(root, true)
+		"block_left":
+			_build_lane_block(root, "left")
+		"block_right":
+			_build_lane_block(root, "right")
+		"main_block":
+			_build_main_block(root, float(item.get("half_depth", 8.0)))
+		"ramp":
+			_build_ramp(root, int(item.get("target_layer", layer + 1)))
+		"turn_left", "turn_right":
+			_build_turn_sign(root, obstacle_type)
+		"jump", "low_barrier":
+			_build_jump_bar(root, item)
+		_:
+			_build_jump_bar(root, item)
+
+	return root
+
+
+func _build_wall_face_obstacle(root: Node3D, item: Dictionary, obstacle_type: String) -> void:
+	var is_slide := obstacle_type in ["slide", "high_bar"]
+	root.set_meta("wall_face_obstacle", true)
+	root.set_meta("obstacle_asset_path", "wall_face_%s" % ("slide" if is_slide else "jump"))
+	var bar := MeshInstance3D.new()
+	bar.name = "WallFaceObstacleBar"
+	var box := BoxMesh.new()
+	if is_slide:
+		# 悬梁：挡中高列，下滑到低列或高跳越过
+		box.size = Vector3(0.55, 1.65, 2.8)
+	else:
+		# 低栏：贴低列，中列需跳过
+		box.size = Vector3(0.5, 0.9, 2.6)
+	bar.mesh = box
+	var mat := StandardMaterial3D.new()
+	if is_slide:
+		mat.albedo_color = Color(0.15, 0.55, 0.95, 0.92)
+		mat.emission = Color(0.2, 0.75, 1.0)
+	else:
+		mat.albedo_color = Color(0.95, 0.45, 0.12, 0.95)
+		mat.emission = Color(1.0, 0.4, 0.08)
+	mat.emission_enabled = true
+	mat.emission_energy_multiplier = 1.8
+	mat.metallic = 0.35
+	mat.roughness = 0.35
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bar.material_override = mat
+	bar.position = Vector3(0.0, box.size.y * 0.5, 0.0)
+	root.add_child(bar)
+	var rim := MeshInstance3D.new()
+	rim.name = "WallFaceObstacleRim"
+	var rim_box := BoxMesh.new()
+	rim_box.size = box.size + Vector3(0.08, 0.08, 0.08)
+	rim.mesh = rim_box
+	var rim_mat := StandardMaterial3D.new()
+	rim_mat.albedo_color = Color(1.0, 1.0, 1.0, 0.18)
+	rim_mat.emission_enabled = true
+	rim_mat.emission = mat.emission
+	rim_mat.emission_energy_multiplier = 0.7
+	rim_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	rim_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rim.material_override = rim_mat
+	rim.position = bar.position
+	root.add_child(rim)
+	var tip := Label3D.new()
+	tip.text = "滑到低列 / 跳过" if is_slide else "跳跃越过"
+	tip.font_size = 42
+	tip.modulate = Color(0.75, 1.0, 0.95) if is_slide else Color(1.0, 0.75, 0.35)
+	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	tip.position = Vector3(0.0, box.size.y + 0.55, 0.0)
+	root.add_child(tip)

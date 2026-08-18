@@ -1,0 +1,13 @@
+===OLD===
+	if kind == "coin" or kind == "":
+		_spawn_coin_pickup_burst(world_pos)
+		_pulse_coin_hud_feedback()
+		camera_shake = maxf(camera_shake, 0.045)
+		return
+===NEW===
+	if kind == "coin" or kind == "":
+		_spawn_coin_pickup_burst(world_pos)
+		_pulse_coin_hud_feedback()
+		_flash_coin_screen()
+		camera_shake = maxf(camera_shake, 0.06)
+		return

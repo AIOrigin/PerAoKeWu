@@ -54,7 +54,8 @@ static func get_batch1_location_ids(planet_id: String) -> Array[String]:
 	return get_batch_location_ids(planet_id, 1)
 
 
-## 当前应解锁到第几批：1 初始；2=批次1任一据点点亮；3=批次1+2平均进度≥85%
+## 当前应解锁到第几批：
+## 1 初始开放居民穹顶+水源据点任务；2=批次1任一据点点亮后开放医疗+防御哨站；3=批次1+2平均进度≥85%
 static func compute_unlocked_batch(planet_id: String) -> int:
 	var batches := get_batches(planet_id)
 	if batches.is_empty():
@@ -142,16 +143,151 @@ static func sanitize_board(planet_id: String, board: Array, unlocked_batch: int)
 
 
 static func fill_board_slots(planet_id: String, board: Array, unlocked_batch: int = -1) -> Array[String]:
+	return fill_mission_board_slots(planet_id, board, unlocked_batch)
+
+
+static func _runner_config(planet_id: String) -> Script:
+	return PlanetDatabase.get_runner_config(planet_id) if planet_id != "" else null
+
+
+static func _is_valid_mission_id(planet_id: String, mission_id: String) -> bool:
+	if mission_id == "":
+		return false
+	var cfg := _runner_config(planet_id)
+	if cfg != null and cfg.has_method("get_mission_by_id"):
+		return not cfg.get_mission_by_id(mission_id).is_empty()
+	return false
+
+
+static func _migrate_slot_to_mission_id(planet_id: String, slot: String) -> String:
+	var id := String(slot).strip_edges()
+	if id == "":
+		return ""
+	if _is_valid_mission_id(planet_id, id):
+		return id
+	var cfg := _runner_config(planet_id)
+	if cfg != null and cfg.has_method("get_missions_for_location"):
+		var matches: Array = cfg.get_missions_for_location(id)
+		if not matches.is_empty():
+			return Global.mission_key(matches[0] as Dictionary)
+	if cfg != null and cfg.has_method("get_mission_for_location"):
+		return Global.mission_key(cfg.get_mission_for_location(id))
+	return ""
+
+
+## 可进任务板的 mission：批次已解锁、据点未点亮
+static func list_mission_board_candidates(planet_id: String, unlocked_batch: int = -1) -> Array[String]:
+	var cfg := _runner_config(planet_id)
+	if cfg == null or not cfg.has_method("get_location_missions"):
+		return []
 	var unlocked := unlocked_batch if unlocked_batch > 0 else compute_unlocked_batch(planet_id)
-	var slots := sanitize_board(planet_id, board, unlocked)
-	if slots.size() >= BOARD_SLOT_COUNT:
-		return slots.slice(0, BOARD_SLOT_COUNT)
-	for location_id in list_board_candidates(planet_id, unlocked):
-		if slots.has(location_id):
+	var candidates: Array[String] = []
+	for raw in cfg.get_location_missions():
+		if typeof(raw) != TYPE_DICTIONARY:
 			continue
-		slots.append(location_id)
-		if slots.size() >= BOARD_SLOT_COUNT:
+		var mission: Dictionary = raw
+		var location_id := String(mission.get("location_id", ""))
+		if location_id == "":
+			continue
+		if Global.get_completed_runner_locations(planet_id).has(location_id):
+			continue
+		if not is_location_batch_unlocked(planet_id, location_id, unlocked):
+			continue
+		var mission_id: String = Global.mission_key(mission)
+		if mission_id != "" and Global.is_mission_completed(planet_id, mission_id):
+			continue
+		if mission_id != "" and not candidates.has(mission_id):
+			candidates.append(mission_id)
+	candidates.sort_custom(func(a: String, b: String) -> bool:
+		var ma: Dictionary = cfg.get_mission_by_id(a) if cfg.has_method("get_mission_by_id") else {}
+		var mb: Dictionary = cfg.get_mission_by_id(b) if cfg.has_method("get_mission_by_id") else {}
+		var gap_a := gap_priority(planet_id, String(ma.get("location_id", "")))
+		var gap_b := gap_priority(planet_id, String(mb.get("location_id", "")))
+		if not is_equal_approx(gap_a, gap_b):
+			return gap_a > gap_b
+		return int(ma.get("order", 999)) < int(mb.get("order", 999))
+	)
+	return candidates
+
+
+## 任务面板：含未完成与已完成（据点未点亮前均展示）
+static func list_tasks_panel_missions(planet_id: String, unlocked_batch: int = -1) -> Array[String]:
+	var cfg := _runner_config(planet_id)
+	if cfg == null or not cfg.has_method("get_location_missions"):
+		return []
+	var unlocked := unlocked_batch if unlocked_batch > 0 else compute_unlocked_batch(planet_id)
+	var result: Array[String] = []
+	for raw in cfg.get_location_missions():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var mission: Dictionary = raw
+		var location_id := String(mission.get("location_id", ""))
+		if location_id == "":
+			continue
+		if Global.get_completed_runner_locations(planet_id).has(location_id):
+			continue
+		if not is_location_batch_unlocked(planet_id, location_id, unlocked):
+			continue
+		var mission_id: String = Global.mission_key(mission)
+		if mission_id != "" and not result.has(mission_id):
+			result.append(mission_id)
+	result.sort_custom(func(a: String, b: String) -> bool:
+		var ma: Dictionary = cfg.get_mission_by_id(a) if cfg.has_method("get_mission_by_id") else {}
+		var mb: Dictionary = cfg.get_mission_by_id(b) if cfg.has_method("get_mission_by_id") else {}
+		return int(ma.get("order", 999)) < int(mb.get("order", 999))
+	)
+	return result
+
+
+static func sanitize_mission_board(planet_id: String, board: Array, unlocked_batch: int) -> Array[String]:
+	var cfg := _runner_config(planet_id)
+	var result: Array[String] = []
+	for raw in board:
+		var mission_id: String = _migrate_slot_to_mission_id(planet_id, String(raw))
+		if mission_id == "":
+			continue
+		var mission: Dictionary = {}
+		if cfg != null and cfg.has_method("get_mission_by_id"):
+			mission = cfg.get_mission_by_id(mission_id)
+		if mission.is_empty():
+			continue
+		var location_id := String(mission.get("location_id", ""))
+		if Global.get_completed_runner_locations(planet_id).has(location_id):
+			continue
+		if not is_location_batch_unlocked(planet_id, location_id, unlocked_batch):
+			continue
+		if Global.is_mission_completed(planet_id, mission_id):
+			continue
+		if not result.has(mission_id):
+			result.append(mission_id)
+	return result
+
+
+## 3 槽 mission 任务板；rotate_completed 为刚跑完要从板上轮换下去的 mission_id
+static func fill_mission_board_slots(
+	planet_id: String,
+	board: Array,
+	unlocked_batch: int = -1,
+	rotate_completed: String = ""
+) -> Array[String]:
+	var unlocked := unlocked_batch if unlocked_batch > 0 else compute_unlocked_batch(planet_id)
+	var slots := sanitize_mission_board(planet_id, board, unlocked)
+	if rotate_completed != "":
+		var rotate_idx := slots.find(rotate_completed)
+		if rotate_idx >= 0:
+			slots.remove_at(rotate_idx)
+	while slots.size() < BOARD_SLOT_COUNT:
+		var added := false
+		for mission_id in list_mission_board_candidates(planet_id, unlocked):
+			if slots.has(mission_id):
+				continue
+			slots.append(mission_id)
+			added = true
 			break
+		if not added:
+			break
+	if slots.size() > BOARD_SLOT_COUNT:
+		return slots.slice(0, BOARD_SLOT_COUNT)
 	return slots
 
 

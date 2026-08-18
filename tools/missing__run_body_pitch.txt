@@ -1,0 +1,5 @@
+var _hit_fov_punch := 0.0
+var _speed_feel_punch := 0.0
+var _run_body_pitch := 0.0
+var _speed_rumble := 0.0
+var _wall_boost_fx_timer := 0.0

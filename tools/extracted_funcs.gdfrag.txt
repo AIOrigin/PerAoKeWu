@@ -1,0 +1,494 @@
+func _add_train_wave_blade(root: Node3D, span: float) -> MeshInstance3D:
+	var existing := root.get_node_or_null("TrainWaveBlade") as MeshInstance3D
+	if existing != null:
+		return existing
+	var top_y := float(root.get_meta("blade_top", TRAIN_GATE_TOP))
+	var blade := MeshInstance3D.new()
+	blade.name = "TrainWaveBlade"
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(span * 0.92, 0.28, 0.22)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.albedo_color = Color(1.0, 0.82, 0.35, 0.95)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.72, 0.2)
+	mat.emission_energy_multiplier = 5.2
+	mesh.material = mat
+	blade.mesh = mesh
+	blade.position = Vector3(0.0, top_y - 0.2, 0.14)
+	blade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(blade)
+	var trail := MeshInstance3D.new()
+	trail.name = "TrainWaveBladeTrail"
+	var trail_mesh := BoxMesh.new()
+	trail_mesh.size = Vector3(span * 0.86, 1.6, 0.06)
+	var trail_mat := StandardMaterial3D.new()
+	trail_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	trail_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	trail_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	trail_mat.albedo_color = Color(1.0, 0.55, 0.25, 0.28)
+	trail_mat.emission_enabled = true
+	trail_mat.emission = Color(1.0, 0.45, 0.12)
+	trail_mat.emission_energy_multiplier = 2.6
+	trail_mesh.material = trail_mat
+	trail.mesh = trail_mesh
+	trail.position = Vector3(0.0, top_y - 1.0, 0.1)
+	trail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(trail)
+	return blade
+
+
+func _apply_mission_environment() -> void:
+	if _world_environment == null or _world_environment.environment == null:
+		return
+	var mission_env: Variant = mission.get("environment", {})
+	if typeof(mission_env) != TYPE_DICTIONARY:
+		return
+	var overlay: Dictionary = mission_env
+	if overlay.is_empty():
+		return
+	var env := _world_environment.environment
+	if overlay.has("ambient"):
+		env.ambient_light_color = overlay["ambient"]
+	if overlay.has("ambient_energy"):
+		env.ambient_light_energy = float(overlay["ambient_energy"])
+	if overlay.has("fog_color"):
+		env.fog_light_color = overlay["fog_color"]
+	if overlay.has("fog_density"):
+		env.fog_density = float(overlay["fog_density"])
+	if overlay.has("fog_aerial_perspective"):
+		env.fog_aerial_perspective = float(overlay["fog_aerial_perspective"])
+	if overlay.has("panorama_energy") and env.sky != null:
+		var sky_mat := env.sky.sky_material
+		if sky_mat is PanoramaSkyMaterial:
+			(sky_mat as PanoramaSkyMaterial).energy_multiplier = float(overlay["panorama_energy"])
+	if overlay.has("sky_rotation_y"):
+		env.sky_rotation = Vector3(0.0, float(overlay["sky_rotation_y"]), 0.0)
+
+
+func _apply_settlement_button_style(button: Button, bg: Color, border: Color) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = bg
+	normal.border_color = border
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(8)
+	normal.content_margin_left = 12
+	normal.content_margin_right = 12
+	normal.content_margin_top = 10
+	normal.content_margin_bottom = 10
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(bg.r + 0.05, bg.g + 0.05, bg.b + 0.07, bg.a)
+	hover.border_color = Color(border.r + 0.12, border.g + 0.12, border.b + 0.16, minf(border.a + 0.2, 1.0))
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(bg.r * 0.85, bg.g * 0.85, bg.b * 0.9, bg.a)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("focus", hover)
+
+
+func _attach_wall_edge_soft_glow(slices: Array, side: float) -> void:
+	if slices.size() < 2:
+		return
+	# 侧墙内边沿虚化光带：柔和过渡，减少突兀切边
+	var glow_mat := _make_material(Color(0.35, 0.75, 1.0, 0.22), Color(0.45, 0.9, 1.0), 1.15)
+	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var soft_mat := _make_material(Color(0.55, 0.85, 1.0, 0.1), Color(0.6, 0.95, 1.0), 0.55)
+	soft_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	soft_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for pass_i in 2:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var inset := 0.08 if pass_i == 0 else 0.32
+		var lift := 0.04 if pass_i == 0 else 0.02
+		var height := WALL_FACE_HEIGHT * (0.92 if pass_i == 0 else 0.7)
+		for i in range(slices.size() - 1):
+			var a: Dictionary = slices[i]
+			var b: Dictionary = slices[i + 1]
+			var a_in: Vector3 = a["inner_bottom"]
+			var b_in: Vector3 = b["inner_bottom"]
+			var a_out: Vector3 = a["outer_bottom"]
+			var inward := (a_in - a_out)
+			if inward.length_squared() < 0.0001:
+				inward = Vector3.RIGHT * (-side)
+			inward = inward.normalized() * inset
+			var a0 := a_in + inward + Vector3(0, lift, 0)
+			var b0 := b_in + inward + Vector3(0, lift, 0)
+			var a1 := a0 + Vector3(0, height, 0)
+			var b1 := b0 + Vector3(0, height, 0)
+			_add_wall_quad(st, a0, b0, b1, a1)
+		var mesh := st.commit()
+		if mesh == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.name = "WallEdgeSoftGlow_%d" % pass_i
+		mi.mesh = mesh
+		mi.material_override = glow_mat if pass_i == 0 else soft_mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_attach_road(mi)
+
+
+func _emit_jump_takeoff_fx() -> void:
+	if landing_particles:
+		landing_particles.restart()
+		landing_particles.emitting = true
+	if jump_streak_particles:
+		jump_streak_particles.restart()
+		jump_streak_particles.emitting = true
+	if player_body:
+		player_body.scale = Vector3(0.86, 1.22, 0.86)
+
+
+func _execute_jump(jump_speed: float) -> void:
+	vertical_velocity = jump_speed
+	_end_slide()
+	body_squash_timer = 0.16
+	camera_shake = maxf(camera_shake, 0.05)
+	_emit_landing_particles()
+	_notify_coach_action("jump")
+	if _coach_tip_key == "overweight_jump" and _is_overweight_cargo() and jump_speed >= JUMP_SPEED * 0.9:
+		_complete_coach_tip("overweight_jump")
+
+
+func _make_jump_streak_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "JumpStreak"
+	particles.position = Vector3(0.0, -0.2, 0.35)
+	particles.amount = 42
+	particles.lifetime = 0.32
+	particles.emitting = false
+	particles.visibility_aabb = AABB(Vector3(-4, -3, -4), Vector3(8, 8, 10))
+	var box := BoxMesh.new()
+	box.size = Vector3(0.04, 0.04, 0.28)
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0.85, 0.95, 1.0, 0.85)
+	sm.emission_enabled = true
+	sm.emission = Color(0.55, 0.85, 1.0)
+	sm.emission_energy_multiplier = 3.2
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	box.material = sm
+	particles.draw_pass_1 = box
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3(0.0, -0.15, 1.0)
+	material.spread = 22.0
+	material.initial_velocity_min = 7.0
+	material.initial_velocity_max = 14.0
+	material.gravity = Vector3(0.0, -2.0, 0.0)
+	material.scale_min = 0.55
+	material.scale_max = 1.4
+	material.color = Color(0.7, 0.92, 1.0, 0.8)
+	particles.process_material = material
+	return particles
+
+
+func _make_wall_boost_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "WallBoostTrail"
+	particles.position = Vector3(0.0, 0.1, 0.55)
+	particles.amount = 48
+	particles.lifetime = 0.38
+	particles.emitting = false
+	particles.visibility_aabb = AABB(Vector3(-5, -4, -5), Vector3(10, 10, 12))
+	var box := BoxMesh.new()
+	box.size = Vector3(0.05, 0.05, 0.42)
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0.35, 0.95, 1.0, 0.9)
+	sm.emission_enabled = true
+	sm.emission = Color(0.25, 0.85, 1.0)
+	sm.emission_energy_multiplier = 4.0
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	box.material = sm
+	particles.draw_pass_1 = box
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3(0.0, 0.05, 1.0)
+	material.spread = 28.0
+	material.initial_velocity_min = 9.0
+	material.initial_velocity_max = 18.0
+	material.gravity = Vector3(0.0, 0.0, 0.0)
+	material.scale_min = 0.7
+	material.scale_max = 1.6
+	material.color = Color(0.4, 0.95, 1.0, 0.88)
+	particles.process_material = material
+	return particles
+
+
+func _make_wall_guide_arrow(
+	distance: float,
+	lateral: float,
+	wall_side: float,
+	emphasis: bool = false
+) -> Node3D:
+	var root := Node3D.new()
+	var sample := _sample_path(distance)
+	var pos: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral
+	pos.y = GROUND_Y + (0.22 if emphasis else 0.12)
+	root.position = pos
+	root.rotation.y = float(sample["yaw"])
+	var mat := _make_material(Color(1.0, 0.78, 0.12, 0.95), Color(1.0, 0.88, 0.25), 2.6 if emphasis else 1.9)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	# 扁平箭头：尖端指向侧墙（右/左）
+	var tip := MeshInstance3D.new()
+	var prism := PrismMesh.new()
+	prism.size = Vector3(1.55 if emphasis else 1.2, 0.14, 1.85 if emphasis else 1.45)
+	prism.material = mat
+	tip.mesh = prism
+	# 放平后绕 Y，使尖端朝向侧墙
+	tip.rotation_degrees = Vector3(90.0, 90.0 if wall_side > 0.0 else -90.0, 0.0)
+	tip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(tip)
+	# 箭身：短横条，强化方向可读
+	var shaft := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.85 if emphasis else 0.65, 0.08, 0.32)
+	shaft.mesh = box
+	shaft.material_override = mat
+	shaft.position = Vector3((-0.55 if wall_side > 0.0 else 0.55), 0.02, 0.0)
+	shaft.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(shaft)
+	return root
+
+
+func _pre_run_briefing_text() -> String:
+	var dest := String(mission.get("target_hearth", "")).strip_edges()
+	if dest == "" and LevelConfig != null and LevelConfig.has_method("get_outpost_meta"):
+		var meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
+		dest = String(meta.get("name", "")).strip_edges()
+	if dest == "":
+		dest = "未知据点"
+	var cargo := String(mission.get("cargo_name", "物资")).strip_edges()
+	if cargo == "":
+		cargo = "物资"
+	var load_n := int(mission.get("cargo_load", 0))
+	var cargo_line := "运输货物：%s ×%d" % [cargo, load_n] if load_n > 0 else "运输货物：%s" % cargo
+	var obs_count := maxi(_smash_obstacle_total, 0)
+	if obs_count <= 0:
+		obs_count = obstacles.size()
+	return "目的地：%s\n%s\n障碍物：%d" % [dest, cargo_line, obs_count]
+
+
+func _pulse_wall_boost_particles(active: bool) -> void:
+	if wall_boost_particles == null:
+		return
+	wall_boost_particles.emitting = active
+	if active and _wall_boost_fx_timer > 1.0:
+		wall_boost_particles.amount_ratio = 1.0
+		wall_boost_particles.speed_scale = 1.8
+	elif active:
+		wall_boost_particles.amount_ratio = 0.7
+		wall_boost_particles.speed_scale = 1.25
+
+
+func _resolve_runner_road_style() -> String:
+	if CustomLevels.has_level(Global.runner_location_id):
+		var custom_style := CustomLevels.get_road_style(Global.runner_location_id)
+		if custom_style != "":
+			return Global.normalize_runner_road_style(custom_style)
+	if Global.runner_planet_id == "glass_desert":
+		return "coarse_desert"
+	var layout_id := _runner_layout_id()
+	if layout_id != "":
+		var layout_style := String(ObstacleLayout.load_root(layout_id).get("road_style", ""))
+		if layout_style != "":
+			return Global.normalize_runner_road_style(layout_style)
+	return Global.get_runner_road_style()
+
+
+func _set_trail_color(col: Color) -> void:
+	if _trail_process_mat == null:
+		return
+	_trail_process_mat.color = col
+
+
+func _shield_crystal_allowed_at(distance: float) -> bool:
+	# 无沙暴的后半段不再投放防护水晶（改用紫球障碍占道）
+	var zones := _sandstorm_zones()
+	if zones.is_empty():
+		return distance < minf(140.0, _track_length * 0.25)
+	for zone in zones:
+		var start := float(zone.get("start", 0.0))
+		var end := start + float(zone.get("length", 40.0))
+		if distance >= start - 22.0 and distance <= end + 16.0:
+			return true
+	# 开局试用窗
+	return distance <= 100.0
+
+
+func _style_buff_label(label: Label, font_size: int, color: Color, outline_size: int = 3) -> void:
+
+
+func _try_attach_gate_boosts_for_train(obstacle: Dictionary) -> void:
+	var root := obstacle.get("node") as Node3D
+	if root == null or not is_instance_valid(root):
+		return
+	var train_dist := float(obstacle.get("distance", 0.0))
+	for collectible in collectibles:
+		if collectible.get("collected", false):
+			continue
+		if not bool(collectible.get("gate_boost", false)):
+			continue
+		if absf(float(collectible.get("gate_train_dist", -999.0)) - train_dist) > 0.5:
+			continue
+		if _collectible_node_alive(collectible.get("node") as Node3D):
+			continue
+		var lane := int(collectible.get("lane", 0))
+		var layer := int(collectible.get("layer", 0))
+		var y := float(collectible.get("y", _layer_height(layer) + 0.95))
+		var boost := _make_speed_boost(lane, train_dist, y, layer)
+		if boost.get_parent() != null:
+			boost.get_parent().remove_child(boost)
+		root.add_child(boost)
+		var blade_local_y := float(root.get_meta("blade_top", TRAIN_GATE_TOP)) - 1.08
+		boost.position = Vector3(0.0, blade_local_y, 0.34)
+		boost.rotation = Vector3.ZERO
+		collectible["node"] = boost
+		collectible["distance"] = train_dist
+
+
+func _try_start_emergency_dash() -> void:
+	if not _is_emergency_run or not gameplay_active or is_finished or is_failed:
+		return
+	if _emergency_dash_charges <= 0 or _emergency_dash_timer > 0.0:
+		return
+	_emergency_dash_charges -= 1
+	_emergency_dash_timer = EMERGENCY_DASH_DURATION
+	_show_gate_toast("紧急冲刺!")
+	_refresh_buff_hud()
+
+
+func _update_meteor_fall_roll(delta: float) -> void:
+	# 陨石：远处高空 → 接近时坠落 → 贴地滚动朝玩家
+	var near_lo := track_distance - 10.0
+	var near_hi := track_distance + 85.0
+	for obstacle in obstacles:
+		if String(obstacle.get("type", "")) != "meteorite":
+			continue
+		if not bool(obstacle.get("fall_roll", false)):
+			continue
+		if bool(obstacle.get("hit", false)) or bool(obstacle.get("smashed", false)):
+			continue
+		var base_dist := float(obstacle.get("distance", 0.0))
+		var obs_dist := base_dist + float(obstacle.get("move_offset", 0.0))
+		if obs_dist < near_lo or obs_dist > near_hi:
+			continue
+		_ensure_obstacle_spawned(obstacle)
+		var node := obstacle.get("node") as Node3D
+		if node == null or not is_instance_valid(node):
+			continue
+		var state := String(obstacle.get("meteor_state", "sky"))
+		var air_y := float(obstacle.get("meteor_air_y", 16.0))
+		var ahead := obs_dist - track_distance
+		if state == "sky" and ahead <= float(obstacle.get("fall_trigger_ahead", 58.0)):
+			state = "falling"
+			obstacle["meteor_state"] = state
+			obstacle["meteor_fall_speed"] = float(obstacle.get("meteor_fall_speed", 22.0))
+		if state == "falling":
+			var fall_spd := float(obstacle.get("meteor_fall_speed", 22.0)) + delta * 18.0
+			obstacle["meteor_fall_speed"] = fall_spd
+			air_y = maxf(air_y - fall_spd * delta, 0.0)
+			obstacle["meteor_air_y"] = air_y
+			obstacle["y_offset"] = air_y
+			if air_y <= 0.05:
+				obstacle["meteor_air_y"] = 0.0
+				obstacle["y_offset"] = 0.0
+				obstacle["meteor_state"] = "rolling"
+				obstacle["moving"] = true
+				# 朝玩家滚来（负向偏移）
+				if absf(float(obstacle.get("move_speed", 0.0))) < 0.01:
+					obstacle["move_speed"] = float(obstacle.get("roll_speed", -5.5))
+				camera_shake = maxf(camera_shake, 0.16)
+		elif state == "rolling":
+			obstacle["y_offset"] = 0.0
+			obstacle["meteor_air_y"] = 0.0
+			var rolled := float(obstacle.get("meteor_roll_dist", 0.0)) + absf(float(obstacle.get("move_speed", -5.5))) * delta
+			obstacle["meteor_roll_dist"] = rolled
+			var visual := node.get_node_or_null("MeteoriteObstacleModel") as Node3D
+			if visual != null:
+				var radius := float(obstacle.get("meteor_radius", 1.0))
+				visual.rotation.x = -rolled / maxf(radius, 0.35)
+		else:
+			# 仍在高空待命
+			obstacle["y_offset"] = air_y
+		_place_obstacle_node(obstacle, true)
+
+
+func _update_midground_visibility() -> void:
+	if _side_dressing_root == null:
+		return
+	_midground_vis_tick += 1
+	if _midground_vis_tick < 4:
+		return
+	_midground_vis_tick = 0
+	for child in _side_dressing_root.get_children():
+		if not child is Node3D:
+			continue
+		var node := child as Node3D
+		var anchor_d := float(node.get_meta("path_distance", -1.0))
+		if anchor_d < 0.0:
+			continue
+		var delta_d := anchor_d - track_distance
+		node.visible = delta_d >= MIDGROUND_VISIBLE_BEHIND and delta_d <= MIDGROUND_VISIBLE_AHEAD
+
+
+func _update_shield_energy_drain(delta: float) -> void:
+	if not shield_active or is_failed or is_finished or is_intro or not gameplay_active:
+		return
+	if _tutorial_paused:
+		return
+	var rate := SHIELD_DRAIN_PER_SEC
+	if _is_in_shield_hazard_zone():
+		rate = SHIELD_HAZARD_DRAIN_PER_SEC
+	shield_energy = maxf(shield_energy - rate * delta, 0.0)
+	# 低于开启门槛自动关闭（鼓励先囤能量再开）
+	if shield_energy < SHIELD_MIN_ACTIVATE - 0.001:
+		shield_active = false
+		if not _shield_warned_empty:
+			_shield_warned_empty = true
+			_show_strike_warning("防护罩能量不足 · 已关闭（需≥%d再开）" % int(SHIELD_MIN_ACTIVATE))
+
+
+func _update_train_blade_gates() -> void:
+	var near_lo := track_distance - 8.0
+	var near_hi := track_distance + 70.0
+	for obstacle in obstacles:
+		var otype := String(obstacle.get("type", ""))
+		if otype not in ["train", "train_moving"]:
+			continue
+		var dist := float(obstacle.get("distance", 0.0)) + float(obstacle.get("move_offset", 0.0))
+		if dist < near_lo or dist > near_hi:
+			continue
+		var node := obstacle.get("node") as Node3D
+		if node == null or not is_instance_valid(node):
+			continue
+		obstacle["blade_top"] = float(node.get_meta("blade_top", TRAIN_GATE_TOP))
+		var blade := node.get_node_or_null("TrainWaveBlade") as MeshInstance3D
+		if blade == null:
+			blade = _add_train_wave_blade(node, TRAIN_GATE_BLADE_SPAN)
+		var top_y := float(obstacle.get("blade_top", TRAIN_GATE_TOP))
+		var y := _slide_blade_local_y(obstacle)
+		blade.position.y = y
+		var blocking := _slide_blade_is_blocking(obstacle)
+		blade.scale = Vector3(1.0, 1.4 if blocking else 0.9, 1.0)
+		var mat := blade.get_active_material(0) as StandardMaterial3D
+		if mat:
+			# 落下挡路：血红刀；上方可过：金黄光刃
+			mat.albedo_color = Color(1.0, 0.28, 0.32, 0.96) if blocking else Color(1.0, 0.82, 0.35, 0.92)
+			mat.emission = Color(1.0, 0.12, 0.18) if blocking else Color(1.0, 0.72, 0.2)
+			mat.emission_energy_multiplier = 6.8 if blocking else 5.0
+		var trail := node.get_node_or_null("TrainWaveBladeTrail") as MeshInstance3D
+		if trail:
+			trail.visible = blocking or _slide_blade_phase(obstacle) < 0.42
+			trail.position.y = lerpf(y, top_y - 0.2, 0.42)
+			var th := maxf(top_y - y, 0.4)
+			trail.scale = Vector3(1.0, th / 1.6, 1.0)
+
+
+func _wall_entry_jump_ready() -> bool:
+	if track_layer != 0 or player == null:
+		return false
+	var zone := _side_runway_entry_zone(track_distance)
+	if zone.is_empty():
+		return false
+	return lane_index == _wall_edge_lane_index(zone)

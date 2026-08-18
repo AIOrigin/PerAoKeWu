@@ -1,0 +1,133 @@
+func _is_overweight_cargo() -> bool:
+	return MissionTypes.is_overweight_cargo(mission)
+
+
+func _coin_collectible_y(coin_index: int, layer: int, force_air: bool = false) -> float:
+	var air := force_air or coin_index % 2 == 1
+	return _layer_height(layer) + (COIN_AIR_Y_OFFSET if air else COIN_GROUND_Y_OFFSET)
+
+
+func _collectible_pickup_fx_config(kind: String) -> Dictionary:
+	match kind:
+		"shield_crystal":
+			return {
+				"amount": 18,
+				"lifetime": 0.28,
+				"spread": 140.0,
+				"vel_min": 1.0,
+				"vel_max": 3.2,
+				"scale_min": 0.16,
+				"scale_max": 0.42,
+				"color": Color(0.42, 1.0, 0.62, 0.78),
+				"particle_radius": 0.028,
+				"show_ring": true,
+				"ring_inner": 0.14,
+				"ring_outer": 0.22,
+				"ring_color": Color(0.45, 1.0, 0.62, 0.55),
+				"ring_emission": 1.6,
+				"ring_scale": 1.55,
+				"ring_duration": 0.24,
+			}
+		"speed_boost":
+			return {
+				"amount": 20,
+				"lifetime": 0.3,
+				"spread": 150.0,
+				"vel_min": 1.1,
+				"vel_max": 3.6,
+				"scale_min": 0.18,
+				"scale_max": 0.46,
+				"color": Color(1.0, 0.68, 0.14, 0.82),
+				"particle_radius": 0.03,
+				"show_ring": true,
+				"ring_inner": 0.13,
+				"ring_outer": 0.21,
+				"ring_color": Color(1.0, 0.62, 0.12, 0.58),
+				"ring_emission": 1.7,
+				"ring_scale": 1.6,
+				"ring_duration": 0.24,
+			}
+		_:
+			return {
+				"amount": 8,
+				"lifetime": 0.18,
+				"spread": 95.0,
+				"vel_min": 0.6,
+				"vel_max": 1.8,
+				"scale_min": 0.1,
+				"scale_max": 0.24,
+				"color": Color(1.0, 0.86, 0.38, 0.72),
+				"particle_radius": 0.018,
+				"show_ring": false,
+			}
+
+
+func _finish_arrival_distance() -> float:
+	if _finish_line_distance <= 0.0:
+		return _track_length
+	return _finish_line_distance + FINISH_PORTAL_DEPTH + 4.0
+
+
+func _finish_outpost_title_en() -> String:
+	if LevelConfig != null and LevelConfig.has_method("get_outpost_meta"):
+		var meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
+		var name_en := String(meta.get("name_en", "")).strip_edges()
+		if name_en != "":
+			return name_en
+	return "Destination"
+
+
+func _spawn_pickup_particle_burst(world_pos: Vector3, fx_cfg: Dictionary) -> void:
+	var particles := GPUParticles3D.new()
+	particles.name = "CollectPickupFx"
+	particles.one_shot = true
+	particles.emitting = true
+	particles.amount = int(fx_cfg.get("amount", 10))
+	particles.lifetime = float(fx_cfg.get("lifetime", 0.22))
+	particles.explosiveness = 1.0
+	particles.fixed_fps = 0
+	track_root.add_child(particles)
+	particles.global_position = world_pos + Vector3(0.0, float(fx_cfg.get("y_offset", 0.28)), 0.0)
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(0.0, 1.0, 0.0)
+	mat.spread = float(fx_cfg.get("spread", 120.0))
+	mat.initial_velocity_min = float(fx_cfg.get("vel_min", 0.8))
+	mat.initial_velocity_max = float(fx_cfg.get("vel_max", 2.4))
+	mat.gravity = Vector3(0.0, -4.0, 0.0)
+	mat.scale_min = float(fx_cfg.get("scale_min", 0.12))
+	mat.scale_max = float(fx_cfg.get("scale_max", 0.34))
+	mat.color = fx_cfg.get("color", Color(1.0, 0.84, 0.28, 0.82))
+	particles.process_material = mat
+	particles.draw_pass_1 = _make_pickup_particle_mesh(
+		float(fx_cfg.get("particle_radius", 0.028)),
+		fx_cfg.get("particle_color", Color(1.0, 0.86, 0.38)),
+		float(fx_cfg.get("particle_emission", 1.8))
+	)
+	particles.restart()
+	get_tree().create_timer(float(fx_cfg.get("cleanup", 0.48))).timeout.connect(particles.queue_free)
+
+
+func _make_pickup_particle_mesh(radius: float, albedo: Color, emission_energy: float = 1.8) -> SphereMesh:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 8
+	mesh.rings = 4
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(albedo.r, albedo.g, albedo.b, 0.92)
+	mat.emission_enabled = true
+	mat.emission = Color(albedo.r, albedo.g, albedo.b)
+	mat.emission_energy_multiplier = emission_energy
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mesh.material = mat
+	return mesh
+
+
+func _execute_jump(jump_speed: float) -> void:
+	vertical_velocity = jump_speed
+	_end_slide()
+	body_squash_timer = 0.16
+	camera_shake = maxf(camera_shake, 0.05)
+	_emit_landing_particles()
+	_notify_coach_action("jump")

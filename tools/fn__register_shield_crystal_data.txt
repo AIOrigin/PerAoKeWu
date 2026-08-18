@@ -1,0 +1,34 @@
+func _register_shield_crystal_data() -> void:
+	var items: Array = []
+	if LevelConfig != null and LevelConfig.has_method("build_shield_crystals") and not CustomLevels.has_level(Global.runner_location_id):
+		items = LevelConfig.build_shield_crystals()
+	else:
+		items = _default_shield_crystals_from_sandstorms()
+	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		var dist := float(item.get("distance", 0.0))
+		if dist < 20.0 or dist > finish_cut:
+			continue
+		if not _shield_crystal_allowed_at(dist):
+			continue
+		var lane := int(item.get("lane", 0))
+		var layer := int(item.get("layer", 0))
+		var y: float = _layer_height(layer) + 0.85
+		_register_collectible_data(lane, dist, y, layer, "shield_crystal")
+
+
+func _shield_crystal_allowed_at(distance: float) -> bool:
+	# 无沙暴的后半段不再投放防护水晶（改用紫球障碍占道）
+	var zones := _sandstorm_zones()
+	if zones.is_empty():
+		return distance < minf(140.0, _track_length * 0.25)
+	for zone in zones:
+		var start := float(zone.get("start", 0.0))
+		var end := start + float(zone.get("length", 40.0))
+		if distance >= start - 22.0 and distance <= end + 16.0:
+			return true
+	# 开局试用窗
+	return distance <= 100.0

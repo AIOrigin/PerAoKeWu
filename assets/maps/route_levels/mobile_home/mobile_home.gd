@@ -6,10 +6,12 @@ const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
 const CustomLevels = preload("res://assets/maps/route_levels/runner_60s/custom_levels.gd")
 const CharacterProgression = preload("res://assets/maps/route_levels/character_progression.gd")
 const CharacterRoster = preload("res://assets/maps/route_levels/character_roster.gd")
+const CharacterPageUI = preload("res://assets/maps/route_levels/mobile_home/character_page_ui.gd")
 const MobilePauseOverlay = preload("res://assets/maps/route_levels/mobile_pause_overlay.gd")
 const HomeFrameOverlay = preload("res://assets/maps/route_levels/mobile_home/home_frame_overlay.gd")
 const MapFrameOverlay = preload("res://assets/maps/route_levels/mobile_home/map_frame_overlay.gd")
 const TaskDetailSheet = preload("res://assets/maps/route_levels/mobile_home/task_detail_sheet.gd")
+const ComicIntroPlayer = preload("res://assets/maps/route_levels/mobile_home/comic_intro_player.gd")
 
 const MAP_PREVIEW_FALLBACK := "res://assets/ddddd.png"
 const TAB_HOME := "home"
@@ -26,6 +28,8 @@ const TAB_LABELS := {
 const MOBILE_VIEWPORT_SIZE := Vector2(1080, 1920)
 # 标注稿基准（home/星火信使-主界面UI.html spec）
 const HOME_DESIGN_SIZE := Vector2(682.0, 1228.0)
+const TASKS_UI_SCALE := 1.0
+const SETTINGS_UI_SCALE := 1.42
 
 # 晶莹蓝白体系（home/星火信使-主界面UI.html）
 const UI_BG := Color(0.016, 0.027, 0.051, 0.98)
@@ -44,6 +48,13 @@ const UI_REWARD := Color(0.557, 0.882, 0.969)
 const UI_GOLD := Color(0.557, 0.882, 0.969)
 const UI_GOLD_BORDER := Color(0.682, 0.914, 0.961)
 const UI_GREEN := Color(0.42, 0.86, 0.58)
+const UI_MISSION_DONE := Color(0.34, 0.72, 0.58)  # 完成态：低饱和青绿
+# RUN 星火红：暗血红 / 勃艮第，半透明玻璃感（参考 #4A0E17 · #6C1D24 · #A31C1C）
+const UI_EMBER_RUN_BG := Color(0.29, 0.055, 0.09, 0.58)
+const UI_EMBER_RUN_BORDER := Color(0.42, 0.11, 0.14, 0.82)
+const UI_EMBER_RUN_GLOW := Color(0.64, 0.11, 0.11, 0.30)
+const UI_EMBER_RUN_TEXT := Color(0.93, 0.78, 0.76)
+const UI_REWARD_CLAIM := ClaimButtonUI.HIGHLIGHT  # 待领取高亮 · 淡粉体系
 const UI_ORANGE := Color(0.557, 0.882, 0.969)
 const UI_ORANGE_BORDER := Color(0.435, 0.839, 1.0)
 const UI_HEADER := Color(0.027, 0.063, 0.114, 0.62)
@@ -141,8 +152,11 @@ var _toast_label: Label
 var _toast_tween: Tween
 var _nav_buttons: Dictionary = {}
 var _story_overlay: Control
+var _story_canvas: CanvasLayer
+var _story_intro_replay := false
 var _guide_overlay: Control
 var _character_story_overlay: Control
+var _character_story_layer: CanvasLayer
 var _selected_character_id: String = CharacterRoster.CHAR_ELSA
 var _guide_highlight: PanelContainer
 var _guide_callout: PanelContainer
@@ -163,6 +177,8 @@ var _map_list_box: VBoxContainer
 var _home_mission_host: Control
 var _home_start_host: Control
 var _page_scrim: ColorRect
+var _bg_bottom_fade: ColorRect
+var _bg_bottom_deep: ColorRect
 var _home_title_box: Control
 var _selected_tab := TAB_HOME
 var _selected_planet_id := "glass_desert"
@@ -170,8 +186,16 @@ var _guide_step := -1
 var _pause_overlay: MobilePauseOverlay
 var _settings_overlay: Control
 var _settings_tutorial_check: CheckButton
+var _settings_bgm_check: CheckButton
+var _settings_bgm_slider: HSlider
+var _settings_sfx_slider: HSlider
 var _energy_tick := 0.0
 var _task_detail: Control
+var _tasks_sub_tab := "missions"
+var _tasks_missions_box: VBoxContainer
+var _tasks_daily_box: VBoxContainer
+var _tasks_tab_missions_btn: Button
+var _tasks_tab_daily_btn: Button
 
 
 func _ready() -> void:
@@ -185,11 +209,13 @@ func _ready() -> void:
 		_selected_tab = Global.mobile_home_tab
 	_build_ui()
 	_setup_pause_overlay()
+	Global.ensure_mission_dispatch_ready("glass_desert")
 	call_deferred("_apply_mobile_layout")
 	_show_tab(_selected_tab)
 	_refresh_status_bar()
-	if not Global.first_launch_story_seen:
-		_show_story_intro()
+	Global.play_home_bgm()
+	if not Global.opening_comic_seen:
+		call_deferred("_show_story_intro")
 	elif not Global.home_guide_seen:
 		_start_home_guide()
 
@@ -207,7 +233,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			_task_detail.close()
 			get_viewport().set_input_as_handled()
 		return
-	if _story_overlay != null and _story_overlay.visible:
+	if _story_overlay != null and is_instance_valid(_story_overlay):
+		if _story_overlay is ComicIntroPlayer:
+			var intro := _story_overlay as ComicIntroPlayer
+			if event.is_action_pressed("ui_accept"):
+				intro._on_next_pressed()
+				get_viewport().set_input_as_handled()
+				return
+			if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+				intro._on_skip_pressed()
+				get_viewport().set_input_as_handled()
+				return
 		return
 	if _settings_overlay != null and _settings_overlay.visible:
 		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
@@ -266,17 +302,31 @@ func _apply_mobile_layout() -> void:
 			top_margin = maxi(top_margin, safe.position.y)
 			bottom_margin = maxi(bottom_margin, maxi(0, int(frame_size.y) - safe.end.y))
 	if _content_host:
-		_content_host.offset_left = side_margin
-		_content_host.offset_right = -side_margin
-		_content_host.offset_top = _home_spec_h(112) + top_margin
-		_content_host.offset_bottom = -_home_spec_h(1228 - 1110) - bottom_margin
+		var h_margin := side_margin
+		var top_inset := _home_spec_h(112)
+		var bottom_inset := _home_spec_h(1228 - 1110)
+		if _selected_tab == TAB_CHARACTER:
+			h_margin = 0
+			top_inset = _home_spec_h(96)
+			bottom_inset = _home_spec_h(1228 - 1110)
+		_content_host.offset_left = h_margin
+		_content_host.offset_right = -h_margin
+		_content_host.offset_top = top_inset + top_margin
+		_content_host.offset_bottom = -bottom_inset - bottom_margin
 	elif _root_margin:
 		_root_margin.add_theme_constant_override("margin_left", side_margin)
 		_root_margin.add_theme_constant_override("margin_right", side_margin)
 		_root_margin.add_theme_constant_override("margin_top", top_margin)
 		_root_margin.add_theme_constant_override("margin_bottom", bottom_margin)
+	if _page_scroll and _page_box:
+		var page_w := _page_scroll.size.x
+		if page_w > 1.0:
+			_page_box.custom_minimum_size.x = page_w
 	if _page_title:
-		_page_title.add_theme_font_size_override("font_size", 34)
+		var title_fs := _tasks_spec_fs(42) if _selected_tab == TAB_TASKS else 34
+		_page_title.add_theme_font_size_override("font_size", title_fs)
+	if _page_subtitle and _selected_tab == TAB_TASKS:
+		_page_subtitle.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
 	for button in _nav_buttons.values():
 		button.custom_minimum_size = Vector2(0, _home_spec_h(98))
 		var tab_label := button.find_child("TabLabel", true, false) as Label
@@ -349,6 +399,7 @@ func _build_ui() -> void:
 	bg_bottom.color = Color(0.016, 0.027, 0.051, 0.55)
 	bg_bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shell.add_child(bg_bottom)
+	_bg_bottom_fade = bg_bottom
 
 	var bg_bottom_deep := ColorRect.new()
 	bg_bottom_deep.name = "BackgroundBottomDeep"
@@ -357,6 +408,7 @@ func _build_ui() -> void:
 	bg_bottom_deep.color = Color(0.016, 0.027, 0.051, 0.85)
 	bg_bottom_deep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shell.add_child(bg_bottom_deep)
+	_bg_bottom_deep = bg_bottom_deep
 
 	_page_scrim = ColorRect.new()
 	_page_scrim.name = "PageScrim"
@@ -711,6 +763,20 @@ func _build_status_bar() -> Control:
 	_status_ember_label.add_theme_constant_override("letter_spacing", 2)
 	credits_wrap.add_child(_status_ember_label)
 
+	if OS.has_feature("editor"):
+		var editor_dev_btn := Button.new()
+		editor_dev_btn.text = "EDITOR"
+		editor_dev_btn.focus_mode = Control.FOCUS_NONE
+		editor_dev_btn.custom_minimum_size = Vector2(_home_spec_w(108), _home_spec_h(44))
+		editor_dev_btn.add_theme_font_size_override("font_size", _home_spec_fs(18))
+		editor_dev_btn.add_theme_color_override("font_color", Color(0.55, 0.95, 1.0))
+		editor_dev_btn.add_theme_stylebox_override("normal", _style(Color(0.04, 0.14, 0.22, 0.88), Color(0.45, 0.82, 0.95, 0.65), 1, _home_spec_w(10)))
+		editor_dev_btn.add_theme_stylebox_override("hover", _style(Color(0.06, 0.18, 0.28, 0.95), Color(0.55, 0.9, 1.0, 0.85), 1, _home_spec_w(10)))
+		editor_dev_btn.add_theme_stylebox_override("pressed", _style(Color(0.02, 0.1, 0.16, 0.95), Color(0.35, 0.72, 0.88, 0.75), 1, _home_spec_w(10)))
+		editor_dev_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		editor_dev_btn.pressed.connect(_on_settings_open_level_editor)
+		row.add_child(editor_dev_btn)
+
 	var settings_button := Button.new()
 	settings_button.focus_mode = Control.FOCUS_NONE
 	settings_button.flat = true
@@ -910,9 +976,14 @@ func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -
 	_clear_page()
 	var is_home := tab_id == TAB_HOME
 	var is_map := tab_id == TAB_MAP
+	var is_runner := tab_id == TAB_CHARACTER
 	if _page_scrim:
-		_page_scrim.visible = not is_home
+		_page_scrim.visible = not is_home and not is_runner
 		_page_scrim.color = Color(0.016, 0.027, 0.051, 0.40) if is_map else Color(0.016, 0.027, 0.051, 0.55)
+	if _bg_bottom_fade:
+		_bg_bottom_fade.visible = not is_runner
+	if _bg_bottom_deep:
+		_bg_bottom_deep.visible = not is_runner
 	if _home_overlay:
 		_home_overlay.visible = is_home
 	if _home_title_box:
@@ -922,7 +993,8 @@ func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -
 	if _page_scroll:
 		_page_scroll.visible = not is_home and not is_map
 		_page_scroll.vertical_scroll_mode = (
-			ScrollContainer.SCROLL_MODE_DISABLED if is_home else ScrollContainer.SCROLL_MODE_AUTO
+			ScrollContainer.SCROLL_MODE_DISABLED if (is_home or is_runner)
+			else ScrollContainer.SCROLL_MODE_AUTO
 		)
 		_page_scroll.scroll_vertical = 0
 	if _home_background:
@@ -943,8 +1015,8 @@ func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -
 			_page_subtitle.text = ""
 			_build_map_page()
 		TAB_TASKS:
-			_page_title.text = "TASKS"
-			_page_subtitle.text = String(TAB_SUBTITLES.get(tab_id, ""))
+			_page_title.text = ""
+			_page_subtitle.text = ""
 			_build_tasks_page()
 		TAB_CHARACTER:
 			_page_title.text = ""
@@ -979,10 +1051,11 @@ func _refresh_status_bar() -> void:
 		return
 	var snapshot: Dictionary = Global.get_messenger_snapshot()
 	var level := int(snapshot["level"])
+	var active_id := Global.get_selected_character_id()
 	var unlocked: Array = snapshot.get("unlocked_stories", [])
-	if not CharacterRoster.is_unlocked(_selected_character_id, unlocked):
-		_selected_character_id = CharacterRoster.CHAR_ELSA
-	var character: Dictionary = CharacterRoster.get_character(_selected_character_id)
+	if not CharacterRoster.is_unlocked(active_id, unlocked):
+		active_id = CharacterRoster.CHAR_ELSA
+	var character: Dictionary = CharacterRoster.get_character(active_id)
 	var char_name := String(character.get("name", snapshot.get("character_name", "Elsa")))
 	_status_name.text = char_name
 	if _status_level_label:
@@ -1138,14 +1211,16 @@ func _home_map_display_name(planet_id: String) -> String:
 
 func _home_outpost_display_name(location_id: String, fallback: String) -> String:
 	match location_id:
-		"reservoir", "dome":
+		"dome":
+			return "Residential Dome"
+		"reservoir":
 			return "Water Station"
 		"medical":
-			return "Medical Outpost"
+			return "Medical Station"
 		"relay":
 			return "Relay Station"
 		"gate":
-			return "Gate Fortress"
+			return "Defense Outpost"
 		_:
 			return fallback if fallback != "" else "Outpost"
 
@@ -1157,7 +1232,7 @@ func _home_outpost_status(planet_id: String, location_id: String) -> Dictionary:
 	var completed := Global.get_completed_runner_locations(planet_id).has(location_id)
 	var revealed := Global.get_revealed_exploration_locations(planet_id, ["dome"]).has(location_id)
 	var payload: Dictionary = cfg.build_detail_payload(location_id, revealed, completed)
-	var status_short := "已点亮" if completed else ("修复中" if revealed else "未开放")
+	var status_short := "已点亮" if completed else ("运输修复中" if revealed else "未开放")
 	return {
 		"title": String(payload.get("title", location_id)),
 		"status_short": status_short,
@@ -1852,78 +1927,800 @@ func _style_map_enter_button(hover: bool) -> StyleBoxFlat:
 func _build_tasks_page() -> void:
 	var planet_id := "glass_desert"
 	Global.ensure_mission_dispatch_ready(planet_id)
-	var unlocked_batch := Global.get_unlocked_mission_batch(planet_id)
-	var batch_label := MissionDispatch.batch_unlock_summary(planet_id, unlocked_batch)
-	var board := Global.get_mission_board_slots(planet_id)
+	_page_box.add_theme_constant_override("separation", _tasks_spec_h(12))
+	_build_tasks_page_header()
+	_build_tasks_sub_tabs()
+	_tasks_missions_box = VBoxContainer.new()
+	_tasks_missions_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_missions_box.add_theme_constant_override("separation", _tasks_spec_h(10))
+	_page_box.add_child(_tasks_missions_box)
+	_tasks_daily_box = VBoxContainer.new()
+	_tasks_daily_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_daily_box.add_theme_constant_override("separation", _tasks_spec_h(12))
+	_tasks_daily_box.visible = false
+	_page_box.add_child(_tasks_daily_box)
+	_populate_tasks_missions(planet_id)
+	_populate_tasks_daily(planet_id)
+	_refresh_tasks_sub_tab_visibility()
+
+
+func _build_tasks_page_header() -> void:
+	var wrap := VBoxContainer.new()
+	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrap.add_theme_constant_override("separation", _tasks_spec_h(6))
+	_page_box.add_child(wrap)
+
+	var title := Label.new()
+	title.text = "TASKS"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var title_ls := LabelSettings.new()
+	title_ls.font_size = _tasks_spec_fs(30)
+	title_ls.font_color = Color(0.965, 0.984, 1.0)
+	title_ls.shadow_color = Color(0.667, 0.894, 0.98, 0.45)
+	title_ls.shadow_size = 10
+	title.label_settings = title_ls
+	title.add_theme_constant_override("letter_spacing", _tasks_spec_em(30, 0.24))
+	wrap.add_child(title)
+
+	var divider := Control.new()
+	divider.custom_minimum_size = Vector2(0, _tasks_spec_h(14))
+	divider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrap.add_child(divider)
+	var line := ColorRect.new()
+	line.color = Color(0.627, 0.863, 0.98, 0.55)
+	line.set_anchors_preset(Control.PRESET_CENTER)
+	line.offset_left = -int(_tasks_spec_w(120))
+	line.offset_right = int(_tasks_spec_w(120))
+	line.offset_top = -1
+	line.offset_bottom = 1
+	divider.add_child(line)
+	var diamond := ColorRect.new()
+	diamond.color = Color(0.95, 0.98, 1.0)
+	diamond.custom_minimum_size = Vector2(_tasks_spec_w(8), _tasks_spec_w(8))
+	diamond.rotation = deg_to_rad(45.0)
+	diamond.set_anchors_preset(Control.PRESET_CENTER)
+	diamond.offset_left = -int(_tasks_spec_w(4))
+	diamond.offset_right = int(_tasks_spec_w(4))
+	diamond.offset_top = -int(_tasks_spec_w(4))
+	diamond.offset_bottom = int(_tasks_spec_w(4))
+	divider.add_child(diamond)
+
+
+func _build_tasks_sub_tabs() -> void:
+	var outer := PanelContainer.new()
+	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var outer_style := StyleBoxFlat.new()
+	outer_style.bg_color = Color(0.039, 0.078, 0.137, 0.55)
+	outer_style.border_color = Color(0.667, 0.902, 1.0, 0.28)
+	outer_style.set_border_width_all(1)
+	outer_style.set_corner_radius_all(_tasks_spec_w(14))
+	outer_style.content_margin_left = _tasks_spec_w(4)
+	outer_style.content_margin_right = _tasks_spec_w(4)
+	outer_style.content_margin_top = _tasks_spec_h(4)
+	outer_style.content_margin_bottom = _tasks_spec_h(4)
+	outer.add_theme_stylebox_override("panel", outer_style)
+	_page_box.add_child(outer)
+
+	var tabs := HBoxContainer.new()
+	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tabs.add_theme_constant_override("separation", _tasks_spec_w(6))
+	outer.add_child(tabs)
+	_tasks_tab_missions_btn = Button.new()
+	_tasks_tab_missions_btn.text = "MISSIONS"
+	_tasks_tab_missions_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_tab_missions_btn.focus_mode = Control.FOCUS_NONE
+	_tasks_tab_missions_btn.pressed.connect(_switch_tasks_sub_tab.bind("missions"))
+	tabs.add_child(_tasks_tab_missions_btn)
+	_tasks_tab_daily_btn = Button.new()
+	_tasks_tab_daily_btn.text = "DAILY"
+	_tasks_tab_daily_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_tab_daily_btn.focus_mode = Control.FOCUS_NONE
+	_tasks_tab_daily_btn.pressed.connect(_switch_tasks_sub_tab.bind("daily"))
+	tabs.add_child(_tasks_tab_daily_btn)
+	_style_tasks_sub_tab_buttons()
+
+
+func _style_tasks_sub_tab_buttons() -> void:
+	for entry in [
+		{"btn": _tasks_tab_missions_btn, "id": "missions"},
+		{"btn": _tasks_tab_daily_btn, "id": "daily"},
+	]:
+		var button: Button = entry["btn"]
+		if button == null:
+			continue
+		var selected := String(entry["id"]) == _tasks_sub_tab
+		var style := StyleBoxFlat.new()
+		if selected:
+			style.bg_color = Color(0.078, 0.157, 0.255, 0.62)
+			style.border_color = Color(0.667, 0.902, 1.0, 0.5)
+			style.shadow_color = Color(0.557, 0.882, 0.969, 0.28)
+			style.shadow_size = 6
+		else:
+			style.bg_color = Color(0.02, 0.04, 0.07, 0.0)
+			style.border_color = Color(0.667, 0.902, 1.0, 0.0)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(_tasks_spec_w(12))
+		style.content_margin_top = _tasks_spec_h(10)
+		style.content_margin_bottom = _tasks_spec_h(10)
+		button.add_theme_stylebox_override("normal", style)
+		button.add_theme_stylebox_override("hover", style)
+		button.add_theme_stylebox_override("pressed", style)
+		button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		button.custom_minimum_size = Vector2(0, _tasks_spec_h(44))
+		button.add_theme_font_size_override("font_size", _tasks_spec_fs(18))
+		button.add_theme_color_override("font_color", UI_ICE if selected else UI_MUTED)
+
+
+func _switch_tasks_sub_tab(tab_id: String) -> void:
+	_tasks_sub_tab = tab_id
+	_style_tasks_sub_tab_buttons()
+	_refresh_tasks_sub_tab_visibility()
+	if tab_id == "daily":
+		call_deferred("_refresh_tasks_daily")
+
+
+func _refresh_tasks_sub_tab_visibility() -> void:
+	if _tasks_missions_box:
+		_tasks_missions_box.visible = _tasks_sub_tab == "missions"
+	if _tasks_daily_box:
+		_tasks_daily_box.visible = _tasks_sub_tab == "daily"
+
+
+func _refresh_tasks_mission_cards(planet_id: String = "glass_desert") -> void:
+	if _tasks_missions_box != null and is_instance_valid(_tasks_missions_box):
+		_populate_tasks_missions(planet_id)
+		return
+	if _selected_tab == TAB_TASKS:
+		_show_tab(TAB_TASKS, true)
+
+
+func _populate_tasks_missions(planet_id: String) -> void:
+	if _tasks_missions_box == null:
+		return
+	for child in _tasks_missions_box.get_children():
+		child.queue_free()
 	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
-	_add_lead_panel(
-		"运输任务板",
-		"%s\n常驻 %d 槽 · 按据点缺口优先补发 · 点亮后自动换新任务" % [
-			batch_label,
-			MissionDispatch.BOARD_SLOT_COUNT,
-		]
-	)
-	var missions_to_show: Array = []
-	if not board.is_empty():
-		for location_id in board:
-			var mission: Dictionary = cfg.get_mission_for_location(String(location_id)) if cfg != null else {}
-			if mission.is_empty():
-				mission = {
-					"location_id": String(location_id),
-					"cargo_name": "运输物资",
-					"task_type": "Supply Run",
-					"difficulty": 1,
-				}
-			missions_to_show.append(mission)
-	elif cfg != null and cfg.has_method("get_location_missions"):
-		# 任务板清空后仍展示已开放据点任务，便于再次运输 / 测详情
-		for mission in cfg.get_location_missions():
-			var location_id := String(mission.get("location_id", ""))
-			if location_id == "":
-				continue
-			if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id, unlocked_batch):
-				continue
-			missions_to_show.append(mission)
-
-	if missions_to_show.is_empty():
-		_add_card("任务板已清空", "当前批次可运输据点均已点亮。可从地图再次运输，或等待下一批次解锁。")
-	else:
-		if board.is_empty():
-			_add_muted_label(_page_box, "当前批次据点已全部点亮 · 以下为可再次运输任务")
-		var planet_meta: Dictionary = PlanetDatabase.get_planet_meta(planet_id)
-		var slot_index := 1
-		for mission in missions_to_show:
-			_add_mission_card(planet_meta, mission, slot_index, not board.is_empty())
-			slot_index += 1
-
-	_add_section_title("批次进度")
-	for entry in MissionDispatch.get_batches(planet_id):
-		var batch_id := int(entry.get("id", 0))
-		var status := "已开放" if batch_id <= unlocked_batch else "未解锁"
-		var locs: PackedStringArray = PackedStringArray()
-		for location_id in entry.get("locations", []):
-			var meta: Dictionary = cfg.get_outpost_meta(String(location_id)) if cfg != null and cfg.has_method("get_outpost_meta") else {}
-			var name := String(meta.get("name", location_id))
-			var progress := Global.get_outpost_progress(planet_id, String(location_id))
-			var total := Global.get_outpost_repair_total(planet_id, String(location_id))
-			locs.append("%s %d/%d" % [name, progress, total])
-		var unlock_hint := ""
-		if batch_id == 2 and unlocked_batch < 2:
-			unlock_hint = "\n解锁条件：批次1任一据点点亮"
-		elif batch_id == 3 and unlocked_batch < 3:
-			unlock_hint = "\n解锁条件：批次1+2平均进度 ≥ 85%"
-		_add_card(
-			"批次%d · %s · %s" % [batch_id, String(entry.get("name", "")), status],
-			" · ".join(locs) + unlock_hint
+	Global.ensure_mission_dispatch_ready(planet_id)
+	for location_id in Global.list_pending_light_ceremonies(planet_id):
+		_add_tasks_light_ceremony_card(planet_id, location_id)
+	var mission_ids: Array[String] = MissionDispatch.list_tasks_panel_missions(planet_id)
+	var active := Global.get_active_mission(planet_id)
+	var active_mission_id := String(active.get("mission_id", ""))
+	if active_mission_id != "" and not mission_ids.has(active_mission_id):
+		mission_ids.insert(0, active_mission_id)
+	var shown := 0
+	for mission_id in mission_ids:
+		if cfg == null or not cfg.has_method("get_mission_by_id"):
+			continue
+		var mission: Dictionary = cfg.get_mission_by_id(mission_id)
+		if mission.is_empty():
+			continue
+		_add_tasks_mission_card(planet_id, mission)
+		shown += 1
+	if shown == 0 and active_mission_id != "" and cfg != null and cfg.has_method("get_mission_by_id"):
+		var active_mission: Dictionary = cfg.get_mission_by_id(active_mission_id)
+		if not active_mission.is_empty():
+			_add_tasks_mission_card(planet_id, active_mission)
+			shown += 1
+	var pending_light := Global.list_pending_light_ceremonies(planet_id)
+	if shown == 0 and pending_light.is_empty():
+		_add_muted_label(
+			_tasks_missions_box,
+			"暂无可接取任务。完成运输推进各任务进度（每项 100），四项合计点亮据点后将解锁下一批。"
 		)
 
-	_add_section_title("自定义关卡")
-	var customs: Array = CustomLevels.list_levels()
-	if customs.is_empty():
-		_add_card("暂无自定义关卡", "在关卡编辑器中摆放障碍后点「保存为关卡」，会按 自定义01、自定义02… 自动上架到此处。")
+
+func _add_tasks_light_ceremony_card(planet_id: String, location_id: String) -> void:
+	var outpost_name := Global.get_outpost_display_name(planet_id, location_id)
+	var accent := Color(0.98, 0.78, 0.28)
+	var panel := _make_tasks_mission_card_shell(accent, false, true)
+	_tasks_missions_box.add_child(panel)
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", _tasks_spec_w(8))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(row)
+
+	var accent_bar := ColorRect.new()
+	accent_bar.custom_minimum_size = Vector2(_tasks_spec_w(4), _tasks_spec_h(52))
+	accent_bar.color = accent
+	accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(accent_bar)
+
+	var icon_wrap := PanelContainer.new()
+	icon_wrap.custom_minimum_size = Vector2(_tasks_spec_w(52), _tasks_spec_w(52))
+	icon_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = Color(0.16, 0.12, 0.04, 0.72)
+	icon_style.border_color = Color(accent.r, accent.g, accent.b, 0.55)
+	icon_style.set_border_width_all(1)
+	icon_style.set_corner_radius_all(_tasks_spec_w(10))
+	icon_wrap.add_theme_stylebox_override("panel", icon_style)
+	row.add_child(icon_wrap)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "✦"
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(22))
+	icon_lbl.add_theme_color_override("font_color", accent)
+	icon_wrap.add_child(icon_lbl)
+
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", _tasks_spec_h(3))
+	row.add_child(body)
+	var name_lbl := Label.new()
+	name_lbl.text = "点亮%s" % outpost_name
+	name_lbl.clip_text = true
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
+	name_lbl.add_theme_color_override("font_color", UI_TEXT)
+	body.add_child(name_lbl)
+	var obj_lbl := Label.new()
+	obj_lbl.text = "运输进度已满 · 前往地图点亮据点"
+	obj_lbl.clip_text = true
+	obj_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	obj_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(14))
+	obj_lbl.add_theme_color_override("font_color", UI_MUTED)
+	body.add_child(obj_lbl)
+
+	var action := Button.new()
+	action.text = "LIGHT UP"
+	action.focus_mode = Control.FOCUS_NONE
+	action.custom_minimum_size = Vector2(_tasks_spec_w(128), _tasks_spec_h(44))
+	action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.94, 0.72, 0.22, 0.92)
+	btn_style.border_color = Color(0.98, 0.84, 0.42, 0.95)
+	btn_style.set_border_width_all(1)
+	btn_style.set_corner_radius_all(_tasks_spec_w(10))
+	action.add_theme_stylebox_override("normal", btn_style)
+	action.add_theme_stylebox_override("hover", btn_style)
+	action.add_theme_stylebox_override("pressed", btn_style)
+	action.add_theme_color_override("font_color", Color(0.12, 0.08, 0.02))
+	action.add_theme_font_size_override("font_size", _tasks_spec_fs(16))
+	action.pressed.connect(_on_tasks_light_ceremony_pressed.bind(planet_id, location_id))
+	row.add_child(action)
+
+
+func _on_tasks_light_ceremony_pressed(planet_id: String, location_id: String) -> void:
+	if not Global.is_map_light_ceremony_pending(planet_id, location_id):
+		_show_toast("该据点已点亮或尚未完成运输")
+		_refresh_tasks_mission_cards(planet_id)
+		return
+	Global.pending_map_light_focus = location_id
+	_open_planet_map(planet_id)
+
+
+func _populate_tasks_daily(planet_id: String) -> void:
+	if _tasks_daily_box == null:
+		return
+	for child in _tasks_daily_box.get_children():
+		child.queue_free()
+	Global.ensure_daily_tasks_fresh()
+	for entry in _daily_task_defs():
+		_add_tasks_daily_row(entry)
+	var refresh := Label.new()
+	refresh.text = "New tasks in %s" % _daily_tasks_reset_countdown()
+	refresh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	refresh.add_theme_font_size_override("font_size", _tasks_spec_fs(15))
+	refresh.add_theme_color_override("font_color", UI_MUTED)
+	_tasks_daily_box.add_child(refresh)
+
+
+func _daily_task_defs() -> Array:
+	return [
+		{"id": "daily_login", "name": "DAILY LOGIN", "obj": "Log in today", "target": 1, "reward": 20},
+		{"id": "first_run", "name": "FIRST RUN", "obj": "Complete 1 transport run", "target": 1, "reward": 30},
+		{"id": "safe_courier", "name": "SAFE COURIER", "obj": "Finish a run with cargo integrity ≥ 90%", "target": 1, "reward": 40},
+		{"id": "spark_collector", "name": "SPARK COLLECTOR", "obj": "Collect 100 Star Coins in runs", "target": 100, "reward": 30},
+	]
+
+
+func _daily_tasks_reset_countdown() -> String:
+	var now := Time.get_datetime_dict_from_system()
+	var sec_now := int(now.get("hour", 0)) * 3600 + int(now.get("minute", 0)) * 60 + int(now.get("second", 0))
+	var sec_left := maxi(0, 86400 - sec_now)
+	var h := sec_left / 3600
+	var m := (sec_left % 3600) / 60
+	var s := sec_left % 60
+	return "%02d:%02d:%02d" % [h, m, s]
+
+
+func _refresh_tasks_daily() -> void:
+	_populate_tasks_daily("glass_desert")
+
+
+func _add_tasks_daily_row(entry: Dictionary) -> void:
+	var task_id := String(entry.get("id", ""))
+	var target := maxi(1, int(entry.get("target", 1)))
+	var reward := int(entry.get("reward", 0))
+	var prog_now := Global.get_daily_task_progress(task_id, target)
+	var is_done := Global.is_daily_task_complete(task_id, target)
+	var reward_pending := Global.is_daily_task_reward_pending(task_id, target)
+	var claimed := Global.is_daily_task_claimed(task_id)
+
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.clip_contents = true
+	panel.custom_minimum_size = Vector2(0, _tasks_spec_h(92))
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.027, 0.063, 0.114, 0.62)
+	if reward_pending:
+		panel_style.border_color = Color(ClaimButtonUI.BORDER.r, ClaimButtonUI.BORDER.g, ClaimButtonUI.BORDER.b, 0.72)
+	elif is_done:
+		panel_style.border_color = Color(UI_MISSION_DONE.r, UI_MISSION_DONE.g, UI_MISSION_DONE.b, 0.35)
 	else:
-		for level in customs:
-			_add_custom_level_card(level)
+		panel_style.border_color = Color(0.588, 0.843, 1.0, 0.28)
+	panel_style.set_border_width_all(1 if not reward_pending else 2)
+	panel_style.set_corner_radius_all(_tasks_spec_w(12))
+	panel_style.content_margin_left = _tasks_spec_w(12)
+	panel_style.content_margin_right = _tasks_spec_w(10)
+	panel_style.content_margin_top = _tasks_spec_h(10)
+	panel_style.content_margin_bottom = _tasks_spec_h(10)
+	panel.add_theme_stylebox_override("panel", panel_style)
+	if is_done and not reward_pending:
+		panel.modulate = Color(0.88, 0.9, 0.94, 0.82)
+	_tasks_daily_box.add_child(panel)
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", _tasks_spec_w(10))
+	panel.add_child(row)
+
+	var icon_wrap := PanelContainer.new()
+	icon_wrap.custom_minimum_size = Vector2(_tasks_spec_w(52), _tasks_spec_w(52))
+	icon_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = Color(0.063, 0.137, 0.227, 0.6)
+	icon_style.border_color = Color(ClaimButtonUI.BORDER.r, ClaimButtonUI.BORDER.g, ClaimButtonUI.BORDER.b, 0.55 if reward_pending else (0.3 if not is_done else 0.45))
+	icon_style.set_border_width_all(1)
+	icon_style.set_corner_radius_all(_tasks_spec_w(10))
+	icon_wrap.add_theme_stylebox_override("panel", icon_style)
+	row.add_child(icon_wrap)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "◆"
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
+	if claimed:
+		icon_lbl.add_theme_color_override("font_color", Color(UI_CYAN.r, UI_CYAN.g, UI_CYAN.b, 0.42))
+	elif reward_pending:
+		icon_lbl.add_theme_color_override("font_color", UI_CYAN_SOFT)
+	elif is_done:
+		icon_lbl.add_theme_color_override("font_color", Color(UI_CYAN.r, UI_CYAN.g, UI_CYAN.b, 0.55))
+	else:
+		icon_lbl.add_theme_color_override("font_color", UI_CYAN)
+	icon_wrap.add_child(icon_lbl)
+
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", _tasks_spec_h(4))
+	row.add_child(body)
+	var title := Label.new()
+	title.text = String(entry.get("name", ""))
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
+	title.add_theme_color_override("font_color", UI_TEXT)
+	body.add_child(title)
+	var obj := Label.new()
+	obj.text = String(entry.get("obj", ""))
+	obj.clip_text = true
+	obj.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	obj.add_theme_font_size_override("font_size", _tasks_spec_fs(14))
+	obj.add_theme_color_override("font_color", UI_MUTED)
+	body.add_child(obj)
+
+	var prog_row := HBoxContainer.new()
+	prog_row.add_theme_constant_override("separation", _tasks_spec_w(8))
+	body.add_child(prog_row)
+	var prog_num := Label.new()
+	prog_num.text = "%d / %d" % [prog_now, target]
+	prog_num.add_theme_font_size_override("font_size", _tasks_spec_fs(14))
+	prog_num.add_theme_color_override("font_color", UI_CYAN_SOFT if reward_pending else UI_CYAN)
+	prog_row.add_child(prog_num)
+	var bar_bg := PanelContainer.new()
+	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar_bg.custom_minimum_size = Vector2(0, _tasks_spec_h(6))
+	var bar_bg_style := StyleBoxFlat.new()
+	bar_bg_style.bg_color = Color(0.627, 0.784, 0.922, 0.15)
+	bar_bg_style.set_corner_radius_all(_tasks_spec_w(4))
+	bar_bg.add_theme_stylebox_override("panel", bar_bg_style)
+	prog_row.add_child(bar_bg)
+	var fill := ColorRect.new()
+	fill.color = UI_CYAN_SOFT if reward_pending else UI_CYAN
+	fill.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	fill.anchor_right = clampf(float(prog_now) / float(target), 0.06, 1.0)
+	fill.offset_bottom = _tasks_spec_h(6)
+	bar_bg.add_child(fill)
+
+	var divider := ColorRect.new()
+	divider.custom_minimum_size = Vector2(1, _tasks_spec_h(52))
+	divider.color = Color(0.588, 0.843, 1.0, 0.22)
+	divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(divider)
+
+	var reward_col := VBoxContainer.new()
+	reward_col.custom_minimum_size = Vector2(_tasks_spec_w(54), 0)
+	reward_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	reward_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	reward_col.add_theme_constant_override("separation", _tasks_spec_h(2))
+	row.add_child(reward_col)
+
+	if reward_pending:
+		var claim_btn := Button.new()
+		claim_btn.focus_mode = Control.FOCUS_NONE
+		claim_btn.text = ""
+		claim_btn.custom_minimum_size = Vector2(_tasks_spec_w(54), _tasks_spec_h(52))
+		_apply_daily_reward_claim_style(claim_btn)
+		claim_btn.pressed.connect(_on_claim_daily_task_reward.bind(task_id, reward, target))
+		reward_col.add_child(claim_btn)
+		var claim_v := VBoxContainer.new()
+		claim_v.set_anchors_preset(Control.PRESET_FULL_RECT)
+		claim_v.alignment = BoxContainer.ALIGNMENT_CENTER
+		claim_v.add_theme_constant_override("separation", _tasks_spec_h(2))
+		claim_v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		claim_btn.add_child(claim_v)
+		var star_claim := Label.new()
+		star_claim.text = "★"
+		star_claim.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		star_claim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		star_claim.add_theme_font_size_override("font_size", _tasks_spec_fs(16))
+		star_claim.add_theme_color_override("font_color", ClaimButtonUI.STAR)
+		claim_v.add_child(star_claim)
+		var reward_claim := Label.new()
+		reward_claim.text = str(reward)
+		reward_claim.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		reward_claim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		reward_claim.add_theme_font_size_override("font_size", _tasks_spec_fs(18))
+		reward_claim.add_theme_color_override("font_color", ClaimButtonUI.TEXT)
+		claim_v.add_child(reward_claim)
+	elif claimed:
+		var done_lbl := Label.new()
+		done_lbl.text = "✓"
+		done_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		done_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
+		done_lbl.add_theme_color_override("font_color", UI_MISSION_DONE)
+		reward_col.add_child(done_lbl)
+	else:
+		var star := Label.new()
+		star.text = "★"
+		star.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		star.add_theme_font_size_override("font_size", _tasks_spec_fs(16))
+		star.add_theme_color_override("font_color", Color(UI_CYAN.r, UI_CYAN.g, UI_CYAN.b, 0.45))
+		reward_col.add_child(star)
+		var reward_lbl := Label.new()
+		reward_lbl.text = str(reward)
+		reward_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		reward_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(18))
+		reward_lbl.add_theme_color_override("font_color", Color(UI_ICE.r, UI_ICE.g, UI_ICE.b, 0.55))
+		reward_col.add_child(reward_lbl)
+
+
+func _on_claim_daily_task_reward(task_id: String, reward: int, target: int) -> void:
+	if not Global.claim_daily_task_reward(task_id, reward, target):
+		_show_toast("暂无可领取奖励")
+		return
+	_show_toast("每日奖励 · 星火币 +%d" % reward)
+	_refresh_status_bar()
+	call_deferred("_refresh_tasks_daily")
+
+
+func _mission_type_accent(task_type: String) -> Color:
+	match MissionTypes.normalize_type(task_type):
+		"Repair Run":
+			return Color(0.38, 0.82, 0.58)
+		"Emergency Run":
+			return Color(0.98, 0.72, 0.28)
+		"Relay Run":
+			return Color(0.62, 0.78, 0.98)
+		"Ignition Run":
+			return Color(0.92, 0.48, 0.38)
+		_:
+			return UI_CYAN
+
+
+func _mission_card_summary(mission: Dictionary, profile: Dictionary, outpost_name: String) -> String:
+	var cargo := String(mission.get("cargo_name_en", mission.get("cargo_name", "Cargo")))
+	var duration_s := int(mission.get("duration", profile.get("duration", 60)))
+	var timed := bool(profile.get("timed_fail", false))
+	var time_text := "%ds LIMIT" % duration_s if timed else "%d-%ds" % [maxi(duration_s - 10, 30), duration_s]
+	return "%s · %s · %s" % [cargo, outpost_name, time_text]
+
+
+func _mission_card_meta_bbcode(mission: Dictionary, profile: Dictionary, outpost_name: String) -> String:
+	var cargo := String(mission.get("cargo_name_en", mission.get("cargo_name", "Cargo")))
+	var duration_s := int(mission.get("duration", profile.get("duration", 60)))
+	var timed := bool(profile.get("timed_fail", false))
+	if timed:
+		return "%s · %s · [color=#f5c040]%ds LIMIT[/color]" % [cargo, outpost_name, duration_s]
+	return "%s · %s · %d-%ds" % [cargo, outpost_name, maxi(duration_s - 10, 30), duration_s]
+
+
+func _make_tasks_mission_card_shell(accent: Color, is_done: bool, reward_pending: bool) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.clip_contents = true
+	panel.custom_minimum_size = Vector2(0, _tasks_spec_h(92))
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(0.027, 0.063, 0.114, 0.62)
+	if is_done and reward_pending:
+		card_style.border_color = Color(UI_REWARD_CLAIM.r, UI_REWARD_CLAIM.g, UI_REWARD_CLAIM.b, 0.55)
+	elif is_done:
+		card_style.border_color = Color(UI_MISSION_DONE.r, UI_MISSION_DONE.g, UI_MISSION_DONE.b, 0.35)
+	else:
+		card_style.border_color = Color(accent.r, accent.g, accent.b, 0.28)
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(_tasks_spec_w(12))
+	card_style.content_margin_left = _tasks_spec_w(10)
+	card_style.content_margin_right = _tasks_spec_w(10)
+	card_style.content_margin_top = _tasks_spec_h(8)
+	card_style.content_margin_bottom = _tasks_spec_h(8)
+	panel.add_theme_stylebox_override("panel", card_style)
+	return panel
+
+
+func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
+	var location_id := String(mission.get("location_id", "dome"))
+	var mission_id := Global.mission_key(mission)
+	var profile: Dictionary = MissionTypes.resolve(mission)
+	var progress_target := MissionTypes.mission_progress_target(mission)
+	var progress_now := Global.get_mission_progress(planet_id, mission_id)
+	var is_done := Global.is_mission_completed(planet_id, mission_id)
+	var reward_pending := Global.is_mission_reward_pending(planet_id, mission_id)
+	var type_en := String(mission.get("task_type", profile.get("task_type", "Supply Run"))).to_upper()
+	if not type_en.ends_with(" RUN") and "RUN" not in type_en:
+		type_en = "%s RUN" % type_en.replace(" RUN", "")
+	var outpost := _home_outpost_display_name(
+		location_id,
+		String(mission.get("target_hearth", mission.get("source_hearth", location_id)))
+	)
+	var reward := int(mission.get("base_reward", profile.get("base_reward", 50)))
+	var accepted := Global.is_mission_accepted(planet_id, mission_id)
+	var accent := _mission_type_accent(String(mission.get("task_type", "")))
+
+	var panel := _make_tasks_mission_card_shell(accent, is_done, reward_pending)
+	_tasks_missions_box.add_child(panel)
+
+	var open_detail := func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_open_task_detail(planet_id, mission.duplicate(true))
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", _tasks_spec_w(8))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(row)
+
+	var accent_bar := ColorRect.new()
+	accent_bar.custom_minimum_size = Vector2(_tasks_spec_w(4), _tasks_spec_h(52))
+	accent_bar.color = accent
+	accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(accent_bar)
+
+	var icon_wrap := PanelContainer.new()
+	icon_wrap.custom_minimum_size = Vector2(_tasks_spec_w(52), _tasks_spec_w(52))
+	icon_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = Color(0.063, 0.137, 0.227, 0.6)
+	icon_style.border_color = Color(accent.r, accent.g, accent.b, 0.45)
+	icon_style.set_border_width_all(1)
+	icon_style.set_corner_radius_all(_tasks_spec_w(10))
+	icon_wrap.add_theme_stylebox_override("panel", icon_style)
+	row.add_child(icon_wrap)
+	var icon_lbl := Label.new()
+	icon_lbl.text = _mission_type_icon_char(String(mission.get("task_type", "")))
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
+	icon_lbl.add_theme_color_override("font_color", accent)
+	icon_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	icon_lbl.gui_input.connect(open_detail)
+	icon_wrap.add_child(icon_lbl)
+
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.size_flags_stretch_ratio = 1.0
+	body.add_theme_constant_override("separation", _tasks_spec_h(3))
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(body)
+	var name_lbl := Label.new()
+	name_lbl.text = type_en
+	name_lbl.clip_text = true
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
+	name_lbl.add_theme_color_override("font_color", UI_TEXT)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	name_lbl.gui_input.connect(open_detail)
+	body.add_child(name_lbl)
+	var obj_lbl := RichTextLabel.new()
+	obj_lbl.bbcode_enabled = true
+	obj_lbl.text = _mission_card_meta_bbcode(mission, profile, outpost)
+	obj_lbl.fit_content = true
+	obj_lbl.scroll_active = false
+	obj_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	obj_lbl.custom_minimum_size = Vector2(0, _tasks_spec_fs(18))
+	obj_lbl.add_theme_font_size_override("normal_font_size", _tasks_spec_fs(14))
+	obj_lbl.add_theme_color_override("default_color", UI_MUTED)
+	obj_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	obj_lbl.gui_input.connect(open_detail)
+	body.add_child(obj_lbl)
+	if not is_done and progress_now > 0:
+		var prog_lbl := Label.new()
+		prog_lbl.text = "Progress %d / %d" % [progress_now, progress_target]
+		prog_lbl.clip_text = true
+		prog_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(13))
+		prog_lbl.add_theme_color_override("font_color", Color(0.62, 0.72, 0.82))
+		body.add_child(prog_lbl)
+
+	var right := VBoxContainer.new()
+	right.size_flags_horizontal = Control.SIZE_SHRINK_END
+	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	right.alignment = BoxContainer.ALIGNMENT_CENTER
+	right.add_theme_constant_override("separation", _tasks_spec_h(6))
+	row.add_child(right)
+	var reward_row := HBoxContainer.new()
+	reward_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	reward_row.add_theme_constant_override("separation", _tasks_spec_w(4))
+	right.add_child(reward_row)
+	var star_lbl := Label.new()
+	star_lbl.text = "★"
+	star_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(16))
+	star_lbl.add_theme_color_override("font_color", UI_CYAN)
+	reward_row.add_child(star_lbl)
+	var reward_lbl := Label.new()
+	reward_lbl.text = str(reward)
+	reward_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(18))
+	reward_lbl.add_theme_color_override("font_color", UI_ICE)
+	reward_row.add_child(reward_lbl)
+
+	if is_done and reward_pending:
+		var claim_btn := Button.new()
+		claim_btn.focus_mode = Control.FOCUS_NONE
+		claim_btn.text = "CLAIM"
+		claim_btn.custom_minimum_size = Vector2(_tasks_spec_w(88), _tasks_spec_h(34))
+		_apply_mission_reward_claim_style(claim_btn)
+		claim_btn.pressed.connect(_on_claim_mission_reward.bind(planet_id, mission_id, reward))
+		right.add_child(claim_btn)
+	elif is_done:
+		var done_lbl := Label.new()
+		done_lbl.text = "DONE"
+		done_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(14))
+		done_lbl.add_theme_color_override("font_color", UI_MISSION_DONE)
+		right.add_child(done_lbl)
+	else:
+		var action_btn := Button.new()
+		action_btn.focus_mode = Control.FOCUS_NONE
+		action_btn.text = "RUN" if accepted else "ACCEPT"
+		action_btn.custom_minimum_size = Vector2(_tasks_spec_w(88), _tasks_spec_h(34))
+		_apply_mission_action_button_style(action_btn, accepted)
+		action_btn.pressed.connect(_on_tasks_mission_action.bind(planet_id, mission.duplicate(true), action_btn))
+		right.add_child(action_btn)
+
+
+func _mission_type_icon_char(task_type: String) -> String:
+	match MissionTypes.normalize_type(task_type):
+		"Repair Run":
+			return "🔧"
+		"Emergency Run":
+			return "⚡"
+		"Relay Run":
+			return "↗"
+		"Ignition Run":
+			return "🔥"
+		_:
+			return "▣"
+
+
+func _apply_mission_action_button_style(button: Button, is_run: bool) -> void:
+	var btn_style := StyleBoxFlat.new()
+	if is_run:
+		btn_style.bg_color = Color(0.431, 0.784, 0.922, 0.92)
+		btn_style.border_color = Color(0.847, 0.969, 1.0, 0.95)
+		btn_style.shadow_color = Color(0.557, 0.882, 0.969, 0.45)
+		btn_style.shadow_size = 8
+		button.add_theme_color_override("font_color", Color(0.024, 0.133, 0.2))
+	else:
+		btn_style.bg_color = Color(0.157, 0.275, 0.373, 0.58)
+		btn_style.border_color = Color(0.745, 0.933, 1.0, 0.62)
+		btn_style.shadow_color = Color(0.557, 0.882, 0.969, 0.28)
+		btn_style.shadow_size = 6
+		button.add_theme_color_override("font_color", UI_ICE)
+	btn_style.set_border_width_all(1)
+	btn_style.set_corner_radius_all(_tasks_spec_w(14))
+	btn_style.content_margin_left = _tasks_spec_w(8)
+	btn_style.content_margin_right = _tasks_spec_w(8)
+	btn_style.content_margin_top = _tasks_spec_h(4)
+	btn_style.content_margin_bottom = _tasks_spec_h(4)
+	var hover_style := btn_style.duplicate() as StyleBoxFlat
+	if is_run:
+		hover_style.bg_color = Color(0.667, 0.941, 1.0, 0.98)
+	else:
+		hover_style.bg_color = Color(0.196, 0.333, 0.451, 0.72)
+	var pressed_style := btn_style.duplicate() as StyleBoxFlat
+	pressed_style.shadow_size = 2
+	button.add_theme_stylebox_override("normal", btn_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	button.add_theme_font_size_override("font_size", _tasks_spec_fs(15))
+
+
+func _apply_daily_reward_claim_style(button: Button) -> void:
+	ClaimButtonUI.apply(
+		button,
+		_tasks_spec_w(10),
+		_tasks_spec_w(4),
+		_tasks_spec_h(6),
+		_tasks_spec_w(4),
+		_tasks_spec_h(6),
+		-1
+	)
+
+
+func _apply_mission_reward_claim_style(button: Button) -> void:
+	ClaimButtonUI.apply(
+		button,
+		_tasks_spec_w(14),
+		_tasks_spec_w(8),
+		_tasks_spec_h(4),
+		_tasks_spec_w(8),
+		_tasks_spec_h(4),
+		_tasks_spec_fs(15)
+	)
+
+
+func _on_claim_mission_reward(planet_id: String, mission_id: String, reward: int) -> void:
+	if not Global.claim_mission_reward(planet_id, mission_id, reward):
+		_show_toast("暂无可领取奖励")
+		return
+	_show_toast("领取成功 · 星火币 +%d" % reward)
+	_refresh_status_bar()
+	call_deferred("_refresh_tasks_mission_cards", planet_id)
+
+
+func _on_tasks_mission_action(planet_id: String, mission: Dictionary, action_button: Button = null) -> void:
+	var location_id := String(mission.get("location_id", ""))
+	var mission_id := Global.mission_key(mission)
+	if location_id == "":
+		return
+	if Global.is_mission_completed(planet_id, mission_id):
+		if Global.is_mission_reward_pending(planet_id, mission_id):
+			return
+		_start_runner_for_mission(planet_id, mission)
+		return
+	if Global.is_mission_accepted(planet_id, mission_id):
+		_start_runner_for_mission(planet_id, mission)
+		return
+	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
+		_show_toast("该批次任务尚未解锁")
+		return
+	Global.accept_mission(planet_id, mission_id)
+	_show_toast("已接取 · 点击 RUN 出发")
+	if action_button != null and is_instance_valid(action_button):
+		action_button.text = "RUN"
+		_apply_mission_action_button_style(action_button, true)
+	call_deferred("_refresh_tasks_mission_cards", planet_id)
+
+
+func _start_runner_for_mission(planet_id: String, mission: Dictionary) -> void:
+	var location_id := String(mission.get("location_id", "dome"))
+	var mission_id := Global.mission_key(mission)
+	_sync_selected_character_from_global()
+	_selected_planet_id = planet_id
+	Global.set_active_mission(planet_id, location_id, mission_id)
+	Global.mobile_home_tab = TAB_HOME
+	Global.exploration_planet_id = planet_id
+	Global.runner_planet_id = planet_id
+	Global.runner_location_id = location_id
+	Global.runner_mission_id = mission_id if String(mission.get("mission_id", "")) != "" else ""
+	Global.change_game_scene(PlanetDatabase.RUNNER_SCENE)
 
 
 func _add_custom_level_card(level: Dictionary) -> void:
@@ -1965,34 +2762,51 @@ func _add_custom_level_card(level: Dictionary) -> void:
 func _build_character_page() -> void:
 	var snapshot: Dictionary = Global.get_messenger_snapshot()
 	var unlocked: Array = snapshot.get("unlocked_stories", [])
-	if not CharacterRoster.is_unlocked(_selected_character_id, unlocked):
-		_selected_character_id = CharacterRoster.CHAR_ELSA
-	var character: Dictionary = CharacterRoster.get_character(_selected_character_id)
+	if not CharacterRoster.is_unlocked(Global.get_selected_character_id(), unlocked):
+		Global.set_selected_character(CharacterRoster.CHAR_ELSA)
+	if _selected_character_id == "":
+		_selected_character_id = Global.get_selected_character_id()
 
-	_page_box.add_theme_constant_override("separation", 18)
-	_add_character_profile_card(character, snapshot)
-	_add_character_identity_block(character, snapshot)
-	_add_character_story_entry(character)
-	_add_character_performance(character, snapshot)
-	_add_character_trait_card(character)
-	_add_section_title("属性升级")
-	_add_stat_upgrade_card(CharacterProgression.STAT_CARGO_GUARD, int(snapshot["cargo_guard_level"]))
-	_add_stat_upgrade_card(CharacterProgression.STAT_COIN_BONUS, int(snapshot["coin_bonus_level"]))
-	_add_stat_upgrade_card(CharacterProgression.STAT_MOBILITY, int(snapshot["mobility_level"]))
-	_add_section_title("飞船")
-	for ship in PlanetDatabase.SHIPS:
-		var ship_id := String(ship["id"])
-		var selected := ship_id == Global.selected_ship_id
-		var card := _add_card(
-			String(ship["name"]),
-			"%s\n%s" % [String(ship["role"]), String(ship["path"])],
-			Color(0.10, 0.14, 0.20, 0.98) if selected else UI_PANEL,
-			UI_CYAN if selected else UI_PANEL_BORDER
-		)
-		if selected:
-			_add_status_badge(card, "当前飞船", UI_CYAN)
-		else:
-			_add_button_to(card, "设为当前飞船", _select_ship.bind(ship_id))
+	var host := Control.new()
+	host.name = "RunnerPageHost"
+	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	host.custom_minimum_size = Vector2.ZERO
+	_page_box.add_child(host)
+
+	var ctx := {
+		"character_id": _selected_character_id,
+		"active_character_id": Global.get_selected_character_id(),
+		"snapshot": snapshot,
+		"on_cycle": _cycle_character,
+		"on_select": _select_character_id,
+		"on_switch": _switch_active_character,
+		"on_story": _show_character_story,
+	}
+	CharacterPageUI.build(host, ctx)
+
+
+func _select_character_id(character_id: String) -> void:
+	if character_id == _selected_character_id:
+		return
+	_selected_character_id = character_id
+	var snapshot: Dictionary = Global.get_messenger_snapshot()
+	var unlocked: Array = snapshot.get("unlocked_stories", [])
+	if CharacterRoster.is_unlocked(character_id, unlocked):
+		Global.set_selected_character(character_id)
+	_show_tab(TAB_CHARACTER, true)
+
+
+func _switch_active_character(character_id: String) -> void:
+	var snapshot: Dictionary = Global.get_messenger_snapshot()
+	if not CharacterRoster.is_unlocked(character_id, snapshot.get("unlocked_stories", [])):
+		return
+	Global.set_selected_character(character_id)
+	_selected_character_id = character_id
+	var name := String(CharacterRoster.get_character(character_id).get("name_en", character_id))
+	_show_toast("Now running as %s" % name)
+	_show_tab(TAB_CHARACTER, true)
 
 
 func _add_character_profile_card(character: Dictionary, snapshot: Dictionary) -> void:
@@ -2335,37 +3149,47 @@ func _add_character_trait_card(character: Dictionary) -> void:
 
 
 func _cycle_character(direction: int = 1) -> void:
-	var snapshot: Dictionary = Global.get_messenger_snapshot()
-	var unlocked: Array = snapshot.get("unlocked_stories", [])
 	var next_id := (
-		CharacterRoster.next_unlocked_id(_selected_character_id, unlocked)
+		CharacterRoster.next_id(_selected_character_id)
 		if direction >= 0
-		else CharacterRoster.prev_unlocked_id(_selected_character_id, unlocked)
+		else CharacterRoster.prev_id(_selected_character_id)
 	)
 	if next_id == _selected_character_id:
-		if not CharacterRoster.is_unlocked(CharacterRoster.CHAR_ROOK, unlocked):
-			_show_toast("完成居民穹顶运输后解锁 Rook")
 		return
 	_selected_character_id = next_id
-	Global.set_selected_character(_selected_character_id)
-	_show_toast("已切换至 %s" % String(CharacterRoster.get_character(next_id).get("name", next_id)))
+	var snapshot: Dictionary = Global.get_messenger_snapshot()
+	var unlocked: Array = snapshot.get("unlocked_stories", [])
+	if CharacterRoster.is_unlocked(next_id, unlocked):
+		Global.set_selected_character(next_id)
+		var name := String(CharacterRoster.get_character(next_id).get("name_en", next_id))
+		_show_toast("Now running as %s" % name)
 	_show_tab(TAB_CHARACTER, true)
 
 
 func _show_character_story(character_id: String) -> void:
-	if _character_story_overlay:
-		_character_story_overlay.queue_free()
+	if _character_story_layer:
+		_character_story_layer.queue_free()
+		_character_story_layer = null
 		_character_story_overlay = null
 
 	_selected_character_id = character_id
 	Global.set_selected_character(_selected_character_id)
 	var character: Dictionary = CharacterRoster.get_character(character_id)
 	var snapshot: Dictionary = Global.get_messenger_snapshot()
+
+	var layer := CanvasLayer.new()
+	layer.layer = 50
+	_ui_root.add_child(layer)
+	_character_story_layer = layer
+
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
-	_ui_root.add_child(root)
+	layer.add_child(root)
 	_character_story_overlay = root
+
+	if _content_host:
+		_content_host.visible = false
 
 	var bg := ColorRect.new()
 	bg.color = Color(0.059, 0.082, 0.125, 1.0) # #0F1520
@@ -2401,7 +3225,7 @@ func _show_character_story(character_id: String) -> void:
 	top.add_child(back)
 
 	var top_title := Label.new()
-	top_title.text = "信使故事  RUNNER STORY"
+	top_title.text = "RUNNER STORY"
 	top_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	top_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2475,7 +3299,7 @@ func _show_character_story(character_id: String) -> void:
 	# 01 在上、02 在下，纵向排列（勿重叠）
 	_add_story_section_header(story_box, String(character.get("section_why", "WHY SHE RUNS")), "01")
 	_add_story_comic_block(story_box, character)
-	_add_story_section_header(story_box, "BACKGROUND · 背景故事", "02")
+	_add_story_section_header(story_box, String(character.get("section_background", "BACKGROUND")), "02")
 	_add_story_text_panel(story_box, character)
 
 
@@ -2514,8 +3338,8 @@ func _add_story_section_header(parent: Control, title: String, index_text: Strin
 
 
 func _add_story_comic_block(parent: Control, character: Dictionary) -> void:
-	# 01：方形插画。Scroll 内不用 AspectRatioContainer（高度会变成 0 导致与 02 重叠）
-	var side := maxf(MOBILE_VIEWPORT_SIZE.x - 64.0, 640.0)
+	# 01：插画高度约 52% 视口，避免占满整屏挤掉 02 正文
+	var side := maxf(MOBILE_VIEWPORT_SIZE.y * 0.52, 280.0)
 	var frame := Control.new()
 	frame.custom_minimum_size = Vector2(0, side)
 	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2646,7 +3470,9 @@ func _add_story_text_panel(parent: Control, character: Dictionary) -> void:
 	box.add_theme_constant_override("separation", 16)
 	margin.add_child(box)
 
-	var paragraphs: Array = character.get("story_paragraphs", [])
+	var paragraphs: Array = character.get("story_paragraphs_en", [])
+	if paragraphs.is_empty():
+		paragraphs = character.get("story_paragraphs", [])
 	for paragraph in paragraphs:
 		var label := Label.new()
 		label.text = String(paragraph)
@@ -2662,9 +3488,10 @@ func _add_story_text_panel(parent: Control, character: Dictionary) -> void:
 
 
 func _close_character_story() -> void:
-	if _character_story_overlay:
-		_character_story_overlay.queue_free()
-		_character_story_overlay = null
+	if _character_story_layer:
+		_character_story_layer.queue_free()
+		_character_story_layer = null
+	_character_story_overlay = null
 	_show_tab(TAB_CHARACTER, true)
 
 
@@ -2721,31 +3548,41 @@ func _on_task_detail_closed() -> void:
 		_bottom_nav_root.visible = true
 
 
-func _on_task_detail_accept(planet_id: String, location_id: String) -> void:
+func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: String = "") -> void:
 	if planet_id == "" or location_id == "":
 		return
-	var completed := Global.get_completed_runner_locations(planet_id).has(location_id)
-	var is_active := Global.is_active_mission(planet_id, location_id)
-	if completed or is_active:
+	if mission_id == "":
+		mission_id = location_id
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
+	var mission: Dictionary = {}
+	if cfg != null and cfg.has_method("get_mission_by_id"):
+		mission = cfg.get_mission_by_id(mission_id)
+	if mission.is_empty():
+		mission = cfg.get_mission_for_location(location_id) if cfg != null else {"location_id": location_id}
+	var mission_done := Global.is_mission_completed(planet_id, mission_id)
+	var reward_pending := Global.is_mission_reward_pending(planet_id, mission_id)
+	var location_lit := Global.get_completed_runner_locations(planet_id).has(location_id)
+	var accepted := Global.is_mission_accepted(planet_id, mission_id)
+	if reward_pending:
+		var payout := Global.get_mission_reward_amount(planet_id, mission_id)
+		if Global.claim_mission_reward(planet_id, mission_id, payout):
+			_show_toast("领取成功 · 星火币 +%d" % payout)
+			_refresh_status_bar()
+			_open_task_detail(planet_id, mission)
+			_refresh_tasks_mission_cards(planet_id)
+		return
+	if mission_done or location_lit or accepted:
 		if _task_detail:
 			_task_detail.close()
-		_start_runner_for_location(planet_id, location_id)
+		_start_runner_for_mission(planet_id, mission)
 		return
 	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
 		_show_toast("该批次任务尚未解锁")
 		return
-	if not Global.get_revealed_exploration_locations(planet_id, MissionDispatch.get_batch1_location_ids(planet_id)).has(location_id):
-		_show_toast("需要先在地图中点亮据点")
-		return
-	Global.set_active_mission(planet_id, location_id)
-	_show_toast("已接取 · 可点 START RUN 出发")
-	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
-	var mission: Dictionary = cfg.get_mission_for_location(location_id) if cfg != null else {}
-	if mission.is_empty():
-		mission = {"location_id": location_id}
+	Global.accept_mission(planet_id, mission_id)
+	_show_toast("已接取 · 点击 RUN 出发")
 	_open_task_detail(planet_id, mission)
-	if _selected_tab == TAB_TASKS:
-		_build_tasks_page()
+	_refresh_tasks_mission_cards(planet_id)
 
 
 func _add_mission_card(
@@ -2757,15 +3594,11 @@ func _add_mission_card(
 	var planet_id := String(planet["id"])
 	var location_id := String(mission.get("location_id", "dome"))
 	var completed := Global.get_completed_runner_locations(planet_id).has(location_id)
-	var revealed := Global.get_revealed_exploration_locations(
-		planet_id,
-		MissionDispatch.get_batch1_location_ids(planet_id)
-	).has(location_id)
 	var batch_unlocked := MissionDispatch.is_location_batch_unlocked(planet_id, location_id)
 	var is_active := Global.is_active_mission(planet_id, location_id)
-	var on_board := from_board or Global.is_mission_on_board(planet_id, location_id)
-	var status := "已完成" if completed else ("进行中" if is_active else ("任务板上" if on_board else ("可接取" if batch_unlocked and revealed else "待解锁")))
-	var border_color := UI_GREEN if completed else (UI_ORANGE if is_active else (Color(0.96, 0.58, 0.22) if on_board or (batch_unlocked and revealed) else UI_PANEL_BORDER))
+	var on_board := from_board or Global.is_mission_on_board(planet_id, Global.mission_key(mission))
+	var status := "已完成" if completed else ("进行中" if is_active else ("任务板上" if on_board else ("可接取" if batch_unlocked else "待解锁")))
+	var border_color := UI_GREEN if completed else (UI_ORANGE if is_active else (Color(0.96, 0.58, 0.22) if on_board or batch_unlocked else UI_PANEL_BORDER))
 
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2878,7 +3711,7 @@ func _add_mission_card(
 	reward_row.add_child(xp_lbl)
 
 	# 据点修复进度（与地图详情同源）
-	if revealed or completed or on_board:
+	if batch_unlocked or completed or on_board:
 		var repair := _home_repair_progress(planet_id, location_id)
 		var repair_lbl := Label.new()
 		var gap := MissionDispatch.gap_priority(planet_id, location_id)
@@ -2901,7 +3734,7 @@ func _add_mission_card(
 		replay_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var map_btn := _add_secondary_button(replay_actions, "查看地图", _open_planet_map.bind(planet_id))
 		map_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	elif batch_unlocked and revealed:
+	elif batch_unlocked:
 		_add_home_road_style_picker(box)
 		var actions := HBoxContainer.new()
 		actions.add_theme_constant_override("separation", 8)
@@ -2919,10 +3752,7 @@ func _add_mission_card(
 		var map_btn2 := _add_secondary_button(actions, "查看地图", _open_planet_map.bind(planet_id))
 		map_btn2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	else:
-		var lock_reason := "需要先解锁对应任务批次"
-		if batch_unlocked and not revealed:
-			lock_reason = "需要先在地图中点亮据点"
-		_add_muted_label(box, lock_reason)
+		_add_muted_label(box, "需要先解锁对应任务批次")
 
 
 func _add_home_hero(purify_pct: int) -> void:
@@ -3282,6 +4112,32 @@ func _make_flat_button(text: String) -> Button:
 	return button
 
 
+func _make_settings_flat_button(text: String) -> Button:
+	var button := _make_flat_button(text)
+	button.custom_minimum_size = Vector2(0, _settings_spec_h(56))
+	button.add_theme_font_size_override("font_size", _settings_spec_fs(17))
+	var radius := _settings_spec_w(8)
+	var fill := Color(0.10, 0.13, 0.18, 0.96)
+	var border := UI_PANEL_BORDER
+	button.add_theme_stylebox_override("normal", _style(fill, border, 1, radius))
+	button.add_theme_stylebox_override("hover", _style(fill.lightened(0.06), UI_FRAME_BORDER, 1, radius))
+	button.add_theme_stylebox_override("pressed", _style(fill.darkened(0.06), border, 1, radius))
+	button.add_theme_stylebox_override("disabled", _style(fill.darkened(0.16), Color(0.18, 0.22, 0.28), 1, radius))
+	return button
+
+
+func _make_settings_gold_button(text: String) -> Button:
+	var button := _make_gold_button(text)
+	button.custom_minimum_size = Vector2(0, _settings_spec_h(64))
+	button.add_theme_font_size_override("font_size", _settings_spec_fs(20))
+	var radius := _settings_spec_w(10)
+	button.add_theme_stylebox_override("normal", _style(UI_GOLD, UI_GOLD_BORDER, 2, radius))
+	button.add_theme_stylebox_override("hover", _style(UI_GOLD.lightened(0.05), UI_GOLD_BORDER.lightened(0.04), 2, radius))
+	button.add_theme_stylebox_override("pressed", _style(UI_GOLD.darkened(0.08), UI_GOLD_BORDER.darkened(0.04), 2, radius))
+	button.add_theme_stylebox_override("disabled", _style(UI_GOLD.darkened(0.22), UI_GOLD_BORDER.darkened(0.12), 1, radius))
+	return button
+
+
 func _make_button(text: String, fill: Color, font_color: Color) -> Button:
 	# 兼容旧调用：主色填充走金色按钮，其他走钢蓝扁平按钮
 	if fill.r > 0.7 and fill.g > 0.4:
@@ -3343,9 +4199,8 @@ func _show_toast(text: String, duration: float = 2.2) -> void:
 
 func _open_settings() -> void:
 	if _settings_overlay != null and is_instance_valid(_settings_overlay):
-		_settings_overlay.visible = true
-		_refresh_settings_ui()
-		return
+		_settings_overlay.queue_free()
+		_settings_overlay = null
 	_build_settings_overlay()
 	_refresh_settings_ui()
 
@@ -3377,68 +4232,185 @@ func _build_settings_overlay() -> void:
 	_settings_overlay.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(560, 0)
+	var panel_w := _settings_spec_w(560)
+	var panel_h := mini(_settings_spec_h(980), maxf(420.0, _ui_root.size.y * 0.82))
+	panel.custom_minimum_size = Vector2(panel_w, panel_h)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.add_theme_stylebox_override("panel", _style(UI_FRAME, UI_FRAME_BORDER, 2, 14))
+	panel.add_theme_stylebox_override("panel", _style(UI_FRAME, UI_FRAME_BORDER, 2, _settings_spec_w(14)))
 	center.add_child(panel)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 26)
-	margin.add_theme_constant_override("margin_bottom", 26)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", _settings_spec_w(28))
+	margin.add_theme_constant_override("margin_right", _settings_spec_w(28))
+	margin.add_theme_constant_override("margin_top", _settings_spec_h(22))
+	margin.add_theme_constant_override("margin_bottom", _settings_spec_h(22))
 	panel.add_child(margin)
 
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
-	margin.add_child(box)
+	var root := VBoxContainer.new()
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", _settings_spec_h(12))
+	margin.add_child(root)
 
 	var title := Label.new()
 	title.text = "设置"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_font_size_override("font_size", _settings_spec_fs(32))
 	title.add_theme_color_override("font_color", UI_TEXT)
-	box.add_child(title)
+	root.add_child(title)
 
 	var tip := Label.new()
-	tip.text = "跑酷新手引导会在首次遇到跳跃、滑铲、换道、防护罩、分叉、侧墙时提示。"
+	tip.text = "跑酷新手引导会在首次遇到跳跃、滑铲、防护罩、分叉、沙尘、侧墙时提示。"
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tip.custom_minimum_size = Vector2(480, 0)
+	tip.custom_minimum_size = Vector2(_settings_spec_w(480), 0)
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tip.add_theme_font_size_override("font_size", 16)
+	tip.add_theme_font_size_override("font_size", _settings_spec_fs(16))
 	tip.add_theme_color_override("font_color", UI_MUTED)
-	box.add_child(tip)
+	root.add_child(tip)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	root.add_child(scroll)
+
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", _settings_spec_h(14))
+	scroll.add_child(box)
 
 	_settings_tutorial_check = CheckButton.new()
 	_settings_tutorial_check.text = "开启跑酷新手引导"
 	_settings_tutorial_check.focus_mode = Control.FOCUS_NONE
-	_settings_tutorial_check.add_theme_font_size_override("font_size", 20)
+	_settings_tutorial_check.custom_minimum_size = Vector2(0, _settings_spec_h(52))
+	_settings_tutorial_check.add_theme_font_size_override("font_size", _settings_spec_fs(20))
 	_settings_tutorial_check.add_theme_color_override("font_color", UI_TEXT)
 	_settings_tutorial_check.toggled.connect(_on_settings_tutorial_toggled)
 	box.add_child(_settings_tutorial_check)
 
-	var reset_btn := _make_flat_button("重置跑酷教学进度")
+	_settings_bgm_check = null
+
+	var bgm_vol_row := HBoxContainer.new()
+	bgm_vol_row.add_theme_constant_override("separation", _settings_spec_w(12))
+	box.add_child(bgm_vol_row)
+	var bgm_vol_label := Label.new()
+	bgm_vol_label.text = "BGM 音量"
+	bgm_vol_label.custom_minimum_size = Vector2(_settings_spec_w(140), 0)
+	bgm_vol_label.add_theme_font_size_override("font_size", _settings_spec_fs(18))
+	bgm_vol_label.add_theme_color_override("font_color", UI_TEXT)
+	bgm_vol_row.add_child(bgm_vol_label)
+	_settings_bgm_slider = HSlider.new()
+	_settings_bgm_slider.min_value = 0.0
+	_settings_bgm_slider.max_value = 1.0
+	_settings_bgm_slider.step = 0.01
+	_settings_bgm_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_settings_bgm_slider.custom_minimum_size = Vector2(0, _settings_spec_h(36))
+	_settings_bgm_slider.value_changed.connect(_on_settings_bgm_volume_changed)
+	bgm_vol_row.add_child(_settings_bgm_slider)
+
+	var sfx_vol_row := HBoxContainer.new()
+	sfx_vol_row.add_theme_constant_override("separation", _settings_spec_w(12))
+	box.add_child(sfx_vol_row)
+	var sfx_vol_label := Label.new()
+	sfx_vol_label.text = "音效音量"
+	sfx_vol_label.custom_minimum_size = Vector2(_settings_spec_w(140), 0)
+	sfx_vol_label.add_theme_font_size_override("font_size", _settings_spec_fs(18))
+	sfx_vol_label.add_theme_color_override("font_color", UI_TEXT)
+	sfx_vol_row.add_child(sfx_vol_label)
+	_settings_sfx_slider = HSlider.new()
+	_settings_sfx_slider.min_value = 0.0
+	_settings_sfx_slider.max_value = 1.0
+	_settings_sfx_slider.step = 0.01
+	_settings_sfx_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_settings_sfx_slider.custom_minimum_size = Vector2(0, _settings_spec_h(36))
+	_settings_sfx_slider.value_changed.connect(_on_settings_sfx_volume_changed)
+	sfx_vol_row.add_child(_settings_sfx_slider)
+
+	var reset_mission_btn := _make_settings_flat_button("重置运输任务进度（从批次1开始）")
+	reset_mission_btn.pressed.connect(_on_settings_reset_mission_progress)
+	box.add_child(reset_mission_btn)
+
+	var reset_map_btn := _make_settings_flat_button("重置地图点亮效果（可重测雾散）")
+	reset_map_btn.pressed.connect(_on_settings_reset_map_light)
+	box.add_child(reset_map_btn)
+
+	var reset_btn := _make_settings_flat_button("重置跑酷教学进度")
 	reset_btn.pressed.connect(_on_settings_reset_tutorials)
 	box.add_child(reset_btn)
 
-	var home_guide_btn := _make_flat_button("重新播放主页引导")
+	var home_guide_btn := _make_settings_flat_button("重新播放主页引导")
 	home_guide_btn.pressed.connect(_on_settings_replay_home_guide)
 	box.add_child(home_guide_btn)
 
-	var close_btn := _make_gold_button("关闭")
+	var story_review_btn := _make_settings_flat_button("Story Review · 剧情回顾")
+	story_review_btn.pressed.connect(_on_settings_story_review)
+	box.add_child(story_review_btn)
+
+	var reset_comic_btn := _make_settings_flat_button("Reset opening comic auto-play")
+	reset_comic_btn.pressed.connect(_on_settings_reset_opening_comic)
+	box.add_child(reset_comic_btn)
+
+	if OS.has_feature("editor"):
+		var level_editor_btn := _make_settings_flat_button("跑道关卡编辑器（开发）")
+		level_editor_btn.pressed.connect(_on_settings_open_level_editor)
+		box.add_child(level_editor_btn)
+
+	var close_btn := _make_settings_gold_button("关闭")
 	close_btn.pressed.connect(_close_settings)
-	box.add_child(close_btn)
+	root.add_child(close_btn)
 
 
 func _refresh_settings_ui() -> void:
-	if _settings_tutorial_check == null:
-		return
-	_settings_tutorial_check.set_pressed_no_signal(Global.is_runner_tutorial_enabled())
+	if _settings_tutorial_check != null:
+		_settings_tutorial_check.set_pressed_no_signal(Global.is_runner_tutorial_enabled())
+	if _settings_bgm_slider != null:
+		_settings_bgm_slider.set_value_no_signal(Global.bgm_volume)
+		_settings_bgm_slider.editable = true
+	if _settings_sfx_slider != null:
+		_settings_sfx_slider.set_value_no_signal(Global.sfx_volume)
 
 
 func _on_settings_tutorial_toggled(pressed: bool) -> void:
 	Global.set_runner_tutorial_enabled(pressed)
 	_show_toast("跑酷新手引导已%s" % ("开启" if pressed else "关闭"))
+
+
+func _on_settings_bgm_toggled(pressed: bool) -> void:
+	Global.set_bgm_enabled(pressed)
+	if _settings_bgm_slider != null:
+		_settings_bgm_slider.editable = pressed
+	_show_toast("背景音乐已%s" % ("开启" if pressed else "关闭"))
+
+
+func _on_settings_bgm_volume_changed(value: float) -> void:
+	Global.set_bgm_volume(value)
+	# 去掉 BGM 开关后：音量>0 自动开启，=0 视为关闭
+	if value > 0.001 and not Global.bgm_enabled:
+		Global.set_bgm_enabled(true)
+	elif value <= 0.001 and Global.bgm_enabled:
+		Global.set_bgm_enabled(false)
+
+
+func _on_settings_sfx_volume_changed(value: float) -> void:
+	Global.set_sfx_volume(value)
+
+func _on_settings_reset_mission_progress() -> void:
+	Global.reset_planet_mission_progress("glass_desert")
+	_close_settings()
+	_show_toast("已重置运输任务，从居民穹顶+水源据点重新开始")
+	if _selected_tab == TAB_TASKS:
+		_show_tab(TAB_TASKS, true)
+
+
+func _on_settings_reset_map_light() -> void:
+	Global.reset_map_light_progress("glass_desert")
+	_close_settings()
+	_show_toast("已重置地图点亮效果，可在 Tasks 再次点亮测雾散")
+	if _selected_tab == TAB_TASKS:
+		_show_tab(TAB_TASKS, true)
 
 
 func _on_settings_reset_tutorials() -> void:
@@ -3553,13 +4525,16 @@ func _find_next_mission_entry() -> Dictionary:
 				return {"planet_id": planet_id, "location_id": active_id, "mission": active_mission}
 
 		var board := Global.get_mission_board_slots(planet_id)
-		for location_id in board:
-			if Global.get_completed_runner_locations(planet_id).has(location_id):
+		for mission_id in board:
+			if cfg == null or not cfg.has_method("get_mission_by_id"):
 				continue
-			var mission: Dictionary = cfg.get_mission_for_location(location_id)
+			var mission: Dictionary = cfg.get_mission_by_id(mission_id)
 			if mission.is_empty():
 				continue
-			Global.set_active_mission(planet_id, location_id)
+			var location_id := String(mission.get("location_id", ""))
+			if Global.get_completed_runner_locations(planet_id).has(location_id):
+				continue
+			Global.set_active_mission(planet_id, location_id, mission_id)
 			return {"planet_id": planet_id, "location_id": location_id, "mission": mission}
 
 		var missions: Array = cfg.get_location_missions() if cfg.has_method("get_location_missions") else []
@@ -3571,12 +4546,13 @@ func _find_next_mission_entry() -> Dictionary:
 
 func _find_replay_mission_entry(planet_id: String, missions: Array) -> Dictionary:
 	# 主线全清后：HOME 仍展示最后一条已点亮任务，允许再次进跑酷
-	var revealed := Global.get_revealed_exploration_locations(planet_id, ["dome"])
 	var best_mission: Dictionary = {}
 	var best_order := -1
 	for mission in missions:
 		var location_id := String(mission.get("location_id", ""))
-		if location_id == "" or not revealed.has(location_id):
+		if location_id == "":
+			continue
+		if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
 			continue
 		var order := int(mission.get("order", 0))
 		if order >= best_order:
@@ -3637,15 +4613,14 @@ func _start_runner_for_planet(planet_id: String) -> void:
 
 
 func _start_runner_for_location(planet_id: String, location_id: String) -> void:
-	_sync_selected_character_from_global()
-	_selected_planet_id = planet_id
-	# 接取/指派为当前任务，HOME 与 TASKS 同源
-	Global.set_active_mission(planet_id, location_id)
-	Global.mobile_home_tab = TAB_HOME
-	Global.exploration_planet_id = planet_id
-	Global.runner_planet_id = planet_id
-	Global.runner_location_id = location_id
-	Global.change_game_scene(PlanetDatabase.RUNNER_SCENE)
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
+	var mission: Dictionary = cfg.get_mission_for_location(location_id) if cfg != null else {"location_id": location_id}
+	var active := Global.get_active_mission(planet_id)
+	if String(active.get("location_id", "")) == location_id and cfg != null and cfg.has_method("get_mission_by_id"):
+		var active_mission: Dictionary = cfg.get_mission_by_id(String(active.get("mission_id", "")))
+		if not active_mission.is_empty():
+			mission = active_mission
+	_start_runner_for_mission(planet_id, mission)
 
 
 func _accept_mission(planet_id: String, location_id: String) -> void:
@@ -3654,9 +4629,6 @@ func _accept_mission(planet_id: String, location_id: String) -> void:
 		return
 	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
 		_show_toast("该批次任务尚未解锁")
-		return
-	if not Global.get_revealed_exploration_locations(planet_id, MissionDispatch.get_batch1_location_ids(planet_id)).has(location_id):
-		_show_toast("需要先在地图中点亮据点")
 		return
 	Global.set_active_mission(planet_id, location_id)
 	_show_toast("已设为当前据点任务")
@@ -3669,28 +4641,77 @@ func _select_ship(ship_id: String) -> void:
 	_show_tab(TAB_CHARACTER, true, true)
 
 
-func _show_story_intro() -> void:
-	_story_overlay = _make_overlay_panel()
+func _on_settings_story_review() -> void:
+	_close_settings()
+	_show_story_intro(true)
 
-	var box := _overlay_box(_story_overlay)
-	var title := _overlay_label("星火信使：黎明线", 34, UI_CYAN)
-	box.add_child(title)
-	var body := _overlay_label(
-		"零潮吞没了旧航线，幸存据点只剩断裂的补给网络。\n\n你是 Elsa，第一位抵达晶砂荒漠的星火信使。把净水模块送到水源据点，点亮第一条黎明线。",
-		19,
-		UI_MUTED
-	)
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size = Vector2(0, 180)
-	box.add_child(body)
-	_add_primary_button(box, "进入主界面", _finish_story_intro)
+
+func _on_settings_reset_opening_comic() -> void:
+	Global.opening_comic_seen = false
+	Global.save_mobile_progress()
+	_close_settings()
+	_show_toast("Opening comic will auto-play on next home visit")
+
+
+func _on_settings_open_level_editor() -> void:
+	_close_settings()
+	Global.runner_return_scene = PlanetDatabase.MOBILE_HOME_SCENE
+	Global.change_game_scene(PlanetDatabase.LEVEL_EDITOR_SCENE)
+
+
+func _show_story_intro(replay: bool = false) -> void:
+	if _story_overlay != null and is_instance_valid(_story_overlay):
+		return
+	_story_intro_replay = replay
+	if _story_canvas == null or not is_instance_valid(_story_canvas):
+		_story_canvas = CanvasLayer.new()
+		_story_canvas.name = "StoryCanvas"
+		_story_canvas.layer = 55
+		add_child(_story_canvas)
+	var player := ComicIntroPlayer.new()
+	player.name = "OpeningStoryIntro"
+	player.set_anchors_preset(Control.PRESET_FULL_RECT)
+	player.offset_right = 0.0
+	player.offset_bottom = 0.0
+	player.size = get_viewport_rect().size
+	player.configure({
+		"show_title": true,
+		"allow_skip": true,
+	})
+	player.finished.connect(_on_story_intro_finished)
+	player.skipped.connect(_on_story_intro_skipped)
+	_story_canvas.add_child(player)
+	_story_overlay = player
+
+
+func _close_story_intro(mark_seen: bool) -> void:
+	if _story_overlay != null and is_instance_valid(_story_overlay):
+		_story_overlay.queue_free()
+	_story_overlay = null
+	if _story_canvas != null and is_instance_valid(_story_canvas):
+		_story_canvas.queue_free()
+		_story_canvas = null
+	_story_intro_replay = false
+	if mark_seen:
+		Global.mark_opening_comic_seen()
+
+
+func _on_story_intro_finished() -> void:
+	var first_time := not _story_intro_replay
+	_close_story_intro(first_time)
+	if first_time:
+		_start_home_guide()
+
+
+func _on_story_intro_skipped() -> void:
+	var first_time := not _story_intro_replay
+	_close_story_intro(first_time)
+	if first_time:
+		_start_home_guide()
 
 
 func _finish_story_intro() -> void:
-	Global.mark_first_launch_story_seen()
-	if _story_overlay:
-		_story_overlay.queue_free()
-		_story_overlay = null
+	_close_story_intro(true)
 	_start_home_guide()
 
 
@@ -3939,6 +4960,34 @@ func _home_spec_fs(design_px: float) -> int:
 
 func _home_spec_em(design_font_px: float, em: float) -> int:
 	return int(round(design_font_px * em * _home_scale_x()))
+
+
+func _tasks_spec_w(design_px: float) -> int:
+	return _home_spec_w(design_px * TASKS_UI_SCALE)
+
+
+func _tasks_spec_h(design_px: float) -> int:
+	return _home_spec_h(design_px * TASKS_UI_SCALE)
+
+
+func _tasks_spec_fs(design_px: float) -> int:
+	return _home_spec_fs(design_px * TASKS_UI_SCALE)
+
+
+func _tasks_spec_em(design_font_px: float, em: float) -> int:
+	return _home_spec_em(design_font_px * TASKS_UI_SCALE, em)
+
+
+func _settings_spec_w(design_px: float) -> int:
+	return _home_spec_w(design_px * SETTINGS_UI_SCALE)
+
+
+func _settings_spec_h(design_px: float) -> int:
+	return _home_spec_h(design_px * SETTINGS_UI_SCALE)
+
+
+func _settings_spec_fs(design_px: float) -> int:
+	return _home_spec_fs(design_px * SETTINGS_UI_SCALE)
 
 
 func _style_glass(radius: int = 12, margin_left: int = 10, margin_right: int = 10, margin_vertical: int = 8) -> StyleBoxFlat:

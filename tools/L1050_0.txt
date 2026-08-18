@@ -1,0 +1,69 @@
+func _make_shield_crystal(lane: int, distance: float, y: float, layer: int, fork_side: int = 0) -> Node3D:
+	var root := Node3D.new()
+	root.name = "ShieldCrystal"
+	var crystal := MeshInstance3D.new()
+	var prism := PrismMesh.new()
+	prism.size = Vector3(0.55, 1.1, 0.55)
+	var mat := _make_material(Color(0.32, 0.92, 0.48, 0.9), Color(0.22, 0.95, 0.42), 2.8)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	prism.material = mat
+	crystal.mesh = prism
+	crystal.position.y = 0.55
+	root.add_child(crystal)
+	var glow := MeshInstance3D.new()
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = 0.24
+	glow_mesh.height = 0.48
+	glow_mesh.material = _make_material(Color(0.45, 1.0, 0.55, 0.4), Color(0.25, 0.95, 0.38), 2.2)
+	glow.mesh = glow_mesh
+	glow.position.y = 0.55
+	root.add_child(glow)
+	var ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.28
+	ring_mesh.outer_radius = 0.38
+	ring_mesh.material = _make_material(Color(0.55, 0.98, 0.62, 0.55), Color(0.35, 0.95, 0.45), 1.6)
+	ring.mesh = ring_mesh
+	ring.position.y = 0.2
+	ring.rotation_degrees = Vector3(90, 0, 0)
+	root.add_child(ring)
+	track_root.add_child(root)
+	var placed: Dictionary = _world_on_path_forced_fork(distance, float(lane) * LANE_WIDTH, y, layer, fork_side)
+	root.position = placed["pos"]
+	root.rotation.y = float(placed["yaw"])
+	return root
+
+
+func _make_speed_boost(lane: int, distance: float, y: float, layer: int, fork_side: int = 0) -> Node3D:
+	var root := Node3D.new()
+	root.name = "SpeedBoost"
+	var body := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.72, 0.72, 0.72)
+	var mat := _make_material(Color(1.0, 0.58, 0.12, 0.95), Color(1.0, 0.72, 0.18), 2.8)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	box.material = mat
+	body.mesh = box
+	body.position.y = 0.36
+	root.add_child(body)
+	var chevron := MeshInstance3D.new()
+	var chevron_mesh := PrismMesh.new()
+	chevron_mesh.size = Vector3(0.42, 0.72, 0.42)
+	chevron_mesh.material = _make_material(Color(1.0, 0.92, 0.35), Color(1.0, 0.78, 0.15), 2.4)
+	chevron.mesh = chevron_mesh
+	chevron.position.y = 0.92
+	chevron.rotation_degrees = Vector3(0, 45, 0)
+	root.add_child(chevron)
+	var glow := MeshInstance3D.new()
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = 0.28
+	glow_mesh.height = 0.56
+	glow_mesh.material = _make_material(Color(1.0, 0.55, 0.08, 0.32), Color(1.0, 0.65, 0.12), 1.8)
+	glow.mesh = glow_mesh
+	glow.position.y = 0.55
+	root.add_child(glow)
+	track_root.add_child(root)
+	var placed: Dictionary = _world_on_path_forced_fork(distance, float(lane) * LANE_WIDTH, y, layer, fork_side)
+	root.position = placed["pos"]
+	root.rotation.y = float(placed["yaw"])
+	return root

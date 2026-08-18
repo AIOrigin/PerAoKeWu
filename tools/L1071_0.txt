@@ -1,0 +1,129 @@
+func _make_speed_boost(lane: int, distance: float, y: float, layer: int, fork_side: int = 0) -> Node3D:
+	var root := Node3D.new()
+	root.name = "SpeedBoostBoot"
+	var boot := _build_speed_boot_mesh()
+	boot.name = "BootVisual"
+	boot.position.y = 0.08
+	# 略侧倾，侧面轮廓更像靴子
+	boot.rotation_degrees = Vector3(-6.0, 28.0, 8.0)
+	root.add_child(boot)
+	# 脚下光环，拾取更醒目
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.38
+	torus.outer_radius = 0.52
+	torus.rings = 10
+	torus.ring_segments = 18
+	torus.material = _make_material(Color(1.0, 0.72, 0.2, 0.45), Color(1.0, 0.55, 0.08), 1.6)
+	ring.mesh = torus
+	ring.position.y = 0.04
+	ring.rotation_degrees = Vector3(90, 0, 0)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(ring)
+	track_root.add_child(root)
+	var placed: Dictionary = _world_on_path_forced_fork(distance, float(lane) * LANE_WIDTH, y, layer, fork_side)
+	root.position = placed["pos"]
+	root.rotation.y = float(placed["yaw"])
+	return root
+
+
+func _build_speed_boot_mesh() -> Node3D:
+	var boot := Node3D.new()
+	var leather := _make_material(Color(0.18, 0.22, 0.32), Color(0.35, 0.55, 0.95), 0.55)
+	leather.metallic = 0.35
+	leather.roughness = 0.42
+	var sole_mat := _make_material(Color(0.08, 0.09, 0.12), Color(0.2, 0.25, 0.35), 0.15)
+	sole_mat.metallic = 0.1
+	sole_mat.roughness = 0.7
+	var accent := _make_material(Color(1.0, 0.62, 0.16), Color(1.0, 0.55, 0.08), 2.6)
+	accent.metallic = 0.55
+	accent.roughness = 0.28
+	var cyan := _make_material(Color(0.35, 0.85, 1.0, 0.92), Color(0.25, 0.75, 1.0), 2.2)
+	cyan.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	# 鞋底
+	var sole := MeshInstance3D.new()
+	var sole_mesh := BoxMesh.new()
+	sole_mesh.size = Vector3(0.52, 0.12, 0.92)
+	sole_mesh.material = sole_mat
+	sole.mesh = sole_mesh
+	sole.position = Vector3(0.0, 0.08, 0.02)
+	boot.add_child(sole)
+
+	# 鞋跟
+	var heel := MeshInstance3D.new()
+	var heel_mesh := BoxMesh.new()
+	heel_mesh.size = Vector3(0.46, 0.22, 0.28)
+	heel_mesh.material = sole_mat
+	heel.mesh = heel_mesh
+	heel.position = Vector3(0.0, 0.14, 0.34)
+	boot.add_child(heel)
+
+	# 鞋面（脚背）
+	var vamp := MeshInstance3D.new()
+	var vamp_mesh := BoxMesh.new()
+	vamp_mesh.size = Vector3(0.48, 0.28, 0.58)
+	vamp_mesh.material = leather
+	vamp.mesh = vamp_mesh
+	vamp.position = Vector3(0.0, 0.28, -0.06)
+	vamp.rotation_degrees = Vector3(-12.0, 0.0, 0.0)
+	boot.add_child(vamp)
+
+	# 鞋头
+	var toe := MeshInstance3D.new()
+	var toe_mesh := SphereMesh.new()
+	toe_mesh.radius = 0.22
+	toe_mesh.height = 0.36
+	toe_mesh.material = leather
+	toe.mesh = toe_mesh
+	toe.position = Vector3(0.0, 0.26, -0.42)
+	toe.scale = Vector3(1.05, 0.72, 1.15)
+	boot.add_child(toe)
+
+	# 靴筒
+	var shaft := MeshInstance3D.new()
+	var shaft_mesh := CylinderMesh.new()
+	shaft_mesh.top_radius = 0.17
+	shaft_mesh.bottom_radius = 0.21
+	shaft_mesh.height = 0.62
+	shaft_mesh.radial_segments = 12
+	shaft_mesh.material = leather
+	shaft.mesh = shaft_mesh
+	shaft.position = Vector3(0.0, 0.62, 0.22)
+	shaft.rotation_degrees = Vector3(8.0, 0.0, 0.0)
+	boot.add_child(shaft)
+
+	# 筒口装饰环
+	var cuff := MeshInstance3D.new()
+	var cuff_mesh := TorusMesh.new()
+	cuff_mesh.inner_radius = 0.14
+	cuff_mesh.outer_radius = 0.2
+	cuff_mesh.rings = 8
+	cuff_mesh.ring_segments = 14
+	cuff_mesh.material = accent
+	cuff.mesh = cuff_mesh
+	cuff.position = Vector3(0.0, 0.94, 0.18)
+	cuff.rotation_degrees = Vector3(98.0, 0.0, 0.0)
+	boot.add_child(cuff)
+
+	# 侧面能量条（加速感）
+	var stripe := MeshInstance3D.new()
+	var stripe_mesh := BoxMesh.new()
+	stripe_mesh.size = Vector3(0.06, 0.18, 0.7)
+	stripe_mesh.material = cyan
+	stripe.mesh = stripe_mesh
+	stripe.position = Vector3(0.26, 0.34, -0.02)
+	stripe.rotation_degrees = Vector3(-10.0, 0.0, 0.0)
+	boot.add_child(stripe)
+
+	# 后跟推进焰翼
+	var wing := MeshInstance3D.new()
+	var wing_mesh := PrismMesh.new()
+	wing_mesh.size = Vector3(0.18, 0.42, 0.28)
+	wing_mesh.material = accent
+	wing.mesh = wing_mesh
+	wing.position = Vector3(0.0, 0.36, 0.52)
+	wing.rotation_degrees = Vector3(90.0, 0.0, 180.0)
+	boot.add_child(wing)
+
+	return boot

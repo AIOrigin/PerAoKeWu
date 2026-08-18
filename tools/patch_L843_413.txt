@@ -1,0 +1,24 @@
+===OLD===
+# 第二关试玩：装备硬冲碎障（完整度按可撞障碍数均分；角色 HP 另计微扣）
+const SMASH_RUNNER_HP_DAMAGE := 0.45
+const SMASH_LAYOUT_IDS := ["mission_reservoir_w2"]
+const SMASH_MISSION_IDS := ["mission_reservoir_02"]
+===NEW===
+# 全关卡默认：装备硬冲碎障（由第二关试玩推广）
+const SMASH_RUNNER_HP_DAMAGE := 0.45
+const SMASH_LAYOUT_IDS := [
+	"mission_reservoir_base",
+	"mission_reservoir_w1",
+	"mission_reservoir_w2",
+	"mission_reservoir_w3",
+	"mission_reservoir_w4",
+]
+const SMASH_MISSION_IDS := [
+	"mission_reservoir_01",
+	"mission_reservoir_02",
+	"mission_reservoir_03",
+	"mission_reservoir_04",
+	"mission_medical_01",
+	"mission_relay_01",
+	"mission_gate_01",
+]

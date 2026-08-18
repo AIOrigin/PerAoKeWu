@@ -1,0 +1,163 @@
+func _ensure_train_wave_blade_fx(root: Node3D, span: float, blade_y: float) -> void:
+	if root.get_node_or_null("TrainWaveBladeArc") == null:
+		var arc := MeshInstance3D.new()
+		arc.name = "TrainWaveBladeArc"
+		var arc_mesh := BoxMesh.new()
+		arc_mesh.size = Vector3(span * 0.98, 0.14, 0.62)
+		var arc_mat := StandardMaterial3D.new()
+		arc_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		arc_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		arc_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		arc_mat.albedo_color = Color(1.0, 0.95, 0.55, 0.55)
+		arc_mat.emission_enabled = true
+		arc_mat.emission = Color(1.0, 0.9, 0.35)
+		arc_mat.emission_energy_multiplier = 8.5
+		arc_mesh.material = arc_mat
+		arc.mesh = arc_mesh
+		arc.position = Vector3(0.0, blade_y, 0.2)
+		arc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(arc)
+	# 双道光波刀：落下时更像两道红激光，提示必须跳过
+	if root.get_node_or_null("TrainWaveBladeBeam") == null:
+		var beam := MeshInstance3D.new()
+		beam.name = "TrainWaveBladeBeam"
+		var beam_mesh := BoxMesh.new()
+		beam_mesh.size = Vector3(span * 0.9, 0.1, 0.18)
+		var beam_mat := StandardMaterial3D.new()
+		beam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		beam_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		beam_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		beam_mat.albedo_color = Color(1.0, 0.25, 0.3, 0.95)
+		beam_mat.emission_enabled = true
+		beam_mat.emission = Color(1.0, 0.15, 0.2)
+		beam_mat.emission_energy_multiplier = 10.0
+		beam_mesh.material = beam_mat
+		beam.mesh = beam_mesh
+		beam.position = Vector3(0.0, blade_y - 0.28, 0.22)
+		beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(beam)
+	if root.get_node_or_null("TrainWaveBladeSparks") == null:
+		var sparks := GPUParticles3D.new()
+		sparks.name = "TrainWaveBladeSparks"
+		sparks.amount = 64
+		sparks.lifetime = 0.28
+		sparks.explosiveness = 0.2
+		sparks.randomness = 0.7
+		sparks.visibility_aabb = AABB(Vector3(-span, -2.5, -1.2), Vector3(span * 2.0, 5.0, 2.4))
+		var pm := ParticleProcessMaterial.new()
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+		pm.emission_box_extents = Vector3(span * 0.42, 0.08, 0.12)
+		pm.direction = Vector3(0.0, 0.2, 0.0)
+		pm.spread = 80.0
+		pm.initial_velocity_min = 2.2
+		pm.initial_velocity_max = 6.5
+		pm.gravity = Vector3(0.0, -2.0, 0.0)
+		pm.scale_min = 0.045
+		pm.scale_max = 0.13
+		pm.color = Color(1.0, 0.92, 0.45, 1.0)
+		sparks.process_material = pm
+		var spark_mesh := SphereMesh.new()
+		spark_mesh.radius = 0.06
+		spark_mesh.height = 0.12
+		var spark_mat := StandardMaterial3D.new()
+		spark_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		spark_mat.albedo_color = Color(1.0, 0.95, 0.55, 1.0)
+		spark_mat.emission_enabled = true
+		spark_mat.emission = Color(1.0, 0.85, 0.3)
+		spark_mat.emission_energy_multiplier = 10.0
+		spark_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		spark_mesh.material = spark_mat
+		sparks.draw_pass_1 = spark_mesh
+		sparks.position = Vector3(0.0, blade_y, 0.16)
+		sparks.emitting = true
+		root.add_child(sparks)
+
+
+func _update_train_blade_gates() -> void:
+	var near_lo := track_distance - 8.0
+	var near_hi := track_distance + 70.0
+	for obstacle in obstacles:
+		var otype := String(obstacle.get("type", ""))
+		if otype not in ["train", "train_moving"]:
+			continue
+		var dist := float(obstacle.get("distance", 0.0)) + float(obstacle.get("move_offset", 0.0))
+		if dist < near_lo or dist > near_hi:
+			continue
+		var node := obstacle.get("node") as Node3D
+		if node == null or not is_instance_valid(node):
+			continue
+		obstacle["blade_top"] = float(node.get_meta("blade_top", TRAIN_GATE_TOP))
+		var blade := node.get_node_or_null("TrainWaveBlade") as MeshInstance3D
+		if blade == null:
+			blade = _add_train_wave_blade(node, TRAIN_GATE_BLADE_SPAN)
+		var top_y := float(obstacle.get("blade_top", TRAIN_GATE_TOP))
+		var y := _slide_blade_local_y(obstacle)
+		blade.position.y = y
+		var blocking := _slide_blade_is_blocking(obstacle)
+		var t_ms := float(Time.get_ticks_msec())
+		# 落下时硬闪烁，提醒必须跳过；抬起时慢金光可通行
+		var flicker := 0.55 + 0.45 * absf(sin(t_ms * (0.055 if blocking else 0.022) + dist * 0.3))
+		var strobe := 1.0 if not blocking else (1.0 if sin(t_ms * 0.032 + dist) > -0.15 else 0.25)
+		var crackle := 0.8 + 0.2 * absf(sin(t_ms * 0.14 + dist))
+		blade.scale = Vector3(1.0, (1.75 if blocking else 0.95) * crackle, 1.0 + 0.12 * flicker)
+		var mat := blade.get_active_material(0) as StandardMaterial3D
+		if mat:
+			if blocking:
+				mat.albedo_color = Color(1.0, 0.12 + 0.2 * flicker, 0.18, 0.98) * Color(strobe, strobe, strobe, 1.0)
+				mat.emission = Color(1.0, 0.05, 0.12)
+				mat.emission_energy_multiplier = (14.0 + 10.0 * flicker) * strobe
+			else:
+				mat.albedo_color = Color(1.0, 0.9, 0.42, 0.92)
+				mat.emission = Color(1.0, 0.78, 0.22)
+				mat.emission_energy_multiplier = 6.5 * flicker
+		var trail := node.get_node_or_null("TrainWaveBladeTrail") as MeshInstance3D
+		if trail:
+			trail.visible = blocking or _slide_blade_phase(obstacle) < 0.42
+			trail.position.y = lerpf(y, top_y - 0.2, 0.42)
+			var th := maxf(top_y - y, 0.4)
+			trail.scale = Vector3(1.0, th / 1.6, 1.15 if blocking else 1.0)
+			var trail_mat := trail.get_active_material(0) as StandardMaterial3D
+			if trail_mat:
+				if blocking:
+					trail_mat.albedo_color = Color(1.0, 0.18, 0.22, 0.55 * strobe)
+					trail_mat.emission = Color(1.0, 0.1, 0.15)
+					trail_mat.emission_energy_multiplier = (8.0 + 6.0 * flicker) * strobe
+				else:
+					trail_mat.albedo_color = Color(1.0, 0.55, 0.2, 0.28)
+					trail_mat.emission = Color(1.0, 0.45, 0.12)
+					trail_mat.emission_energy_multiplier = 3.2 * flicker
+		var arc := node.get_node_or_null("TrainWaveBladeArc") as MeshInstance3D
+		if arc:
+			arc.position.y = y
+			arc.visible = true
+			arc.scale = Vector3(1.0 + 0.18 * flicker, 0.7 + 1.1 * flicker, 1.0 + 0.45 * crackle)
+			var arc_mat := arc.get_active_material(0) as StandardMaterial3D
+			if arc_mat:
+				if blocking:
+					arc_mat.albedo_color = Color(1.0, 0.35, 0.25, (0.35 + 0.5 * flicker) * strobe)
+					arc_mat.emission = Color(1.0, 0.15, 0.1)
+					arc_mat.emission_energy_multiplier = (16.0 + 8.0 * flicker) * strobe
+				else:
+					arc_mat.albedo_color = Color(1.0, 0.95, 0.55, 0.35 + 0.35 * flicker)
+					arc_mat.emission = Color(1.0, 0.92, 0.4)
+					arc_mat.emission_energy_multiplier = 8.0 * flicker
+		var beam := node.get_node_or_null("TrainWaveBladeBeam") as MeshInstance3D
+		if beam:
+			beam.position.y = y - 0.32
+			beam.visible = blocking
+			if blocking:
+				beam.scale = Vector3(1.0, 0.85 + 0.55 * flicker, 1.0 + 0.25 * crackle)
+				var beam_mat := beam.get_active_material(0) as StandardMaterial3D
+				if beam_mat:
+					beam_mat.albedo_color = Color(1.0, 0.1 + 0.25 * flicker, 0.2, 0.95 * strobe)
+					beam_mat.emission = Color(1.0, 0.08, 0.15)
+					beam_mat.emission_energy_multiplier = (18.0 + 12.0 * flicker) * strobe
+		var sparks := node.get_node_or_null("TrainWaveBladeSparks") as GPUParticles3D
+		if sparks:
+			sparks.position.y = y
+			sparks.emitting = true
+			sparks.amount_ratio = 1.0 if blocking else 0.45
+			sparks.speed_scale = 2.1 if blocking else 1.05
+			var spm := sparks.process_material as ParticleProcessMaterial
+			if spm:
+				spm.color = Color(1.0, 0.35, 0.28, 1.0) if blocking else Color(1.0, 0.92, 0.45, 1.0)

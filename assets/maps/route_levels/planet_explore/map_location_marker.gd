@@ -4,7 +4,7 @@ extends Control
 signal activated
 
 const MARKER_SIZE := 58.0
-const LABEL_WIDTH := 108.0
+const LABEL_WIDTH := 128.0
 
 var location_id := ""
 var _type_icon := "◎"
@@ -26,7 +26,7 @@ var _ui_built := false
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(MARKER_SIZE, MARKER_SIZE + 26.0)
+	custom_minimum_size = Vector2(MARKER_SIZE, MARKER_SIZE + 32.0)
 	size = custom_minimum_size
 	mouse_filter = MOUSE_FILTER_STOP
 	_build_ui()
@@ -106,7 +106,7 @@ func _build_ui() -> void:
 
 	_name_panel = PanelContainer.new()
 	_name_panel.position = Vector2((MARKER_SIZE - LABEL_WIDTH) * 0.5, MARKER_SIZE + 4)
-	_name_panel.custom_minimum_size = Vector2(LABEL_WIDTH, 22)
+	_name_panel.custom_minimum_size = Vector2(LABEL_WIDTH, 26)
 	_name_panel.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_name_panel)
 
@@ -114,7 +114,7 @@ func _build_ui() -> void:
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_name_label.set_anchors_preset(PRESET_FULL_RECT)
-	_name_label.add_theme_font_size_override("font_size", 11)
+	_name_label.add_theme_font_size_override("font_size", 15)
 	_name_label.add_theme_color_override("font_color", Color(0.90, 0.94, 0.98))
 	_name_label.mouse_filter = MOUSE_FILTER_IGNORE
 	_name_panel.add_child(_name_label)

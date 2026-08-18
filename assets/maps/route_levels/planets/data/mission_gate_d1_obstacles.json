@@ -1,0 +1,176 @@
+{
+	"note": "D1 强行突破 · 防御包 + 强制伤害区",
+	"layout_id": "mission_gate_d1",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{
+			"length": 260,
+			"turn": 0
+		},
+		{
+			"length": 42,
+			"turn": 0.785
+		},
+		{
+			"length": 260,
+			"turn": 0
+		},
+		{
+			"length": 42,
+			"turn": -0.785
+		},
+		{
+			"length": 240,
+			"turn": 0
+		}
+	],
+	"junction_zones": [],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{
+			"start": 158,
+			"length": 48,
+			"dps": 13,
+			"label": "火力覆盖",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 398,
+			"length": 44,
+			"dps": 14.5,
+			"label": "强火力",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 620,
+			"length": 40,
+			"dps": 15,
+			"label": "弹幕区",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 32.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 74.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 116.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 158.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 200.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 242.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 284.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 326.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 368.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 410.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 452.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 494.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 536.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 578.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 620.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 662.0,
+			"lane": -1,
+			"type": "slide"
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 48.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 143.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 238.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 333.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 428.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 523.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 618.0,
+			"lane": 0,
+			"layer": 0
+		}
+	]
+}

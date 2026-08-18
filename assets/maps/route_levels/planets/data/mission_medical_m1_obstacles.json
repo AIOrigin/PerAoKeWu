@@ -1,0 +1,187 @@
+{
+	"note": "M1 医疗补给 · 40秒限时 + 加速靴",
+	"layout_id": "mission_medical_m1",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{
+			"length": 280,
+			"turn": 0
+		},
+		{
+			"length": 40,
+			"turn": 0.785
+		},
+		{
+			"length": 260,
+			"turn": 0
+		},
+		{
+			"length": 40,
+			"turn": -0.785
+		},
+		{
+			"length": 220,
+			"turn": 0
+		}
+	],
+	"junction_zones": [
+		{
+			"distance": 118,
+			"length": 82,
+			"spread": 17,
+			"lane_a": 0,
+			"label_a": "安全岔路",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "速通岔路",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{
+			"start": 198,
+			"length": 34,
+			"dps": 8.5,
+			"label": "医疗区薄雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 28.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 66.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 104.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 142.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 180.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 218.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 256.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 294.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 332.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 370.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 408.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 446.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 484.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 522.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 560.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 598.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 636.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 674.0,
+			"lane": 1,
+			"type": "slide"
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 20.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 105.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 190.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 275.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 360.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 445.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 530.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 615.0,
+			"lane": 0,
+			"layer": 0
+		}
+	]
+}

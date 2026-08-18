@@ -1,4 +1,7 @@
 {
+	"layout_id": "glass_desert",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
 	"note": "Edited with runner level editor",
 	"obstacles": [
 		{

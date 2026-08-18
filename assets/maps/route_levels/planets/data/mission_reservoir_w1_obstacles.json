@@ -1,0 +1,66 @@
+{
+	"note": "W1 水源据点 · 128BPM 重拍 · 中道跳铲+低杆滑铲 · 872m 终点",
+	"layout_id": "mission_reservoir_w1",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 7,
+	"track_segments": [
+		{"length": 460.0, "turn": 0.0},
+		{"length": 44.0, "turn": 0.7853981633974483},
+		{"length": 360.0, "turn": 0.0},
+		{"length": 44.0, "turn": -0.7853981633974483},
+		{"length": 200.0, "turn": 0.0}
+	],
+	"junction_zones": [
+		{
+			"distance": 96.0,
+			"length": 84.0,
+			"spread": 16.0,
+			"lane_a": 0,
+			"label_a": "安全岔路",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "速通岔路",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{"start": 248.0, "length": 34.0, "dps": 8.0, "label": "沙尘暴", "lane_count": 3}
+	],
+	"obstacles": [
+		{"distance": 68.5, "lane": 0, "type": "jump"},
+		{"distance": 96.7, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 125.5, "lane": 0, "type": "jump"},
+		{"distance": 155.0, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 185.1, "lane": 0, "type": "jump"},
+		{"distance": 215.8, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 247.2, "lane": 0, "type": "jump"},
+		{"distance": 279.3, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 311.9, "lane": 0, "type": "jump"},
+		{"distance": 345.2, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 353.6, "lane": 0, "type": "train"},
+		{"distance": 379.2, "lane": 0, "type": "jump"},
+		{"distance": 402.0, "lane": 1, "type": "meteorite", "span": 3.2},
+		{"distance": 413.7, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 422.5, "lane": -1, "type": "orb", "orb_size": "medium", "orb_tint": "purple"},
+		{"distance": 449.0, "lane": 0, "type": "jump"},
+		{"distance": 484.8, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 493.9, "lane": 1, "type": "orb", "orb_size": "medium", "orb_tint": "purple"},
+		{"distance": 521.3, "lane": 0, "type": "jump"},
+		{"distance": 558.5, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 568.0, "lane": -1, "type": "meteorite", "span": 3.4},
+		{"distance": 596.2, "lane": 0, "type": "jump"},
+		{"distance": 634.6, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 673.7, "lane": 0, "type": "jump"},
+		{"distance": 713.4, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 728.0, "lane": 1, "type": "meteorite", "span": 3.0},
+		{"distance": 753.7, "lane": 0, "type": "jump"},
+		{"distance": 794.7, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 812.0, "lane": -1, "type": "meteorite", "span": 3.2},
+		{"distance": 836.3, "lane": 0, "type": "jump"}
+	],
+	"finish_sprints": [
+		{"distance": 872.0, "lane": 0, "width_ratio": 0.58}
+	]
+}

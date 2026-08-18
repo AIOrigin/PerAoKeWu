@@ -1,0 +1,19 @@
+func _apply_smash_body_impact(large: bool) -> void:
+	# 角色撞击感：顿帧 + 刹停 + 后仰 + 挤压，避免「穿过去没手感」
+	speed_penalty_mult = 0.55 if large else 0.68
+	speed_penalty_timer = 0.38 if large else 0.26
+	_hit_stun_timer = 0.2 if large else 0.14
+	_hitstop_timer = 0.1 if large else 0.07
+	_hit_recoil_timer = 0.48 if large else 0.36
+	body_squash_timer = maxf(body_squash_timer, 0.16 if large else 0.12)
+	camera_shake = maxf(camera_shake, 0.58 if large else 0.46)
+	if player != null:
+		vertical_velocity = minf(vertical_velocity, -2.4 if large else -1.6)
+	# 轻微后挫，强化顶撞
+	track_distance = maxf(track_distance - (0.55 if large else 0.32), 0.0)
+	if player_body:
+		player_body.scale = Vector3(1.18, 0.78, 1.12)
+	_sync_player_position()
+
+
+func _can_smash_obstacle(obstacle: Dictionary) -> bool:

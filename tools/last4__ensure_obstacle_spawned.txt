@@ -1,0 +1,9 @@
+func _ensure_obstacle_spawned(obstacle: Dictionary) -> void:
+	if not bool(obstacle.get("spawn_pending", false)):
+		return
+	var item: Dictionary = obstacle.get("spawn_item", {})
+	if item.is_empty():
+		return
+	_spawn_obstacle_entry(item, obstacle)
+	obstacle.erase("spawn_item")
+

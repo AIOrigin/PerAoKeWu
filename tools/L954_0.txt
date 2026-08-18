@@ -1,0 +1,26 @@
+func _spawn_speed_boosts() -> void:
+	if not _speed_boosts_enabled():
+		return
+	var items: Array = []
+	var layout_id := _mission_layout_id()
+	if layout_id != "":
+		items = ObstacleLayout.load_speed_boosts(layout_id)
+	if items.is_empty():
+		items = _default_speed_boosts()
+	items = _ensure_train_gate_speed_boosts(items)
+	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
+	var boost_index := 0
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		var dist := float(item.get("distance", 0.0))
+		if dist < 20.0 or dist > finish_cut:
+			continue
+		var lane := int(item.get("lane", 0))
+		var layer := int(item.get("layer", 0))
+		var y: float = _speed_boost_collectible_y(boost_index, layer)
+		if bool(item.get("gate_boost", false)):
+			y = _layer_height(layer) + 1.05
+		boost_index += 1
+		var node := _make_speed_boost(lane, dist, y, layer)

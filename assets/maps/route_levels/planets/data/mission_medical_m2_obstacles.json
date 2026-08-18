@@ -1,0 +1,182 @@
+{
+	"note": "M2 极限护送 · 医疗包极脆 + 障碍极密",
+	"layout_id": "mission_medical_m2",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{
+			"length": 200,
+			"turn": 0
+		},
+		{
+			"length": 36,
+			"turn": 0.872
+		},
+		{
+			"length": 200,
+			"turn": 0
+		},
+		{
+			"length": 36,
+			"turn": -0.872
+		},
+		{
+			"length": 180,
+			"turn": 0
+		}
+	],
+	"junction_zones": [],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{
+			"start": 140,
+			"length": 38,
+			"dps": 10,
+			"label": "毒雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		},
+		{
+			"start": 320,
+			"length": 36,
+			"dps": 11,
+			"label": "浓毒雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 24.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 51.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 78.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 105.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 132.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 159.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 186.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 213.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 240.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 267.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 294.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 321.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 348.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 375.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 402.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 429.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 456.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 483.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 510.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 537.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 564.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 591.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 618.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 645.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 672.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 699.0,
+			"lane": 0,
+			"type": "slide"
+		}
+	],
+	"speed_boosts": []
+}

@@ -1,0 +1,52 @@
+===OLD===
+	var near_lo := track_distance - 12.0
+	var near_hi := track_distance + 64.0
+	for obstacle in obstacles:
+		if String(obstacle.get("type", "")) != "meteorite":
+			continue
+		if not bool(obstacle.get("fall_roll", false)):
+			continue
+		if bool(obstacle.get("hit", false)) or bool(obstacle.get("smashed", false)):
+			continue
+		var base_dist := float(obstacle.get("distance", 0.0))
+		var obs_dist := base_dist + float(obstacle.get("move_offset", 0.0))
+		# 身后过远：隐藏并跳过，减轻末段密陨石卡顿
+		if obs_dist < track_distance - 14.0:
+			var far_node := obstacle.get("node") as Node3D
+			if far_node != null and is_instance_valid(far_node) and far_node.visible:
+				far_node.visible = false
+			continue
+		if obs_dist < near_lo or obs_dist > near_hi:
+			continue
+		# 高空待命只在即将触发坠落时才生成网格，避免末段一次塞满几十颗球
+		var ahead_preview := obs_dist - track_distance
+		var trigger_ahead := float(obstacle.get("fall_trigger_ahead", 58.0))
+		if String(obstacle.get("meteor_state", "sky")) == "sky" and ahead_preview > trigger_ahead + 10.0:
+			continue
+		_ensure_obstacle_spawned(obstacle)
+===NEW===
+	var near_lo := track_distance - 12.0
+	var near_hi := track_distance + 72.0
+	for obstacle in obstacles:
+		if String(obstacle.get("type", "")) != "meteorite":
+			continue
+		if not bool(obstacle.get("fall_roll", false)):
+			continue
+		if bool(obstacle.get("hit", false)) or bool(obstacle.get("smashed", false)):
+			continue
+		var base_dist := float(obstacle.get("distance", 0.0))
+		var obs_dist := base_dist + float(obstacle.get("move_offset", 0.0))
+		# 身后过远：隐藏并跳过，减轻末段密陨石卡顿
+		if obs_dist < track_distance - 14.0:
+			var far_node := obstacle.get("node") as Node3D
+			if far_node != null and is_instance_valid(far_node) and far_node.visible:
+				far_node.visible = false
+			continue
+		if obs_dist < near_lo or obs_dist > near_hi:
+			continue
+		# 高空陨石提前现身，让末段“天上在砸”更明显；仍限制过远生成防卡顿
+		var ahead_preview := obs_dist - track_distance
+		var trigger_ahead := float(obstacle.get("fall_trigger_ahead", 58.0))
+		if String(obstacle.get("meteor_state", "sky")) == "sky" and ahead_preview > maxf(trigger_ahead + 26.0, 58.0):
+			continue
+		_ensure_obstacle_spawned(obstacle)

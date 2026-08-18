@@ -1,0 +1,15 @@
+	if player_body:
+		var recoil_pitch := 0.0
+		var recoil_yaw := 0.0
+		if _hit_recoil_timer > 0.0:
+			var t := clampf(_hit_recoil_timer / 0.48, 0.0, 1.0)
+			recoil_pitch = -0.85 * t
+			recoil_yaw = sin(elapsed * 42.0) * 0.12 * t
+		player_body.rotation.x = lerpf(player_body.rotation.x, recoil_pitch, 0.62)
+		player_body.rotation.y = lerpf(player_body.rotation.y, recoil_yaw, 0.5)
+		player_body.rotation.z = lerpf(player_body.rotation.z, body_tilt, 0.4)
+		# 撞击挤压后回弹
+		if body_squash_timer > 0.0:
+			player_body.scale = player_body.scale.lerp(Vector3(1.12, 0.82, 1.08), 0.35)
+		else:
+			player_body.scale = player_body.scale.lerp(Vector3.ONE, 0.22)

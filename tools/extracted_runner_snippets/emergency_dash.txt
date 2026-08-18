@@ -1,0 +1,9 @@
+	var dps := float(zone.get("dps", SANDSTORM_DEFAULT_DPS))
+	var storm_mult := clampf(float(mission.get("sandstorm_dps_mult", 1.0)), 0.5, 2.5)
+	if _speed_boost_timer > 0.0:
+		storm_mult *= 0.38
+	elif _emergency_dash_timer > 0.0:
+		storm_mult *= 0.52
+	var hazard_kind := String(zone.get("hazard_kind", "sand"))
+	var env_kind_mult := ENV_POISON_DPS_MULT if hazard_kind == "poison" else 1.0
+	var dmg := dps * SANDSTORM_TICK * Global.get_cargo_damage_multiplier() * storm_mult * _cargo_fragility_mult() * env_kind_mult

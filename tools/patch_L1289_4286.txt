@@ -1,0 +1,165 @@
+===OLD===
+func _spawn_collectible_pickup_fx(world_pos: Vector3, kind: String) -> void:
+	if kind == "coin" or kind == "":
+		_spawn_coin_pickup_burst(world_pos)
+		return
+	if track_root == null:
+		return
+	var fx_cfg := _collectible_pickup_fx_config(kind)
+	_spawn_pickup_particle_burst(world_pos, fx_cfg)
+	if not bool(fx_cfg.get("show_ring", false)):
+		return
+	var ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = float(fx_cfg.get("ring_inner", 0.12))
+	ring_mesh.outer_radius = float(fx_cfg.get("ring_outer", 0.2))
+	ring_mesh.rings = 6
+	ring_mesh.ring_segments = 16
+	var ring_color: Color = fx_cfg.get("ring_color", Color(1.0, 0.82, 0.28))
+	ring_mesh.material = _make_material(ring_color, ring_color.lightened(0.15), float(fx_cfg.get("ring_emission", 1.4)))
+	(ring_mesh.material as StandardMaterial3D).transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.mesh = ring_mesh
+	ring.rotation.x = PI * 0.5
+	track_root.add_child(ring)
+	ring.global_position = world_pos + Vector3(0.0, 0.1, 0.0)
+	var tween := create_tween()
+	var ring_scale := float(fx_cfg.get("ring_scale", 1.45))
+	tween.tween_property(ring, "scale", Vector3(ring_scale, ring_scale, ring_scale), float(fx_cfg.get("ring_duration", 0.22))).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_callback(ring.queue_free)
+
+
+func _spawn_coin_pickup_burst(world_pos: Vector3) -> void:
+	if track_root == null:
+		return
+	var gold := Color(1.0, 0.84, 0.22)
+	var particles := GPUParticles3D.new()
+	particles.name = "CoinGoldFx"
+	particles.one_shot = true
+	particles.emitting = true
+	particles.amount = 8
+	particles.lifetime = 0.32
+	particles.explosiveness = 1.0
+	particles.fixed_fps = 0
+	track_root.add_child(particles)
+	particles.global_position = world_pos + Vector3(0.0, 0.45, 0.0)
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(0.0, 1.0, 0.0)
+	mat.spread = 140.0
+	mat.initial_velocity_min = 0.8
+	mat.initial_velocity_max = 2.4
+	mat.gravity = Vector3(0.0, -5.5, 0.0)
+	mat.scale_min = 0.1
+	mat.scale_max = 0.22
+	mat.color = gold
+	particles.process_material = mat
+	if _coin_pickup_burst_mesh == null:
+		_coin_pickup_burst_mesh = _make_pickup_particle_mesh(0.04, gold, 3.2)
+	particles.draw_pass_1 = _coin_pickup_burst_mesh
+	particles.restart()
+	get_tree().create_timer(0.45).timeout.connect(particles.queue_free)
+===NEW===
+func _spawn_collectible_pickup_fx(world_pos: Vector3, kind: String) -> void:
+	if track_root == null:
+		return
+	if kind == "coin" or kind == "":
+		_spawn_coin_pickup_burst(world_pos)
+		_pulse_coin_hud_feedback()
+		camera_shake = maxf(camera_shake, 0.045)
+		return
+	var fx_cfg := _collectible_pickup_fx_config(kind)
+	_spawn_pickup_particle_burst(world_pos, fx_cfg)
+	if not bool(fx_cfg.get("show_ring", false)):
+		return
+	var ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = float(fx_cfg.get("ring_inner", 0.12))
+	ring_mesh.outer_radius = float(fx_cfg.get("ring_outer", 0.2))
+	ring_mesh.rings = 6
+	ring_mesh.ring_segments = 16
+	var ring_color: Color = fx_cfg.get("ring_color", Color(1.0, 0.82, 0.28))
+	ring_mesh.material = _make_material(ring_color, ring_color.lightened(0.15), float(fx_cfg.get("ring_emission", 1.4)))
+	(ring_mesh.material as StandardMaterial3D).transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.mesh = ring_mesh
+	ring.rotation.x = PI * 0.5
+	track_root.add_child(ring)
+	ring.global_position = world_pos + Vector3(0.0, 0.1, 0.0)
+	var tween := create_tween()
+	var ring_scale := float(fx_cfg.get("ring_scale", 1.45))
+	tween.tween_property(ring, "scale", Vector3(ring_scale, ring_scale, ring_scale), float(fx_cfg.get("ring_duration", 0.22))).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_callback(ring.queue_free)
+
+
+func _spawn_coin_pickup_burst(world_pos: Vector3) -> void:
+	if track_root == null:
+		return
+	var gold := Color(1.0, 0.88, 0.28)
+	var bright := Color(1.0, 0.96, 0.55)
+	# 粒子爆闪
+	var particles := GPUParticles3D.new()
+	particles.name = "CoinGoldFx"
+	particles.one_shot = true
+	particles.emitting = true
+	particles.amount = 26
+	particles.lifetime = 0.42
+	particles.explosiveness = 1.0
+	particles.fixed_fps = 0
+	track_root.add_child(particles)
+	particles.global_position = world_pos + Vector3(0.0, 0.55, 0.0)
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(0.0, 1.0, 0.0)
+	mat.spread = 165.0
+	mat.initial_velocity_min = 1.6
+	mat.initial_velocity_max = 4.2
+	mat.gravity = Vector3(0.0, -7.5, 0.0)
+	mat.scale_min = 0.22
+	mat.scale_max = 0.48
+	mat.color = gold
+	particles.process_material = mat
+	if _coin_pickup_burst_mesh == null:
+		_coin_pickup_burst_mesh = _make_pickup_particle_mesh(0.055, gold, 4.8)
+	particles.draw_pass_1 = _coin_pickup_burst_mesh
+	particles.restart()
+	# 金色光环：一眼能感到“吃到了”
+	var ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.16
+	ring_mesh.outer_radius = 0.28
+	ring_mesh.rings = 5
+	ring_mesh.ring_segments = 18
+	ring_mesh.material = _make_material(Color(1.0, 0.84, 0.22, 0.72), bright, 2.8)
+	(ring_mesh.material as StandardMaterial3D).transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.mesh = ring_mesh
+	ring.rotation.x = PI * 0.5
+	track_root.add_child(ring)
+	ring.global_position = world_pos + Vector3(0.0, 0.2, 0.0)
+	var ring_tw := create_tween()
+	ring_tw.set_parallel(true)
+	ring_tw.tween_property(ring, "scale", Vector3(2.1, 2.1, 2.1), 0.28).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	ring_tw.tween_property(ring, "modulate:a", 0.0, 0.28)
+	ring_tw.chain().tween_callback(ring.queue_free)
+	# 飘字 +N
+	var float_lbl := Label3D.new()
+	float_lbl.text = "+%d" % int(LevelConfig.EMBER_COIN_VALUE)
+	float_lbl.font_size = 42
+	float_lbl.modulate = bright
+	float_lbl.outline_modulate = Color(0.35, 0.18, 0.02, 0.9)
+	float_lbl.outline_size = 8
+	float_lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	float_lbl.no_depth_test = true
+	track_root.add_child(float_lbl)
+	float_lbl.global_position = world_pos + Vector3(0.0, 0.75, 0.0)
+	var txt_tw := create_tween()
+	txt_tw.set_parallel(true)
+	txt_tw.tween_property(float_lbl, "global_position:y", float_lbl.global_position.y + 0.85, 0.45).set_ease(Tween.EASE_OUT)
+	txt_tw.tween_property(float_lbl, "modulate:a", 0.0, 0.45).set_delay(0.12)
+	txt_tw.chain().tween_callback(float_lbl.queue_free)
+	get_tree().create_timer(0.55).timeout.connect(particles.queue_free)
+
+
+func _pulse_coin_hud_feedback() -> void:
+	for label in [collectible_label, score_label]:
+		if label == null or not is_instance_valid(label):
+			continue
+		label.modulate = Color(1.0, 0.92, 0.35)
+		var tw := create_tween()
+		tw.tween_property(label, "modulate", Color(1, 1, 1), 0.28).set_ease(Tween.EASE_OUT)

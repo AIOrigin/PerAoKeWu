@@ -1,0 +1,42 @@
+	# 仍统计可撞碎数量供 HUD 展示；完整度改按障碍体型分级扣损
+	_smash_cargo_damage = SMASH_CARGO_BASE
+
+
+func _cargo_fragility_mult() -> float:
+	var explicit := float(mission.get("cargo_fragility", 0.0))
+	if explicit > 0.01:
+		return clampf(explicit, 0.65, 2.0)
+	if _is_overweight_cargo():
+		return 0.78
+	return 1.0
+
+
+func _cargo_damage_for_smash_obstacle(obstacle: Dictionary) -> float:
+	var otype := String(obstacle.get("type", ""))
+	var tier := float(SMASH_CARGO_TIER.get(otype, 1.0))
+	if _is_large_smash_obstacle_entry(obstacle):
+		tier *= 1.52
+	elif otype == "orb":
+		match String(obstacle.get("orb_tier", "")):
+			"huge", "colossal":
+				tier *= 1.48
+			"large":
+				tier *= 1.22
+			"medium":
+				tier *= 1.0
+			_:
+				tier *= 0.78
+	elif otype == "meteorite":
+		var radius := float(obstacle.get("meteor_radius", 0.0))
+		if radius <= 0.01:
+			radius = maxf(float(obstacle.get("span", 2.0)) * 0.5, 0.7)
+		if radius >= 1.45:
+			tier *= 1.42
+		elif radius >= 1.1:
+			tier *= 1.18
+		elif radius >= 0.85:
+			tier *= 1.0
+		else:
+			tier *= 0.82
+	var dmg := SMASH_CARGO_BASE * tier * _cargo_fragility_mult() * Global.get_cargo_damage_multiplier()
+	return clampf(dmg, 1.5, 15.0)

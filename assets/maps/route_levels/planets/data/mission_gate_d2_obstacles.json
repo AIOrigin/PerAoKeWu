@@ -1,0 +1,212 @@
+{
+	"note": "D2 重装跑酷 · 建设包超重 + 障碍组合最密",
+	"layout_id": "mission_gate_d2",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{
+			"length": 170,
+			"turn": 0
+		},
+		{
+			"length": 48,
+			"turn": 1.047
+		},
+		{
+			"length": 360,
+			"turn": 0
+		},
+		{
+			"length": 48,
+			"turn": -1.047
+		},
+		{
+			"length": 340,
+			"turn": 0
+		},
+		{
+			"length": 160,
+			"turn": 0
+		}
+	],
+	"junction_zones": [
+		{
+			"distance": 102,
+			"length": 92,
+			"spread": 22,
+			"lane_a": 0,
+			"label_a": "安全岔路",
+			"effect_a": "safe",
+			"lane_b": 2,
+			"label_b": "速通岔路",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [
+		{
+			"start": 248,
+			"length": 72,
+			"side": "outer",
+			"fallback_side": 1,
+			"lateral_offset": 7.2,
+			"layer": 1,
+			"entry_window": 12,
+			"speed_mult": 1.06
+		}
+	],
+	"sandstorm_zones": [
+		{
+			"start": 168,
+			"length": 42,
+			"dps": 9,
+			"label": "沙尘",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 28.0,
+			"lane": -1,
+			"type": "jump",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 56.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 84.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 112.0,
+			"lane": 0,
+			"type": "jump",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 140.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 168.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 196.0,
+			"lane": 1,
+			"type": "train",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 224.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 252.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 280.0,
+			"lane": 0,
+			"type": "slide",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 308.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 336.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 364.0,
+			"lane": -1,
+			"type": "jump",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 392.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 420.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 448.0,
+			"lane": 0,
+			"type": "jump",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 476.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 504.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 532.0,
+			"lane": 1,
+			"type": "train",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 560.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 588.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 616.0,
+			"lane": 0,
+			"type": "slide",
+			"overweight_tutorial": true
+		},
+		{
+			"distance": 644.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 672.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 262,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 292,
+			"half_depth": 24,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		}
+	],
+	"speed_boosts": []
+}

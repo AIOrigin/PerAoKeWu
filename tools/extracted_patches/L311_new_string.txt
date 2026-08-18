@@ -1,0 +1,5 @@
+	var boost_mult := _effective_speed_boost_mult()
+	var dash_mult := EMERGENCY_DASH_MULT if _emergency_dash_timer > 0.0 else 1.0
+	# 飞驰中不吃受击减速，保持冲撞爽感
+	var hit_slow := 1.0 if _fork_rush_timer > 0.0 else speed_penalty_mult
+	var effective_speed := current_speed * hit_slow * boost_mult * dash_mult

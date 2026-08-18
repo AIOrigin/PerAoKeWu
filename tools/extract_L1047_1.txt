@@ -1,0 +1,16 @@
+	var kind := String(collectible.get("kind", "coin"))
+	var lane := int(collectible.get("lane", 0))
+	var dist := float(collectible.get("distance", 0.0))
+	var layer := int(collectible.get("layer", 0))
+	var y := float(collectible.get("y", GROUND_Y))
+	var fork_side := int(collectible.get("fork_side", 0))
+	var node: Node3D
+	match kind:
+		"shield_crystal":
+			node = _make_shield_crystal(lane, dist, y, layer, fork_side)
+		"speed_boost":
+			node = _make_speed_boost(lane, dist, y, layer, fork_side)
+		_:
+			node = _make_collectible(lane, dist, y, layer, bool(collectible.get("air", false)), fork_side)
+	collectible["node"] = node
+	node.visible = true

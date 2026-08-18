@@ -1,0 +1,90 @@
+func _shatter_obstacle(obstacle: Dictionary) -> void:
+	obstacle["hit"] = true
+	obstacle["smashed"] = true
+	var otype := String(obstacle.get("type", ""))
+	var palette := _smash_palette_for_type(otype)
+	var size_key := _smash_sfx_size_key(obstacle)
+	var node = obstacle.get("node", null)
+	var blast_pos := player.global_position + Vector3(0.0, 1.1, 0.0) if player else Vector3.ZERO
+	var forward := Vector3(0.0, 0.0, -1.0)
+	if player != null:
+		forward = (-player.global_transform.basis.z).normalized()
+	if node != null and is_instance_valid(node) and node is Node3D:
+		var n := node as Node3D
+		blast_pos = n.global_position + Vector3(0.0, 0.95, 0.0)
+		_play_obstacle_shatter_fx(n, otype, palette, forward, size_key)
+		obstacle["node"] = null
+	else:
+		Global.play_sfx_shatter(1.0, size_key in ["large", "huge"], size_key)
+		_spawn_shatter_burst(blast_pos, palette, _is_large_smash_obstacle(otype), forward)
+
+
+func _play_obstacle_shatter_fx(node: Node3D, obstacle_type: String, palette: Dictionary, forward: Vector3, size_key: String = "medium") -> void:
+	var large := size_key in ["large", "huge"] or _is_large_smash_obstacle(obstacle_type)
+	Global.play_sfx_shatter(1.0, large, size_key)
+	var origin := node.global_position + Vector3(0.0, 0.95, 0.0)
+	# 瞬间碎裂：本体立刻消失，改为碎片/粒子
+	node.visible = false
+	if large:
+		_spawn_shatter_chunks(origin, palette, forward, 18 if obstacle_type.begins_with("train") else 14)
+	else:
+		# 小型：很多细碎片 + 超密粒子
+		_spawn_shatter_chunks(origin, palette, forward, 28, true)
+	_spawn_shatter_burst(origin, palette, large, forward)
+	node.queue_free()
+
+
+func _smash_palette_for_type(obstacle_type: String) -> Dictionary:
+	match obstacle_type:
+		"orb":
+			return {
+				"dust": Color(0.78, 0.42, 1.0),
+				"spark": Color(0.95, 0.55, 1.0),
+				"chunk": Color(0.55, 0.28, 0.82),
+				"emit": Color(0.72, 0.35, 1.0),
+			}
+		"meteorite":
+			return {
+				"dust": Color(0.55, 0.72, 0.95),
+				"spark": Color(0.45, 0.95, 1.0),
+				"chunk": Color(0.35, 0.42, 0.55),
+				"emit": Color(0.55, 0.85, 1.0),
+			}
+		"jump", "low_barrier":
+			return {
+				"dust": Color(0.95, 0.86, 0.55),
+				"spark": Color(1.0, 0.72, 0.28),
+				"chunk": Color(0.9, 0.78, 0.48),
+				"emit": Color(1.0, 0.82, 0.4),
+			}
+		"slide", "high_bar":
+			return {
+				"dust": Color(0.45, 0.88, 1.0),
+				"spark": Color(0.35, 0.95, 1.0),
+				"chunk": Color(0.55, 0.72, 0.85),
+				"emit": Color(0.4, 0.9, 1.0),
+			}
+		"train", "train_moving":
+			return {
+				"dust": Color(0.72, 0.74, 0.78),
+				"spark": Color(1.0, 0.48, 0.18),
+				"chunk": Color(0.42, 0.44, 0.48),
+				"emit": Color(1.0, 0.55, 0.2),
+			}
+		"block_left", "block_right":
+			return {
+				"dust": Color(0.78, 0.55, 1.0),
+				"spark": Color(0.95, 0.45, 1.0),
+				"chunk": Color(0.55, 0.4, 0.72),
+				"emit": Color(0.85, 0.4, 1.0),
+			}
+		_:
+			return {
+				"dust": Color(0.9, 0.82, 0.6),
+				"spark": Color(1.0, 0.65, 0.25),
+				"chunk": Color(0.75, 0.7, 0.6),
+				"emit": Color(1.0, 0.7, 0.3),
+			}
+
+
+func _spawn_shatter_burst(world_pos: Vector3, palette: Dictionary, large: bool, forward: Vector3) -> void:

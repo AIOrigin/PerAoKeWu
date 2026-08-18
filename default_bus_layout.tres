@@ -1,4 +1,4 @@
-[gd_resource type="AudioBusLayout" load_steps=2 format=3 uid="uid://cyvwaefw3t2aa"]
+[gd_resource type="AudioBusLayout" load_steps=3 format=3 uid="uid://cyvwaefw3t2aa"]
 
 [sub_resource type="AudioEffectEQ" id="1"]
 resource_name = "EQ"
@@ -8,6 +8,18 @@ band_db/1000_hz = -0.4
 band_db/3200_hz = -1.4
 band_db/10000_hz = -2.7
 
+[sub_resource type="AudioEffectSpectrumAnalyzer" id="2"]
+resource_name = "SpectrumAnalyzer"
+buffer_length = 0.12
+
 [resource]
 bus/0/effect/0/effect = SubResource("1")
 bus/0/effect/0/enabled = true
+bus/1/name = &"Music"
+bus/1/solo = false
+bus/1/mute = false
+bus/1/bypass_fx = false
+bus/1/volume_db = 0.0
+bus/1/send = &"Master"
+bus/1/effect/0/effect = SubResource("2")
+bus/1/effect/0/enabled = true

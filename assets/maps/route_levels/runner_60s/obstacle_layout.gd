@@ -5,6 +5,8 @@ extends RefCounted
 
 const DATA_DIR := "res://assets/maps/route_levels/planets/data/"
 
+static var _root_cache: Dictionary = {}
+
 
 static func layout_path(planet_id: String) -> String:
 	return DATA_DIR + String(planet_id) + "_obstacles.json"
@@ -24,20 +26,40 @@ static func load_items(planet_id: String) -> Array:
 	return out
 
 
+static func layout_has_section(layout_id: String, key: String) -> bool:
+	return load_root(layout_id).has(key)
+
+
+static func clear_root_cache(layout_id: String = "") -> void:
+	if layout_id == "":
+		_root_cache.clear()
+	else:
+		_root_cache.erase(layout_id)
+
+
 static func load_root(layout_id: String) -> Dictionary:
-	var path := layout_path(layout_id)
+	var id := String(layout_id)
+	if id == "":
+		return {}
+	if _root_cache.has(id):
+		return _root_cache[id]
+	var path := layout_path(id)
 	if not FileAccess.file_exists(path):
+		_root_cache[id] = {}
 		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		push_warning("ObstacleLayout: cannot read %s" % path)
+		_root_cache[id] = {}
 		return {}
 	var text := file.get_as_text()
 	file.close()
 	var parsed: Variant = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("ObstacleLayout: invalid JSON root in %s" % path)
+		_root_cache[id] = {}
 		return {}
+	_root_cache[id] = parsed
 	return parsed
 
 
@@ -57,7 +79,7 @@ static func normalize_side_zone(raw: Dictionary) -> Dictionary:
 		"length": float(raw.get("length", 55.0)),
 		"side": String(raw.get("side", "outer")),
 		"fallback_side": int(raw.get("fallback_side", 1)),
-		"lateral_offset": float(raw.get("lateral_offset", 7.2)),
+		"lateral_offset": float(raw.get("lateral_offset", 6.25)),
 		"layer": int(raw.get("layer", 1)),
 		"entry_window": float(raw.get("entry_window", 10.0)),
 	}
@@ -124,21 +146,29 @@ static func normalize_sandstorm_zone(raw: Dictionary) -> Dictionary:
 			lane_count = clampi(covered.size(), 1, 3)
 			covered.sort()
 			lane_anchor = int(covered[0])
+			var hazard_kind := String(raw.get("hazard_kind", raw.get("variant", "sand")))
+			if hazard_kind not in ["sand", "poison"]:
+				hazard_kind = "sand"
 			return {
 				"start": float(raw.get("start", 0.0)),
 				"length": float(raw.get("length", 40.0)),
 				"dps": float(raw.get("dps", 9.0)),
-				"label": String(raw.get("label", "沙尘暴")),
+				"label": String(raw.get("label", "毒雾" if hazard_kind == "poison" else "沙尘暴")),
+				"hazard_kind": hazard_kind,
 				"lane_count": lane_count,
 				"lane": lane_anchor,
 				"covered_lanes": covered,
 			}
 	var covered2: Array = sandstorm_covered_lanes(lane_count, lane_anchor)
+	var hazard_kind := String(raw.get("hazard_kind", raw.get("variant", "sand")))
+	if hazard_kind not in ["sand", "poison"]:
+		hazard_kind = "sand"
 	return {
 		"start": float(raw.get("start", 0.0)),
 		"length": float(raw.get("length", 40.0)),
 		"dps": float(raw.get("dps", 9.0)),
-		"label": String(raw.get("label", "沙尘暴" if lane_count < 3 else "沙尘暴")),
+		"label": String(raw.get("label", "毒雾" if hazard_kind == "poison" else "沙尘暴")),
+		"hazard_kind": hazard_kind,
 		"lane_count": lane_count,
 		"lane": int(covered2[0]) if lane_count < 3 else lane_anchor,
 		"covered_lanes": covered2,
@@ -170,7 +200,7 @@ static func side_zone_from_main_block(main_block: Dictionary, side_hint: Diction
 		"length": snappedf(length, 1.0),
 		"side": side,
 		"fallback_side": fallback,
-		"lateral_offset": float(side_hint.get("lateral_offset", 7.2)),
+		"lateral_offset": float(side_hint.get("lateral_offset", 6.25)),
 		"layer": 1,
 		"entry_window": float(side_hint.get("entry_window", 10.0)),
 	})
@@ -179,11 +209,39 @@ static func side_zone_from_main_block(main_block: Dictionary, side_hint: Diction
 static func side_zone_covers_main_block(zone: Dictionary, main_block: Dictionary) -> bool:
 	var center := float(main_block.get("distance", 0.0))
 	var half := maxf(float(main_block.get("half_depth", 26.0)), 8.0)
+	var pit_s := center - half
+	var pit_e := center + half
 	var start := float(zone.get("start", 0.0))
 	var length := float(zone.get("length", 55.0))
-	var entry := float(zone.get("entry_window", 10.0))
-	# 封堵中心落在侧墙走廊（含入口窗）内即视为已配套
-	return center >= start - entry and center <= start + length
+	var end := start + length
+	# 侧墙必须完整盖住坍塌坑，并留一点下墙缓冲，否则会「墙一结束就坠坑」
+	return start <= pit_s + 1.0 and end >= pit_e + 6.0
+
+
+## 若侧墙与 main_block 重叠但未盖满坑，拉长/前移区间直到可安全绕过
+static func extend_side_zone_to_cover_main_block(zone: Dictionary, main_block: Dictionary) -> Dictionary:
+	var out := zone.duplicate(true)
+	var center := float(main_block.get("distance", 0.0))
+	var half := maxf(float(main_block.get("half_depth", 26.0)), 8.0)
+	var pit_s := center - half
+	var pit_e := center + half
+	var start := float(out.get("start", 0.0))
+	var length := float(out.get("length", 55.0))
+	var end := start + length
+	var entry := float(out.get("entry_window", 10.0))
+	# 与坑有交集或中心落在入口窗内，才视为「配套侧墙」可被拉伸
+	if end < pit_s - 2.0 or start - entry > pit_e + 2.0:
+		return out
+	var need_start := pit_s - 2.0
+	var need_end := pit_e + 8.0
+	if start > need_start:
+		length += start - need_start
+		start = need_start
+	if start + length < need_end:
+		length = need_end - start
+	out["start"] = snappedf(start, 1.0)
+	out["length"] = snappedf(length, 1.0)
+	return normalize_side_zone(out)
 
 
 static func ramp_distance_for_side_zone(zone: Dictionary) -> float:
@@ -471,6 +529,40 @@ static func normalize_junction_zone(raw: Dictionary) -> Dictionary:
 	}
 
 
+static func load_speed_boosts(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	var out: Array = []
+	for raw in root.get("speed_boosts", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		out.append({
+			"lane": int(raw.get("lane", 0)),
+			"distance": float(raw.get("distance", 0.0)),
+			"layer": int(raw.get("layer", 0)),
+		})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	return out
+
+
+static func load_finish_sprints(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	var out: Array = []
+	for raw in root.get("finish_sprints", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		out.append({
+			"distance": float(raw.get("distance", 0.0)),
+			"lane": int(raw.get("lane", 0)),
+			"width_ratio": float(raw.get("width_ratio", 1.0 / 3.0)),
+		})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	return out
+
+
 static func load_junction_zones(layout_id: String) -> Array:
 	var root := load_root(layout_id)
 	if not root.has("junction_zones"):
@@ -516,6 +608,7 @@ static func save_items(planet_id: String, items: Array, meta: Dictionary = {}) -
 		return false
 	file.store_string(json)
 	file.close()
+	clear_root_cache(planet_id)
 	return true
 
 
@@ -535,6 +628,26 @@ static func normalize_item(raw: Dictionary) -> Dictionary:
 		item["move_speed"] = float(raw["move_speed"])
 	if raw.has("y_offset"):
 		item["y_offset"] = float(raw["y_offset"])
+	if raw.has("overweight_tutorial"):
+		item["overweight_tutorial"] = bool(raw["overweight_tutorial"])
+	if raw.has("orb_size"):
+		item["orb_size"] = String(raw["orb_size"])
+	if raw.has("orb_tint"):
+		item["orb_tint"] = String(raw["orb_tint"])
+	if raw.has("purple"):
+		item["purple"] = bool(raw["purple"])
+	if raw.has("drift_speed"):
+		item["drift_speed"] = float(raw["drift_speed"])
+	if raw.has("float_speed"):
+		item["float_speed"] = float(raw["float_speed"])
+	if raw.has("float_amp"):
+		item["float_amp"] = float(raw["float_amp"])
+	if raw.has("static"):
+		item["static"] = bool(raw["static"])
+	if raw.has("span"):
+		item["span"] = float(raw["span"])
+	if raw.has("height"):
+		item["height"] = float(raw["height"])
 	return item
 
 
@@ -555,6 +668,8 @@ static func type_color(obstacle_type: String) -> Color:
 			return Color(0.35, 0.85, 1.0)
 		"orb":
 			return Color(1.0, 0.82, 0.25)
+		"meteorite":
+			return Color(0.55, 0.78, 1.0)
 		"slide", "high_bar":
 			return Color(0.95, 0.45, 1.0)
 		"train", "train_moving":

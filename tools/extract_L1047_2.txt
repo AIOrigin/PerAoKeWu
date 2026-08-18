@@ -1,0 +1,46 @@
+func _make_collectible(lane: int, distance: float, y: float, layer: int, is_air: bool = false, fork_side: int = 0) -> Node3D:
+	_ensure_coin_visual_resources()
+	var collectible := Node3D.new()
+	collectible.name = "EmberCoinAir" if is_air else "EmberCoin"
+
+	var body := MeshInstance3D.new()
+	body.name = "CoinBody"
+	body.mesh = _coin_shared_body_mesh
+	body.rotation_degrees = Vector3(90.0, 0.0, 0.0)
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	collectible.add_child(body)
+
+	var rim := MeshInstance3D.new()
+	rim.name = "CoinRim"
+	rim.mesh = _coin_shared_rim_mesh
+	rim.rotation_degrees = Vector3(90.0, 0.0, 0.0)
+	rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	collectible.add_child(rim)
+
+	var emboss := MeshInstance3D.new()
+	emboss.name = "CoinEmboss"
+	emboss.mesh = _coin_shared_emboss_mesh
+	emboss.rotation_degrees = Vector3(90.0, 0.0, 0.0)
+	emboss.position = Vector3(0.0, 0.0, 0.048)
+	emboss.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	collectible.add_child(emboss)
+
+	track_root.add_child(collectible)
+	var placed: Dictionary = _world_on_path_forced_fork(distance, float(lane) * LANE_WIDTH if layer != WALL_RUN_LAYER else 0.0, y, layer, fork_side)
+	collectible.position = placed["pos"]
+	collectible.rotation.y = float(placed["yaw"])
+	collectible.set_meta("air_coin", is_air)
+	return collectible
+
+
+func _world_on_path_forced_fork(distance: float, lateral: float, y: float, layer: int, fork_side: int) -> Dictionary:
+	var prev := _fork_side
+	if fork_side != 0:
+		_fork_side = fork_side
+	var placed: Dictionary
+	if layer == WALL_RUN_LAYER:
+		placed = _world_on_path(distance, 0.0, y, WALL_RUN_LAYER)
+	else:
+		placed = _world_on_path(distance, lateral, y, layer)
+	_fork_side = prev
+	return placed

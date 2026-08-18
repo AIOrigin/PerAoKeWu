@@ -37,7 +37,8 @@ float noise(vec2 p) {
 float fbm(vec2 p) {
 	float v = 0.0;
 	float a = 0.5;
-	for (int i = 0; i < 4; i++) {
+	// 2 层足够，4 层在整条全息路上片元成本过高
+	for (int i = 0; i < 2; i++) {
 		v += a * noise(p);
 		p = p * 2.05 + vec2(3.1, 7.4);
 		a *= 0.5;

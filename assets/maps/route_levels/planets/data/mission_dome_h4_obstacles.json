@@ -1,0 +1,93 @@
+{
+	"note": "H4 紧急建设 · 限时 + 加速靴 + 末段紫球 + 超重短跳",
+	"layout_id": "mission_dome_h4",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{"length": 100.0, "turn": 0.0},
+		{"length": 36.0, "turn": 0.8726646259971648},
+		{"length": 100.0, "turn": 0.0},
+		{"length": 36.0, "turn": -0.8726646259971648},
+		{"length": 100.0, "turn": 0.0},
+		{"type": "y_fork", "branch_length": 46.0, "angle_deg": 44.0},
+		{"length": 120.0, "turn": 0.0},
+		{"length": 36.0, "turn": 0.6981317007977318},
+		{"length": 130.0, "turn": 0.0}
+	],
+	"junction_zones": [
+		{
+			"distance": 88.0,
+			"length": 84.0,
+			"spread": 17.0,
+			"lane_a": 0,
+			"label_a": "安全岔路",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "速通岔路",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [
+		{
+			"start": 312.0,
+			"length": 64.0,
+			"side": "outer",
+			"fallback_side": 1,
+			"lateral_offset": 6.8,
+			"layer": 1,
+			"entry_window": 10.0,
+			"speed_mult": 1.08
+		}
+	],
+	"sandstorm_zones": [
+		{"start": 188.0, "length": 32.0, "dps": 11.5, "label": "毒雾", "hazard_kind": "poison", "lane_count": 3},
+		{"start": 368.0, "length": 30.0, "dps": 12.5, "label": "毒雾", "hazard_kind": "poison", "lane_count": 3},
+		{"start": 518.0, "length": 28.0, "dps": 13.5, "label": "浓毒雾", "hazard_kind": "poison", "lane_count": 3}
+	],
+	"obstacles": [
+		{"distance": 28.0, "lane": 0, "type": "jump", "overweight_tutorial": true},
+		{"distance": 52.0, "lane": -1, "type": "slide"},
+		{"distance": 78.0, "lane": 1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 88.0, "lane": 1, "type": "turn_left"},
+		{"distance": 88.0, "lane": -1, "type": "turn_right"},
+		{"distance": 112.0, "lane": 0, "type": "slide"},
+		{"distance": 138.0, "lane": 1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 166.0, "lane": -1, "type": "train"},
+		{"distance": 196.0, "lane": 0, "type": "slide"},
+		{"distance": 226.0, "lane": 1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 256.0, "lane": 0, "type": "block_right"},
+		{"distance": 286.0, "lane": -1, "type": "slide"},
+		{"distance": 316.0, "lane": 1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 346.0, "lane": 0, "type": "train_moving", "move_speed": -11.5},
+		{"distance": 378.0, "lane": -1, "type": "slide"},
+		{"distance": 410.0, "lane": 1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 440.0, "lane": 0, "type": "block_left"},
+		{"distance": 470.0, "lane": 1, "type": "slide"},
+		{"distance": 502.0, "lane": -1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 532.0, "lane": 0, "type": "train"},
+		{"distance": 562.0, "lane": 1, "type": "meteorite", "span": 2.0, "fall_roll": true, "fall_height": 15.0, "roll_speed": -5.4},
+		{"distance": 582.0, "lane": -1, "type": "meteorite", "span": 2.4, "fall_roll": true, "fall_height": 16.0, "roll_speed": -5.0},
+		{"distance": 602.0, "lane": 0, "type": "orb", "orb_size": "huge", "orb_tint": "purple", "static": true},
+		{"distance": 610.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 7.8, "float_speed": 4.3, "float_amp": 0.26},
+		{"distance": 616.0, "lane": -1, "type": "orb", "orb_size": "small", "orb_tint": "purple", "drift_speed": 5.7, "float_speed": 3.1, "float_amp": 0.36},
+		{"distance": 622.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 8.2, "float_speed": 4.5, "float_amp": 0.22},
+		{"distance": 628.0, "lane": 0, "type": "orb", "orb_size": "medium", "orb_tint": "purple", "drift_speed": 4.0, "float_speed": 2.3, "float_amp": 0.42},
+		{"distance": 634.0, "lane": -1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 7.4, "float_speed": 4.0, "float_amp": 0.28},
+		{"distance": 640.0, "lane": 1, "type": "orb", "orb_size": "huge", "orb_tint": "purple", "static": true},
+		{"distance": 646.0, "lane": 0, "type": "orb", "orb_size": "small", "orb_tint": "purple", "drift_speed": 6.0, "float_speed": 3.2, "float_amp": 0.34},
+		{"distance": 652.0, "lane": -1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 8.0, "float_speed": 4.2, "float_amp": 0.24},
+		{"distance": 658.0, "lane": 1, "type": "meteorite", "span": 2.4, "fall_roll": true, "fall_height": 16.0, "roll_speed": -5.2}
+	],
+	"speed_boosts": [
+		{"distance": 18.0, "lane": 0, "layer": 0},
+		{"distance": 96.0, "lane": 1, "layer": 0},
+		{"distance": 172.0, "lane": 0, "layer": 0},
+		{"distance": 252.0, "lane": -1, "layer": 0},
+		{"distance": 348.0, "lane": 1, "layer": 0},
+		{"distance": 420.0, "lane": 0, "layer": 0},
+		{"distance": 496.0, "lane": -1, "layer": 0},
+		{"distance": 568.0, "lane": 1, "layer": 0},
+		{"distance": 628.0, "lane": 0, "layer": 0}
+	]
+}

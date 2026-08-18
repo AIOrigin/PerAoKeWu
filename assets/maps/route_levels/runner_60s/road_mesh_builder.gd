@@ -40,6 +40,7 @@ static func style_label(style_id: String) -> String:
 ##   include_start_pad: bool = true
 ##   cast_shadow_off: bool = false
 ##   theme: Dictionary（planet 等可覆盖 lane_line / road）
+##   holographic_apron_half_extra: float = 2.6 — 沙漠 apron 半宽 = road_half + 此值（不改全息跑道贴图）
 ## 返回 kit，供分叉支路等继续用同一套材质。
 func rebuild(
 	parent: Node3D,
@@ -71,7 +72,11 @@ func rebuild(
 	gaps.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
 
 	var cast_off := bool(options.get("cast_shadow_off", false))
-	var step_main := 1.75
+	var step_main := 2.75
+	if style == "holographic":
+		step_main = 3.0
+	elif style == "energy_neon":
+		step_main = 2.5
 
 	if style in ["holographic", "energy_neon"]:
 		var road_half := 6.4 if style == "energy_neon" else 6.0
@@ -89,7 +94,18 @@ func rebuild(
 			# 霓虹轨保留实心底盘，编辑器/实机可读
 			var solid := make_mat(Color(0.06, 0.14, 0.2), Color(0.12, 0.4, 0.55), 0.45)
 			_strip(parent, sample_path, 0.0, track_end, apron_half, lane_y - 0.028, solid, step_main, 0.0, style, gaps, cast_off)
-		_strip(parent, sample_path, 0.0, track_end, underlay_half, lane_y - 0.018, underlay, step_main, 0.0, style, gaps, cast_off)
+			_strip(parent, sample_path, 0.0, track_end, underlay_half, lane_y - 0.018, underlay, step_main, 0.0, style, gaps, cast_off)
+		elif style == "holographic":
+			var apron_mat: Material = options.get("holographic_apron_material", null)
+			if apron_mat != null:
+				var apron_extra := float(options.get("holographic_apron_half_extra", 2.6))
+				_strip(
+					parent, sample_path, 0.0, track_end,
+					road_half + apron_extra, lane_y - 0.018,
+					apron_mat, step_main, 0.0, style, gaps, cast_off
+				)
+		else:
+			_strip(parent, sample_path, 0.0, track_end, underlay_half, lane_y - 0.018, underlay, step_main, 0.0, style, gaps, cast_off)
 		_strip(parent, sample_path, 0.0, track_end, road_half, lane_y, kit["road"], step_main, 0.0, style, gaps, cast_off)
 		if style != "holographic":
 			_strip(parent, sample_path, 0.0, track_end, shoulder_half, lane_y - 0.008, kit["shoulder"], step_main, -shoulder_lat, style, gaps, cast_off)
@@ -156,9 +172,11 @@ static func fork_gaps(junctions: Array) -> Array:
 		var gs := float(zone.get("distance", 0.0))
 		var glen := float(zone.get("length", 70.0))
 		var ge := gs + glen
-		var keep := maxf(glen * 0.14, 12.0)
-		var cut_s := gs + keep - 4.0
-		var cut_e := ge - keep + 4.0
+		# 选道窗结束后再挖空主路，避免 SPEEDUP 未锁定时冲下黄沙
+		var decision_lead := maxf(glen * 0.25, 20.0)
+		var keep_end := maxf(glen * 0.06, 4.5)
+		var cut_s := gs + decision_lead
+		var cut_e := ge - keep_end
 		if cut_e > cut_s + 8.0:
 			gaps.append(Vector2(cut_s, cut_e))
 	gaps.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
@@ -188,11 +206,11 @@ static func make_kit(style_id: String, theme: Dictionary = {}) -> Dictionary:
 			return {
 				"road": _holographic_road(),
 				"shoulder": make_mat(Color(0.02, 0.05, 0.08), Color(0.1, 0.4, 0.5), 0.2),
-				"curb": make_mat(Color(0.08, 0.04, 0.14), Color(0.75, 0.35, 0.95), 1.6),
-				"line": make_mat(Color(0.06, 0.14, 0.18), Color(0.45, 0.92, 1.0), 1.4),
-				"post": make_mat(Color(0.03, 0.05, 0.08), Color(0.35, 0.7, 0.85), 0.5),
-				"island": make_mat(Color(0.01, 0.03, 0.06), Color(0.06, 0.28, 0.38), 0.25),
-				"base": make_mat(Color(0.015, 0.04, 0.08), Color(0.1, 0.38, 0.48), 0.18),
+				"curb": make_mat(Color(0.08, 0.04, 0.14), Color(0.75, 0.35, 0.95), 0.7),
+				"line": make_mat(Color(0.06, 0.14, 0.18), Color(0.45, 0.92, 1.0), 0.65),
+				"post": make_mat(Color(0.03, 0.05, 0.08), Color(0.35, 0.7, 0.85), 0.35),
+				"island": make_mat(Color(0.01, 0.03, 0.06), Color(0.06, 0.28, 0.38), 0.18),
+				"base": make_mat(Color(0.015, 0.04, 0.08), Color(0.1, 0.38, 0.48), 0.12),
 			}
 		"alien_energy":
 			return {
@@ -453,7 +471,7 @@ static func _holographic_road() -> StandardMaterial3D:
 	mat.albedo_color = Color(0.28, 0.68, 0.78)
 	mat.emission_enabled = true
 	mat.emission = Color(0.38, 0.92, 1.0)
-	mat.emission_energy_multiplier = 2.2
+	mat.emission_energy_multiplier = 0.85
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED

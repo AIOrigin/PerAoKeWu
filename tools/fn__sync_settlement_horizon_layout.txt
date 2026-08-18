@@ -1,0 +1,45 @@
+func _sync_settlement_horizon_layout() -> void:
+	if _settlement_horizon_header == null or _settlement_horizon_layer == null:
+		return
+	var layer_size := _settlement_horizon_layer.size
+	if layer_size.y < 1.0:
+		layer_size = _settlement_horizon_layer.get_viewport_rect().size
+	var h := layer_size.y
+	var w := layer_size.x
+	var horizon_y: float = h * float(_settlement_horizon_layer.horizon_ratio) # 34%H
+
+	# E 标题区 42%–48%H（地平线下约 7%H 起）
+	_settlement_horizon_header.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_settlement_horizon_header.offset_left = w * 0.04
+	_settlement_horizon_header.offset_right = -w * 0.04
+	_settlement_horizon_header.offset_top = h * 0.42
+	_settlement_horizon_header.offset_bottom = h * 0.48
+
+	if _state_wrap != null and _settlement_celebration_active:
+		# F 结算面板区 50%–98%；左右安全边 4%W；底边 3%H
+		_state_wrap.add_theme_constant_override("margin_top", int(h * 0.50))
+		_state_wrap.add_theme_constant_override("margin_left", int(w * 0.04))
+		_state_wrap.add_theme_constant_override("margin_right", int(w * 0.04))
+		_state_wrap.add_theme_constant_override("margin_bottom", int(h * 0.03))
+		_state_wrap.z_index = 32
+		if _state_outer != null:
+			_state_outer.alignment = BoxContainer.ALIGNMENT_BEGIN
+			_state_outer.add_theme_constant_override("separation", int(h * 0.012))
+		if state_panel != null:
+			# 面板约占 47%–49%H 中的数据区；纵向撑满剩余给按钮之上
+			state_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			state_panel.custom_minimum_size = Vector2(0, h * 0.28)
+		if _state_button_row != null:
+			_state_button_row.add_theme_constant_override("separation", int(h * 0.01))
+		if state_restart_button != null:
+			state_restart_button.custom_minimum_size = Vector2(0, maxf(44.0, h * 0.04))
+		if state_back_button != null:
+			state_back_button.custom_minimum_size = Vector2(0, maxf(44.0, h * 0.04))
+		if state_body != null:
+			state_body.add_theme_font_size_override("font_size", 17)
+			state_body.add_theme_color_override("font_color", Color("BFC3D8"))
+			state_body.add_theme_constant_override("line_spacing", 9)
+		# 避免未使用警告
+		var _unused := horizon_y
+		_unused = _unused
+

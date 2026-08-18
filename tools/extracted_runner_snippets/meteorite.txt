@@ -1,0 +1,4 @@
+	if obstacle_type == "meteorite":
+		default_clear = GROUND_Y + 1.92
+	if bool(item.get("overweight_tutorial", false)) and obstacle_type in ["jump", "low_barrier"] and layer == 0:
+		default_clear = GROUND_Y + 0.58

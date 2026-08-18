@@ -9,12 +9,14 @@ const RUNWAY_OBSTACLE_SPAN := LANE_WIDTH * 3.0 * RUNWAY_OBSTACLE_SPAN_INSET
 const SLIDE_GATE_TOP := 3.08
 const SLIDE_GATE_OPEN_BOTTOM := 1.22
 const SLIDE_GATE_PILLAR_OUTSIDE_MARGIN := 0.55
-const SLIDE_GATE_MODEL_BBOX_WIDTH := 1.0
+const SLIDE_GATE_OUTER_EXTRA := 0.65
+const SLIDE_GATE_INNER_BUFFER := 0.55
+const SLIDE_GATE_MAX_OUTER_EXTRA := 2.6
 const SLIDE_GATE_PREVIEW_ROAD_HALF := 6.4
 const ORB_TARGET_HEIGHT := 2.65
 const ORB_RUNWAY_WIDTH := LANE_WIDTH * 3.0
-const ORB_SMALL_SPAN := ORB_RUNWAY_WIDTH / 9.0
-const ORB_LARGE_SPAN := ORB_RUNWAY_WIDTH * 0.5
+const ORB_SMALL_SPAN := ORB_RUNWAY_WIDTH / 6.0
+const ORB_LARGE_SPAN := ORB_RUNWAY_WIDTH * 0.52
 const ORB_SMALL_SCALE := ORB_SMALL_SPAN / ORB_TARGET_HEIGHT
 const ORB_LARGE_SCALE := ORB_LARGE_SPAN / ORB_TARGET_HEIGHT
 const ORB_VISUAL_BASE_Y := 0.85
@@ -113,8 +115,8 @@ func _fit_energy_orb_to_span(model: Node3D, span: float) -> void:
 func _build_high_bar(root: Node3D, item: Dictionary = {}) -> void:
 	var scene_index := _pick_slide_obstacle_scene_index(item)
 	var asset_path := _slide_paths[scene_index] if scene_index < _slide_paths.size() else ""
-	var span := _slide_gate_span_for_path(asset_path)
 	var scene := _slide_scene_at(scene_index)
+	var span := _slide_gate_span_for_path(asset_path, scene)
 	if scene != null:
 		_add_road_span_gate(root, scene, SLIDE_GATE_TOP, span)
 	else:
@@ -416,17 +418,86 @@ func _pick_slide_obstacle_scene_index(item: Dictionary) -> int:
 	return (absi(lane * 19 + dist_key)) % _slide_paths.size()
 
 
-func _slide_gate_model_pillar_half(asset_path: String) -> float:
-	var lower := asset_path.to_lower()
-	if "能量屏障" in asset_path or ("energy" in lower and "barrier" in lower):
-		return 0.46
-	return 0.5
+func _slide_gate_model_metrics(scene: PackedScene, asset_path: String = "") -> Dictionary:
+	var result := {
+		"pillar_half": 0.5,
+		"span": 1.0,
+		"span_axis": "x",
+		"outer_span": 1.0,
+		"inner_clearance": 0.52,
+	}
+	if scene == null:
+		return result
+	var model := scene.instantiate() as Node3D
+	if model == null:
+		return result
+	var bounds := _aabb(model)
+	if bounds.size.z > bounds.size.x * 1.15:
+		model.rotation_degrees.y = 90.0
+	var ground := _compute_slide_gate_ground_metrics(model)
+	model.queue_free()
+	return {
+		"outer_span": float(ground["outer_span"]),
+		"inner_clearance": float(ground["inner_clearance"]),
+		"span_axis": String(ground["span_axis"]),
+		"span": float(ground["outer_span"]),
+		"pillar_half": float(ground["outer_span"]) * 0.5,
+	}
 
 
-func _slide_gate_span_for_path(asset_path: String) -> float:
-	var pillar_half := SLIDE_GATE_PREVIEW_ROAD_HALF + SLIDE_GATE_PILLAR_OUTSIDE_MARGIN
-	var model_pillar_half := _slide_gate_model_pillar_half(asset_path)
-	return pillar_half * SLIDE_GATE_MODEL_BBOX_WIDTH / maxf(model_pillar_half, 0.001)
+func _compute_slide_gate_ground_metrics(root: Node3D) -> Dictionary:
+	var bounds := _aabb(root)
+	var span_axis := "x"
+	var outer_axis_size := bounds.size.x
+	if bounds.size.z > bounds.size.x * 1.12:
+		span_axis = "z"
+		outer_axis_size = bounds.size.z
+	var ground_y_max := bounds.position.y + bounds.size.y * 0.42
+	var center_coord := (bounds.position.x + bounds.size.x * 0.5) if span_axis == "x" else (bounds.position.z + bounds.size.z * 0.5)
+	var outer_min := INF
+	var outer_max := -INF
+	var left_inner := -INF
+	var right_inner := INF
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh == null:
+			continue
+		for surf_i in mesh_instance.mesh.get_surface_count():
+			var arrays := mesh_instance.mesh.surface_get_arrays(surf_i)
+			if arrays.size() <= Mesh.ARRAY_VERTEX:
+				continue
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			for v in verts:
+				var local_v: Vector3 = root.global_transform.affine_inverse() * (mesh_instance.global_transform * v)
+				if local_v.y > ground_y_max:
+					continue
+				var span_coord := local_v.x if span_axis == "x" else local_v.z
+				outer_min = minf(outer_min, span_coord)
+				outer_max = maxf(outer_max, span_coord)
+				if span_coord < center_coord - 0.03:
+					left_inner = maxf(left_inner, span_coord)
+				elif span_coord > center_coord + 0.03:
+					right_inner = minf(right_inner, span_coord)
+	var outer_span := outer_max - outer_min if outer_min < INF else outer_axis_size
+	var inner_clearance := right_inner - left_inner if left_inner > -INF and right_inner < INF else outer_span * 0.52
+	if inner_clearance > outer_span * 0.92:
+		inner_clearance = outer_span * 0.52
+	return {
+		"outer_span": maxf(outer_span, 0.001),
+		"inner_clearance": maxf(inner_clearance, 0.001),
+		"span_axis": span_axis,
+	}
+
+
+func _slide_gate_span_for_path(asset_path: String, scene: PackedScene = null) -> float:
+	var runway_w := SLIDE_GATE_PREVIEW_ROAD_HALF * 2.0
+	if scene == null:
+		return runway_w + SLIDE_GATE_OUTER_EXTRA
+	var metrics := _slide_gate_model_metrics(scene, asset_path)
+	var min_inner := runway_w + SLIDE_GATE_INNER_BUFFER
+	var scale := min_inner / float(metrics["inner_clearance"])
+	var target := float(metrics["outer_span"]) * scale
+	return minf(target, runway_w + SLIDE_GATE_MAX_OUTER_EXTRA)
 
 
 func _orb_roll(item: Dictionary) -> Dictionary:

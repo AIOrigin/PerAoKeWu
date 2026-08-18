@@ -1,0 +1,31 @@
+	"obstacles": [
+		{"distance": 32.0, "lane": 0, "type": "jump", "overweight_tutorial": true},
+		{"distance": 48.0, "lane": -1, "type": "slide"},
+		{"distance": 64.0, "lane": 1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 82.0, "lane": 0, "type": "slide"},
+		{"distance": 128.0, "lane": 0, "type": "jump", "overweight_tutorial": true},
+		{"distance": 156.0, "lane": 1, "type": "slide"},
+		{"distance": 202.0, "lane": 0, "type": "train"},
+		{"distance": 232.0, "lane": -1, "type": "jump"},
+		{"distance": 262.0, "lane": 0, "layer": 0, "target_layer": 1, "type": "ramp"},
+		{"distance": 278.0, "lane": 0, "layer": 1, "type": "jump"},
+		{"distance": 292.0, "half_depth": 24.0, "lane": 0, "layer": 0, "type": "main_block"},
+		{"distance": 298.0, "lane": 1, "layer": 1, "type": "slide"},
+		{"distance": 316.0, "lane": -1, "layer": 1, "type": "jump"},
+		{"distance": 360.0, "lane": 0, "type": "train"},
+		{"distance": 410.0, "lane": 1, "type": "jump", "overweight_tutorial": true},
+		{"distance": 452.0, "lane": -1, "type": "slide"},
+		{"distance": 510.0, "lane": 0, "type": "jump"},
+		{"distance": 560.0, "lane": 1, "type": "slide"},
+		{"distance": 620.0, "lane": -1, "type": "train_moving", "move_speed": -10.0},
+		{"distance": 690.0, "lane": 0, "type": "jump"},
+		{"distance": 760.0, "lane": 1, "type": "slide"},
+		{"distance": 830.0, "lane": -1, "type": "jump"},
+		{"distance": 900.0, "lane": 0, "type": "slide"},
+		{"distance": 970.0, "lane": 1, "type": "jump"}
+	],
+	"speed_boosts": [
+		{"distance": 270.0, "lane": 0, "layer": 1},
+		{"distance": 308.0, "lane": 0, "layer": 1}
+	]
+}

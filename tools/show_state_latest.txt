@@ -1,0 +1,9 @@
+func _show_state(title: String, body: String, settlement_mode: String = "", fail_reason_en: String = "") -> void:
+	state_title.text = title
+	state_body.text = body
+	var use_settlement := settlement_mode in ["success", "failure"]
+	if _state_wrap != null:
+		_state_wrap.visible = true
+	state_panel.visible = true
+	state_title.visible = not use_settlement
+	_set_settlement_presentation(use_settlement, title, settlement_mode == "failure", fail_reason_en)

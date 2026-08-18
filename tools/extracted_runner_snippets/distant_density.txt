@@ -1,0 +1,3 @@
+		d += rng.randf_range(72.0, 105.0) / distant_density
+		slot_i += 1
+		yield_i += 1

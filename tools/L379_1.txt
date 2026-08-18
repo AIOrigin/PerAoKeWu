@@ -1,0 +1,15 @@
+	var hud_hit_slow := 1.0 if _fork_rush_timer > 0.0 else speed_penalty_mult
+	var speed_text := "速度 %0.1f m/s" % (current_speed * hud_hit_slow * _effective_speed_boost_mult() * (EMERGENCY_DASH_MULT if _emergency_dash_timer > 0.0 else 1.0) * _wall_run_speed_mult())
+	if _fork_rush_timer > 0.0:
+		speed_text += " (飞驰!)"
+	elif _is_wall_running():
+		speed_text += " (侧墙加速)"
+	elif speed_penalty_timer > 0.0:
+		speed_text += " (减速)"
+	elif _emergency_dash_timer > 0.0:
+		speed_text += " (冲刺)"
+	elif _speed_boost_timer > 0.0:
+		speed_text += " (加速)"
+	elif _is_on_safe_fork():
+		speed_text += " (安全)"
+	speed_label.text = speed_text

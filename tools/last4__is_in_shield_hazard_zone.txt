@@ -1,0 +1,17 @@
+func _is_in_shield_hazard_zone() -> bool:
+	if _sandstorm_active:
+		return true
+	# 热量障碍窗口内也算特殊环境
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if not bool(obstacle.get("heat_hazard", false)):
+			continue
+		if bool(obstacle.get("hit", false)):
+			continue
+		var obs_d: float = float(obstacle.get("distance", 0.0)) + float(obstacle.get("move_offset", 0.0))
+		var half := float(obstacle.get("half_depth", 1.2)) + 1.5
+		if absf(track_distance - obs_d) <= half:
+			return true
+	return false
+

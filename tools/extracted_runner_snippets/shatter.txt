@@ -1,0 +1,16 @@
+		if _hit_feedback != null:
+			_hit_feedback.apply_impact(
+				impact_pos,
+				HitFeedback.Intensity.LIGHT if not _is_large_smash_obstacle_entry(obstacle) else HitFeedback.Intensity.MEDIUM,
+				cargo_dmg,
+				""
+			)
+		_shatter_obstacle(obstacle)
+		if is_failed:
+			return
+		if chaser_distance <= CHASER_CATCH_DISTANCE and _chaser_enabled:
+			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
+			return
+		if hp_lost > 0.001:
+			_show_runway_combat_tip("HP -%0.1f" % hp_lost, Color(1.0, 0.45, 0.35, 1.0))
+		return

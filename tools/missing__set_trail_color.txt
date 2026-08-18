@@ -1,0 +1,144 @@
+func _emit_landing_particles() -> void:
+	if not landing_particles:
+		return
+	landing_particles.restart()
+	landing_particles.emitting = true
+
+
+func _emit_jump_takeoff_fx() -> void:
+	if landing_particles:
+		landing_particles.restart()
+		landing_particles.emitting = true
+	if jump_streak_particles:
+		jump_streak_particles.restart()
+		jump_streak_particles.emitting = true
+	if player_body:
+		player_body.scale = Vector3(0.86, 1.22, 0.86)
+
+
+func _set_trail_color(col: Color) -> void:
+	if _trail_process_mat == null:
+		return
+	_trail_process_mat.color = col
+
+
+func _pulse_wall_boost_particles(active: bool) -> void:
+	if wall_boost_particles == null:
+		return
+	wall_boost_particles.emitting = active
+	if active and _wall_boost_fx_timer > 1.0:
+		wall_boost_particles.amount_ratio = 1.0
+		wall_boost_particles.speed_scale = 1.8
+	elif active:
+		wall_boost_particles.amount_ratio = 0.7
+		wall_boost_particles.speed_scale = 1.25
+
+
+func _make_trail_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "SpeedTrail"
+	particles.position = Vector3(0, -0.15, 0.45)
+	particles.amount = 36
+	particles.lifetime = 0.28
+	particles.preprocess = 0.12
+	particles.emitting = true
+	particles.draw_pass_1 = _make_particle_mesh(0.04)
+
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3(0, 0, 1)
+	material.spread = 16.0
+	material.initial_velocity_min = 6.0
+	material.initial_velocity_max = 13.0
+	material.gravity = Vector3(0, 0, 0)
+	material.scale_min = 0.4
+	material.scale_max = 1.35
+	material.color = Color(1.0, 0.62, 0.18, 0.55)
+	particles.process_material = material
+	_trail_process_mat = material
+	return particles
+
+
+func _make_landing_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "LandingBurst"
+	particles.position = Vector3(0, -0.68, 0)
+	particles.amount = 28
+	particles.lifetime = 0.34
+	particles.one_shot = true
+	particles.explosiveness = 0.92
+	particles.emitting = false
+	particles.draw_pass_1 = _make_particle_mesh(0.055)
+
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3(0, 1, 0)
+	material.spread = 95.0
+	material.initial_velocity_min = 2.6
+	material.initial_velocity_max = 6.8
+	material.gravity = Vector3(0, -9.5, 0)
+	material.scale_min = 0.65
+	material.scale_max = 1.7
+	material.color = Color(0.95, 0.98, 1.0, 0.9)
+	particles.process_material = material
+	return particles
+
+
+func _make_jump_streak_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "JumpStreak"
+	particles.position = Vector3(0.0, -0.2, 0.35)
+	particles.amount = 42
+	particles.lifetime = 0.32
+	particles.emitting = false
+	particles.visibility_aabb = AABB(Vector3(-4, -3, -4), Vector3(8, 8, 10))
+	var box := BoxMesh.new()
+	box.size = Vector3(0.04, 0.04, 0.28)
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0.85, 0.95, 1.0, 0.85)
+	sm.emission_enabled = true
+	sm.emission = Color(0.55, 0.85, 1.0)
+	sm.emission_energy_multiplier = 3.2
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	box.material = sm
+	particles.draw_pass_1 = box
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3(0.0, -0.15, 1.0)
+	material.spread = 22.0
+	material.initial_velocity_min = 7.0
+	material.initial_velocity_max = 14.0
+	material.gravity = Vector3(0.0, -2.0, 0.0)
+	material.scale_min = 0.55
+	material.scale_max = 1.4
+	material.color = Color(0.7, 0.92, 1.0, 0.8)
+	particles.process_material = material
+	return particles
+
+
+func _make_wall_boost_particles() -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.name = "WallBoostTrail"
+	particles.position = Vector3(0.0, 0.1, 0.55)
+	particles.amount = 48
+	particles.lifetime = 0.38
+	particles.emitting = false
+	particles.visibility_aabb = AABB(Vector3(-5, -4, -5), Vector3(10, 10, 12))
+	var box := BoxMesh.new()
+	box.size = Vector3(0.05, 0.05, 0.42)
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0.35, 0.95, 1.0, 0.9)
+	sm.emission_enabled = true
+	sm.emission = Color(0.25, 0.85, 1.0)
+	sm.emission_energy_multiplier = 4.0
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	box.material = sm
+	particles.draw_pass_1 = box
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3(0.0, 0.05, 1.0)
+	material.spread = 28.0
+	material.initial_velocity_min = 9.0
+	material.initial_velocity_max = 18.0
+	material.gravity = Vector3(0.0, 0.0, 0.0)
+	material.scale_min = 0.7
+	material.scale_max = 1.6
+	material.color = Color(0.4, 0.95, 1.0, 0.88)
+	particles.process_material = material
+	return particles

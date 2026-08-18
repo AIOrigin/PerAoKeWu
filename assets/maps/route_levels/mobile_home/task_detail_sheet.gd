@@ -2,13 +2,21 @@ extends Control
 ## 任务详情底部弹层（对齐 Tasks UI 设计稿）
 
 signal closed
-signal accept_pressed(planet_id: String, location_id: String)
+signal accept_pressed(planet_id: String, location_id: String, mission_id: String)
 
 const UI_TEXT := Color(0.957, 0.984, 1.0)
 const UI_MUTED := Color(0.576, 0.639, 0.71)
 const UI_CYAN := Color(0.557, 0.882, 0.969)
 const UI_CYAN_SOFT := Color(0.635, 0.925, 0.976)
 const UI_ICE := Color(0.902, 0.988, 1.0)
+const UI_MISSION_DONE := Color(0.34, 0.72, 0.58)
+const UI_EMBER_RUN_BG := Color(0.29, 0.055, 0.09, 0.58)
+const UI_EMBER_RUN_BORDER := Color(0.42, 0.11, 0.14, 0.82)
+const UI_EMBER_RUN_GLOW := Color(0.64, 0.11, 0.11, 0.30)
+const UI_EMBER_RUN_TEXT := Color(0.93, 0.78, 0.76)
+const UI_REWARD_CLAIM := ClaimButtonUI.HIGHLIGHT
+
+const CARGO_ICON_DESIGN_PX := 64.0
 
 var _design_size := Vector2(682.0, 1228.0)
 var _viewport_size := Vector2(1080.0, 1920.0)
@@ -19,6 +27,7 @@ var _accept: Button
 var _close_btn: Button
 var _planet_id := ""
 var _location_id := ""
+var _mission_id := ""
 var _reward := 0
 var _tween: Tween
 var _outpost_name_cb: Callable = Callable()
@@ -201,13 +210,57 @@ func _on_close_gui_input(event: InputEvent) -> void:
 
 
 func _on_accept_pressed() -> void:
-	accept_pressed.emit(_planet_id, _location_id)
+	accept_pressed.emit(_planet_id, _location_id, _mission_id)
+
+
+func _apply_accept_button_style(mode: String) -> void:
+	if mode == "claim":
+		ClaimButtonUI.apply(
+			_accept,
+			_spec_w(18),
+			_spec_w(18),
+			_spec_h(10),
+			_spec_w(18),
+			_spec_h(10),
+			_spec_fs(24)
+		)
+		return
+	var accept_style := StyleBoxFlat.new()
+	match mode:
+		"run":
+			accept_style.bg_color = UI_EMBER_RUN_BG
+			accept_style.border_color = UI_EMBER_RUN_BORDER
+			accept_style.shadow_color = UI_EMBER_RUN_GLOW
+			accept_style.shadow_size = 10
+			_accept.add_theme_color_override("font_color", UI_EMBER_RUN_TEXT)
+		"done":
+			accept_style.bg_color = Color(0.12, 0.28, 0.22, 0.72)
+			accept_style.border_color = Color(UI_MISSION_DONE.r, UI_MISSION_DONE.g, UI_MISSION_DONE.b, 0.75)
+			accept_style.shadow_color = Color(UI_MISSION_DONE.r, UI_MISSION_DONE.g, UI_MISSION_DONE.b, 0.25)
+			accept_style.shadow_size = 8
+			_accept.add_theme_color_override("font_color", Color(0.88, 0.98, 0.92))
+		_:
+			accept_style.bg_color = Color(0.06, 0.10, 0.16, 0.88)
+			accept_style.border_color = Color(0.667, 0.902, 1.0, 0.45)
+			accept_style.shadow_color = Color(0.557, 0.882, 0.969, 0.25)
+			accept_style.shadow_size = 8
+			_accept.add_theme_color_override("font_color", UI_ICE)
+	accept_style.set_border_width_all(1)
+	accept_style.set_corner_radius_all(_spec_w(18))
+	accept_style.content_margin_left = _spec_w(18)
+	accept_style.content_margin_right = _spec_w(18)
+	accept_style.content_margin_top = _spec_h(10)
+	accept_style.content_margin_bottom = _spec_h(10)
+	_accept.add_theme_stylebox_override("normal", accept_style)
+	_accept.add_theme_stylebox_override("hover", accept_style)
+	_accept.add_theme_stylebox_override("pressed", accept_style)
 
 
 func open(planet_id: String, mission: Dictionary) -> void:
 	if not _built:
 		_build()
 	var location_id := String(mission.get("location_id", "dome"))
+	var mission_id := Global.mission_key(mission)
 	var profile: Dictionary = MissionTypes.resolve(mission)
 	var type_en := String(mission.get("task_type", profile.get("task_type", "Supply Run"))).to_upper()
 	if not type_en.ends_with(" RUN") and "RUN" not in type_en:
@@ -221,16 +274,22 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	if _outpost_name_cb.is_valid():
 		outpost = String(_outpost_name_cb.call(location_id, outpost))
 	var cargo_name := String(mission.get("cargo_name", "Cargo"))
-	var cargo_en := String(mission.get("cargo_name_en", ""))
-	var cargo_text := ("%s %s" % [cargo_en, cargo_name]).strip_edges() if cargo_en != "" else cargo_name
+	var cargo_en := String(mission.get("cargo_name_en", "")).strip_edges()
+	var cargo_text := cargo_en if cargo_en != "" else cargo_name
 	var trait_text := _cargo_trait(mission, profile)
 	var tip := _tip_text(mission, profile)
 	var diff := clampi(int(mission.get("difficulty", 1)), 1, 5)
-	var is_active := Global.is_active_mission(planet_id, location_id)
-	var completed := Global.get_completed_runner_locations(planet_id).has(location_id)
+	var accepted := Global.is_mission_accepted(planet_id, mission_id)
+	var location_lit := Global.get_completed_runner_locations(planet_id).has(location_id)
+	var mission_done := Global.is_mission_completed(planet_id, mission_id)
+	var reward_pending := Global.is_mission_reward_pending(planet_id, mission_id)
+	var reward_claimed := Global.is_mission_reward_claimed(planet_id, mission_id)
+	var progress_target := MissionTypes.mission_progress_target(mission)
+	var progress_now := Global.get_mission_progress(planet_id, mission_id)
 
 	_planet_id = planet_id
 	_location_id = location_id
+	_mission_id = mission_id
 	_reward = reward
 
 	for child in _body.get_children():
@@ -257,13 +316,7 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	_body.add_child(rows)
 
 	_add_row(rows, "OUTPOST", "📍  %s" % outpost)
-	var cargo_row := _add_row(rows, "CARGO", cargo_text)
-	var trait_l := Label.new()
-	trait_l.text = trait_text
-	trait_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	trait_l.add_theme_font_size_override("font_size", _spec_fs(20))
-	trait_l.add_theme_color_override("font_color", UI_CYAN_SOFT)
-	cargo_row.add_child(trait_l)
+	_add_cargo_row(rows, planet_id, mission, cargo_text, trait_text)
 
 	var diff_host := HBoxContainer.new()
 	diff_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -287,7 +340,49 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	_add_row_control(rows, "DIFFICULTY", diff_host)
 
 	_add_row(rows, "TIME", "⏱  %s" % time_text)
-	_add_row(rows, "REWARD", "★  %d" % reward, UI_CYAN)
+	if mission_done:
+		_add_row(rows, "PROGRESS", "✓  %d / %d" % [progress_target, progress_target], ClaimButtonUI.DONE)
+	else:
+		_add_row(rows, "PROGRESS", "▣  %d / %d" % [progress_now, progress_target])
+	if reward_pending:
+		_add_row(rows, "REWARD", "★  %d" % reward, UI_REWARD_CLAIM)
+	elif mission_done and reward_claimed:
+		_add_row(rows, "REWARD", "★  %d" % reward, ClaimButtonUI.DONE)
+	else:
+		_add_row(rows, "REWARD", "★  完成奖励 %d（跑酷采集另计）" % reward, UI_CYAN)
+
+	var mechanics := _mechanics_text(mission, profile)
+	if mechanics != "":
+		var mech_panel := PanelContainer.new()
+		mech_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mech_style := StyleBoxFlat.new()
+		mech_style.bg_color = Color(0.04, 0.08, 0.14, 0.55)
+		mech_style.border_color = Color(0.557, 0.882, 0.969, 0.45)
+		mech_style.set_border_width_all(1)
+		mech_style.set_corner_radius_all(_spec_w(12))
+		mech_style.content_margin_left = _spec_w(18)
+		mech_style.content_margin_right = _spec_w(18)
+		mech_style.content_margin_top = _spec_h(14)
+		mech_style.content_margin_bottom = _spec_h(14)
+		mech_panel.add_theme_stylebox_override("panel", mech_style)
+		_body.add_child(mech_panel)
+		var mech_box := VBoxContainer.new()
+		mech_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mech_box.add_theme_constant_override("separation", _spec_h(8))
+		mech_panel.add_child(mech_box)
+		var mech_title := Label.new()
+		mech_title.text = "机制说明"
+		mech_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mech_title.add_theme_font_size_override("font_size", _spec_fs(18))
+		mech_title.add_theme_color_override("font_color", UI_CYAN_SOFT)
+		mech_box.add_child(mech_title)
+		var mech_body := Label.new()
+		mech_body.text = mechanics
+		mech_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mech_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mech_body.add_theme_font_size_override("font_size", _spec_fs(20))
+		mech_body.add_theme_color_override("font_color", UI_TEXT)
+		mech_box.add_child(mech_body)
 
 	var tip_panel := PanelContainer.new()
 	tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -310,12 +405,21 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	tip_l.add_theme_color_override("font_color", Color(0.93, 0.72, 0.42))
 	tip_panel.add_child(tip_l)
 
-	if completed:
-		_accept.text = "REPLAY RUN  +★%d" % reward
-	elif is_active:
-		_accept.text = "START RUN  +★%d" % reward
+	if reward_pending:
+		_accept.text = "★ %d" % reward
+		_apply_accept_button_style("claim")
+	elif mission_done:
+		_accept.text = "REPLAY"
+		_apply_accept_button_style("done")
+	elif location_lit:
+		_accept.text = "REPLAY"
+		_apply_accept_button_style("done")
+	elif accepted:
+		_accept.text = "RUN"
+		_apply_accept_button_style("run")
 	else:
-		_accept.text = "ACCEPT RUN  +★%d" % reward
+		_accept.text = "ACCEPT"
+		_apply_accept_button_style("accept")
 
 	# 提到最前，避免被底栏 / 状态栏挡住点击
 	if get_parent() != null:
@@ -345,11 +449,17 @@ func close() -> void:
 
 
 func refresh_if_open(planet_id: String, mission: Dictionary) -> void:
-	if visible and planet_id == _planet_id and String(mission.get("location_id", "")) == _location_id:
+	if visible and planet_id == _planet_id and Global.mission_key(mission) == _mission_id:
 		open(planet_id, mission)
 
 
 func _cargo_trait(mission: Dictionary, profile: Dictionary) -> String:
+	var custom := String(mission.get("cargo_trait", "")).strip_edges()
+	if custom != "":
+		return custom
+	var fragility := float(mission.get("cargo_fragility", 0.0))
+	if fragility >= 1.35:
+		return "极脆 · ×%.1f" % fragility
 	var load_n := int(mission.get("cargo_load", 0))
 	var mid := String(profile.get("id", "supply"))
 	if load_n >= 90:
@@ -360,10 +470,23 @@ func _cargo_trait(mission: Dictionary, profile: Dictionary) -> String:
 		return "高压 · 注意追击"
 	if mid == "repair":
 		return "密障 · 完整度优先"
+	if mid == "relay":
+		return "中继 · 分叉选择"
+	if fragility > 0.0 and fragility < 0.95:
+		return "稳健 · ×%.1f" % fragility
 	return "标准载荷"
 
 
 func _tip_text(mission: Dictionary, profile: Dictionary) -> String:
+	if MissionTypes.normalize_type(String(mission.get("task_type", profile.get("task_type", "")))) == "Emergency Run":
+		var env := String(mission.get("environment_factor", "")).strip_edges()
+		if env != "":
+			return env
+	if MissionTypes.is_overweight_cargo(mission):
+		var env_over := String(mission.get("environment_factor", "")).strip_edges()
+		if env_over != "":
+			return env_over
+		return "负重运输：注意跳跃节奏，保护建设包完整度。"
 	var rhythm := String(mission.get("runner_rhythm", "")).strip_edges()
 	if rhythm != "":
 		return rhythm
@@ -371,6 +494,22 @@ func _tip_text(mission: Dictionary, profile: Dictionary) -> String:
 	if hint != "":
 		return hint
 	return "完成运输以推进据点修复进度。"
+
+
+func _mechanics_text(mission: Dictionary, profile: Dictionary) -> String:
+	var custom := String(mission.get("mechanics_hint", "")).strip_edges()
+	if custom != "":
+		return custom
+	if MissionTypes.is_overweight_cargo(mission):
+		var rhythm := String(mission.get("runner_rhythm", "")).strip_edges()
+		if rhythm != "":
+			return rhythm
+		return "超重建设包：单击短跳更低，快速双击才是满跳。跳跃障碍请连点两次；贴墙就绪时单击即可上墙。"
+	if MissionTypes.normalize_type(String(mission.get("task_type", profile.get("task_type", "")))) != "Emergency Run":
+		return ""
+	if not bool(profile.get("timed_fail", false)):
+		return ""
+	return "限时挑战：多吃加速靴提速。集满 5 个解锁紧急冲刺（电脑 Shift/E，手机点按冲刺键）。"
 
 
 func _difficulty_label(diff: int) -> String:
@@ -385,6 +524,100 @@ func _difficulty_label(diff: int) -> String:
 			return "困难"
 		_:
 			return "极限"
+
+
+func _add_cargo_row(parent: Control, planet_id: String, mission: Dictionary, cargo_text: String, trait_text: String) -> void:
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", _spec_w(18))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	parent.add_child(row)
+
+	var key := Label.new()
+	key.text = "CARGO"
+	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	key.custom_minimum_size = Vector2(_spec_w(140), 0)
+	key.add_theme_font_size_override("font_size", _spec_fs(18))
+	key.add_theme_color_override("font_color", UI_MUTED)
+	key.add_theme_constant_override("letter_spacing", _spec_em(18, 0.2))
+	row.add_child(key)
+
+	var value := HBoxContainer.new()
+	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	value.add_theme_constant_override("separation", _spec_w(14))
+	row.add_child(value)
+
+	var icon_path := _cargo_icon_path(planet_id, mission)
+	var icon_tex: Texture2D = _load_cargo_icon_texture(icon_path)
+	if icon_tex != null:
+		var icon_px := _spec_w(CARGO_ICON_DESIGN_PX)
+		var icon_pad := _spec_w(6)
+		var icon_wrap := PanelContainer.new()
+		icon_wrap.custom_minimum_size = Vector2(icon_px, icon_px)
+		icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var icon_style := StyleBoxFlat.new()
+		icon_style.bg_color = Color(0.06, 0.10, 0.16, 0.92)
+		icon_style.border_color = Color(0.667, 0.902, 1.0, 0.35)
+		icon_style.set_border_width_all(1)
+		icon_style.set_corner_radius_all(_spec_w(12))
+		icon_style.content_margin_left = icon_pad
+		icon_style.content_margin_right = icon_pad
+		icon_style.content_margin_top = icon_pad
+		icon_style.content_margin_bottom = icon_pad
+		icon_wrap.add_theme_stylebox_override("panel", icon_style)
+		value.add_child(icon_wrap)
+		var icon_rect := TextureRect.new()
+		icon_rect.texture = icon_tex
+		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		icon_rect.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_wrap.add_child(icon_rect)
+
+	var text_col := VBoxContainer.new()
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_col.add_theme_constant_override("separation", _spec_h(4))
+	value.add_child(text_col)
+
+	var cargo_l := Label.new()
+	cargo_l.text = cargo_text
+	cargo_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cargo_l.add_theme_font_size_override("font_size", _spec_fs(22))
+	cargo_l.add_theme_color_override("font_color", UI_TEXT)
+	text_col.add_child(cargo_l)
+
+	var trait_l := Label.new()
+	trait_l.text = trait_text
+	trait_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	trait_l.add_theme_font_size_override("font_size", _spec_fs(20))
+	trait_l.add_theme_color_override("font_color", UI_CYAN_SOFT)
+	text_col.add_child(trait_l)
+
+
+func _cargo_icon_path(planet_id: String, mission: Dictionary) -> String:
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id) if planet_id != "" else null
+	if cfg != null and cfg.has_method("get_cargo_icon_path"):
+		return String(cfg.get_cargo_icon_path(mission))
+	return ""
+
+
+func _load_cargo_icon_texture(path: String) -> Texture2D:
+	if path == "":
+		return null
+	if ResourceLoader.exists(path):
+		var tex: Variant = load(path)
+		if tex is Texture2D:
+			return tex as Texture2D
+	var fs_path := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(fs_path):
+		var img := Image.load_from_file(fs_path)
+		if img != null and not img.is_empty():
+			return ImageTexture.create_from_image(img)
+	return null
 
 
 func _add_row(parent: Control, label: String, value: String, value_color: Color = UI_TEXT) -> HBoxContainer:

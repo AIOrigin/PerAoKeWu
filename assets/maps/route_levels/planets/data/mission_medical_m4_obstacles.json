@@ -1,0 +1,210 @@
+{
+	"note": "M4 双货紧急 · 医疗+净水 40秒限时",
+	"layout_id": "mission_medical_m4",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{
+			"length": 190,
+			"turn": 0
+		},
+		{
+			"length": 38,
+			"turn": 0.698
+		},
+		{
+			"length": 190,
+			"turn": 0
+		},
+		{
+			"length": 38,
+			"turn": -0.698
+		},
+		{
+			"length": 180,
+			"turn": 0
+		}
+	],
+	"junction_zones": [
+		{
+			"distance": 96,
+			"length": 80,
+			"spread": 18,
+			"lane_a": 0,
+			"label_a": "安全岔路",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "速通岔路",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{
+			"start": 188,
+			"length": 32,
+			"dps": 11,
+			"label": "毒雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		},
+		{
+			"start": 368,
+			"length": 30,
+			"dps": 12,
+			"label": "浓毒雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 30.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 64.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 98.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 132.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 166.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 200.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 234.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 268.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 302.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 336.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 370.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 404.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 438.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 472.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 506.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 540.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 574.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 608.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 642.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 676.0,
+			"lane": 0,
+			"type": "slide"
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 24.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 94.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 164.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 234.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 304.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 374.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 444.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 514.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 584.0,
+			"lane": -1,
+			"layer": 0
+		}
+	]
+}

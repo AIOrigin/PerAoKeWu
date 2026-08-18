@@ -1,0 +1,19 @@
+===OLD===
+func _uses_smash_collision() -> bool:
+	# 先只在第二关试玩「装备撞碎障碍」
+	var layout_id := _mission_layout_id()
+	if layout_id != "" and SMASH_LAYOUT_IDS.has(layout_id):
+		return true
+	var mid := String(mission.get("mission_id", ""))
+	return mid != "" and SMASH_MISSION_IDS.has(mid)
+===NEW===
+func _uses_smash_collision() -> bool:
+	# 撞碎为默认玩法；名单内关卡启用，其它 runner 关卡也默认启用
+	var layout_id := _mission_layout_id()
+	if layout_id != "" and SMASH_LAYOUT_IDS.has(layout_id):
+		return true
+	var mid := String(mission.get("mission_id", ""))
+	if mid != "" and SMASH_MISSION_IDS.has(mid):
+		return true
+	# 未列入名单的 runner 关卡同样走撞碎，避免只剩第二关能碎障
+	return true

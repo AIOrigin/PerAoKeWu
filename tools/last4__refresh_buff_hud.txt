@@ -1,0 +1,23 @@
+func _refresh_buff_hud(delta: float = 0.0) -> void:
+	if _buff_hud_panel == null:
+		return
+	if is_finished and state_panel != null and state_panel.visible:
+		_buff_hud_panel.visible = false
+		return
+
+	if _run_timer_label != null:
+		if _is_emergency_run and gameplay_active and not is_finished and not is_failed:
+			var remain := maxf(_run_time - elapsed, 0.0)
+			_run_timer_label.visible = true
+			_run_timer_label.text = "限时 %0.1fs" % remain
+			var urgent := remain <= 10.0
+			_style_buff_label(
+				_run_timer_label,
+				36 if urgent else 34,
+				Color(1.0, 0.42, 0.32) if urgent else Color(1.0, 0.82, 0.42),
+				4
+			)
+		else:
+			_run_timer_label.visible = false
+
+	if shield_label:

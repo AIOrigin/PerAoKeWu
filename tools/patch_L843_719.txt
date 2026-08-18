@@ -1,0 +1,34 @@
+===OLD===
+	strike_toast_label = Label.new()
+	strike_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	strike_toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	strike_toast_label.add_theme_font_size_override("font_size", 22)
+	strike_toast_label.modulate = Color(1, 1, 1, 0)
+	strike_toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(strike_toast_label)
+	# 横跨画幅顶部居中；勿用 CENTER_TOP 零尺寸锚点（会粘在左上角）
+	strike_toast_label.anchor_left = 0.06
+	strike_toast_label.anchor_right = 0.94
+	strike_toast_label.anchor_top = 0.0
+	strike_toast_label.anchor_bottom = 0.0
+	strike_toast_label.offset_left = 0.0
+	strike_toast_label.offset_right = 0.0
+	strike_toast_label.offset_top = 156.0
+	strike_toast_label.offset_bottom = 206.0
+===NEW===
+	strike_toast_label = Label.new()
+	strike_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	strike_toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	strike_toast_label.add_theme_font_size_override("font_size", 36)
+	strike_toast_label.modulate = Color(1, 1, 1, 0)
+	strike_toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.add_child(strike_toast_label)
+	# 屏幕正中偏上，教程/提示更易读
+	strike_toast_label.anchor_left = 0.08
+	strike_toast_label.anchor_right = 0.92
+	strike_toast_label.anchor_top = 0.0
+	strike_toast_label.anchor_bottom = 0.0
+	strike_toast_label.offset_left = 0.0
+	strike_toast_label.offset_right = 0.0
+	strike_toast_label.offset_top = 210.0
+	strike_toast_label.offset_bottom = 280.0

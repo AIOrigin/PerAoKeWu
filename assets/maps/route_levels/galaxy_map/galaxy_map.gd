@@ -60,6 +60,7 @@ func _ready() -> void:
 	explore_button.pressed.connect(_on_explore_pressed)
 	runner_button.pressed.connect(_on_runner_pressed)
 	ship_select.item_selected.connect(_on_ship_selected)
+	Global.play_home_bgm()
 	_build_starfield()
 	_build_systems()
 	_build_ship_selector()

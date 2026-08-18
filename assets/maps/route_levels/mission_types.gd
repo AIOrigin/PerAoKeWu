@@ -7,6 +7,7 @@ const RUN_SPEED := 14.0
 const RUN_SPEED_MAX := 24.0
 const BASE_DURATION := 60.0
 const BASE_TRACK_LENGTH := BASE_DURATION * (RUN_SPEED + RUN_SPEED_MAX) * 0.5
+const MISSION_PROGRESS_TARGET := 100
 
 ## 规范键 → 参数
 const PROFILES := {
@@ -74,7 +75,8 @@ const PROFILES := {
 
 const _ALIASES := {
 	"supply": "Supply Run",
-	"supply run": "Supply Run",
+	"supply run v1": "Supply Run",
+	"supply run v2": "Supply Run",
 	"补给": "Supply Run",
 	"repair": "Repair Run",
 	"repair run": "Repair Run",
@@ -111,6 +113,10 @@ static func resolve(mission: Dictionary = {}) -> Dictionary:
 	profile["task_type"] = type_key
 	if mission.has("duration") and float(mission.get("duration", 0.0)) > 0.0:
 		profile["duration"] = float(mission["duration"])
+	if mission.has("obstacle_density"):
+		profile["obstacle_density"] = clampf(float(mission["obstacle_density"]), 0.35, 2.0)
+	if mission.has("fork_bias"):
+		profile["fork_bias"] = bool(mission["fork_bias"])
 	return profile
 
 
@@ -135,9 +141,47 @@ static func enrich_mission(mission: Dictionary) -> Dictionary:
 	out["task_type"] = String(profile.get("task_type", "Supply Run"))
 	out["duration"] = float(profile.get("duration", BASE_DURATION))
 	out["task_type_zh"] = String(profile.get("name_zh", "补给"))
-	out["task_hint"] = String(profile.get("hint", ""))
-	out["base_reward"] = int(profile.get("base_reward", 0))
+	out["task_hint"] = String(mission.get("task_hint", profile.get("hint", "")))
+	if mission.has("base_reward"):
+		out["base_reward"] = int(mission.get("base_reward", 0))
+	else:
+		out["base_reward"] = int(profile.get("base_reward", 0))
+	out["progress_target"] = maxi(1, int(mission.get("progress_target", MISSION_PROGRESS_TARGET)))
 	return out
+
+
+## 单局完整度 → 任务进度增量（Perfect=100，Damaged=30 等）
+static func integrity_to_mission_progress(integrity_percent: float) -> int:
+	var v := clampf(integrity_percent, 0.0, 100.0)
+	if v >= 95.0:
+		return 100
+	if v >= 80.0:
+		return 80
+	if v >= 60.0:
+		return 60
+	if v > 0.0:
+		return 30
+	return 0
+
+
+static func mission_progress_target(mission: Dictionary) -> int:
+	return maxi(1, int(mission.get("progress_target", MISSION_PROGRESS_TARGET)))
+
+
+## 建设包等超重货物：单击短跳、双击标准跳
+static func is_overweight_cargo(mission: Dictionary) -> bool:
+	if mission.is_empty():
+		return false
+	if String(mission.get("cargo_mechanic", "")) == "overweight":
+		return true
+	if "超重" in String(mission.get("cargo_trait", "")):
+		return true
+	var en := String(mission.get("cargo_name_en", "")).strip_edges().to_lower()
+	if en == "construction kit":
+		return true
+	if String(mission.get("cargo_name", "")) == "建设包":
+		return true
+	return false
 
 
 static func adapt_obstacles(items: Array, profile: Dictionary, track_length: float) -> Array:
@@ -152,15 +196,35 @@ static func adapt_obstacles(items: Array, profile: Dictionary, track_length: flo
 			continue
 		var item: Dictionary = (raw as Dictionary).duplicate(true)
 		var otype := String(item.get("type", ""))
+		var abs_dist_raw := float(item.get("distance", 0.0))
+		# 开局教学区：跳跃/滑铲不缩放、不抽稀，保证前几秒两种操作都能练到
+		if otype in ["jump", "slide", "high_bar", "low_barrier"] and abs_dist_raw < 88.0:
+			if abs_dist_raw >= 30.0 and abs_dist_raw < finish_cut:
+				item["distance"] = abs_dist_raw
+				result.append(item)
+			continue
 		# 主路封堵 / 侧轨入口跳板：与 SIDE_RUNWAY_ZONES 绝对距离对齐，不缩放、不抽稀
 		if otype in ["main_block", "ramp"] and int(item.get("layer", 0)) == 0:
-			var abs_dist := float(item.get("distance", 0.0))
+			var abs_dist := abs_dist_raw
 			if abs_dist < finish_cut:
 				item["distance"] = abs_dist
 				result.append(item)
 			continue
-		var dist := float(item.get("distance", 0.0)) * scale
-		if dist < 40.0 or dist > finish_cut:
+		# 终点前陨石：绝对距离摆放，避免缩放/抽稀后消失
+		if otype == "meteorite":
+			if abs_dist_raw >= 30.0 and abs_dist_raw < finish_cut:
+				item["distance"] = abs_dist_raw
+				result.append(item)
+			continue
+		# 终点前超大紫球：绝对距离摆放，避免缩放/抽稀后变小或消失
+		var orb_size := String(item.get("orb_size", "")).strip_edges().to_lower()
+		if otype == "orb" and orb_size in ["colossal", "mega", "xl"]:
+			if abs_dist_raw >= 30.0 and abs_dist_raw < finish_cut:
+				item["distance"] = abs_dist_raw
+				result.append(item)
+			continue
+		var dist := abs_dist_raw * scale
+		if dist < 30.0 or dist > finish_cut:
 			continue
 		item["distance"] = dist
 		var is_fork_sign := otype in ["turn_left", "turn_right"]
@@ -178,6 +242,7 @@ static func adapt_obstacles(items: Array, profile: Dictionary, track_length: flo
 	if density > 1.05:
 		var extras: Array = []
 		var combat_i := 0
+		var min_action_gap := 22.0
 		for raw in result:
 			var item: Dictionary = raw
 			var otype := String(item.get("type", ""))
@@ -190,9 +255,22 @@ static func adapt_obstacles(items: Array, profile: Dictionary, track_length: flo
 				copies += 1
 			for c in range(mini(copies, 2)):
 				var extra: Dictionary = item.duplicate(true)
-				extra["distance"] = float(item.get("distance", 0.0)) + 26.0 + float(c) * 18.0
-				if float(extra["distance"]) < finish_cut:
-					extras.append(extra)
+				var extra_dist := float(item.get("distance", 0.0)) + 26.0 + float(c) * 18.0
+				if extra_dist >= finish_cut:
+					continue
+				# 避免插在既有跳/铲之间过近，防止铲完来不及跳
+				var too_close := false
+				for other in result:
+					var ot := String(other.get("type", ""))
+					if ot not in ["jump", "slide"]:
+						continue
+					if absf(float(other.get("distance", 0.0)) - extra_dist) < min_action_gap:
+						too_close = true
+						break
+				if too_close:
+					continue
+				extra["distance"] = extra_dist
+				extras.append(extra)
 		result.append_array(extras)
 	return result
 
@@ -243,7 +321,7 @@ static func adapt_main_runway_coins(coins: Array, track_length: float, density: 
 		if dist < 20.0 or dist > finish_cut:
 			continue
 		var pattern := String(item.get("pattern", ""))
-		if pattern in ["column", "cluster"]:
+		if pattern in ["column", "cluster", "air_stream"] or bool(item.get("air", false)):
 			item["distance"] = dist
 			result.append(item)
 			continue

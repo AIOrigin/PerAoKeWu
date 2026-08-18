@@ -6,6 +6,7 @@ const RustBelt = preload("res://assets/maps/route_levels/planets/planet_rust_bel
 const SavannaRing = preload("res://assets/maps/route_levels/planets/planet_savanna_ring.gd")
 
 const RUNNER_SCENE := "res://assets/maps/route_levels/runner_60s/route_runner_60s.tscn"
+const LEVEL_EDITOR_SCENE := "res://assets/maps/route_levels/runner_60s/level_editor/runner_level_editor.tscn"
 const GALAXY_MAP_SCENE := "res://assets/maps/route_levels/galaxy_map/galaxy_map.tscn"
 const EXPLORATION_SCENE := "res://assets/maps/route_levels/planet_explore/planet_explore.tscn"
 const MOBILE_HOME_SCENE := "res://assets/maps/route_levels/mobile_home/mobile_home.tscn"

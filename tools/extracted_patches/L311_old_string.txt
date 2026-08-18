@@ -1,0 +1,3 @@
+	var boost_mult := SPEED_BOOST_MULT if _speed_boost_timer > 0.0 else 1.0
+	var dash_mult := EMERGENCY_DASH_MULT if _emergency_dash_timer > 0.0 else 1.0
+	var effective_speed := current_speed * speed_penalty_mult * boost_mult * dash_mult

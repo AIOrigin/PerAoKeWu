@@ -42,6 +42,9 @@ var _road_preview: EditorRoadPreview = EditorRoadPreview.new()
 var _road_style_id := "holographic"
 var _world_environment: WorldEnvironment
 var _planet_id := "glass_desert"
+var _layout_file_id := ""
+var _speed_boosts: Array = []
+var _mission_playtest_id := ""
 var _path_samples: Array[Dictionary] = []
 var _path_length := 1200.0
 var _track_length := 1200.0
@@ -91,11 +94,14 @@ var _dist_spin: SpinBox
 var _type_option: OptionButton
 var _lane_option: OptionButton
 var _planet_option: OptionButton
+var _layout_option: OptionButton
 var _road_style_option: OptionButton
 var _dragging_marker := false
 var _drag_index := -1
 var _drag_lane_accum := 0.0
 var _ui_canvas_root: Control
+var _ui_panel: PanelContainer
+var _ui_scroll: ScrollContainer
 var _end_add_btn: Button
 var _end_add_marker: MeshInstance3D
 var _piece_picker: PopupPanel
@@ -117,8 +123,24 @@ const DEFAULT_SEG_LENGTH := 80.0
 const DEFAULT_Y_FORK_BRANCH := 55.0
 const DEFAULT_Y_FORK_ANGLE_DEG := 45.0
 
+## 正式任务关卡 JSON（planets/data/mission_reservoir_w*_obstacles.json）
+const MISSION_LAYOUT_OPTIONS: Array[Dictionary] = [
+	{"file_id": "mission_dome_h1", "label": "H1 能源补给", "mission_id": "mission_dome_h1", "duration": 50.0},
+	{"file_id": "mission_dome_h2", "label": "H2 防御抢修", "mission_id": "mission_dome_h2", "duration": 65.0},
+	{"file_id": "mission_dome_h3", "label": "H3 能源中继", "mission_id": "mission_dome_h3", "duration": 75.0},
+	{"file_id": "mission_dome_h4", "label": "H4 紧急建设", "mission_id": "mission_dome_h4", "duration": 40.0},
+	{"file_id": "mission_reservoir_w1", "label": "W1 水源据点", "mission_id": "mission_reservoir_01", "duration": 55.0},
+	{"file_id": "mission_reservoir_w2", "label": "W2 超重双击跳", "mission_id": "mission_reservoir_02", "duration": 55.0},
+	{"file_id": "mission_reservoir_w3", "label": "W3 重装躲避", "mission_id": "mission_reservoir_03", "duration": 65.0},
+	{"file_id": "mission_reservoir_w4", "label": "W4 紧急限时", "mission_id": "mission_reservoir_04", "duration": 40.0},
+]
+
 const EDIT_MODE_TRACK := "track"
 const EDIT_MODE_OBSTACLES := "obstacles"
+const EDITOR_FONT_SCALE := 1.85
+const EDITOR_UI_SCALE := 1.4
+const EDITOR_PANEL_MARGIN := 10.0
+const EDITOR_PANEL_WIDTH := 360.0
 
 var _edit_mode := EDIT_MODE_TRACK
 var _mode_tabs: TabBar
@@ -128,6 +150,8 @@ var _phase_hint: Label
 
 
 func _ready() -> void:
+	if Global.runner_return_scene == "":
+		Global.runner_return_scene = PlanetDatabase.MOBILE_HOME_SCENE
 	_build_ui()
 	_setup_world()
 	_planet_id = "glass_desert"
@@ -137,6 +161,7 @@ func _ready() -> void:
 	_dirty = false
 	_set_edit_mode(EDIT_MODE_TRACK)
 	_refresh_all()
+	call_deferred("_layout_editor_panel")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -214,7 +239,10 @@ func _unhandled_input(event: InputEvent) -> void:
 					_delete_selected_fork()
 			KEY_S:
 				if key.ctrl_pressed:
-					_save_layout()
+					if _is_mission_layout_active():
+						_save_mission_layout()
+					else:
+						_save_layout()
 			KEY_P:
 				if key.ctrl_pressed:
 					_playtest_layout()
@@ -222,6 +250,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F:
 				# 俯视整条已烘焙赛道
 				_frame_whole_track()
+				get_viewport().set_input_as_handled()
+			KEY_ESCAPE:
+				_exit_editor()
 				get_viewport().set_input_as_handled()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
 				if _edit_mode == EDIT_MODE_OBSTACLES:
@@ -301,8 +332,7 @@ func _setup_world() -> void:
 	_camera.near = 0.2
 	_camera.far = 6000.0
 	_camera.current = true
-	# 左侧面板约占视口，水平偏移让跑道落在可见区
-	_camera.h_offset = 3.2
+	_camera.h_offset = 0.0
 	add_child(_camera)
 
 	_cursor_marker = MeshInstance3D.new()
@@ -346,42 +376,47 @@ func _build_ui() -> void:
 	_ui_canvas_root = root
 
 	var panel := PanelContainer.new()
-	panel.position = Vector2(12, 12)
-	panel.custom_minimum_size = Vector2(420, 780)
+	panel.position = Vector2(EDITOR_PANEL_MARGIN, EDITOR_PANEL_MARGIN)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.08, 0.10, 0.14, 0.96)
 	panel_style.border_color = Color(0.75, 0.88, 1.0, 0.85)
 	panel_style.set_border_width_all(2)
 	panel_style.set_corner_radius_all(10)
-	panel_style.content_margin_left = 12
-	panel_style.content_margin_right = 12
-	panel_style.content_margin_top = 10
-	panel_style.content_margin_bottom = 10
+	panel_style.content_margin_left = 12 * EDITOR_UI_SCALE
+	panel_style.content_margin_right = 12 * EDITOR_UI_SCALE
+	panel_style.content_margin_top = 10 * EDITOR_UI_SCALE
+	panel_style.content_margin_bottom = 10 * EDITOR_UI_SCALE
 	panel_style.shadow_color = Color(0, 0, 0, 0.45)
 	panel_style.shadow_size = 12
 	panel.add_theme_stylebox_override("panel", panel_style)
 	root.add_child(panel)
+	_ui_panel = panel
+	root.resized.connect(_layout_editor_panel)
+	get_viewport().size_changed.connect(_layout_editor_panel)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(396, 760)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	panel.add_child(scroll)
+	_ui_scroll = scroll
 
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", int(round(10.0 * EDITOR_UI_SCALE)))
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(v)
 
 	var title := Label.new()
 	title.text = "跑酷关卡编辑器"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", _ui_fs(28))
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	v.add_child(title)
 
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status.add_theme_font_size_override("font_size", 15)
+	_status.add_theme_font_size_override("font_size", _ui_fs(17))
 	_status.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
 	_status.text = "滚轮/A·D 移动 · Tab 切阶段 · Ctrl+S 保存"
 	v.add_child(_status)
@@ -395,6 +430,16 @@ func _build_ui() -> void:
 		_refresh_all()
 	)
 	v.add_child(_planet_option)
+
+	v.add_child(_make_label("任务关卡布局"))
+	_layout_option = OptionButton.new()
+	_layout_option.add_item("（星球默认 JSON）")
+	for opt in MISSION_LAYOUT_OPTIONS:
+		_layout_option.add_item("%s · %s" % [String(opt["label"]), String(opt["file_id"])])
+	_layout_option.item_selected.connect(func(i: int) -> void:
+		_on_layout_option_selected(i)
+	)
+	v.add_child(_layout_option)
 
 	v.add_child(_make_label("跑道样式（可更换）"))
 	_road_style_option = OptionButton.new()
@@ -416,7 +461,7 @@ func _build_ui() -> void:
 	_mode_tabs = TabBar.new()
 	_mode_tabs.add_tab("① 拼赛道")
 	_mode_tabs.add_tab("② 摆障碍")
-	_mode_tabs.add_theme_font_size_override("font_size", 18)
+	_mode_tabs.add_theme_font_size_override("font_size", _ui_fs(20))
 	_mode_tabs.tab_changed.connect(func(i: int) -> void:
 		_set_edit_mode(EDIT_MODE_TRACK if i == 0 else EDIT_MODE_OBSTACLES)
 	)
@@ -424,7 +469,7 @@ func _build_ui() -> void:
 
 	_phase_hint = Label.new()
 	_phase_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_phase_hint.add_theme_font_size_override("font_size", 15)
+	_phase_hint.add_theme_font_size_override("font_size", _ui_fs(17))
 	_phase_hint.add_theme_color_override("font_color", Color(1.0, 0.95, 0.55))
 	v.add_child(_phase_hint)
 
@@ -444,7 +489,7 @@ func _build_ui() -> void:
 	_track_panel.add_child(_make_label("拼赛道：尽头「＋」接下一段"))
 	var seg_hint := Label.new()
 	seg_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	seg_hint.add_theme_font_size_override("font_size", 14)
+	seg_hint.add_theme_font_size_override("font_size", _ui_fs(16))
 	seg_hint.add_theme_color_override("font_color", Color(0.85, 0.9, 0.98))
 	seg_hint.text = "初始一条直线。点尽头「＋」选下一段。分叉是 Y 字：±45° 两条斜路，汇合后再接直线。"
 	_track_panel.add_child(seg_hint)
@@ -503,7 +548,7 @@ func _build_ui() -> void:
 	seg_btns3.add_child(_make_button("载入默认路线", _load_default_track_segments))
 	_seg_list = ItemList.new()
 	_seg_list.name = "TrackSegList"
-	_seg_list.custom_minimum_size = Vector2(0, 110)
+	_seg_list.custom_minimum_size = Vector2(0, 110.0 * EDITOR_UI_SCALE)
 	_seg_list.item_selected.connect(func(i: int) -> void:
 		_selected_seg = i
 		if i >= 0 and i < _track_segments.size():
@@ -557,7 +602,7 @@ func _build_ui() -> void:
 	fork_btns2.add_child(_make_button("清空分叉", _clear_junctions))
 	_fork_list = ItemList.new()
 	_fork_list.name = "ForkList"
-	_fork_list.custom_minimum_size = Vector2(0, 72)
+	_fork_list.custom_minimum_size = Vector2(0, 72.0 * EDITOR_UI_SCALE)
 	_fork_list.item_selected.connect(func(i: int) -> void:
 		_selected_fork = i
 		if i >= 0 and i < _junctions.size():
@@ -598,7 +643,7 @@ func _build_ui() -> void:
 	side_btns2.add_child(_make_button("载入默认侧墙", _load_default_side_zones))
 	_side_list = ItemList.new()
 	_side_list.name = "SideZoneList"
-	_side_list.custom_minimum_size = Vector2(0, 80)
+	_side_list.custom_minimum_size = Vector2(0, 80.0 * EDITOR_UI_SCALE)
 	_side_list.item_selected.connect(func(i: int) -> void:
 		_selected_side = i
 		if i >= 0 and i < _side_zones.size():
@@ -611,7 +656,7 @@ func _build_ui() -> void:
 	_track_panel.add_child(_side_list)
 	var side_hint := Label.new()
 	side_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	side_hint.add_theme_font_size_override("font_size", 14)
+	side_hint.add_theme_font_size_override("font_size", _ui_fs(16))
 	side_hint.add_theme_color_override("font_color", Color(0.9, 0.95, 0.75))
 	side_hint.text = "侧墙属赛道基准。要「侧墙+跳板+主挡」请切②摆障碍。"
 	_track_panel.add_child(side_hint)
@@ -644,7 +689,7 @@ func _build_ui() -> void:
 	_obstacle_panel.add_child(_make_label("在已拼好的赛道基准上放置障碍"))
 	var obs_hint := Label.new()
 	obs_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	obs_hint.add_theme_font_size_override("font_size", 14)
+	obs_hint.add_theme_font_size_override("font_size", _ui_fs(16))
 	obs_hint.add_theme_color_override("font_color", Color(0.85, 0.92, 1.0))
 	obs_hint.text = "左键放置/拖拽 · 右键删除 · Space 放置 · 1-9 选类型。"
 	_obstacle_panel.add_child(obs_hint)
@@ -712,7 +757,7 @@ func _build_ui() -> void:
 	kit_row.add_child(_make_button("侧墙套件", _add_side_kit_at_cursor))
 	var kit_hint := Label.new()
 	kit_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	kit_hint.add_theme_font_size_override("font_size", 11)
+	kit_hint.add_theme_font_size_override("font_size", _ui_fs(15))
 	kit_hint.modulate = Color(0.8, 0.85, 0.7)
 	kit_hint.text = "套件 = 侧墙 + ramp + main_block；单独放 main_block 也会自动补侧墙与跳板"
 	_obstacle_panel.add_child(kit_hint)
@@ -785,7 +830,7 @@ func _build_ui() -> void:
 	sand_btns2.add_child(_make_button("载入默认沙尘暴", _load_default_sand_zones))
 	_sand_list = ItemList.new()
 	_sand_list.name = "SandZoneList"
-	_sand_list.custom_minimum_size = Vector2(0, 80)
+	_sand_list.custom_minimum_size = Vector2(0, 80.0 * EDITOR_UI_SCALE)
 	_sand_list.item_selected.connect(func(i: int) -> void:
 		_selected_sand = i
 		if i >= 0 and i < _sand_zones.size():
@@ -801,7 +846,7 @@ func _build_ui() -> void:
 	_obstacle_panel.add_child(_sand_list)
 	var sand_hint := Label.new()
 	sand_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sand_hint.add_theme_font_size_override("font_size", 11)
+	sand_hint.add_theme_font_size_override("font_size", _ui_fs(15))
 	sand_hint.modulate = Color(0.95, 0.8, 0.55)
 	sand_hint.text = "覆盖范围：占N列 + 起点道。场景橙色带=受影响车道；未覆盖道可换道躲避。保存进自定义关后运行时生效。默认星球仍是全宽三道。"
 	_obstacle_panel.add_child(sand_hint)
@@ -810,7 +855,7 @@ func _build_ui() -> void:
 
 	_obstacle_panel.add_child(_make_label("障碍列表（点击选中）"))
 	_list = ItemList.new()
-	_list.custom_minimum_size = Vector2(0, 160)
+	_list.custom_minimum_size = Vector2(0, 160.0 * EDITOR_UI_SCALE)
 	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_list.item_selected.connect(func(i: int) -> void:
 		_selected = i
@@ -837,6 +882,7 @@ func _build_ui() -> void:
 	btn_row2.add_theme_constant_override("separation", 6)
 	v.add_child(btn_row2)
 	btn_row2.add_child(_make_button("▶ 试玩当前", _playtest_layout))
+	btn_row2.add_child(_make_button("保存布局", _save_mission_layout))
 	btn_row2.add_child(_make_button("保存为关卡", _save_layout))
 	btn_row2.add_child(_make_button("重新加载", _reload_layout))
 
@@ -860,7 +906,7 @@ func _build_ui() -> void:
 	var next_seq := CustomLevels.next_sequence()
 	var next_hint := Label.new()
 	next_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	next_hint.add_theme_font_size_override("font_size", 12)
+	next_hint.add_theme_font_size_override("font_size", _ui_fs(16))
 	next_hint.modulate = Color(0.75, 0.9, 1.0)
 	next_hint.name = "NextLevelHint"
 	next_hint.text = "下次保存将创建：%s（%s）" % [
@@ -872,7 +918,7 @@ func _build_ui() -> void:
 	v.add_child(_make_label("已上架自定义关卡"))
 	var custom_list := ItemList.new()
 	custom_list.name = "CustomLevelList"
-	custom_list.custom_minimum_size = Vector2(0, 90)
+	custom_list.custom_minimum_size = Vector2(0, 90.0 * EDITOR_UI_SCALE)
 	custom_list.item_selected.connect(func(i: int) -> void:
 		_load_custom_level_by_list_index(i)
 	)
@@ -881,23 +927,76 @@ func _build_ui() -> void:
 
 	var help := Label.new()
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	help.add_theme_font_size_override("font_size", 14)
+	help.add_theme_font_size_override("font_size", _ui_fs(16))
 	help.add_theme_color_override("font_color", Color(0.95, 0.95, 0.8))
-	help.text = "①拼赛道 → ②摆障碍 → 试玩/保存。Tab 切阶段 · Ctrl+P 试玩 · Ctrl+S 保存。"
+	help.text = "Godot：先打开 runner_level_editor.tscn，再按 F6（不是 F5）。①拼赛道 → ②摆障碍 → 试玩/保存。Esc 返回主页。"
 	v.add_child(help)
 
 	_status.text = "先拼赛道：点尽头「＋」或 Space 选下一段 · Ctrl+P 试玩 · Tab 摆障碍"
 
+	_style_editor_inputs(v)
 	_build_end_add_button(root)
 	_build_piece_picker(root)
+
+
+func _layout_editor_panel() -> void:
+	if _ui_panel == null or _ui_scroll == null or _ui_canvas_root == null:
+		return
+	var vp_size := _ui_canvas_root.get_viewport_rect().size
+	if vp_size.y <= 1.0:
+		vp_size = get_viewport().get_visible_rect().size
+	var avail_h := maxf(280.0, vp_size.y - EDITOR_PANEL_MARGIN * 2.0)
+	_ui_panel.custom_minimum_size = Vector2(EDITOR_PANEL_WIDTH, avail_h)
+	_ui_panel.size = Vector2(EDITOR_PANEL_WIDTH, avail_h)
+	_update_camera_h_offset()
+
+
+func _editor_panel_right_edge() -> float:
+	return EDITOR_PANEL_WIDTH + EDITOR_PANEL_MARGIN * 2.0
+
+
+func _update_camera_h_offset() -> void:
+	if _camera == null:
+		return
+	var vp_size := get_viewport().get_visible_rect().size
+	if vp_size.x <= 1.0:
+		return
+	var panel_frac := clampf(_editor_panel_right_edge() / vp_size.x, 0.0, 0.45)
+	var back := (48.0 if _edit_mode == EDIT_MODE_TRACK else 32.0) * _cam_zoom
+	var half_h_fov := deg_to_rad(_camera.fov * 0.5)
+	var half_visible_w := back * tan(half_h_fov) * (vp_size.x / maxf(vp_size.y, 1.0))
+	_camera.h_offset = -half_visible_w * panel_frac * 0.88
+
+
+func _ui_fs(base: int) -> int:
+	return maxi(15, int(round(float(base) * EDITOR_FONT_SCALE)))
+
+
+func _style_editor_inputs(node: Node) -> void:
+	if node is Control:
+		var ctrl := node as Control
+		if node is OptionButton:
+			ctrl.add_theme_font_size_override("font_size", _ui_fs(18))
+			ctrl.custom_minimum_size.y = maxf(ctrl.custom_minimum_size.y, 40.0 * EDITOR_UI_SCALE)
+		elif node is SpinBox:
+			var spin := node as SpinBox
+			spin.add_theme_font_size_override("font_size", _ui_fs(18))
+			spin.custom_minimum_size.y = maxf(spin.custom_minimum_size.y, 40.0 * EDITOR_UI_SCALE)
+			var line_edit := spin.get_line_edit()
+			if line_edit:
+				line_edit.add_theme_font_size_override("font_size", _ui_fs(18))
+		elif node is ItemList or node is TabBar or node is Button or node is Label:
+			ctrl.add_theme_font_size_override("font_size", _ui_fs(18))
+	for child in node.get_children():
+		_style_editor_inputs(child)
 
 
 func _build_end_add_button(parent: Control) -> void:
 	_end_add_btn = Button.new()
 	_end_add_btn.name = "EndAddButton"
 	_end_add_btn.text = "＋ 添加"
-	_end_add_btn.custom_minimum_size = Vector2(120, 48)
-	_end_add_btn.add_theme_font_size_override("font_size", 20)
+	_end_add_btn.custom_minimum_size = Vector2(108.0, 44.0) * EDITOR_UI_SCALE
+	_end_add_btn.add_theme_font_size_override("font_size", _ui_fs(20))
 	_end_add_btn.add_theme_color_override("font_color", Color(0.05, 0.12, 0.08))
 	_end_add_btn.add_theme_color_override("font_hover_color", Color(0.05, 0.12, 0.08))
 	_end_add_btn.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -937,18 +1036,18 @@ func _build_piece_picker(parent: Control) -> void:
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	box.custom_minimum_size = Vector2(260, 0)
+	box.custom_minimum_size = Vector2(260.0, 0) * EDITOR_UI_SCALE
 	_piece_picker.add_child(box)
 
 	var title := Label.new()
 	title.text = "选择下一段赛道"
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", _ui_fs(22))
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	box.add_child(title)
 
 	var sub := Label.new()
 	sub.text = "接在当前赛道尽头之后"
-	sub.add_theme_font_size_override("font_size", 13)
+	sub.add_theme_font_size_override("font_size", _ui_fs(16))
 	sub.add_theme_color_override("font_color", Color(0.8, 0.9, 0.85))
 	box.add_child(sub)
 
@@ -967,12 +1066,14 @@ func _build_piece_picker(parent: Control) -> void:
 		if _piece_picker:
 			_piece_picker.hide()
 	))
+	_style_editor_inputs(box)
 
 
 func _make_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 16)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", _ui_fs(18))
 	l.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0))
 	return l
 
@@ -1024,9 +1125,9 @@ func _try_set_cursor_at_mouse(screen_pos: Vector2) -> bool:
 func _make_button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 36)
+	b.custom_minimum_size = Vector2(0, 42.0 * EDITOR_UI_SCALE)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.add_theme_font_size_override("font_size", 15)
+	b.add_theme_font_size_override("font_size", _ui_fs(17))
 	b.add_theme_color_override("font_color", Color(0.05, 0.08, 0.12))
 	b.add_theme_color_override("font_hover_color", Color(0.05, 0.08, 0.12))
 	b.add_theme_color_override("font_pressed_color", Color(0.05, 0.08, 0.12))
@@ -1051,6 +1152,52 @@ func _make_button(text: String, cb: Callable) -> Button:
 	return b
 
 
+func _layout_data_file_id() -> String:
+	if _layout_file_id != "":
+		return _layout_file_id
+	return _planet_id
+
+
+func _is_mission_layout_active() -> bool:
+	return _layout_file_id != "" and (_layout_file_id.begins_with("mission_reservoir_") or _layout_file_id.begins_with("mission_dome_"))
+
+
+func _mission_layout_option(index: int) -> Dictionary:
+	if index < 0 or index >= MISSION_LAYOUT_OPTIONS.size():
+		return {}
+	return MISSION_LAYOUT_OPTIONS[index]
+
+
+func _select_layout_option_index(index: int) -> void:
+	if _layout_option == null:
+		return
+	_layout_option.select(clampi(index + 1, 0, _layout_option.item_count - 1))
+
+
+func _on_layout_option_selected(option_index: int) -> void:
+	if option_index <= 0:
+		_layout_file_id = ""
+		_mission_playtest_id = ""
+	else:
+		var opt := _mission_layout_option(option_index - 1)
+		_layout_file_id = String(opt.get("file_id", ""))
+		_mission_playtest_id = String(opt.get("mission_id", ""))
+		if _planet_id != "glass_desert":
+			_planet_id = "glass_desert"
+			for i in _planet_option.item_count:
+				if _planet_option.get_item_text(i) == "glass_desert":
+					_planet_option.select(i)
+					break
+			LevelConfig = PlanetDatabase.get_runner_config(_planet_id)
+			_visual_factory.configure_from_level_config(LevelConfig)
+	_load_layout_data()
+	_refresh_all()
+	if _is_mission_layout_active():
+		_flash_status("已载入任务布局：%s" % _layout_file_id)
+	else:
+		_flash_status("已切换为星球默认布局")
+
+
 func _load_planet(planet_id: String) -> void:
 	_planet_id = planet_id
 	LevelConfig = PlanetDatabase.get_runner_config(planet_id)
@@ -1065,30 +1212,53 @@ func _load_planet(planet_id: String) -> void:
 	_junctions = _planet_default_junctions()
 	_bake_path()
 	_rebuild_track_mesh()
-	if ObstacleLayout.has_layout(_planet_id):
-		var layout_root: Dictionary = ObstacleLayout.load_root(_planet_id)
-		_items = ObstacleLayout.sort_items(ObstacleLayout.load_items(_planet_id))
-		# 有 key 即采用（含空数组 = 刻意清空）；无 key 才回退星球默认
+	_load_layout_data()
+	_dirty = false
+	_selected = -1
+	_selected_side = -1
+	_selected_sand = -1
+	_selected_seg = -1
+	_selected_fork = -1
+	_set_cursor_d(40.0)
+
+
+func _load_layout_data() -> void:
+	var file_id := _layout_data_file_id()
+	if _is_mission_layout_active():
+		for opt in MISSION_LAYOUT_OPTIONS:
+			if String(opt.get("file_id", "")) == _layout_file_id:
+				_track_length = MissionTypes.track_length_for(float(opt.get("duration", 65.0)))
+				break
+	if ObstacleLayout.has_layout(file_id):
+		var layout_root: Dictionary = ObstacleLayout.load_root(file_id)
+		_items = ObstacleLayout.sort_items(ObstacleLayout.load_items(file_id))
 		if layout_root.has("side_runway_zones"):
-			_side_zones = ObstacleLayout.load_side_runway_zones(_planet_id)
+			_side_zones = ObstacleLayout.load_side_runway_zones(file_id)
 		else:
 			_side_zones = _planet_default_side_zones()
 		if layout_root.has("sandstorm_zones"):
-			_sand_zones = ObstacleLayout.load_sandstorm_zones(_planet_id)
+			_sand_zones = ObstacleLayout.load_sandstorm_zones(file_id)
 		else:
 			_sand_zones = _planet_default_sand_zones()
-		var saved_segs := ObstacleLayout.load_track_segments(_planet_id)
+		_speed_boosts = []
+		if layout_root.has("speed_boosts"):
+			_speed_boosts = ObstacleLayout.load_speed_boosts(file_id)
+		var saved_style := String(layout_root.get("road_style", ""))
+		if saved_style != "":
+			_road_style_id = EditorRoadPreview.normalize_style(saved_style)
+			_select_road_style_option(_road_style_id)
+		var saved_segs := ObstacleLayout.load_track_segments(file_id)
 		if not saved_segs.is_empty():
 			_track_segments = saved_segs
-			_bake_path()
-			_rebuild_track_mesh()
-		# 有 key 即采用（含空数组）；无 key 保留星球默认
 		if layout_root.has("junction_zones"):
-			_junctions = ObstacleLayout.load_junction_zones(_planet_id)
+			_junctions = ObstacleLayout.load_junction_zones(file_id)
+		_bake_path()
+		_rebuild_track_mesh()
 	elif LevelConfig != null and LevelConfig.has_method("_default_obstacles"):
 		_items = ObstacleLayout.sort_items(LevelConfig._default_obstacles())
 		_side_zones = _planet_default_side_zones()
 		_sand_zones = _planet_default_sand_zones()
+		_speed_boosts = []
 	else:
 		var GlassDesert = load("res://assets/maps/route_levels/planets/planet_glass_desert.gd")
 		if GlassDesert and GlassDesert.has_method("_default_obstacles"):
@@ -1097,13 +1267,7 @@ func _load_planet(planet_id: String) -> void:
 			_items.clear()
 		_side_zones = _planet_default_side_zones()
 		_sand_zones = _planet_default_sand_zones()
-	_dirty = false
-	_selected = -1
-	_selected_side = -1
-	_selected_sand = -1
-	_selected_seg = -1
-	_selected_fork = -1
-	_set_cursor_d(40.0)
+		_speed_boosts = []
 
 
 func _planet_default_track_segments() -> Array:
@@ -2262,11 +2426,17 @@ func _update_end_add_affordance() -> void:
 		_end_add_btn.visible = false
 		return
 	var screen := _camera.unproject_position(world)
+	var panel_right := _editor_panel_right_edge()
+	if screen.x < panel_right + 12.0:
+		_end_add_btn.visible = false
+		return
 	_end_add_btn.visible = true
 	var sz := _end_add_btn.size
 	if sz.x < 2.0 or sz.y < 2.0:
 		sz = _end_add_btn.get_combined_minimum_size()
-	_end_add_btn.position = screen - Vector2(sz.x * 0.5, sz.y * 0.5)
+	var btn_pos := screen - Vector2(sz.x * 0.5, sz.y * 0.5)
+	btn_pos.x = maxf(btn_pos.x, panel_right + 8.0)
+	_end_add_btn.position = btn_pos
 
 
 func _open_piece_picker() -> void:
@@ -2276,7 +2446,7 @@ func _open_piece_picker() -> void:
 	if _piece_picker == null:
 		return
 	_set_cursor_d(_path_length)
-	_piece_picker.popup_centered(Vector2(280, 420))
+	_piece_picker.popup_centered(Vector2(320.0, 520.0) * EDITOR_UI_SCALE)
 
 
 func _close_piece_picker() -> void:
@@ -2333,6 +2503,7 @@ func _pick_piece_side() -> void:
 func _update_camera() -> void:
 	if _camera == null:
 		return
+	_update_camera_h_offset()
 	var sample := _sample_path(_cursor_d)
 	var pos: Vector3 = sample["pos"]
 	var forward: Vector3 = sample["forward"]
@@ -2497,6 +2668,42 @@ func _delete_selected() -> void:
 	_update_status()
 
 
+func _save_mission_layout() -> void:
+	if not _is_mission_layout_active():
+		_flash_status("请先在「任务关卡布局」中选择 W1–W4")
+		return
+	_items = ObstacleLayout.sort_items(_items)
+	var file_id := _layout_file_id
+	var existing: Dictionary = ObstacleLayout.load_root(file_id)
+	var meta := {
+		"layout_id": file_id,
+		"planet_id": _planet_id,
+		"road_style": _road_style_id,
+		"note": String(existing.get("note", "Edited with runner level editor")),
+		"side_runway_zones": _side_zones,
+		"sandstorm_zones": _sand_zones,
+		"track_segments": _track_segments,
+		"junction_zones": _junctions,
+	}
+	if not _speed_boosts.is_empty():
+		meta["speed_boosts"] = _speed_boosts
+	elif existing.has("speed_boosts"):
+		meta["speed_boosts"] = existing.get("speed_boosts", [])
+	var ok := ObstacleLayout.save_items(file_id, _items, meta)
+	_dirty = not ok
+	_refresh_list()
+	_update_status()
+	if ok:
+		_flash_status("已保存任务布局：%s（障碍 %d · 路段 %d · 分叉 %d）" % [
+			file_id,
+			_items.size(),
+			_track_segments.size(),
+			_junctions.size(),
+		])
+	else:
+		_flash_status("保存失败：无法写入 %s" % ObstacleLayout.layout_path(file_id))
+
+
 func _save_layout() -> void:
 	_items = ObstacleLayout.sort_items(_items)
 	var duration := 65.0
@@ -2530,6 +2737,17 @@ func _save_layout() -> void:
 
 func _playtest_layout() -> void:
 	_items = ObstacleLayout.sort_items(_items)
+	if _is_mission_layout_active() and _mission_playtest_id != "":
+		if _dirty:
+			_save_mission_layout()
+		Global.runner_planet_id = _planet_id
+		Global.runner_location_id = "reservoir"
+		Global.runner_mission_id = _mission_playtest_id
+		Global.runner_return_scene = CustomLevels.EDITOR_SCENE
+		Global.set_runner_road_style(_road_style_id)
+		_flash_status("正在试玩 %s …" % _layout_file_id)
+		Global.change_game_scene(PlanetDatabase.RUNNER_SCENE)
+		return
 	var duration := 65.0
 	if LevelConfig != null and LevelConfig.get("MISSION") != null:
 		duration = float(LevelConfig.MISSION.get("duration", 65.0))
@@ -2551,6 +2769,7 @@ func _playtest_layout() -> void:
 		return
 	Global.runner_planet_id = _planet_id
 	Global.runner_location_id = CustomLevels.PLAYTEST_ID
+	Global.runner_mission_id = ""
 	Global.runner_return_scene = CustomLevels.EDITOR_SCENE
 	Global.set_runner_road_style(_road_style_id)
 	_flash_status("正在进入试玩…")
@@ -2636,9 +2855,9 @@ func _load_custom_level_by_list_index(index: int) -> void:
 
 
 func _reload_layout() -> void:
-	_load_planet(_planet_id)
+	_load_layout_data()
 	_refresh_all()
-	_flash_status("已重新加载")
+	_flash_status("已重新加载 %s" % _layout_data_file_id())
 
 
 func _load_defaults_from_code() -> void:
@@ -2653,6 +2872,14 @@ func _load_defaults_from_code() -> void:
 	_selected = -1
 	_refresh_all()
 	_flash_status("已载入代码默认障碍表（未保存）")
+
+
+func _exit_editor() -> void:
+	var back := Global.runner_return_scene
+	if back == "":
+		back = PlanetDatabase.MOBILE_HOME_SCENE
+	Global.runner_return_scene = ""
+	Global.change_game_scene(back)
 
 
 func _flash_status(msg: String) -> void:

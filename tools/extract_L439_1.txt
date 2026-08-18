@@ -1,0 +1,15 @@
+func _show_strike_warning(reason: String) -> void:
+	if not gameplay_active:
+		return
+	intro_panel.visible = false
+	var hp_bit := "完整度 %0.0f%%" % cargo_integrity
+	if _uses_smash_collision():
+		hp_bit = "撞击 %d/%d · HP %0.0f" % [_smash_hit_count, SMASH_HIT_MAX, cargo_integrity]
+	if _chaser_enabled:
+		strike_toast_label.text = "⚠ %s  |  %s %0.0fm  |  %s" % [
+			reason, LevelConfig.CHASER_NAME, chaser_distance, hp_bit
+		]
+	else:
+		strike_toast_label.text = "⚠ %s  |  %s" % [reason, hp_bit]
+	strike_toast_timer = 1.6
+	strike_toast_label.modulate = Color(1.0, 0.55, 0.35, 1.0)

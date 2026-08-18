@@ -1,0 +1,65 @@
+===OLD===
+	var smash := _uses_smash_collision() and _can_smash_obstacle(obstacle)
+	if smash:
+		# 第二关试玩：装备硬冲 → 撞碎障碍，固定掉血，不弹回卡死
+		_smash_hit_count += 1
+		speed_penalty_mult = 0.82 if not rushing else 1.0
+		speed_penalty_timer = 0.35 if not rushing else 0.0
+		_hit_recoil_timer = 0.22
+		_hitstop_timer = 0.045
+		camera_shake = maxf(camera_shake, 0.36)
+		run_score += 18
+		var smash_damage := SMASH_HIT_DAMAGE
+		_apply_cargo_loss(smash_damage)
+		var impact_pos := player.global_position + Vector3(0.0, 1.7, 0.0) if player else Vector3.ZERO
+		if _hit_feedback != null:
+			_hit_feedback.apply_impact(
+				impact_pos,
+				HitFeedback.Intensity.HEAVY,
+				smash_damage,
+				"撞碎 %d/%d" % [_smash_hit_count, SMASH_HIT_MAX]
+			)
+		_shatter_obstacle(obstacle)
+		if is_failed:
+			return
+		if chaser_distance <= CHASER_CATCH_DISTANCE and _chaser_enabled:
+			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
+			return
+		_show_strike_warning("装备撞碎障碍 · 损伤 %d/%d" % [_smash_hit_count, SMASH_HIT_MAX])
+		return
+
+===NEW===
+	var smash := _uses_smash_collision() and _can_smash_obstacle(obstacle)
+	if smash:
+		# 第二关：装备硬冲 → 直接撞碎；完整度按障碍数均分，角色 HP 微扣
+		_smash_hit_count += 1
+		speed_penalty_mult = 0.88 if not rushing else 1.0
+		speed_penalty_timer = 0.22 if not rushing else 0.0
+		_hit_recoil_timer = 0.18
+		_hitstop_timer = 0.04
+		camera_shake = maxf(camera_shake, 0.4)
+		run_score += 18
+		var cargo_dmg := _smash_cargo_damage
+		_apply_cargo_loss(cargo_dmg)
+		var hp_lost := Global.apply_runner_hp_loss(SMASH_RUNNER_HP_DAMAGE)
+		var impact_pos := player.global_position + Vector3(0.0, 1.7, 0.0) if player else Vector3.ZERO
+		if _hit_feedback != null:
+			_hit_feedback.apply_impact(
+				impact_pos,
+				HitFeedback.Intensity.HEAVY,
+				cargo_dmg,
+				"撞碎 %d/%d" % [_smash_hit_count, maxi(_smash_obstacle_total, 1)]
+			)
+		_shatter_obstacle(obstacle)
+		if is_failed:
+			return
+		if chaser_distance <= CHASER_CATCH_DISTANCE and _chaser_enabled:
+			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
+			return
+		var toast := "撞碎障碍 · 货物 -%0.0f%%（%d/%d）" % [
+			cargo_dmg, _smash_hit_count, maxi(_smash_obstacle_total, 1)
+		]
+		if hp_lost > 0.001:
+			toast += " · 体力 -%0.1f" % hp_lost
+		_show_strike_warning(toast)
+		return

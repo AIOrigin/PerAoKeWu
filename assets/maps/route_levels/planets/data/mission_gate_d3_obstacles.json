@@ -1,0 +1,243 @@
+{
+	"note": "D3 长途运输 · 防御+能源双特性",
+	"layout_id": "mission_gate_d3",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{
+			"length": 200,
+			"turn": 0
+		},
+		{
+			"length": 46,
+			"turn": 0.785
+		},
+		{
+			"length": 220,
+			"turn": 0
+		},
+		{
+			"length": 46,
+			"turn": -0.785
+		},
+		{
+			"length": 220,
+			"turn": 0
+		},
+		{
+			"type": "y_fork",
+			"branch_length": 50,
+			"angle_deg": 40
+		},
+		{
+			"length": 240,
+			"turn": 0
+		}
+	],
+	"junction_zones": [
+		{
+			"distance": 112,
+			"length": 94,
+			"spread": 19,
+			"lane_a": 0,
+			"label_a": "安全岔路",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "速通岔路",
+			"effect_b": "fast"
+		},
+		{
+			"distance": 480,
+			"length": 90,
+			"spread": 21,
+			"lane_a": 0,
+			"label_a": "左支",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "右支",
+			"effect_b": "bonus"
+		}
+	],
+	"side_runway_zones": [
+		{
+			"start": 278,
+			"length": 60,
+			"side": "outer",
+			"fallback_side": -1,
+			"lateral_offset": 7.0,
+			"layer": 1,
+			"entry_window": 12,
+			"blocker_profile": "light"
+		},
+		{
+			"start": 560,
+			"length": 58,
+			"side": "outer",
+			"fallback_side": 1,
+			"lateral_offset": 7.0,
+			"layer": 1,
+			"entry_window": 12,
+			"blocker_profile": "light"
+		}
+	],
+	"sandstorm_zones": [
+		{
+			"start": 178,
+			"length": 55,
+			"dps": 10,
+			"label": "热浪",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 520,
+			"length": 50,
+			"dps": 11,
+			"label": "强热浪",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 880,
+			"length": 45,
+			"dps": 12,
+			"label": "末段热浪",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 36.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 84.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 132.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 180.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 228.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 276.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 324.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 372.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 420.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 468.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 516.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 564.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 612.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 660.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 708.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 756.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 804.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 852.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 900.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 948.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 996.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 1044.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 1092.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 1140.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 1188.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 1236.0,
+			"lane": 0,
+			"type": "slide"
+		}
+	],
+	"speed_boosts": []
+}

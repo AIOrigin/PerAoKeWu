@@ -1,0 +1,24 @@
+const SKY_CHEER_LINES: Array[Dictionary] = [
+	{"zh": "太棒了，信使", "en": "Amazing, Messenger"},
+	{"zh": "前线需要你，信使", "en": "The front needs you, Messenger"},
+	{"zh": "一路坎坷，无畏冲锋", "en": "Rough road ahead — charge on"},
+	{"zh": "希望马上运到", "en": "Hope is almost delivered"},
+	{"zh": "星火未灭，使命必达", "en": "Ember still burns — mission stands"},
+	{"zh": "你的每一步，都在点亮前哨", "en": "Every step lights the outpost"},
+	{"zh": "货物安好，就是胜利", "en": "Safe cargo is victory"},
+	{"zh": "沙暴挡不住星火信使", "en": "Sandstorms can't stop you"},
+	{"zh": "坚持住——补给马上送达", "en": "Hold on — supply is coming"},
+	{"zh": "荒原再远，信使必至", "en": "No waste too far for a Messenger"},
+	{"zh": "别停步，前方在等你", "en": "Don't stop — they wait ahead"},
+	{"zh": "你不是一个人在跑", "en": "You never run alone"},
+	{"zh": "把希望送到他们手里", "en": "Put hope in their hands"},
+	{"zh": "星火传递者，冲啊", "en": "Spark bearer — go!"},
+	{"zh": "这一程，值得铭记", "en": "This run is worth remembering"},
+	{"zh": "稳住节奏，使命在肩", "en": "Keep the pace — duty on your back"},
+	{"zh": "你跑过的路，都在发光", "en": "The path you run begins to glow"},
+	{"zh": "送达之日，荣耀归来", "en": "Deliver, then return in glory"},
+	{"zh": "风沙再烈，心火更旺", "en": "Wilder sand, fiercer heartfire"},
+	{"zh": "信使荣耀，今日加冕", "en": "Messenger honor — crowned today"},
+]
+const SKY_CHEER_MIN_COUNT := 4
+const SKY_CHEER_MAX_COUNT := 6

@@ -1,0 +1,74 @@
+func _refresh_buff_hud(delta: float = 0.0) -> void:
+	if _buff_hud_panel == null:
+		return
+
+	if shield_label:
+		if _is_shield_protecting():
+			shield_label.text = "开启 · 抵挡沙尘暴"
+			_style_buff_label(shield_label, 18, Color(0.45, 0.98, 1.0), 2)
+		elif shield_energy <= 0.001:
+			shield_label.text = "能量耗尽 · 拾取水晶"
+			_style_buff_label(shield_label, 18, Color(1.0, 0.55, 0.42), 2)
+		else:
+			shield_label.text = "关闭 · F/盾键开启"
+			_style_buff_label(shield_label, 18, Color(0.78, 0.88, 0.96), 2)
+	if _shield_energy_label:
+		_shield_energy_label.text = "%d/%d" % [int(round(shield_energy)), int(SHIELD_MAX_ENERGY)]
+		if shield_energy <= 0.001:
+			_style_buff_label(_shield_energy_label, 20, Color(1.0, 0.55, 0.42))
+		elif _is_shield_protecting():
+			_style_buff_label(_shield_energy_label, 20, Color(0.45, 0.98, 1.0))
+		else:
+			_style_buff_label(_shield_energy_label, 20, Color(0.55, 0.95, 1.0))
+	if shield_bar:
+		shield_bar.value = shield_energy
+		var fill_color := Color(0.35, 0.88, 1.0)
+		if shield_energy <= 0.001:
+			fill_color = Color(0.72, 0.28, 0.24)
+		elif _is_shield_protecting():
+			fill_color = Color(0.42, 0.96, 1.0)
+		shield_bar.add_theme_stylebox_override("fill", _make_buff_bar_style(fill_color, fill_color))
+
+	if not _is_emergency_run or _buff_boost_row == null:
+		return
+
+	_boost_count_label.text = "%d/5" % _speed_boost_cycle
+	for i in _boost_pips.size():
+		var filled := i < _speed_boost_cycle
+		_boost_pips[i].color = Color(0.38, 0.92, 1.0, 0.98) if filled else Color(0.12, 0.18, 0.26, 0.95)
+
+	var has_dash := _emergency_dash_charges > 0
+	if _boost_dash_icon_wrap:
+		var dash_style := _boost_dash_icon_wrap.get_theme_stylebox("panel") as StyleBoxFlat
+		if dash_style:
+			if has_dash:
+				_boost_dash_pulse += delta * 5.5
+				var pulse := 0.72 + sin(_boost_dash_pulse) * 0.28
+				dash_style.bg_color = Color(0.10, 0.26, 0.38, 0.96)
+				dash_style.border_color = Color(0.55, 0.95, 1.0, pulse)
+			else:
+				dash_style.bg_color = Color(0.08, 0.12, 0.18, 0.92)
+				dash_style.border_color = Color(0.32, 0.48, 0.58, 0.65)
+	if _boost_dash_icon:
+		if has_dash:
+			_boost_dash_icon.text = "×%d" % _emergency_dash_charges
+			_style_buff_label(_boost_dash_icon, 24, Color(0.98, 0.98, 1.0), 3)
+		else:
+			_boost_dash_icon.text = "—"
+			_style_buff_label(_boost_dash_icon, 22, Color(0.42, 0.48, 0.54), 2)
+
+	var status_bits: Array[String] = []
+	if _speed_boost_timer > 0.0:
+		status_bits.append("提速 %0.1fs" % _speed_boost_timer)
+	if _emergency_dash_timer > 0.0:
+		status_bits.append("冲刺中 %0.1fs" % _emergency_dash_timer)
+	if status_bits.is_empty():
+		if has_dash:
+			status_bits.append("长按前进释放")
+		else:
+			status_bits.append("集满 5 个解锁冲刺")
+	if _boost_status_label:
+		_boost_status_label.text = " · ".join(status_bits)
+
+
+func _on_pause_button_pressed() -> void:

@@ -1,0 +1,16 @@
+===OLD===
+var _letterbox_left: ColorRect
+var _letterbox_right: ColorRect
+var _pause_overlay: MobilePauseOverlay
+
+
+func _ready() -> void:
+===NEW===
+var _letterbox_left: ColorRect
+var _letterbox_right: ColorRect
+var _pause_overlay: MobilePauseOverlay
+var _coin_screen_flash: ColorRect
+var _coin_flash_tween: Tween
+
+
+func _ready() -> void:

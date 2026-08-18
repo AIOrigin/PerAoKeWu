@@ -34,6 +34,7 @@ const CHARACTERS := {
 			{"icon": "hp", "label": "HP", "value": "100", "pct": 60},
 			{"icon": "en", "label": "STAMINA", "value": "100", "pct": 60},
 		],
+		"level_bonus_pct": "+12%",
 		"gear": [
 			{
 				"slot": "BOOTS",
@@ -113,6 +114,7 @@ const CHARACTERS := {
 			{"icon": "hp", "label": "HP", "value": "130", "pct": 72},
 			{"icon": "en", "label": "STAMINA", "value": "120", "pct": 65},
 		],
+		"level_bonus_pct": "+5%",
 		"gear": [
 			{"slot": "BOOTS", "icon_key": "boots", "locked": true},
 			{"slot": "CORE", "icon_key": "core", "locked": true},

@@ -14,6 +14,9 @@ var _panel: PanelContainer
 var _pause_button: Button
 var _resume_button: Button
 var _quit_button: Button
+var _bgm_check: CheckButton
+var _bgm_slider: HSlider
+var _sfx_slider: HSlider
 
 
 func _ready() -> void:
@@ -61,6 +64,14 @@ func open_pause() -> void:
 	if _pause_button:
 		_pause_button.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_refresh_audio_controls()
+
+
+func force_close() -> void:
+	_paused = false
+	get_tree().paused = false
+	visible = false
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func close_pause() -> void:
@@ -124,6 +135,50 @@ func _build_ui() -> void:
 	hint.add_theme_color_override("font_color", Color(0.72, 0.66, 0.56))
 	box.add_child(hint)
 
+	_bgm_check = CheckButton.new()
+	_bgm_check.text = "背景音乐 BGM"
+	_bgm_check.focus_mode = Control.FOCUS_NONE
+	_bgm_check.add_theme_font_size_override("font_size", 20)
+	_bgm_check.add_theme_color_override("font_color", Color(0.95, 0.9, 0.78))
+	_bgm_check.toggled.connect(_on_bgm_toggled)
+	box.add_child(_bgm_check)
+
+	var bgm_row := HBoxContainer.new()
+	bgm_row.add_theme_constant_override("separation", 10)
+	box.add_child(bgm_row)
+	var bgm_lab := Label.new()
+	bgm_lab.text = "BGM 音量"
+	bgm_lab.custom_minimum_size = Vector2(120, 0)
+	bgm_lab.add_theme_font_size_override("font_size", 18)
+	bgm_lab.add_theme_color_override("font_color", Color(0.9, 0.84, 0.7))
+	bgm_row.add_child(bgm_lab)
+	_bgm_slider = HSlider.new()
+	_bgm_slider.min_value = 0.0
+	_bgm_slider.max_value = 1.0
+	_bgm_slider.step = 0.01
+	_bgm_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_bgm_slider.custom_minimum_size = Vector2(260, 28)
+	_bgm_slider.value_changed.connect(_on_bgm_volume_changed)
+	bgm_row.add_child(_bgm_slider)
+
+	var sfx_row := HBoxContainer.new()
+	sfx_row.add_theme_constant_override("separation", 10)
+	box.add_child(sfx_row)
+	var sfx_lab := Label.new()
+	sfx_lab.text = "音效音量"
+	sfx_lab.custom_minimum_size = Vector2(120, 0)
+	sfx_lab.add_theme_font_size_override("font_size", 18)
+	sfx_lab.add_theme_color_override("font_color", Color(0.9, 0.84, 0.7))
+	sfx_row.add_child(sfx_lab)
+	_sfx_slider = HSlider.new()
+	_sfx_slider.min_value = 0.0
+	_sfx_slider.max_value = 1.0
+	_sfx_slider.step = 0.01
+	_sfx_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_sfx_slider.custom_minimum_size = Vector2(260, 28)
+	_sfx_slider.value_changed.connect(_on_sfx_volume_changed)
+	sfx_row.add_child(_sfx_slider)
+
 	_resume_button = _make_action_button("继续游戏", Color(0.86, 0.59, 0.27), Color(0.98, 0.82, 0.42))
 	_resume_button.pressed.connect(close_pause)
 	box.add_child(_resume_button)
@@ -140,13 +195,38 @@ func _build_ui() -> void:
 	_pause_button.focus_mode = Control.FOCUS_NONE
 	_pause_button.set_anchors_preset(PRESET_TOP_RIGHT)
 	_pause_button.offset_left = -124.0
-	_pause_button.offset_top = 18.0
+	_pause_button.offset_top = 112.0
 	_pause_button.offset_right = -24.0
-	_pause_button.offset_bottom = 66.0
+	_pause_button.offset_bottom = 160.0
+	_pause_button.z_index = 40
 	_pause_button.add_theme_font_size_override("font_size", 18)
 	_style_button(_pause_button, Color(0.14, 0.11, 0.08, 0.88), Color(0.88, 0.74, 0.48))
 	_pause_button.pressed.connect(open_pause)
 	add_child(_pause_button)
+
+
+func _refresh_audio_controls() -> void:
+	if _bgm_check != null:
+		_bgm_check.set_pressed_no_signal(Global.bgm_enabled)
+	if _bgm_slider != null:
+		_bgm_slider.set_value_no_signal(Global.bgm_volume)
+		_bgm_slider.editable = Global.bgm_enabled
+	if _sfx_slider != null:
+		_sfx_slider.set_value_no_signal(Global.sfx_volume)
+
+
+func _on_bgm_toggled(pressed: bool) -> void:
+	Global.set_bgm_enabled(pressed)
+	if _bgm_slider != null:
+		_bgm_slider.editable = pressed
+
+
+func _on_bgm_volume_changed(value: float) -> void:
+	Global.set_bgm_volume(value)
+
+
+func _on_sfx_volume_changed(value: float) -> void:
+	Global.set_sfx_volume(value)
 
 
 func _on_quit_pressed() -> void:

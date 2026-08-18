@@ -1,0 +1,69 @@
+	_register_shield_crystal_data()
+	_register_speed_boost_data()
+	_register_bonus_fork_rewards()
+	total_collectibles = 0
+	for c in collectibles:
+		if String(c.get("kind", "coin")) == "coin":
+			total_collectibles += 1
+	_update_collectible_visibility()
+
+
+func _register_collectible_data(
+	lane: int,
+	distance: float,
+	y: float,
+	layer: int,
+	kind: String,
+	air: bool = false,
+	fork_side: int = 0
+) -> void:
+	collectibles.append({
+		"node": null,
+		"lane": lane,
+		"distance": distance,
+		"y": y,
+		"layer": layer,
+		"kind": kind,
+		"air": air,
+		"fork_side": fork_side,
+		"collected": false,
+	})
+
+
+func _register_bonus_fork_rewards() -> void:
+	# 奖励右岔：短距内密布金币 + 加速包（强制落在右岔几何）
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		if String(zone.get("effect_b", "")) != "bonus":
+			continue
+		var z_start := float(zone.get("distance", 0.0))
+		var z_len := float(zone.get("length", 50.0))
+		var d0 := z_start + 8.0
+		var d1 := z_start + z_len - 5.0
+		if d1 <= d0:
+			continue
+		var coin_i := 0
+		var d := d0
+		while d <= d1:
+			var lane := int(LANES[coin_i % LANES.size()])
+			var air := coin_i % 5 == 2
+			var y: float = _coin_collectible_y(air, 0)
+			_register_collectible_data(lane, d, y, 0, "coin", air, 1)
+			# 三连币：同距相邻道再补一枚，奖励更密
+			if coin_i % 2 == 0:
+				var lane2 := int(LANES[(coin_i + 1) % LANES.size()])
+				_register_collectible_data(lane2, d + 1.1, y, 0, "coin", false, 1)
+			coin_i += 1
+			d += 3.0
+		var boost_i := 0
+		d = d0 + 3.5
+		while d <= d1:
+			var blane := int(LANES[boost_i % LANES.size()])
+			var by: float = _speed_boost_collectible_y(boost_i, 0)
+			_register_collectible_data(blane, d, by, 0, "speed_boost", false, 1)
+			boost_i += 1
+			d += 8.5
+		# 中段一枚防护水晶
+		var mid := (d0 + d1) * 0.5
+		_register_collectible_data(0, mid, _layer_height(0) + 0.85, 0, "shield_crystal", false, 1)

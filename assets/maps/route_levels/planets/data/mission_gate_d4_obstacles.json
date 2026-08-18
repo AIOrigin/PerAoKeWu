@@ -1,0 +1,242 @@
+{
+	"note": "D4 限时能源 · 40秒 + 末段紫球",
+	"layout_id": "mission_gate_d4",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 1,
+	"track_segments": [
+		{
+			"length": 110,
+			"turn": 0
+		},
+		{
+			"length": 36,
+			"turn": 0.872
+		},
+		{
+			"length": 110,
+			"turn": 0
+		},
+		{
+			"length": 36,
+			"turn": -0.872
+		},
+		{
+			"length": 110,
+			"turn": 0
+		},
+		{
+			"length": 36,
+			"turn": 0.698
+		},
+		{
+			"length": 130,
+			"turn": 0
+		}
+	],
+	"junction_zones": [],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{
+			"start": 188,
+			"length": 32,
+			"dps": 11.5,
+			"label": "毒雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		},
+		{
+			"start": 368,
+			"length": 30,
+			"dps": 12.5,
+			"label": "浓毒雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 28.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 64.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 100.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 136.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 172.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 208.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 244.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 280.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 316.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 352.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 388.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 424.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 460.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 496.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 532.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 568.0,
+			"lane": -1,
+			"type": "slide"
+		},
+		{
+			"distance": 604.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 640.0,
+			"lane": 1,
+			"type": "slide"
+		},
+		{
+			"distance": 676.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 712.0,
+			"lane": 0,
+			"type": "slide"
+		},
+		{
+			"distance": 568.0,
+			"lane": 1,
+			"type": "meteorite",
+			"span": 2.0,
+			"fall_roll": true,
+			"fall_height": 15.0,
+			"roll_speed": -5.4
+		},
+		{
+			"distance": 588.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 2.4,
+			"fall_roll": true,
+			"fall_height": 16.0,
+			"roll_speed": -5.0
+		},
+		{
+			"distance": 608.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "huge",
+			"orb_tint": "purple",
+			"static": true
+		},
+		{
+			"distance": 616.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "tiny",
+			"orb_tint": "purple",
+			"drift_speed": 7.8,
+			"float_speed": 4.3,
+			"float_amp": 0.26
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 22.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 90.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 158.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 226.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 294.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 362.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 430.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 498.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 566.0,
+			"lane": -1,
+			"layer": 0
+		}
+	]
+}

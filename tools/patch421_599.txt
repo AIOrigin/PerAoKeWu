@@ -1,0 +1,13 @@
+		_apply_smash_body_impact(_is_large_smash_obstacle_entry(obstacle))
+		run_score += 18
+		var cargo_dmg := _smash_cargo_damage
+		_apply_cargo_loss(cargo_dmg)
+		var hp_lost := Global.apply_runner_hp_loss(SMASH_RUNNER_HP_DAMAGE)
+		var impact_pos := player.global_position + Vector3(0.0, 1.7, 0.0) if player else Vector3.ZERO
+		if _hit_feedback != null:
+			_hit_feedback.apply_impact(
+				impact_pos,
+				HitFeedback.Intensity.LIGHT if not _is_large_smash_obstacle_entry(obstacle) else HitFeedback.Intensity.MEDIUM,
+				cargo_dmg,
+				"撞碎 %d/%d" % [_smash_hit_count, maxi(_smash_obstacle_total, 1)]
+			)

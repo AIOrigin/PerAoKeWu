@@ -1,0 +1,30 @@
+func _shatter_obstacle(obstacle: Dictionary) -> void:
+	obstacle["hit"] = true
+	obstacle["smashed"] = true
+	var node = obstacle.get("node", null)
+	var blast_pos := player.global_position + Vector3(0.0, 1.1, 0.0) if player else Vector3.ZERO
+	if node != null and is_instance_valid(node) and node is Node3D:
+		blast_pos = (node as Node3D).global_position + Vector3(0.0, 0.9, 0.0)
+		_play_obstacle_shatter_fx(node as Node3D)
+		obstacle["node"] = null
+	else:
+		_spawn_shatter_burst(blast_pos)
+
+
+func _play_obstacle_shatter_fx(node: Node3D) -> void:
+	_spawn_shatter_burst(node.global_position + Vector3(0.0, 0.9, 0.0))
+	# 障碍本体快速炸开缩放并淡出
+	var tw := create_tween()
+	tw.set_parallel(true)
+	var base_scale := node.scale
+	tw.tween_property(node, "scale", base_scale * Vector3(1.35, 0.55, 1.35), 0.08)
+	tw.tween_property(node, "scale", Vector3(0.05, 0.05, 0.05), 0.28).set_delay(0.06)
+	for child in node.find_children("*", "GeometryInstance3D", true, false):
+		if child is GeometryInstance3D:
+			var gi := child as GeometryInstance3D
+			tw.tween_property(gi, "transparency", 1.0, 0.28)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(node):
+			node.visible = false
+			node.queue_free()
+	)

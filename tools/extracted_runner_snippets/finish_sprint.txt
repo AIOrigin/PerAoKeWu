@@ -1,0 +1,11 @@
+	var boosting := _speed_boost_timer > 0.0 or _is_fork_rushing() or _finish_sprint_timer > 0.0 or _emergency_dash_timer > 0.0
+	if _ember_fx_root:
+		# 脚下火环 + 周身蝴蝶光晕：全程保持，避免中后段角色“裸奔”
+		var ember_on := not is_finished and not is_failed and gameplay_active
+		_ember_fx_root.visible = ember_on
+		if ember_on:
+			_update_ember_flame_aura(delta)
+
+	if foot_spark_particles:
+		# 火焰光圈附近的少量火星点缀 · 随 BGM 拍点闪烁
+		var spark_on := not is_finished and not is_failed and gameplay_active

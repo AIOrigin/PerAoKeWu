@@ -1,0 +1,75 @@
+func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
+	var obstacle_type := String(obstacle.get("type", ""))
+	if obstacle_type == "main_block":
+		_fail_into_pit("冲入主路熔岩坍塌带（需上侧墙绕过）")
+		return
+	strike_count += 1
+	strike_recovery_timer = 0.0
+	chaser_distance = maxf(chaser_distance - CHASER_HIT_PENALTY, CHASER_CATCH_DISTANCE)
+	var rushing := _is_fork_rushing()
+	if rushing:
+		# 飞驰撞障：不减速，轻伤连撞，保留冲击反馈
+		speed_penalty_mult = 1.0
+		speed_penalty_timer = 0.0
+		run_score += 35
+		camera_shake = maxf(camera_shake, 0.38)
+	else:
+		speed_penalty_mult = HIT_SLOW_FACTOR
+		speed_penalty_timer = HIT_SLOW_DURATION
+		# 真碰撞：弹回障碍物正面 + 顿帧刹停，避免直接穿模
+		_apply_obstacle_impact_block(obstacle)
+	chaser_pulse = 1.0
+	var tier := float(STRIKE_DAMAGE_TIER.get(obstacle_type, 1.0))
+	var fragility := clampf(float(mission.get("cargo_fragility", 1.0)), 0.5, 2.5)
+	var damage: float = float(LevelConfig.CARGO_DAMAGE_PER_HIT) * tier * Global.get_cargo_damage_multiplier() * fragility
+	if rushing:
+		damage *= FORK_RUSH_DAMAGE_MULT
+	var intensity: int = HitFeedback.Intensity.MEDIUM
+	if rushing:
+		intensity = HitFeedback.Intensity.HEAVY
+	elif tier >= 1.35:
+		intensity = HitFeedback.Intensity.HEAVY
+	elif tier <= 0.9:
+		intensity = HitFeedback.Intensity.LIGHT
+	_apply_cargo_loss(damage)
+	var impact_pos := player.global_position + Vector3(0.0, 1.7, 0.0) if player else Vector3.ZERO
+	if _hit_feedback != null:
+		_hit_feedback.apply_impact(impact_pos, intensity, damage, "飞驰撞击" if rushing else reason)
+	else:
+		camera_shake = maxf(camera_shake, 0.32 if rushing else 0.28)
+	_pulse_obstacle_hit_visual(obstacle)
+	if is_failed:
+		return
+	if chaser_distance <= CHASER_CATCH_DISTANCE:
+		if _chaser_enabled:
+			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
+		return
+	# HitFeedback 飘字 + Toast 完整度，双通道更可读
+	_show_strike_warning("飞驰连撞" if rushing else reason)
+
+
+func _apply_obstacle_impact_block(obstacle: Dictionary) -> void:
+	var obs_dist := float(obstacle.get("distance", track_distance)) + float(obstacle.get("move_offset", 0.0))
+	var half := float(obstacle.get("half_depth", _obstacle_half_depth(String(obstacle.get("type", "")))))
+	# 弹到障碍正面外侧，视觉上停在「撞上去」的位置
+	track_distance = minf(track_distance, obs_dist - half - HIT_BOUNCE_GAP)
+	_hit_stun_timer = HIT_STUN_TIME
+	_hitstop_timer = HIT_STOP_TIME
+	_hit_recoil_timer = 0.42
+	camera_shake = maxf(camera_shake, 0.4)
+	if player != null:
+		vertical_velocity = minf(vertical_velocity, -1.2)
+	_sync_player_position()
+
+
+func _pulse_obstacle_hit_visual(obstacle: Dictionary) -> void:
+	var node = obstacle.get("node", null)
+	if node == null or not is_instance_valid(node):
+		return
+	if not (node is Node3D):
+		return
+	var n := node as Node3D
+	var base_scale := n.scale
+	var tw := create_tween()
+	tw.tween_property(n, "scale", base_scale * Vector3(1.12, 0.88, 1.12), 0.05)
+	tw.tween_property(n, "scale", base_scale, 0.16)
