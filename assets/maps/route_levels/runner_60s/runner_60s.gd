@@ -3245,6 +3245,10 @@ func _spawn_coin_pickup_burst(world_pos: Vector3, streak: int = 1) -> void:
 	var bright := Color(1.0, 0.96, 0.55)
 	var white := Color(1.0, 0.98, 0.82)
 	var streak_idx := maxi(streak - 1, 0)
+	var use_screen_pop := false
+	if _coin_pickup_screen_fx != null and is_instance_valid(_coin_pickup_screen_fx):
+		_coin_pickup_screen_fx.play_value_pop(int(LevelConfig.EMBER_COIN_VALUE), streak)
+		use_screen_pop = true
 	_spawn_coin_arc_pop_label(world_pos, streak)
 	# 参考 50s：金色 + 白色火花粒子
 	var particles := GPUParticles3D.new()
