@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://ctb0hi1rbd3tn"
+path.s3tc="res://.godot/imported/model_tripo_normal_959478f1-be88-4d0b-a708-042dca64f0aa.jpg-60d62f4a3466df9adb8a1d656af0faf4.s3tc.ctex"
+path.etc2="res://.godot/imported/model_tripo_normal_959478f1-be88-4d0b-a708-042dca64f0aa.jpg-60d62f4a3466df9adb8a1d656af0faf4.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "f2d178aa9a079674e440f22e060e10b7"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/wood_crate/tripo-out/capy-wood-crate-texture-959478f1/model_tripo_normal_959478f1-be88-4d0b-a708-042dca64f0aa.jpg"
+dest_files=["res://.godot/imported/model_tripo_normal_959478f1-be88-4d0b-a708-042dca64f0aa.jpg-60d62f4a3466df9adb8a1d656af0faf4.s3tc.ctex", "res://.godot/imported/model_tripo_normal_959478f1-be88-4d0b-a708-042dca64f0aa.jpg-60d62f4a3466df9adb8a1d656af0faf4.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/wood_crate/tripo-out/capy-wood-crate-texture-959478f1/model_tripo_normal_959478f1-be88-4d0b-a708-042dca64f0aa.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

@@ -1,0 +1,26 @@
+{
+  "task_id": "37060ea9-8dcc-4483-9437-51c804f67472",
+  "type": "texture_model",
+  "status": "success",
+  "input": {
+    "pbr": true,
+    "bake": true,
+    "texture": true,
+    "model_version": "v3.0-20250812",
+    "texture_quality": "standard",
+    "original_model_id": "f5c93cb7-bf9a-4d26-8111-6e0202fad297",
+    "texture_alignment": "original_image"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url"
+  ],
+  "credits_consumed": 10,
+  "created_at": "2026-08-05T07:07:59.594952Z",
+  "completed_at": "2026-08-05T07:09:07.422068Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "preview.png"
+  ]
+}

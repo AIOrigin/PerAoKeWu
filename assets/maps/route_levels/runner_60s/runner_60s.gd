@@ -292,17 +292,18 @@ const MIDGROUND_VISIBLE_AHEAD := 130.0
 const MIDGROUND_VISIBLE_BEHIND := -22.0
 const MIDGROUND_MIN_VISIBLE_HEIGHT := 2.2
 const MIDGROUND_PROP_DEFAULTS: Array[String] = [
-	"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
-	"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
-	"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
+	"res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral.glb",
+	"res://assets/maps/route_levels/models/environment/midground/glowing_energy_meteorite.glb",
+	"res://assets/maps/route_levels/models/environment/midground/neon_sign_prop.glb",
+	"res://assets/maps/route_levels/models/environment/midground/cracked_sphere_robot.glb",
 ]
 const RUNWAY_EDGE_FILLER_PATHS: Array[String] = [
-	"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
-	"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+	"res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral.glb",
+	"res://assets/maps/route_levels/models/environment/midground/glowing_energy_meteorite.glb",
 ]
 const FORK_GAP_DECOR_PATHS: Array[String] = [
-	"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
-	"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+	"res://assets/maps/route_levels/models/environment/midground/cracked_sphere_robot.glb",
+	"res://assets/maps/route_levels/models/environment/midground/neon_sign_prop.glb",
 	"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
 ]
 const SKY_PANORAMA_BILLBOARD_RECTS := [
@@ -348,17 +349,17 @@ const START_PAD_LENGTH := 72.0
 const TOUCH_SWIPE_MIN_DISTANCE := 72.0
 const TOUCH_TAP_MAX_DISTANCE := 26.0
 const MOBILE_VIEWPORT_SIZE := Vector2(1080, 1920)
-const ANIMATED_PLAYER_SCENE_PATH := "res://elsa动作/Running.fbx"
+const ANIMATED_PLAYER_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/animated.fbx"
 const ANIMATED_PLAYER_IDLE_ANIM := "NlaTrack.002"
 const ANIMATED_PLAYER_RUN_ANIM := "mixamo_com"
 const ANIMATED_PLAYER_CELEBRATE_ANIM := "NlaTrack.001"
-const PLAYER_MODEL_SCENE_PATH := "res://elsa动作/elsa正面.glb"
-const PLAYER_RUN_LEFT_SCENE_PATH := "res://elsa动作/elsa奔跑左腿前.glb"
-const PLAYER_RUN_RIGHT_SCENE_PATH := "res://elsa动作/elsa奔跑右腿前.glb"
-const PLAYER_JUMP_START_SCENE_PATH := "res://elsa动作/elsa起跳.glb"
-const PLAYER_JUMP_PEAK_SCENE_PATH := "res://elsa动作/elsa跳跃高点.glb"
-const PLAYER_LANDING_SCENE_PATH := "res://elsa动作/跳跃落地.glb"
-const PLAYER_SLIDE_SCENE_PATH := "res://elsa动作/滑铲.glb"
+const PLAYER_MODEL_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/idle.glb"
+const PLAYER_RUN_LEFT_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/run_left.glb"
+const PLAYER_RUN_RIGHT_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/run_right.glb"
+const PLAYER_JUMP_START_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/jump_start.glb"
+const PLAYER_JUMP_PEAK_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/jump_apex.glb"
+const PLAYER_LANDING_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/jump_land.glb"
+const PLAYER_SLIDE_SCENE_PATH := "res://assets/maps/route_levels/models/characters/elsa/slide.glb"
 const PLAYER_MODEL_HEIGHT := 1.65
 const PLAYER_SKELETAL_MODEL_HEIGHT := 2.08
 const PLAYER_MODEL_YAW := -90.0
@@ -371,9 +372,9 @@ const PLAYER_SKELETAL_SLIDE_BODY_SCALE := Vector3(1.0, 0.70, 1.0)
 const PLAYER_SKELETAL_SLIDE_BODY_Y := -0.22
 const PLAYER_SLIDE_MODEL_YAW := 180.0
 const IMPORTED_SCENE_FALLBACKS := {
-	"res://3d素材/障碍物-需跳跃.glb": "res://.godot/imported/障碍物-需跳跃.glb-46f57db02e27254a677214f954ab0d83.scn",
-	"res://3d素材/障碍物-需跳跃2.glb": "res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn",
-	"res://3d素材/居民穹顶据点 3d model.glb": "res://.godot/imported/居民穹顶据点 3d model.glb-f6066a8ae2d51e15aff61146c4296099.scn",
+	"res://assets/maps/route_levels/models/obstacles/jump/barrier_01.glb": "res://.godot/imported/障碍物-需跳跃.glb-46f57db02e27254a677214f954ab0d83.scn",
+	"res://assets/maps/route_levels/models/obstacles/jump/barrier_02.glb": "res://.godot/imported/障碍物-需跳跃2.glb-c8c9938e154747024ae7ac221ab7db3a.scn",
+	"res://assets/maps/route_levels/models/environment/buildings/dome_habitat_legacy.glb": "res://.godot/imported/居民穹顶据点 3d model.glb-f6066a8ae2d51e15aff61146c4296099.scn",
 }
 
 # 垂直墙跑（神秘海域式侧墙，与主路成 90°）
@@ -5294,7 +5295,7 @@ func _load_panorama_texture(path: String) -> Texture2D:
 func _load_planet_assets() -> void:
 	var assets: Dictionary = LevelConfig.get_assets()
 	var mission_pano := String(mission.get("panorama", "")).strip_edges()
-	var default_pano := String(assets.get("panorama", "res://3d素材/三拼地图.png")).strip_edges()
+	var default_pano := String(assets.get("panorama", "res://assets/maps/route_levels/models/backgrounds/panoramas/triptych.png")).strip_edges()
 	if mission_pano != "":
 		_world_panorama = _load_panorama_texture(mission_pano)
 		if _world_panorama == null and default_pano != "":
@@ -5347,9 +5348,9 @@ func _load_planet_assets() -> void:
 		_distant_hearth_paths.append(String(path))
 	if _distant_hearth_paths.is_empty() and assets.has("hearth"):
 		_distant_hearth_paths.append(String(assets.get("hearth")))
-	var slide_path := _slide_obstacle_paths[0] if not _slide_obstacle_paths.is_empty() else String(assets.get("slide_obstacle", "res://3d素材/障碍物-需滑铲.glb"))
+	var slide_path := _slide_obstacle_paths[0] if not _slide_obstacle_paths.is_empty() else String(assets.get("slide_obstacle", "res://assets/maps/route_levels/models/obstacles/slide/barrier_01.glb"))
 	_slide_obstacle_scene = _load_runner_scene(slide_path, false)
-	_hearth_scene_path = LevelConfig.get_location_hearth_model(Global.runner_location_id) if LevelConfig.has_method("get_location_hearth_model") else String(assets.get("hearth", "res://3d素材/居民穹顶据点 3d model.glb"))
+	_hearth_scene_path = LevelConfig.get_location_hearth_model(Global.runner_location_id) if LevelConfig.has_method("get_location_hearth_model") else String(assets.get("hearth", "res://assets/maps/route_levels/models/environment/buildings/dome_habitat_legacy.glb"))
 	_player_scene_paths = _resolve_player_scene_paths(assets)
 
 func _apply_location_distant_props() -> void:
@@ -5357,8 +5358,8 @@ func _apply_location_distant_props() -> void:
 	var loc := String(Global.runner_location_id)
 	if loc == "gate":
 		_distant_tower_paths = [
-			"res://assets/maps/route_levels/runner_60s/distant_props/fantasy_crystal_tower.glb",
-			"res://assets/maps/route_levels/runner_60s/distant_props/distant_signal_tower.glb",
+			"res://assets/maps/route_levels/models/environment/distant/fantasy_crystal_tower.glb",
+			"res://assets/maps/route_levels/models/environment/distant/distant_signal_tower.glb",
 		]
 	else:
 		var kept: Array[String] = []
@@ -5368,7 +5369,7 @@ func _apply_location_distant_props() -> void:
 				continue
 			kept.append(p)
 		if kept.is_empty():
-			kept.append("res://assets/maps/route_levels/runner_60s/distant_props/fantasy_crystal_tower.glb")
+			kept.append("res://assets/maps/route_levels/models/environment/distant/fantasy_crystal_tower.glb")
 		_distant_tower_paths = kept
 	if LevelConfig.has_method("get_location_hearth_model"):
 		var hearth_path := String(LevelConfig.get_location_hearth_model(loc)).strip_edges()
@@ -6607,7 +6608,7 @@ func _make_planet_road_material() -> StandardMaterial3D:
 func _make_coarse_desert_road_material() -> StandardMaterial3D:
 	# 实心沙石路面：与星球默认同样强制不透明，避免沙漠从下方透出
 	var mat := StandardMaterial3D.new()
-	var tex_path := "res://assets/maps/route_levels/runner_60s/textures/white_sandstone_blocks_02_diff_1k.jpg"
+	var tex_path := "res://assets/maps/route_levels/models/track/textures/white_sandstone_blocks_02_diff_1k.jpg"
 	if ResourceLoader.exists(tex_path):
 		mat.albedo_texture = load(tex_path) as Texture2D
 	mat.albedo_color = Color(0.78, 0.58, 0.36)
@@ -6640,13 +6641,13 @@ func _load_holographic_runway_texture(prefer_topdown: bool = true) -> Texture2D:
 	var tex_paths: Array[String] = []
 	if prefer_topdown:
 		tex_paths = [
-			"res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png",
-			"res://assets/maps/route_levels/runner_60s/holographic_energy_runway.png",
+			"res://assets/maps/route_levels/models/track/textures/holographic_road_topdown.png",
+			"res://assets/maps/route_levels/models/track/textures/holographic_energy_runway.png",
 		]
 	else:
 		tex_paths = [
-			"res://assets/maps/route_levels/runner_60s/holographic_energy_runway.png",
-			"res://assets/maps/route_levels/runner_60s/holographic_road_topdown.png",
+			"res://assets/maps/route_levels/models/track/textures/holographic_energy_runway.png",
+			"res://assets/maps/route_levels/models/track/textures/holographic_road_topdown.png",
 		]
 	for tex_path in tex_paths:
 		if ResourceLoader.exists(tex_path):
@@ -6673,7 +6674,7 @@ func _make_holographic_road_material() -> StandardMaterial3D:
 	return mat
 
 func _load_energy_neon_runway_texture() -> Texture2D:
-	var tex_path := "res://assets/maps/route_levels/runner_60s/energy_neon_runway.png"
+	var tex_path := "res://assets/maps/route_levels/models/track/textures/energy_neon_runway.png"
 	if ResourceLoader.exists(tex_path):
 		return load(tex_path) as Texture2D
 	return null
@@ -7828,7 +7829,7 @@ func _build_midground_dressing_pass(
 		d += rng.randf_range(spacing_min, spacing_max)
 		slot_i += 1
 	if spawned == 0 and not seed_key.contains("robot"):
-		push_warning("Midground dressing spawned 0 props; check GLB paths under midground_props/")
+		push_warning("Midground dressing spawned 0 props; check GLB paths under models/environment/midground/")
 
 func _midground_target_height(
 	rng: RandomNumberGenerator,

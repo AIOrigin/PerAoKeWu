@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://6j158op32dqc"
+path.s3tc="res://.godot/imported/model_NormalGL_6c5c47a0-638e-4c18-9c38-260d96167a72.jpg-185db4c4dd455036fb1a83956268cad1.s3tc.ctex"
+path.etc2="res://.godot/imported/model_NormalGL_6c5c47a0-638e-4c18-9c38-260d96167a72.jpg-185db4c4dd455036fb1a83956268cad1.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "fec5bc48cf3462cdb20872bb5594d85f"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/speed_orb/model_NormalGL_6c5c47a0-638e-4c18-9c38-260d96167a72.jpg"
+dest_files=["res://.godot/imported/model_NormalGL_6c5c47a0-638e-4c18-9c38-260d96167a72.jpg-185db4c4dd455036fb1a83956268cad1.s3tc.ctex", "res://.godot/imported/model_NormalGL_6c5c47a0-638e-4c18-9c38-260d96167a72.jpg-185db4c4dd455036fb1a83956268cad1.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/speed_orb/model_NormalGL_6c5c47a0-638e-4c18-9c38-260d96167a72.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

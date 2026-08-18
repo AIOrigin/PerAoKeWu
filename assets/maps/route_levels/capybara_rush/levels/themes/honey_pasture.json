@@ -1,0 +1,83 @@
+{
+  "id": "honey_pasture",
+  "display_name": "蜜糖牧场",
+  "sky_color": [
+    0.95,
+    0.85,
+    0.65
+  ],
+  "fog_color": [
+    0.94,
+    0.88,
+    0.72
+  ],
+  "ambient_color": [
+    0.98,
+    0.92,
+    0.82
+  ],
+  "ambient_energy": 0.9,
+  "road_color": [
+    0.93,
+    0.86,
+    0.72
+  ],
+  "lane_line_color": [
+    0.85,
+    0.55,
+    0.2
+  ],
+  "water_color": [
+    0.55,
+    0.72,
+    0.55
+  ],
+  "sun_color": [
+    1.0,
+    0.92,
+    0.75
+  ],
+  "sun_energy": 1.25,
+  "block_albedo": [
+    0.82,
+    0.68,
+    0.42
+  ],
+  "stripe_colors": [
+    [
+      0.72,
+      0.48,
+      0.22
+    ],
+    [
+      0.96,
+      0.9,
+      0.78
+    ]
+  ],
+  "trampoline_rim": [
+    1.0,
+    0.62,
+    0.35
+  ],
+  "props": {
+    "tree": "res://assets/maps/route_levels/capybara_rush/models/environment/tree_lollipop.glb",
+    "bush": "res://assets/maps/route_levels/capybara_rush/models/environment/hay_bale.glb",
+    "cloud": "res://assets/maps/route_levels/capybara_rush/models/environment/cloud_fluffy.glb",
+    "side_prop": "res://assets/maps/route_levels/capybara_rush/models/environment/hay_bale.glb"
+  },
+  "obstacles": {
+    "stripe_model": "res://assets/maps/route_levels/capybara_rush/models/obstacles/fence_pasture.glb",
+    "block_model": null
+  },
+  "dice_albedo": [
+    0.98,
+    0.92,
+    0.78
+  ],
+  "dice_pip": [
+    0.35,
+    0.22,
+    0.12
+  ]
+}

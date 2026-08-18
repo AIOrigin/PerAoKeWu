@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dsacqke2k05ct"
+path.s3tc="res://.godot/imported/spaceship_tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_metallic-tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_roughness.png-83982b081f7158a2fc5fc56e6a53558c.s3tc.ctex"
+path.etc2="res://.godot/imported/spaceship_tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_metallic-tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_roughness.png-83982b081f7158a2fc5fc56e6a53558c.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "30d1028af3a9bea343283481fbdea978"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/props/spaceship_tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_metallic-tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_roughness.png"
+dest_files=["res://.godot/imported/spaceship_tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_metallic-tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_roughness.png-83982b081f7158a2fc5fc56e6a53558c.s3tc.ctex", "res://.godot/imported/spaceship_tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_metallic-tripo_node_b28a107b-fcd8-45d1-bfce-8a1fdb21a526_roughness.png-83982b081f7158a2fc5fc56e6a53558c.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

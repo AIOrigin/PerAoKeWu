@@ -1,0 +1,101 @@
+{
+  "id": "frost_snow",
+  "display_name": "冰雪世界",
+  "sky_color": [
+    0.78,
+    0.9,
+    0.98
+  ],
+  "fog_color": [
+    0.82,
+    0.92,
+    0.98
+  ],
+  "ambient_color": [
+    0.88,
+    0.94,
+    1.0
+  ],
+  "ambient_energy": 0.95,
+  "road_color": [
+    0.9,
+    0.96,
+    1.0
+  ],
+  "lane_line_color": [
+    0.45,
+    0.75,
+    0.95
+  ],
+  "water_color": [
+    0.55,
+    0.78,
+    0.92
+  ],
+  "sun_color": [
+    0.95,
+    0.98,
+    1.0
+  ],
+  "sun_energy": 1.15,
+  "block_albedo": [
+    0.62,
+    0.88,
+    1.0,
+    0.78
+  ],
+  "stripe_colors": [
+    [
+      0.55,
+      0.85,
+      1.0
+    ],
+    [
+      0.92,
+      0.97,
+      1.0
+    ]
+  ],
+  "trampoline_rim": [
+    0.45,
+    0.82,
+    1.0
+  ],
+  "ice_albedo": [
+    0.55,
+    0.86,
+    1.0,
+    0.94
+  ],
+  "ice_edge": [
+    0.85,
+    0.95,
+    1.0,
+    0.92
+  ],
+  "dice_albedo": [
+    0.82,
+    0.94,
+    1.0
+  ],
+  "dice_pip": [
+    0.2,
+    0.45,
+    0.7
+  ],
+  "props": {
+    "tree": "res://assets/maps/route_levels/capybara_rush/models/environment/tree_lollipop.glb",
+    "bush": "res://assets/maps/route_levels/capybara_rush/models/environment/bush_round.glb",
+    "cloud": "res://assets/maps/route_levels/capybara_rush/models/environment/cloud_fluffy.glb",
+    "side_prop": "res://assets/maps/route_levels/capybara_rush/models/environment/rock_edge.glb"
+  },
+  "obstacles": {
+    "stripe_model": null,
+    "block_model": null
+  },
+  "hazard_motion": {
+    "pole_tint": [0.72, 0.92, 1.0],
+    "arm_tint": [0.55, 0.86, 1.0],
+    "glow_tint": [0.85, 0.95, 1.0]
+  }
+}

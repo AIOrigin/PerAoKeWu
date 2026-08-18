@@ -1,0 +1,27 @@
+(node:26181) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created cb0072a5-62b3-41cb-966f-537c3f32088f (@capy-boost-pack)
+image_to_model · queued
+image_to_model · running 15% · cb0072a5
+image_to_model · running 25% · cb0072a5
+image_to_model · running 40% · cb0072a5
+image_to_model · running 61% · cb0072a5
+image_to_model · running 91% · cb0072a5
+image_to_model · running 99% · cb0072a5
+image_to_model · success 100% · cb0072a5
+✓ image_to_model · cb0072a5-62b3-41cb-966f-537c3f32088f · 50 credits
+task created e879480e-3484-41ea-9eef-078959646f17 (@capy-boost-pack-texture)
+texture_model · queued
+texture_model · running 11% · e879480e
+texture_model · running 21% · e879480e
+texture_model · running 34% · e879480e
+texture_model · running 52% · e879480e
+texture_model · running 79% · e879480e
+texture_model · success 100% · e879480e
+✓ texture_model · e879480e-3484-41ea-9eef-078959646f17 · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/boost_pack/tripo-out/capy-boost-pack-texture-e879480e
+{"task_id":"e879480e-3484-41ea-9eef-078959646f17","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/boost_pack/tripo-out/capy-boost-pack-texture-e879480e","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/boost_pack/tripo-out/capy-boost-pack-texture-e879480e/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/boost_pack/tripo-out/capy-boost-pack-texture-e879480e/preview.png","chain":[{"task_id":"e879480e-3484-41ea-9eef-078959646f17","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/boost_pack/tripo-out/capy-boost-pack-texture-e879480e","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/boost_pack/tripo-out/capy-boost-pack-texture-e879480e/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/boost_pack/tripo-out/capy-boost-pack-texture-e879480e/preview.png"}],"source_task_id":"cb0072a5-62b3-41cb-966f-537c3f32088f"}

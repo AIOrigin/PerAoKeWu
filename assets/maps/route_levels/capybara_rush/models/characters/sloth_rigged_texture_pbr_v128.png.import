@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://bm5idmnn8tmw4"
+path.s3tc="res://.godot/imported/sloth_rigged_texture_pbr_v128.png-7bc85bb596c2ad5004df6fb4295fa065.s3tc.ctex"
+path.etc2="res://.godot/imported/sloth_rigged_texture_pbr_v128.png-7bc85bb596c2ad5004df6fb4295fa065.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "fd720db44988bcab6988435b467ff9d3"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/characters/sloth_rigged_texture_pbr_v128.png"
+dest_files=["res://.godot/imported/sloth_rigged_texture_pbr_v128.png-7bc85bb596c2ad5004df6fb4295fa065.s3tc.ctex", "res://.godot/imported/sloth_rigged_texture_pbr_v128.png-7bc85bb596c2ad5004df6fb4295fa065.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

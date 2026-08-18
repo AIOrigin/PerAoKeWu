@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://c7lcmisj5iacx"
+path.s3tc="res://.godot/imported/watermelon_slice_tripo_base_color_cbb289f7-b106-46b3-ab01-2917a157d77d.jpg-d7affb1d2652afa209a9f0b6f11cc25f.s3tc.ctex"
+path.etc2="res://.godot/imported/watermelon_slice_tripo_base_color_cbb289f7-b106-46b3-ab01-2917a157d77d.jpg-d7affb1d2652afa209a9f0b6f11cc25f.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "939b96cce1cc858d77713649e85db939"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/props/watermelon_slice_tripo_base_color_cbb289f7-b106-46b3-ab01-2917a157d77d.jpg"
+dest_files=["res://.godot/imported/watermelon_slice_tripo_base_color_cbb289f7-b106-46b3-ab01-2917a157d77d.jpg-d7affb1d2652afa209a9f0b6f11cc25f.s3tc.ctex", "res://.godot/imported/watermelon_slice_tripo_base_color_cbb289f7-b106-46b3-ab01-2917a157d77d.jpg-d7affb1d2652afa209a9f0b6f11cc25f.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

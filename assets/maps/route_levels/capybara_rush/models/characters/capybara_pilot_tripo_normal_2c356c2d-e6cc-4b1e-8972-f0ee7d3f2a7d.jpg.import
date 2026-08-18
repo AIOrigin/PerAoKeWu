@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dma2u6aeh8ctu"
+path.s3tc="res://.godot/imported/capybara_pilot_tripo_normal_2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d.jpg-bea1c8251e0d28c9d7df2ac91446f880.s3tc.ctex"
+path.etc2="res://.godot/imported/capybara_pilot_tripo_normal_2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d.jpg-bea1c8251e0d28c9d7df2ac91446f880.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "774810f93e6f72fd9648975f723c136f"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/characters/capybara_pilot_tripo_normal_2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d.jpg"
+dest_files=["res://.godot/imported/capybara_pilot_tripo_normal_2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d.jpg-bea1c8251e0d28c9d7df2ac91446f880.s3tc.ctex", "res://.godot/imported/capybara_pilot_tripo_normal_2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d.jpg-bea1c8251e0d28c9d7df2ac91446f880.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/capybara_rush/models/characters/capybara_pilot_tripo_normal_2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

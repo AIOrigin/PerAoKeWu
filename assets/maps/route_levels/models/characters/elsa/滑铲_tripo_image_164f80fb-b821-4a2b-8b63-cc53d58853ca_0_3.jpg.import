@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cwfl47d1ujb5b"
+path.s3tc="res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_3.jpg-d5836431607c67316443d5ffcf8f157b.s3tc.ctex"
+path.etc2="res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_3.jpg-d5836431607c67316443d5ffcf8f157b.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "fc3c67fc2b3538e18cd827ec4ccbc321"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/models/characters/elsa/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_3.jpg"
+dest_files=["res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_3.jpg-d5836431607c67316443d5ffcf8f157b.s3tc.ctex", "res://.godot/imported/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_3.jpg-d5836431607c67316443d5ffcf8f157b.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://elsa动作/滑铲_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_3.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

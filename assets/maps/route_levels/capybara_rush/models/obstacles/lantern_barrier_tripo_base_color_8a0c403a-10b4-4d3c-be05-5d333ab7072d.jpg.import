@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://wrkmv6yxl6fn"
+path.s3tc="res://.godot/imported/lantern_barrier_tripo_base_color_8a0c403a-10b4-4d3c-be05-5d333ab7072d.jpg-8ad9bef6deb726180ca65c0087a7de9a.s3tc.ctex"
+path.etc2="res://.godot/imported/lantern_barrier_tripo_base_color_8a0c403a-10b4-4d3c-be05-5d333ab7072d.jpg-8ad9bef6deb726180ca65c0087a7de9a.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "e49f769f0ecb494a49efa68f71dc0b6e"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/obstacles/lantern_barrier_tripo_base_color_8a0c403a-10b4-4d3c-be05-5d333ab7072d.jpg"
+dest_files=["res://.godot/imported/lantern_barrier_tripo_base_color_8a0c403a-10b4-4d3c-be05-5d333ab7072d.jpg-8ad9bef6deb726180ca65c0087a7de9a.s3tc.ctex", "res://.godot/imported/lantern_barrier_tripo_base_color_8a0c403a-10b4-4d3c-be05-5d333ab7072d.jpg-8ad9bef6deb726180ca65c0087a7de9a.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

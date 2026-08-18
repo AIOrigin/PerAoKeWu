@@ -1,0 +1,35 @@
+(node:32232) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created 7051b537-7d59-4b9d-ac66-9ce610a8e278 (@capy-step-platform)
+image_to_model · queued
+image_to_model · running 5% · 7051b537
+image_to_model · running 9% · 7051b537
+image_to_model · running 15% · 7051b537
+image_to_model · running 22% · 7051b537
+image_to_model · running 32% · 7051b537
+image_to_model · running 48% · 7051b537
+image_to_model · running 68% · 7051b537
+image_to_model · running 89% · 7051b537
+image_to_model · running 99% · 7051b537
+image_to_model · success 100% · 7051b537
+✓ image_to_model · 7051b537-7d59-4b9d-ac66-9ce610a8e278 · 50 credits
+task created 3dae8079-094a-416c-9cf6-3013ab2a1ecd (@capy-step-platform-texture)
+texture_model · queued
+texture_model · running 4% · 3dae8079
+texture_model · running 8% · 3dae8079
+texture_model · running 13% · 3dae8079
+texture_model · running 20% · 3dae8079
+texture_model · running 30% · 3dae8079
+texture_model · running 44% · 3dae8079
+texture_model · running 63% · 3dae8079
+texture_model · running 82% · 3dae8079
+texture_model · running 99% · 3dae8079
+texture_model · running 99% · 3dae8079
+texture_model · success 100% · 3dae8079
+✓ texture_model · 3dae8079-094a-416c-9cf6-3013ab2a1ecd · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079
+{"task_id":"3dae8079-094a-416c-9cf6-3013ab2a1ecd","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079/preview.png","chain":[{"task_id":"3dae8079-094a-416c-9cf6-3013ab2a1ecd","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/step_platform/tripo-out/capy-step-platform-texture-3dae8079/preview.png"}],"source_task_id":"7051b537-7d59-4b9d-ac66-9ce610a8e278"}

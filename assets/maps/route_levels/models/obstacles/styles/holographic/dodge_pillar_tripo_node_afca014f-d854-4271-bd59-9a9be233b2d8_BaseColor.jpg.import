@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dkabhuu6nxvok"
+path.s3tc="res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-9c3088c2c6aeb6e12f5d9451d1653dfc.s3tc.ctex"
+path.etc2="res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-9c3088c2c6aeb6e12f5d9451d1653dfc.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "a52f066409314b19a0ebf616ff446ae9"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/models/obstacles/styles/holographic/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg"
+dest_files=["res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-9c3088c2c6aeb6e12f5d9451d1653dfc.s3tc.ctex", "res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_BaseColor.jpg-9c3088c2c6aeb6e12f5d9451d1653dfc.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

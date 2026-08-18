@@ -1,0 +1,28 @@
+(node:25869) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+! --then overrides the default game-mobile processing chain
+model: P1-20260311 (explicit --model)
+task created 90d18ab4-f848-4ef4-a877-dabbd7210532 (@capy-capybara-pilot)
+image_to_model · queued
+image_to_model · running 10% · 90d18ab4
+image_to_model · running 18% · 90d18ab4
+image_to_model · running 30% · 90d18ab4
+image_to_model · running 48% · 90d18ab4
+image_to_model · running 72% · 90d18ab4
+image_to_model · running 99% · 90d18ab4
+image_to_model · success 100% · 90d18ab4
+✓ image_to_model · 90d18ab4-f848-4ef4-a877-dabbd7210532 · 50 credits
+task created 2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d (@capy-capybara-pilot-texture)
+texture_model · queued
+texture_model · running 10% · 2c356c2d
+texture_model · running 17% · 2c356c2d
+texture_model · running 29% · 2c356c2d
+texture_model · running 45% · 2c356c2d
+texture_model · running 68% · 2c356c2d
+texture_model · running 99% · 2c356c2d
+texture_model · success 100% · 2c356c2d
+✓ texture_model · 2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d · 10 credits
+downloading artifacts…
+downloading rendered_image.webp
+✓ artifacts saved to /Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/capybara_pilot/tripo-out/capy-capybara-pilot-texture-2c356c2d
+{"task_id":"2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/capybara_pilot/tripo-out/capy-capybara-pilot-texture-2c356c2d","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/capybara_pilot/tripo-out/capy-capybara-pilot-texture-2c356c2d/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/capybara_pilot/tripo-out/capy-capybara-pilot-texture-2c356c2d/preview.png","chain":[{"task_id":"2c356c2d-e6cc-4b1e-8972-f0ee7d3f2a7d","type":"texture_model","status":"success","credits_consumed":10,"output_dir":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/capybara_pilot/tripo-out/capy-capybara-pilot-texture-2c356c2d","files":["model.glb","rendered_image.webp","preview.png"],"model_file":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/capybara_pilot/tripo-out/capy-capybara-pilot-texture-2c356c2d/model.glb","preview":"/Users/mima1234/Documents/HYPERLUNATIC/assets/maps/route_levels/_inbox/tripo_raw/capybara_stack/capybara_pilot/tripo-out/capy-capybara-pilot-texture-2c356c2d/preview.png"}],"source_task_id":"90d18ab4-f848-4ef4-a877-dabbd7210532"}

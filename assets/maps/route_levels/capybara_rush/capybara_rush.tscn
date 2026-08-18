@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bkd5yrqipumuo"]
+
+[ext_resource type="Script" uid="uid://m6obhqila0iw" path="res://assets/maps/route_levels/capybara_rush/capybara_rush.gd" id="1_main"]
+
+[node name="CapybaraRush" type="Node3D"]
+script = ExtResource("1_main")

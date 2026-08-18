@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://bx3rs46ypnrxh"
+path.s3tc="res://.godot/imported/orange_tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_metallic-tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_roughness.png-b1fe997f540c36129a98373320f6b44f.s3tc.ctex"
+path.etc2="res://.godot/imported/orange_tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_metallic-tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_roughness.png-b1fe997f540c36129a98373320f6b44f.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "47be852ac0ad1903b6aa6b98b08da55b"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/props/orange_tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_metallic-tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_roughness.png"
+dest_files=["res://.godot/imported/orange_tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_metallic-tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_roughness.png-b1fe997f540c36129a98373320f6b44f.s3tc.ctex", "res://.godot/imported/orange_tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_metallic-tripo_node_547a688c-05c7-4e7b-903c-0ae7dad5d066_roughness.png-b1fe997f540c36129a98373320f6b44f.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

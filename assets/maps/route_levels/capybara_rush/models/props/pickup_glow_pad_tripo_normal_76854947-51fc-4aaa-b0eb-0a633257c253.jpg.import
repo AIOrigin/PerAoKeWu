@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://jptcutggy55j"
+path.s3tc="res://.godot/imported/pickup_glow_pad_tripo_normal_76854947-51fc-4aaa-b0eb-0a633257c253.jpg-c39b3e8b36c08914176918b577c69f7c.s3tc.ctex"
+path.etc2="res://.godot/imported/pickup_glow_pad_tripo_normal_76854947-51fc-4aaa-b0eb-0a633257c253.jpg-c39b3e8b36c08914176918b577c69f7c.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "6f664d9cebdae5e06aff16cf143d9423"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/props/pickup_glow_pad_tripo_normal_76854947-51fc-4aaa-b0eb-0a633257c253.jpg"
+dest_files=["res://.godot/imported/pickup_glow_pad_tripo_normal_76854947-51fc-4aaa-b0eb-0a633257c253.jpg-c39b3e8b36c08914176918b577c69f7c.s3tc.ctex", "res://.godot/imported/pickup_glow_pad_tripo_normal_76854947-51fc-4aaa-b0eb-0a633257c253.jpg-c39b3e8b36c08914176918b577c69f7c.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/capybara_rush/models/props/pickup_glow_pad_tripo_normal_76854947-51fc-4aaa-b0eb-0a633257c253.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

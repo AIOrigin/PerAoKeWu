@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://diwog5kf84ci2"
+path.s3tc="res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-6dcc2400f4ddc56c74425e124da44e10.s3tc.ctex"
+path.etc2="res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-6dcc2400f4ddc56c74425e124da44e10.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "072880f60a8ce531fe003c49309c8835"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/models/obstacles/styles/holographic/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg"
+dest_files=["res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-6dcc2400f4ddc56c74425e124da44e10.s3tc.ctex", "res://.godot/imported/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg-6dcc2400f4ddc56c74425e124da44e10.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/models/obstacles/styles/holographic/dodge_pillar_tripo_node_afca014f-d854-4271-bd59-9a9be233b2d8_Normal_Bake.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

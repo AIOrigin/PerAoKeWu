@@ -1,0 +1,83 @@
+{
+  "id": "dusk_neon",
+  "display_name": "暮色霓虹",
+  "sky_color": [
+    0.23,
+    0.16,
+    0.36
+  ],
+  "fog_color": [
+    0.35,
+    0.22,
+    0.42
+  ],
+  "ambient_color": [
+    0.55,
+    0.42,
+    0.65
+  ],
+  "ambient_energy": 0.7,
+  "road_color": [
+    0.28,
+    0.26,
+    0.38
+  ],
+  "lane_line_color": [
+    0.35,
+    0.95,
+    1.0
+  ],
+  "water_color": [
+    0.18,
+    0.22,
+    0.4
+  ],
+  "sun_color": [
+    1.0,
+    0.66,
+    0.47
+  ],
+  "sun_energy": 1.35,
+  "block_albedo": [
+    0.45,
+    0.55,
+    0.95
+  ],
+  "stripe_colors": [
+    [
+      0.2,
+      0.95,
+      0.9
+    ],
+    [
+      0.95,
+      0.35,
+      0.85
+    ]
+  ],
+  "trampoline_rim": [
+    0.4,
+    0.95,
+    1.0
+  ],
+  "props": {
+    "tree": "res://assets/maps/route_levels/capybara_rush/models/environment/neon_sign_post.glb",
+    "bush": "res://assets/maps/route_levels/capybara_rush/models/environment/bush_round.glb",
+    "cloud": "res://assets/maps/route_levels/capybara_rush/models/environment/cloud_fluffy.glb",
+    "side_prop": "res://assets/maps/route_levels/capybara_rush/models/environment/neon_sign_post.glb"
+  },
+  "obstacles": {
+    "stripe_model": "res://assets/maps/route_levels/capybara_rush/models/obstacles/neon_cone.glb",
+    "block_model": null
+  },
+  "dice_albedo": [
+    0.88,
+    0.92,
+    1.0
+  ],
+  "dice_pip": [
+    0.25,
+    0.15,
+    0.55
+  ]
+}
