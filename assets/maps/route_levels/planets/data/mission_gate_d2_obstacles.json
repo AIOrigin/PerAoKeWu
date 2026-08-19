@@ -74,7 +74,8 @@
 		{
 			"distance": 56.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 84.0,
@@ -95,7 +96,8 @@
 		{
 			"distance": 168.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 196.0,
@@ -117,7 +119,8 @@
 			"distance": 280.0,
 			"lane": 0,
 			"type": "slide",
-			"overweight_tutorial": true
+			"overweight_tutorial": true,
+			"low_slide": true
 		},
 		{
 			"distance": 308.0,
@@ -138,7 +141,8 @@
 		{
 			"distance": 392.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 420.0,
@@ -159,7 +163,8 @@
 		{
 			"distance": 504.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 532.0,
@@ -181,7 +186,8 @@
 			"distance": 616.0,
 			"lane": 0,
 			"type": "slide",
-			"overweight_tutorial": true
+			"overweight_tutorial": true,
+			"low_slide": true
 		},
 		{
 			"distance": 644.0,
@@ -208,5 +214,12 @@
 			"type": "main_block"
 		}
 	],
-	"speed_boosts": []
+	"speed_boosts": [],
+	"finish_sprints": [
+		{
+			"distance": 1125.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
+	]
 }

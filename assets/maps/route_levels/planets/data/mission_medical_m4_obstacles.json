@@ -67,7 +67,8 @@
 		{
 			"distance": 64.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 98.0,
@@ -77,7 +78,8 @@
 		{
 			"distance": 132.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 166.0,
@@ -87,7 +89,8 @@
 		{
 			"distance": 200.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 234.0,
@@ -97,7 +100,8 @@
 		{
 			"distance": 268.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 302.0,
@@ -107,7 +111,8 @@
 		{
 			"distance": 336.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 370.0,
@@ -117,7 +122,8 @@
 		{
 			"distance": 404.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 438.0,
@@ -127,7 +133,8 @@
 		{
 			"distance": 472.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 506.0,
@@ -137,7 +144,8 @@
 		{
 			"distance": 540.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 574.0,
@@ -147,7 +155,8 @@
 		{
 			"distance": 608.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 642.0,
@@ -157,7 +166,8 @@
 		{
 			"distance": 676.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		}
 	],
 	"speed_boosts": [
@@ -205,6 +215,13 @@
 			"distance": 584.0,
 			"lane": -1,
 			"layer": 0
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 712.0,
+			"lane": 0,
+			"width_ratio": 0.58
 		}
 	]
 }

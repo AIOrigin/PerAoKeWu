@@ -5,13 +5,35 @@
 	"road_style": "holographic",
 	"version": 1,
 	"track_segments": [
-		{"length": 140.0, "turn": 0.0},
-		{"length": 50.0, "turn": 1.0471975511965976},
-		{"length": 320.0, "turn": 0.0},
-		{"length": 50.0, "turn": -1.0471975511965976},
-		{"length": 300.0, "turn": 0.0},
-		{"type": "y_fork", "branch_length": 64.0, "angle_deg": 38.0},
-		{"length": 180.0, "turn": 0.0}
+		{
+			"length": 140.0,
+			"turn": 0.0
+		},
+		{
+			"length": 50.0,
+			"turn": 1.0471975511965976
+		},
+		{
+			"length": 320.0,
+			"turn": 0.0
+		},
+		{
+			"length": 50.0,
+			"turn": -1.0471975511965976
+		},
+		{
+			"length": 300.0,
+			"turn": 0.0
+		},
+		{
+			"type": "y_fork",
+			"branch_length": 64.0,
+			"angle_deg": 38.0
+		},
+		{
+			"length": 180.0,
+			"turn": 0.0
+		}
 	],
 	"junction_zones": [
 		{
@@ -49,37 +71,218 @@
 		}
 	],
 	"sandstorm_zones": [
-		{"start": 178.0, "length": 38.0, "dps": 9.5, "label": "尘暴", "hazard_kind": "sand", "lane_count": 3},
-		{"start": 468.0, "length": 42.0, "dps": 10.0, "label": "尘暴", "hazard_kind": "sand", "lane_count": 3}
+		{
+			"start": 178.0,
+			"length": 38.0,
+			"dps": 9.5,
+			"label": "尘暴",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 468.0,
+			"length": 42.0,
+			"dps": 10.0,
+			"label": "尘暴",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		}
 	],
 	"obstacles": [
-		{"distance": 32.0, "lane": 0, "type": "jump"},
-		{"distance": 58.0, "lane": -1, "type": "slide"},
-		{"distance": 86.0, "lane": 1, "type": "train"},
-		{"distance": 118.0, "lane": 0, "type": "block_left"},
-		{"distance": 152.0, "lane": -1, "type": "slide"},
-		{"distance": 188.0, "lane": 1, "type": "jump"},
-		{"distance": 228.0, "lane": 0, "layer": 0, "target_layer": 1, "type": "ramp"},
-		{"distance": 258.0, "half_depth": 26.0, "lane": 0, "layer": 0, "type": "main_block"},
-		{"distance": 318.0, "lane": 0, "type": "train_moving", "move_speed": -10.5},
-		{"distance": 362.0, "lane": 1, "type": "jump"},
-		{"distance": 408.0, "lane": -1, "type": "slide"},
-		{"distance": 452.0, "lane": 0, "type": "block_right"},
-		{"distance": 498.0, "lane": 1, "type": "train"},
-		{"distance": 548.0, "lane": -1, "type": "meteorite", "span": 2.4, "fall_roll": false},
-		{"distance": 548.0, "lane": 1, "type": "meteorite", "span": 2.2, "fall_roll": false},
-		{"distance": 572.0, "lane": 0, "type": "meteorite", "span": 2.8, "fall_roll": false},
-		{"distance": 596.0, "lane": -1, "type": "meteorite", "span": 2.0, "fall_roll": false},
-		{"distance": 596.0, "lane": 1, "type": "meteorite", "span": 2.6, "fall_roll": false},
-		{"distance": 620.0, "lane": 0, "type": "meteorite", "span": 3.0, "fall_roll": false},
-		{"distance": 644.0, "lane": -1, "type": "orb", "orb_size": "large", "orb_tint": "purple", "static": true},
-		{"distance": 652.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 6.8, "float_speed": 3.8, "float_amp": 0.3},
-		{"distance": 658.0, "lane": 0, "type": "orb", "orb_size": "small", "orb_tint": "purple", "drift_speed": 5.4, "float_speed": 3.0, "float_amp": 0.36},
-		{"distance": 664.0, "lane": -1, "type": "orb", "orb_size": "huge", "orb_tint": "purple", "static": true},
-		{"distance": 672.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 7.6, "float_speed": 4.2, "float_amp": 0.24},
-		{"distance": 678.0, "lane": 0, "type": "orb", "orb_size": "medium", "orb_tint": "purple", "drift_speed": 4.2, "float_speed": 2.4, "float_amp": 0.42},
-		{"distance": 718.0, "lane": -1, "type": "slide"},
-		{"distance": 768.0, "lane": 0, "type": "jump"},
-		{"distance": 828.0, "lane": 1, "type": "slide"}
+		{
+			"distance": 32.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 58.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 86.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 118.0,
+			"lane": 0,
+			"type": "block_left"
+		},
+		{
+			"distance": 152.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 188.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 228.0,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 258.0,
+			"half_depth": 26.0,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		},
+		{
+			"distance": 318.0,
+			"lane": 0,
+			"type": "train_moving",
+			"move_speed": -10.5
+		},
+		{
+			"distance": 362.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 408.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 452.0,
+			"lane": 0,
+			"type": "block_right"
+		},
+		{
+			"distance": 498.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 548.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 2.4,
+			"fall_roll": false
+		},
+		{
+			"distance": 548.0,
+			"lane": 1,
+			"type": "meteorite",
+			"span": 2.2,
+			"fall_roll": false
+		},
+		{
+			"distance": 572.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 2.8,
+			"fall_roll": false
+		},
+		{
+			"distance": 596.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 2.0,
+			"fall_roll": false
+		},
+		{
+			"distance": 596.0,
+			"lane": 1,
+			"type": "meteorite",
+			"span": 2.6,
+			"fall_roll": false
+		},
+		{
+			"distance": 620.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 3.0,
+			"fall_roll": false
+		},
+		{
+			"distance": 644.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "large",
+			"orb_tint": "purple",
+			"static": true
+		},
+		{
+			"distance": 652.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "tiny",
+			"orb_tint": "purple",
+			"drift_speed": 6.8,
+			"float_speed": 3.8,
+			"float_amp": 0.3
+		},
+		{
+			"distance": 658.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "small",
+			"orb_tint": "purple",
+			"drift_speed": 5.4,
+			"float_speed": 3.0,
+			"float_amp": 0.36
+		},
+		{
+			"distance": 664.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "huge",
+			"orb_tint": "purple",
+			"static": true
+		},
+		{
+			"distance": 672.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "tiny",
+			"orb_tint": "purple",
+			"drift_speed": 7.6,
+			"float_speed": 4.2,
+			"float_amp": 0.24
+		},
+		{
+			"distance": 678.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "medium",
+			"orb_tint": "purple",
+			"drift_speed": 4.2,
+			"float_speed": 2.4,
+			"float_amp": 0.42
+		},
+		{
+			"distance": 718.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 768.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 828.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 1125.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
 	]
 }

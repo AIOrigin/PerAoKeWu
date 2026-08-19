@@ -63,7 +63,8 @@
 		{
 			"distance": 64.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 100.0,
@@ -73,7 +74,8 @@
 		{
 			"distance": 136.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 172.0,
@@ -83,7 +85,8 @@
 		{
 			"distance": 208.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 244.0,
@@ -93,7 +96,8 @@
 		{
 			"distance": 280.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 316.0,
@@ -103,7 +107,8 @@
 		{
 			"distance": 352.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 388.0,
@@ -113,7 +118,8 @@
 		{
 			"distance": 424.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 460.0,
@@ -123,7 +129,8 @@
 		{
 			"distance": 496.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 532.0,
@@ -133,7 +140,8 @@
 		{
 			"distance": 568.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 604.0,
@@ -143,7 +151,8 @@
 		{
 			"distance": 640.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 676.0,
@@ -153,7 +162,8 @@
 		{
 			"distance": 712.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 568.0,
@@ -237,6 +247,13 @@
 			"distance": 566.0,
 			"lane": -1,
 			"layer": 0
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 746.0,
+			"lane": 0,
+			"width_ratio": 0.58
 		}
 	]
 }

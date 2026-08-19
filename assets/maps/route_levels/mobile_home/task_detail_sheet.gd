@@ -16,6 +16,9 @@ const UI_EMBER_RUN_GLOW := Color(0.64, 0.11, 0.11, 0.30)
 const UI_EMBER_RUN_TEXT := Color(0.93, 0.78, 0.76)
 const UI_REWARD_CLAIM := ClaimButtonUI.HIGHLIGHT
 
+const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
+
 const CARGO_ICON_DESIGN_PX := 64.0
 
 var _design_size := Vector2(682.0, 1228.0)
@@ -32,6 +35,7 @@ var _reward := 0
 var _tween: Tween
 var _outpost_name_cb: Callable = Callable()
 var _built := false
+var _preview_locked := false
 
 
 func configure(viewport_size: Vector2, design_size: Vector2, outpost_name_cb: Callable = Callable()) -> void:
@@ -239,6 +243,12 @@ func _apply_accept_button_style(mode: String) -> void:
 			accept_style.shadow_color = Color(UI_MISSION_DONE.r, UI_MISSION_DONE.g, UI_MISSION_DONE.b, 0.25)
 			accept_style.shadow_size = 8
 			_accept.add_theme_color_override("font_color", Color(0.88, 0.98, 0.92))
+		"preview":
+			accept_style.bg_color = Color(0.16, 0.10, 0.04, 0.72)
+			accept_style.border_color = Color(0.98, 0.74, 0.28, 0.78)
+			accept_style.shadow_color = Color(0.98, 0.74, 0.28, 0.22)
+			accept_style.shadow_size = 6
+			_accept.add_theme_color_override("font_color", Color(0.98, 0.82, 0.42))
 		_:
 			accept_style.bg_color = Color(0.06, 0.10, 0.16, 0.88)
 			accept_style.border_color = Color(0.667, 0.902, 1.0, 0.45)
@@ -286,11 +296,13 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	var reward_claimed := Global.is_mission_reward_claimed(planet_id, mission_id)
 	var progress_target := MissionTypes.mission_progress_target(mission)
 	var progress_now := Global.get_mission_progress(planet_id, mission_id)
+	var preview_locked := MissionDispatch.is_preview_location(planet_id, location_id)
 
 	_planet_id = planet_id
 	_location_id = location_id
 	_mission_id = mission_id
 	_reward = reward
+	_preview_locked = preview_locked
 
 	for child in _body.get_children():
 		child.queue_free()
@@ -309,6 +321,28 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	sub.add_theme_font_size_override("font_size", _spec_fs(22))
 	sub.add_theme_color_override("font_color", UI_MUTED)
 	_body.add_child(sub)
+
+	if preview_locked:
+		var lock_panel := PanelContainer.new()
+		lock_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var lock_style := StyleBoxFlat.new()
+		lock_style.bg_color = Color(0.18, 0.10, 0.04, 0.55)
+		lock_style.border_color = Color(0.98, 0.74, 0.28, 0.82)
+		lock_style.set_border_width_all(1)
+		lock_style.set_corner_radius_all(_spec_w(12))
+		lock_style.content_margin_left = _spec_w(16)
+		lock_style.content_margin_right = _spec_w(16)
+		lock_style.content_margin_top = _spec_h(12)
+		lock_style.content_margin_bottom = _spec_h(12)
+		lock_panel.add_theme_stylebox_override("panel", lock_style)
+		_body.add_child(lock_panel)
+		var lock_lbl := Label.new()
+		lock_lbl.text = "预览模式 · 批次正式解锁前可试玩体验\n点击底部「试玩体验」直接进入关卡调优（进度暂不计入任务板）"
+		lock_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_lbl.add_theme_font_size_override("font_size", _spec_fs(18))
+		lock_lbl.add_theme_color_override("font_color", Color(0.98, 0.82, 0.42))
+		lock_panel.add_child(lock_lbl)
 
 	var rows := VBoxContainer.new()
 	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -408,6 +442,13 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	if reward_pending:
 		_accept.text = "★ %d" % reward
 		_apply_accept_button_style("claim")
+	elif preview_locked:
+		if MissionDispatch.can_preview_trial_run(planet_id, location_id):
+			_accept.text = "试玩体验"
+			_apply_accept_button_style("run")
+		else:
+			_accept.text = "批次未解锁"
+			_apply_accept_button_style("preview")
 	elif mission_done:
 		_accept.text = "REPLAY"
 		_apply_accept_button_style("done")

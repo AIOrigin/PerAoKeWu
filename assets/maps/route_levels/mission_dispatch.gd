@@ -4,6 +4,12 @@ class_name MissionDispatch
 ## 批次解锁 + 3 槽缺口派发（对齐《星火信使机制梳理》）
 
 const BOARD_SLOT_COUNT := 3
+## 批次未解锁时仍可在 Tasks / 地图详情预览（不进入任务板派发）
+const PREVIEW_LOCATIONS := {
+	"glass_desert": ["relay"],
+}
+## 关卡调优：预览据点允许「试玩体验」进跑酷（暂不计入任务板接取）
+const ALLOW_PREVIEW_TRIAL_RUN := true
 const DEFAULT_BATCHES := [
 	{"id": 1, "name": "生存基础", "locations": ["dome", "reservoir"]},
 	{"id": 2, "name": "危机应对", "locations": ["medical", "gate"]},
@@ -91,6 +97,17 @@ static func is_location_batch_unlocked(planet_id: String, location_id: String, u
 		return false
 	var unlocked := unlocked_batch if unlocked_batch > 0 else compute_unlocked_batch(planet_id)
 	return batch_id <= unlocked
+
+
+static func is_preview_location(planet_id: String, location_id: String) -> bool:
+	var ids: Array = PREVIEW_LOCATIONS.get(planet_id, [])
+	if not ids.has(location_id):
+		return false
+	return not is_location_batch_unlocked(planet_id, location_id)
+
+
+static func can_preview_trial_run(planet_id: String, location_id: String) -> bool:
+	return ALLOW_PREVIEW_TRIAL_RUN and is_preview_location(planet_id, location_id)
 
 
 static func gap_priority(planet_id: String, location_id: String) -> float:
@@ -210,7 +227,7 @@ static func list_mission_board_candidates(planet_id: String, unlocked_batch: int
 	return candidates
 
 
-## 任务面板：含未完成与已完成（据点未点亮前均展示）
+## 任务面板：未完成、进行中、已完成待领取均展示；已领取且完成的任务隐藏
 static func list_tasks_panel_missions(planet_id: String, unlocked_batch: int = -1) -> Array[String]:
 	var cfg := _runner_config(planet_id)
 	if cfg == null or not cfg.has_method("get_location_missions"):
@@ -224,12 +241,15 @@ static func list_tasks_panel_missions(planet_id: String, unlocked_batch: int = -
 		var location_id := String(mission.get("location_id", ""))
 		if location_id == "":
 			continue
-		if Global.get_completed_runner_locations(planet_id).has(location_id):
-			continue
 		if not is_location_batch_unlocked(planet_id, location_id, unlocked):
-			continue
+			if not is_preview_location(planet_id, location_id):
+				continue
 		var mission_id: String = Global.mission_key(mission)
-		if mission_id != "" and not result.has(mission_id):
+		if mission_id == "":
+			continue
+		if Global.is_mission_completed(planet_id, mission_id) and not Global.is_mission_reward_pending(planet_id, mission_id):
+			continue
+		if not result.has(mission_id):
 			result.append(mission_id)
 	result.sort_custom(func(a: String, b: String) -> bool:
 		var ma: Dictionary = cfg.get_mission_by_id(a) if cfg.has_method("get_mission_by_id") else {}

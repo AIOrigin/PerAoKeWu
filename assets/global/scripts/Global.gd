@@ -154,6 +154,9 @@ func _notification(what: int) -> void:
 	# Windows WASAPI 在休眠/换输出设备后会 invalidate；焦点回来时尝试续播 BGM
 	if what in [NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_WM_WINDOW_FOCUS_IN]:
 		call_deferred("_recover_audio_after_device_change")
+	# 停止调试/退出前先停音频，减轻 WASAPI GetBufferSize 报错
+	if what in [NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_PREDELETE]:
+		_shutdown_audio_output()
 
 
 func _setup_game_music() -> void:
@@ -689,6 +692,15 @@ func _stop_all_sfx_immediate() -> void:
 	for player in _sfx_pool:
 		if player != null and is_instance_valid(player):
 			player.stop()
+
+
+func _shutdown_audio_output() -> void:
+	_kill_bgm_fade()
+	_stop_all_sfx_immediate()
+	if _music_player != null and is_instance_valid(_music_player):
+		_music_player.stop()
+	if _music_player_b != null and is_instance_valid(_music_player_b):
+		_music_player_b.stop()
 
 
 func _load_looped_bgm(path: String, loop: bool) -> AudioStream:

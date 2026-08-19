@@ -125,7 +125,8 @@
 		{
 			"distance": 72.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 210.0,
@@ -136,7 +137,8 @@
 		{
 			"distance": 232.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 398.0,
@@ -146,7 +148,8 @@
 		{
 			"distance": 412.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 448.0,
@@ -161,7 +164,8 @@
 		{
 			"distance": 498.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 548.0,
@@ -173,7 +177,8 @@
 			"distance": 612.0,
 			"lane": -1,
 			"type": "slide",
-			"layer": 1
+			"layer": 1,
+			"low_slide": true
 		},
 		{
 			"distance": 668.0,
@@ -183,7 +188,8 @@
 		{
 			"distance": 248.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 258.0,
@@ -193,7 +199,8 @@
 		{
 			"distance": 270.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 282.0,
@@ -217,7 +224,8 @@
 		{
 			"distance": 348.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 360.0,
@@ -227,7 +235,8 @@
 		{
 			"distance": 382.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 430.0,
@@ -276,7 +285,8 @@
 		{
 			"distance": 658.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 688.0,
@@ -756,6 +766,13 @@
 			"roll_speed": -6.0,
 			"fall_speed": 27.1,
 			"fall_trigger_ahead": 36.0
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 1169.9,
+			"lane": 0,
+			"width_ratio": 0.58
 		}
 	]
 }

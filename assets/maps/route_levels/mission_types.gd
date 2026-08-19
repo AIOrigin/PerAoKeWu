@@ -117,6 +117,10 @@ static func resolve(mission: Dictionary = {}) -> Dictionary:
 		profile["obstacle_density"] = clampf(float(mission["obstacle_density"]), 0.35, 2.0)
 	if mission.has("fork_bias"):
 		profile["fork_bias"] = bool(mission["fork_bias"])
+	if mission.has("enable_chaser"):
+		profile["enable_chaser"] = bool(mission["enable_chaser"])
+	if mission.has("chaser_creep_mult"):
+		profile["chaser_creep_mult"] = clampf(float(mission["chaser_creep_mult"]), 0.5, 2.0)
 	return profile
 
 
@@ -150,17 +154,17 @@ static func enrich_mission(mission: Dictionary) -> Dictionary:
 	return out
 
 
-## 单局完整度 → 任务进度增量（Perfect=100，Damaged=30 等）
+## 单局完整度 → 任务进度增量（v1：S/A/B/C = +100/+70/+40/+20，阈值 95/80/60）
 static func integrity_to_mission_progress(integrity_percent: float) -> int:
 	var v := clampf(integrity_percent, 0.0, 100.0)
 	if v >= 95.0:
 		return 100
 	if v >= 80.0:
-		return 80
+		return 70
 	if v >= 60.0:
-		return 60
+		return 40
 	if v > 0.0:
-		return 30
+		return 20
 	return 0
 
 

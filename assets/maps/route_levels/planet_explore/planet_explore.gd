@@ -140,7 +140,7 @@ func _set_ceremony_hint(text: String) -> void:
 func _clear_ceremony_hint() -> void:
 	_ceremony_hint_active = false
 	if _mobile_hint_label:
-		_mobile_hint_label.text = "点击地图上的地点打开详情 · 拖拽旋转 3D 建筑"
+		_mobile_hint_label.text = "点击据点高亮框或 👆 打开详情 · 拖拽旋转 3D 建筑"
 	_apply_mobile_hint_layout()
 
 
@@ -315,10 +315,10 @@ func _build_map_ui() -> void:
 	_location_layer.name = "LocationLayer"
 	_location_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_location_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_location_layer.visible = false
+	_location_layer.visible = true
 	_map_root.add_child(_location_layer)
 
-	# 不再生成 MapLocationMarker 圆形节点；点击走底图 hit-test
+	_spawn_map_tap_markers()
 	_build_info_panel(_ui_shell)
 	_build_top_chrome(_ui_shell)
 	_build_mobile_hint(_ui_shell)
@@ -670,7 +670,7 @@ func _apply_responsive_layout() -> void:
 	if _mobile_hint_panel:
 		_mobile_hint_panel.visible = _mobile_layout
 	if _mobile_hint_label and _mobile_layout and not _ceremony_hint_active:
-		_mobile_hint_label.text = "点击地图上的地点打开详情 · 拖拽旋转 3D 建筑"
+		_mobile_hint_label.text = "点击据点高亮框或 👆 打开详情 · 拖拽旋转 3D 建筑"
 	_apply_mobile_hint_layout()
 
 
@@ -744,25 +744,107 @@ func _apply_info_panel_layout() -> void:
 
 
 func _add_location_button(location: Dictionary) -> void:
-	# 保留接口兼容；探索地图已改为点底图地点，不再创建圆形标记
 	pass
+
+
+func _spawn_map_tap_markers() -> void:
+	for child in _location_layer.get_children():
+		child.queue_free()
+	_location_buttons.clear()
+	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
+	for location in _location_data:
+		var id := String(location.get("id", ""))
+		if id == "":
+			continue
+		if not bool(location.get("open_detail", true)):
+			continue
+		var marker := MapLocationMarker.new()
+		marker.name = "Tap_%s" % id
+		var preview_path := ""
+		if cfg != null and cfg.has_method("get_location_preview_path"):
+			preview_path = String(cfg.get_location_preview_path(id))
+		var display_name := String(location.get("name_en", location.get("name", id)))
+		var type_icon := "◎"
+		if cfg != null and cfg.has_method("get_type_icon"):
+			type_icon = String(cfg.get_type_icon(id))
+		marker.configure(id, display_name, preview_path, type_icon)
+		marker.set_pin_mode(true)
+		marker.activated.connect(_on_map_marker_activated.bind(id))
+		_location_layer.add_child(marker)
+		_location_buttons[id] = marker
+	call_deferred("_layout_location_buttons")
+
+
+func _on_map_marker_activated(location_id: String) -> void:
+	if _ceremony_animating:
+		return
+	var location := _get_location(location_id)
+	if location.is_empty():
+		return
+	var open_detail := bool(location.get("open_detail", true))
+	var needs_ceremony := Global.is_map_light_ceremony_pending(Global.exploration_planet_id, location_id)
+	if needs_ceremony:
+		_play_light_ceremony_then_maybe_open(location_id, open_detail)
+		return
+	if not open_detail:
+		_select_location(location_id)
+		return
+	_open_location_detail(location_id)
+
+
+func _location_tap_uv(location: Dictionary) -> Vector2:
+	if location.has("tap_uv"):
+		return location.get("tap_uv") as Vector2
+	return location.get("pos", Vector2(0.5, 0.5)) as Vector2
 
 
 func _layout_location_buttons() -> void:
-	# 无圆形节点可布局；连线层已隐藏
-	pass
+	if _location_layer == null:
+		return
+	var image_rect := _get_map_image_rect()
+	for location in _location_data:
+		var id := String(location.get("id", ""))
+		var marker: MapLocationMarker = _location_buttons.get(id)
+		if marker == null:
+			continue
+		var uv := _location_tap_uv(location)
+		var pixel_offset := Vector2.ZERO
+		if location.has("tap_offset"):
+			pixel_offset = location.get("tap_offset") as Vector2
+		var center := image_rect.position + Vector2(image_rect.size.x * uv.x, image_rect.size.y * uv.y) + pixel_offset
+		var size := marker.size
+		if size.x <= 1.0:
+			size = Vector2(MapLocationMarker.PIN_HIT, MapLocationMarker.PIN_HIT)
+		# pin 三角尖端对准 tap_uv（底图圆标中心）
+		marker.position = center - Vector2(size.x * 0.5, size.y * 0.5 + MapLocationMarker.PIN_TIP_OFFSET_Y)
+		var revealed := _is_revealed(id)
+		var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, id)
+		var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(id)
+		var selected := id == _selected_location_id
+		marker.apply_state(revealed, completed, selected, preview)
 
 
 func _on_map_gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
-			_try_open_location_at_map_pos(touch.position)
+			_try_open_location_at_map_pos(_map_input_local_pos(event))
 		return
 	if event is InputEventMouseButton:
 		var mouse := event as InputEventMouseButton
 		if mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
-			_try_open_location_at_map_pos(mouse.position)
+			_try_open_location_at_map_pos(_map_input_local_pos(event))
+
+
+func _map_input_local_pos(event: InputEvent) -> Vector2:
+	if _map_texture == null:
+		return Vector2.ZERO
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		return _map_texture.get_global_transform_with_canvas().affine_inverse() * touch.position
+	if event is InputEventMouseButton:
+		return (event as InputEventMouseButton).position
+	return Vector2.ZERO
 
 
 func _try_open_location_at_map_pos(local_pos: Vector2) -> void:
@@ -907,7 +989,7 @@ func _hit_test_map_location(local_pos: Vector2) -> String:
 				hit = true
 				score = uv.distance_to(location["pos"] as Vector2)
 		if not hit:
-			var anchor: Vector2 = location["pos"]
+			var anchor: Vector2 = _location_tap_uv(location)
 			var radius := float(location.get("hit_radius", 0.09))
 			var dist := uv.distance_to(anchor)
 			if dist <= radius:
@@ -955,15 +1037,18 @@ func _select_location(location_id: String) -> void:
 	if location.is_empty():
 		return
 	var revealed := _is_revealed(location_id)
+	var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, location_id)
 	var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(location_id)
 	_info_title.text = String(location["name"])
 	if completed:
 		_info_status.text = "● 状态：已点亮"
+	elif preview:
+		_info_status.text = "● 状态：预览（批次未开放）"
 	elif revealed:
 		_info_status.text = "● 状态：运输修复中"
 	else:
 		_info_status.text = "● 状态：未开放"
-	if revealed:
+	if revealed or preview:
 		_info_desc.text = "%s\n%s" % [String(location.get("tagline", "")), String(location.get("goal", ""))]
 	else:
 		_info_desc.text = "还没轮到这个据点的任务哦。"
@@ -1001,6 +1086,10 @@ func _on_detail_story_pressed() -> void:
 
 
 func _on_detail_runner_pressed(mission_id: String = "") -> void:
+	var location_id := _selected_location_id
+	if MissionDispatch.is_preview_location(Global.exploration_planet_id, location_id):
+		if not MissionDispatch.can_preview_trial_run(Global.exploration_planet_id, location_id):
+			return
 	_pending_detail_mission_id = mission_id
 	_close_location_detail()
 	_start_runner_with_transition()
@@ -1062,11 +1151,12 @@ func _warm_runner_assets() -> void:
 
 
 func _build_location_detail_payload(location_id: String) -> Dictionary:
-	var revealed := _is_revealed(location_id)
+	var batch_revealed := _is_revealed(location_id)
+	var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, location_id)
 	var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(location_id)
 	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
 	if cfg.has_method("build_detail_payload"):
-		return cfg.build_detail_payload(location_id, revealed, completed)
+		return cfg.build_detail_payload(location_id, batch_revealed, completed, preview)
 	return {}
 
 
@@ -1133,15 +1223,7 @@ func _has_locked_linked_locations(location: Dictionary) -> bool:
 
 
 func _update_location_buttons() -> void:
-	for location in _location_data:
-		var id := String(location["id"])
-		var marker: MapLocationMarker = _location_buttons.get(id)
-		if marker == null:
-			continue
-		var revealed := _is_revealed(id)
-		var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(id)
-		var selected := id == _selected_location_id
-		marker.apply_state(revealed, completed, selected)
+	call_deferred("_layout_location_buttons")
 
 
 func _update_reveal_shader() -> void:
@@ -1380,7 +1462,8 @@ func _setup_pause_overlay() -> void:
 
 func _start_runner() -> void:
 	if not MissionDispatch.is_location_batch_unlocked(Global.exploration_planet_id, _selected_location_id):
-		return
+		if not MissionDispatch.can_preview_trial_run(Global.exploration_planet_id, _selected_location_id):
+			return
 	Global.runner_planet_id = Global.exploration_planet_id
 	Global.runner_location_id = _selected_location_id
 	var mission_id := _pending_detail_mission_id
