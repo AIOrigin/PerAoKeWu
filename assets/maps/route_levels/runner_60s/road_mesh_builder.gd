@@ -104,6 +104,9 @@ func rebuild(
 					road_half + apron_extra, lane_y - 0.018,
 					apron_mat, step_main, 0.0, style, gaps, cast_off
 				)
+			# 不透明托底，避免透过网格看见坑底熔岩
+			var deck := make_mat(Color(0.018, 0.045, 0.09), Color(0.04, 0.12, 0.18), 0.06)
+			_strip(parent, sample_path, 0.0, track_end, road_half * 0.98, lane_y - 0.016, deck, step_main, 0.0, style, gaps, cast_off)
 		else:
 			_strip(parent, sample_path, 0.0, track_end, underlay_half, lane_y - 0.018, underlay, step_main, 0.0, style, gaps, cast_off)
 		_strip(parent, sample_path, 0.0, track_end, road_half, lane_y, kit["road"], step_main, 0.0, style, gaps, cast_off)

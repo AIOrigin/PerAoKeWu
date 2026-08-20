@@ -1,56 +1,56 @@
 {
-	"note": "M3 长途毒雾 · 净水包中继 + 多分叉",
+	"note": "M3 长途毒雾 · 早弯→中段 Y 岔→双分叉",
 	"layout_id": "mission_medical_m3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
+	"version": 2,
 	"track_segments": [
 		{
-			"length": 180,
-			"turn": 0
+			"length": 220.0,
+			"turn": 0.0
 		},
 		{
-			"length": 44,
+			"length": 44.0,
 			"turn": 0.785
 		},
 		{
-			"length": 200,
-			"turn": 0
-		},
-		{
-			"length": 44,
-			"turn": -0.785
-		},
-		{
-			"length": 200,
-			"turn": 0
+			"length": 180.0,
+			"turn": 0.0
 		},
 		{
 			"type": "y_fork",
-			"branch_length": 48,
-			"angle_deg": 38
+			"branch_length": 46.0,
+			"angle_deg": 36.0
 		},
 		{
-			"length": 220,
-			"turn": 0
+			"length": 200.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": -0.785
+		},
+		{
+			"length": 200.0,
+			"turn": 0.0
 		}
 	],
 	"junction_zones": [
 		{
-			"distance": 108,
-			"length": 90,
-			"spread": 19,
+			"distance": 228.0,
+			"length": 90.0,
+			"spread": 19.0,
 			"lane_a": 0,
 			"label_a": "薄雾支路",
-			"effect_a": "repair",
+			"effect_a": "safe",
 			"lane_b": 2,
 			"label_b": "速通支路",
 			"effect_b": "fast"
 		},
 		{
-			"distance": 420,
-			"length": 88,
-			"spread": 20,
+			"distance": 480.0,
+			"length": 88.0,
+			"spread": 20.0,
 			"lane_a": 0,
 			"label_a": "左支缓冲",
 			"effect_a": "repair",

@@ -1,29 +1,29 @@
 {
-	"note": "D1 强行突破 · 防御包 + 强制伤害区",
+	"note": "D1 强行突破 · 超长直道+双弯（纯火力区，无分叉）",
 	"layout_id": "mission_gate_d1",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
+	"version": 2,
 	"track_segments": [
 		{
-			"length": 260,
-			"turn": 0
+			"length": 320.0,
+			"turn": 0.0
 		},
 		{
-			"length": 42,
+			"length": 42.0,
 			"turn": 0.785
 		},
 		{
-			"length": 260,
-			"turn": 0
+			"length": 280.0,
+			"turn": 0.0
 		},
 		{
-			"length": 42,
+			"length": 42.0,
 			"turn": -0.785
 		},
 		{
-			"length": 240,
-			"turn": 0
+			"length": 240.0,
+			"turn": 0.0
 		}
 	],
 	"junction_zones": [],

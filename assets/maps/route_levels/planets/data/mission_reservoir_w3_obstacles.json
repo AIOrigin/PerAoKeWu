@@ -1,12 +1,12 @@
 {
-	"note": "W3 · 末段落陨石减密约35%（相较 v10）· 去末段沙暴叠卡",
+	"note": "W3 长途 · 超长直道→三连弯→双晚段分叉",
 	"layout_id": "mission_reservoir_w3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 13,
+	"version": 14,
 	"track_segments": [
 		{
-			"length": 340.0,
+			"length": 420.0,
 			"turn": 0.0
 		},
 		{
@@ -44,7 +44,7 @@
 	],
 	"junction_zones": [
 		{
-			"distance": 100.0,
+			"distance": 248.0,
 			"length": 88.0,
 			"spread": 17.0,
 			"lane_a": 0,
@@ -55,26 +55,15 @@
 			"effect_b": "fast"
 		},
 		{
-			"distance": 420.0,
+			"distance": 520.0,
 			"length": 88.0,
 			"spread": 21.0,
 			"lane_a": 0,
 			"label_a": "左支缓冲",
-			"effect_a": "repair",
+			"effect_a": "safe",
 			"lane_b": 2,
 			"label_b": "右支奖励",
 			"effect_b": "bonus"
-		},
-		{
-			"distance": 688.0,
-			"length": 88.0,
-			"spread": 20.0,
-			"lane_a": 0,
-			"label_a": "安全岔路",
-			"effect_a": "repair",
-			"lane_b": 2,
-			"label_b": "速通岔路",
-			"effect_b": "fast"
 		}
 	],
 	"side_runway_zones": [

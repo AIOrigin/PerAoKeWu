@@ -1,33 +1,52 @@
 {
-	"note": "M2 极限护送 · 医疗包极脆 + 障碍极密",
+	"note": "M2 极限护送 · 连续蛇形弯+侧墙（无车道分叉）",
 	"layout_id": "mission_medical_m2",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
+	"version": 2,
 	"track_segments": [
 		{
-			"length": 200,
-			"turn": 0
+			"length": 160.0,
+			"turn": 0.0
 		},
 		{
-			"length": 36,
+			"length": 36.0,
 			"turn": 0.872
 		},
 		{
-			"length": 200,
-			"turn": 0
+			"length": 160.0,
+			"turn": 0.0
 		},
 		{
-			"length": 36,
+			"length": 36.0,
 			"turn": -0.872
 		},
 		{
-			"length": 180,
-			"turn": 0
+			"length": 160.0,
+			"turn": 0.0
+		},
+		{
+			"length": 36.0,
+			"turn": 0.698
+		},
+		{
+			"length": 120.0,
+			"turn": 0.0
 		}
 	],
 	"junction_zones": [],
-	"side_runway_zones": [],
+	"side_runway_zones": [
+		{
+			"start": 280.0,
+			"length": 72.0,
+			"side": "outer",
+			"fallback_side": -1,
+			"lateral_offset": 7.0,
+			"layer": 1,
+			"entry_window": 10.0,
+			"speed_mult": 1.04
+		}
+	],
 	"sandstorm_zones": [
 		{
 			"start": 140,

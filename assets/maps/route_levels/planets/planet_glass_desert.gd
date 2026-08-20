@@ -10,6 +10,7 @@ const PLANET_ID := "glass_desert"
 const GAME_TITLE := "星火信使：黎明线"
 const MAP_NAME := "无尽晶砂漠"
 const MAP_NAME_EN := "Endless Glass Desert"
+const MAP_CHROME_TITLE := "Crystal Waste"
 
 const MISSION := {
 	"runner_code": "Elsa",
@@ -39,8 +40,8 @@ const EXPLORE_LOCATIONS := [
 		"type": "水源据点",
 		"tagline": "荒原最后的净水设施之一。",
 		"goal": "修复净化系统，让生命之源重新流动。",
-		"pos": Vector2(0.69, 0.50),
-		"tap_uv": Vector2(0.69, 0.50),
+		"pos": Vector2(0.737, 0.603),
+		"tap_uv": Vector2(0.737, 0.603),
 		"hit_radius": 0.09,
 		"reveal": ["dome", "medical"],
 		"area": [
@@ -65,8 +66,8 @@ const EXPLORE_LOCATIONS := [
 		"type": "居民穹顶",
 		"tagline": "荒原最大的幸存者聚居地。",
 		"goal": "修复穹顶，重建人类最后的家园。",
-		"pos": Vector2(0.48, 0.46),
-		"tap_uv": Vector2(0.48, 0.46),
+		"pos": Vector2(0.508, 0.547),
+		"tap_uv": Vector2(0.508, 0.547),
 		"hit_radius": 0.12,
 		"reveal": ["reservoir", "medical"],
 		"area": [
@@ -145,8 +146,8 @@ const EXPLORE_LOCATIONS := [
 		"type": "星火中继站",
 		"tagline": "连接各区域的通讯核心。",
 		"goal": "恢复信号，让希望再次传递。",
-		"pos": Vector2(0.84, 0.18),
-		"tap_uv": Vector2(0.84, 0.14),
+		"pos": Vector2(0.596, 0.215),
+		"tap_uv": Vector2(0.596, 0.215),
 		"hit_radius": 0.12,
 		"open_detail": true,
 		"reveal": ["medical", "gate"],
@@ -172,10 +173,20 @@ const MISSION_BATCHES := [
 	{"id": 3, "name": "网络核心", "locations": ["relay"]},
 ]
 
-## 与 obstacle_layout.gd LAYOUT_FILE_ALIASES 对应：每批 4 档难度，据点间可交叉复用同一 JSON
+## 每批 8 关各用独立 JSON（视觉素材同套、跑道/障碍布局各异）
 const OBSTACLE_LAYOUT_SETS := {
-	"early": ["layout_set_early_1", "layout_set_early_2", "layout_set_early_3", "layout_set_early_4"],
-	"crisis": ["layout_set_crisis_1", "layout_set_crisis_2", "layout_set_crisis_3", "layout_set_crisis_4"],
+	"early": [
+		"mission_dome_h1", "mission_reservoir_w1",
+		"mission_dome_h2", "mission_reservoir_w2",
+		"mission_dome_h3", "mission_reservoir_w3",
+		"mission_dome_h4", "mission_reservoir_w4",
+	],
+	"crisis": [
+		"mission_medical_m1", "mission_gate_d1",
+		"mission_medical_m2", "mission_gate_d2",
+		"mission_medical_m3", "mission_gate_d3",
+		"mission_medical_m4", "mission_gate_d4",
+	],
 	"relay": ["layout_set_relay_1", "layout_set_relay_2", "layout_set_relay_3", "layout_set_relay_4"],
 }
 
@@ -234,38 +245,68 @@ const RUNNER_SKY_YAW := {
 	"mission_gate_d4": 5.57,
 }
 
+const RUNNER_PROP_ROOT := "res://assets/maps/route_levels/runner_60s/"
+const RUNNER_MID := RUNNER_PROP_ROOT + "midground_props/"
+const RUNNER_DIST := RUNNER_PROP_ROOT + "distant_props/"
+const RUNNER_OBS_LIGHT := RUNNER_PROP_ROOT + "obstacles_lightweight/"
+const RUNNER_ENV_V2 := RUNNER_PROP_ROOT + "environment_pack_v2/"
+const MVP2_OBS := "res://mvp素材第二批/障碍物/0803/"
+
+const DOME_LIGHTWEIGHT_JUMP := [
+	RUNNER_OBS_LIGHT + "jump_crumbling_ruined_wall.glb",
+	"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
+	"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
+]
+const DOME_LIGHTWEIGHT_SLIDES := [
+	RUNNER_OBS_LIGHT + "slide_rusty_industrial_pipeline.glb",
+	RUNNER_OBS_LIGHT + "slide_spike_barrier.glb",
+	MVP2_OBS + "废旧广告牌（滑铲）.glb",
+	MVP2_OBS + "能量屏障（滑铲）.glb",
+]
+const DOME_ENV_PACK_V2 := [
+	RUNNER_ENV_V2 + "mid_deadzone_billboard.glb",
+	RUNNER_ENV_V2 + "midnear_spark_ring_1.glb",
+	RUNNER_ENV_V2 + "midnear_spark_ring_2.glb",
+]
+
 const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_dome_h1",
 		"location_id": "dome",
-		"layout_id": "layout_set_early_1",
+		"layout_id": "mission_dome_h1",
 		"sky_accents": {
 			"energy_gates": true,
 			"aurora": false,
 			"panorama_billboards": true,
-			"distant_density": 1.48,
+			"distant_density": 1.62,
+		},
+		"visual_scene": {
+			"runway_side_lights": true,
+			"ruin_dressing": true,
+			"dark_ground": true,
+			"near_far_light_split": true,
 		},
 		"environment": {
-			"panorama_energy": 1.78,
-			"fog_color": Color(0.52, 0.36, 0.22),
-			"fog_density": 0.00058,
-			"fog_aerial_perspective": 0.13,
-			"ambient": Color(0.58, 0.42, 0.34),
-			"ambient_energy": 0.82,
+			"panorama_energy": 0.98,
+			"fog_color": Color(0.20, 0.16, 0.30),
+			"fog_density": 0.00072,
+			"fog_aerial_perspective": 0.15,
+			"ambient": Color(0.30, 0.26, 0.36),
+			"ambient_energy": 0.46,
 		},
 		"midground_props": [
-			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
 		],
-		"jump_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
-			"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
-		],
-		"slide_obstacles": [
+		"near_runway_props": [
+			"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
 			"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
-			"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
 		],
+		"jump_obstacles": DOME_LIGHTWEIGHT_JUMP,
+		"slide_obstacles": DOME_LIGHTWEIGHT_SLIDES,
+		"environment_pack_v2": DOME_ENV_PACK_V2,
+		"environment_pack_v2_mix": 0.20,
 		"runner_code": "Elsa",
 		"cargo_name": "能源包",
 		"cargo_name_en": "Energy Pack",
@@ -282,7 +323,7 @@ const LOCATION_MISSIONS := [
 		"difficulty": 1,
 		"base_reward": 50,
 		"runner_rhythm": "热浪区会累积过热：短按冲刺散热，长按冲刺会减速并掉损。",
-		"environment_factor": "琥珀色晨雾，侧景以霓虹牌与机械残骸为主。",
+		"environment_factor": "暗色废墟长桥，路侧暖灯常亮；近景昏黄、远景紫雾穹顶逐段显现。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "第一批能源包需送达居民穹顶，重启穹顶温控系统。",
@@ -290,7 +331,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_dome_h2",
 		"location_id": "dome",
-		"layout_id": "layout_set_early_2",
+		"layout_id": "mission_dome_h2",
 		"sky_accents": {
 			"energy_gates": true,
 			"aurora": false,
@@ -310,14 +351,10 @@ const LOCATION_MISSIONS := [
 			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 		],
-		"jump_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）.glb",
-			"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
-		],
-		"slide_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
-			"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
-		],
+		"jump_obstacles": DOME_LIGHTWEIGHT_JUMP,
+		"slide_obstacles": DOME_LIGHTWEIGHT_SLIDES,
+		"environment_pack_v2": DOME_ENV_PACK_V2,
+		"environment_pack_v2_mix": 0.20,
 		"runner_code": "Elsa",
 		"cargo_name": "防御包",
 		"cargo_name_en": "Defense Pack",
@@ -342,7 +379,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_dome_h3",
 		"location_id": "dome",
-		"layout_id": "layout_set_early_3",
+		"layout_id": "mission_dome_h3",
 		"sky_accents": {
 			"energy_gates": true,
 			"aurora": false,
@@ -362,13 +399,10 @@ const LOCATION_MISSIONS := [
 			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
 		],
-		"jump_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
-			"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
-		],
-		"slide_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
-		],
+		"jump_obstacles": DOME_LIGHTWEIGHT_JUMP,
+		"slide_obstacles": DOME_LIGHTWEIGHT_SLIDES,
+		"environment_pack_v2": DOME_ENV_PACK_V2,
+		"environment_pack_v2_mix": 0.20,
 		"runner_code": "Elsa",
 		"cargo_name": "能源包",
 		"cargo_name_en": "Energy Pack",
@@ -393,7 +427,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_dome_h4",
 		"location_id": "dome",
-		"layout_id": "layout_set_early_4",
+		"layout_id": "mission_dome_h4",
 		"sky_accents": {
 			"energy_gates": true,
 			"aurora": false,
@@ -413,13 +447,10 @@ const LOCATION_MISSIONS := [
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
 		],
-		"jump_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）.glb",
-			"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
-		],
-		"slide_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
-		],
+		"jump_obstacles": DOME_LIGHTWEIGHT_JUMP,
+		"slide_obstacles": DOME_LIGHTWEIGHT_SLIDES,
+		"environment_pack_v2": DOME_ENV_PACK_V2,
+		"environment_pack_v2_mix": 0.20,
 		"runner_code": "Elsa",
 		"cargo_name": "建设包",
 		"cargo_name_en": "Construction Kit",
@@ -446,7 +477,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_reservoir_01",
 		"location_id": "reservoir",
-		"layout_id": "layout_set_early_1",
+		"layout_id": "mission_reservoir_w1",
 		"panorama": "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w1_scene_sky.png",
 		"ground_texture": "res://assets/maps/route_levels/runner_60s/backgrounds/textures/glass_desert_w1_ground_albedo.jpg",
 		"textured_ground": true,
@@ -495,7 +526,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_reservoir_02",
 		"location_id": "reservoir",
-		"layout_id": "layout_set_early_2",
+		"layout_id": "mission_reservoir_w2",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
@@ -525,7 +556,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_reservoir_03",
 		"location_id": "reservoir",
-		"layout_id": "layout_set_early_3",
+		"layout_id": "mission_reservoir_w3",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
@@ -555,7 +586,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_reservoir_04",
 		"location_id": "reservoir",
-		"layout_id": "layout_set_early_4",
+		"layout_id": "mission_reservoir_w4",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
@@ -588,7 +619,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_medical_m1",
 		"location_id": "medical",
-		"layout_id": "layout_set_crisis_1",
+		"layout_id": "mission_medical_m1",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb",
@@ -626,7 +657,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_medical_m2",
 		"location_id": "medical",
-		"layout_id": "layout_set_crisis_2",
+		"layout_id": "mission_medical_m2",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod.glb",
@@ -665,7 +696,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_medical_m3",
 		"location_id": "medical",
-		"layout_id": "layout_set_crisis_3",
+		"layout_id": "mission_medical_m3",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod.glb",
@@ -705,7 +736,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_medical_m4",
 		"location_id": "medical",
-		"layout_id": "layout_set_crisis_4",
+		"layout_id": "mission_medical_m4",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
@@ -966,7 +997,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_gate_d1",
 		"location_id": "gate",
-		"layout_id": "layout_set_crisis_1",
+		"layout_id": "mission_gate_d1",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/distant_props/distant_signal_tower.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
@@ -1005,7 +1036,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_gate_d2",
 		"location_id": "gate",
-		"layout_id": "layout_set_crisis_2",
+		"layout_id": "mission_gate_d2",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
@@ -1051,7 +1082,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_gate_d3",
 		"location_id": "gate",
-		"layout_id": "layout_set_crisis_3",
+		"layout_id": "mission_gate_d3",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/distant_props/distant_signal_tower.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
@@ -1091,7 +1122,7 @@ const LOCATION_MISSIONS := [
 	{
 		"mission_id": "mission_gate_d4",
 		"location_id": "gate",
-		"layout_id": "layout_set_crisis_4",
+		"layout_id": "mission_gate_d4",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
 			"res://assets/maps/route_levels/runner_60s/distant_props/distant_signal_tower.glb",
@@ -1212,8 +1243,7 @@ const PLAYER_ROOK := {
 const ASSETS := {
 	"panorama": RUNNER_SKY_PANORAMA,
 	"jump_obstacles": [
-		"res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）.glb",
-		"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
+		RUNNER_OBS_LIGHT + "jump_crumbling_ruined_wall.glb",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
 		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
 	],
@@ -1227,6 +1257,7 @@ const ASSETS := {
 		"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 		"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
 		"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
+		"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
 	],
 	"landmark_props": [
 		"res://mvp素材第一批/居民穹顶3d.glb",
@@ -1255,6 +1286,69 @@ const ASSETS := {
 	"player": PLAYER_ELSA,
 }
 
+## 早期批次：水源据点 + 居民穹顶共用远景/中景/近景障碍素材（可交叉能量陨石、霓虹牌等）
+const EARLY_VISUAL_KIT := {
+	"midground_props": [
+		RUNNER_MID + "amber_crystal_coral.glb",
+		RUNNER_MID + "glowing_energy_meteorite.glb",
+		RUNNER_MID + "cracked_sphere_robot.glb",
+		RUNNER_MID + "neon_sign_prop.glb",
+	],
+	"jump_obstacles": [
+		RUNNER_OBS_LIGHT + "jump_crumbling_ruined_wall.glb",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
+	],
+	"slide_obstacles": [
+		RUNNER_OBS_LIGHT + "slide_rusty_industrial_pipeline.glb",
+		RUNNER_OBS_LIGHT + "slide_spike_barrier.glb",
+		MVP2_OBS + "废旧广告牌（滑铲）.glb",
+		MVP2_OBS + "能量屏障（滑铲）.glb",
+	],
+	"distant_tower_props": [
+		RUNNER_DIST + "fantasy_crystal_tower.glb",
+	],
+	"distant_spaceship_props": [
+		RUNNER_DIST + "futuristic_spaceship.glb",
+	],
+}
+
+## 危机批次：医疗据点 + 防御哨站共用（医疗箱/水晶树/无人机/信号塔等交叉）
+const CRISIS_VISUAL_KIT := {
+	"midground_props": [
+		RUNNER_MID + "midground_medical_pod.glb",
+		RUNNER_MID + "midground_medical_crate.glb",
+		RUNNER_MID + "midground_water_purifier.glb",
+		RUNNER_MID + "midground_excavator_robot.glb",
+		RUNNER_MID + "cracked_sphere_robot.glb",
+		RUNNER_MID + "amber_crystal_coral.glb",
+		RUNNER_MID + "neon_sign_prop.glb",
+		RUNNER_MID + "glowing_energy_meteorite.glb",
+	],
+	"near_runway_props": [
+		RUNNER_MID + "midground_medical_crate.glb",
+		RUNNER_MID + "cracked_sphere_robot.glb",
+		RUNNER_MID + "midground_water_purifier.glb",
+		RUNNER_MID + "midground_medical_pod.glb",
+	],
+	"jump_obstacles": EARLY_VISUAL_KIT["jump_obstacles"],
+	"slide_obstacles": EARLY_VISUAL_KIT["slide_obstacles"],
+	"distant_tower_props": [
+		RUNNER_DIST + "distant_signal_tower.glb",
+		RUNNER_DIST + "fantasy_crystal_tower.glb",
+	],
+	"distant_accent_props": [
+		RUNNER_MID + "midground_water_purifier.glb",
+		RUNNER_MID + "midground_medical_crate.glb",
+		RUNNER_MID + "cracked_sphere_robot.glb",
+		RUNNER_MID + "midground_excavator_robot.glb",
+		RUNNER_MID + "amber_crystal_coral.glb",
+	],
+	"distant_spaceship_props": [
+		RUNNER_DIST + "futuristic_spaceship.glb",
+	],
+}
+
 const MVP_MAPS := {
 	"explore_zh": MVP_ROOT + "晶砂荒原中文地图9：16.webp",
 	"explore_en": "res://assets/maps/route_levels/planet_explore/maps/crystal_wastes_map_9x16_en.jpg",
@@ -1266,22 +1360,27 @@ const MVP_LOCATIONS := {
 	"dome": {
 		"preview_2d": MVP_ROOT + "居民穹顶2d展示图.webp",
 		"model_3d": MVP_ROOT + "居民穹顶3d.glb",
+		"finish_silhouette": "res://assets/maps/route_levels/runner_60s/settlement/habitat_dome_silhouette.jpg",
 	},
 	"reservoir": {
 		"preview_2d": MVP_ROOT + "水源据点2d.webp",
 		"model_3d": MVP_ROOT + "水源据点3d.glb",
+		"finish_silhouette": "res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png",
 	},
 	"medical": {
 		"preview_2d": MVP_ROOT + "医疗据点2d.webp",
 		"model_3d": MVP_ROOT + "医疗据点3d.glb",
+		"finish_silhouette": MVP_ROOT + "医疗据点2d.webp",
 	},
 	"relay": {
 		"preview_2d": MVP_ROOT + "星火中继站2d.webp",
 		"model_3d": MVP_ROOT + "星火中继站3d.glb",
+		"finish_silhouette": MVP_ROOT + "星火中继站2d.webp",
 	},
 	"gate": {
 		"preview_2d": MVP_ROOT + "防御哨站2d.webp",
 		"model_3d": MVP_ROOT + "防御哨站3d.glb",
+		"finish_silhouette": MVP_ROOT + "防御哨站2d.webp",
 	},
 }
 
@@ -1382,10 +1481,70 @@ const SANDSTORM_ZONES := [
 const OBSTACLE_TYPES := {
 	"jump": "跳跃障碍",
 	"slide": "滑铲障碍",
+	"wave_arc_slide": "光波弧形桥",
+	"energy_ring": "气体能量光圈",
 	"orb": "漂浮能量球",
 	"meteorite": "占道陨石",
 	"high_bar": "滑铲障碍",
 }
+
+
+static func _rotated_prop_pool(pool: Array, seed_key: String, count: int = 3) -> Array:
+	var n := pool.size()
+	if n == 0:
+		return []
+	var take := clampi(count, 1, n)
+	var start := absi(seed_key.hash()) % n
+	var out: Array = []
+	for i in take:
+		out.append(pool[(start + i) % n])
+	return out
+
+
+static func _visual_kit_for_location(location_id: String) -> Dictionary:
+	match location_id:
+		"reservoir", "dome":
+			return EARLY_VISUAL_KIT
+		"medical", "gate":
+			return CRISIS_VISUAL_KIT
+		_:
+			return {}
+
+
+static func apply_visual_kit(mission: Dictionary) -> Dictionary:
+	if mission.is_empty():
+		return mission
+	var loc := String(mission.get("location_id", ""))
+	if loc == "relay":
+		return mission
+	var kit := _visual_kit_for_location(loc)
+	if kit.is_empty():
+		return mission
+	var out: Dictionary = mission.duplicate(true)
+	var mission_id := String(out.get("mission_id", loc))
+	var mid_pool: Array = kit.get("midground_props", [])
+	var rotated: Array = _rotated_prop_pool(mid_pool, mission_id, mini(mid_pool.size(), 6))
+	var mission_mid: Variant = out.get("midground_props", [])
+	if mission_mid is Array:
+		for path in mission_mid:
+			var p := String(path)
+			if p != "" and p not in rotated:
+				rotated.append(p)
+	out["midground_props"] = rotated.slice(0, mini(rotated.size(), 6))
+	if kit.has("near_runway_props"):
+		out["near_runway_props"] = _rotated_prop_pool(
+			kit["near_runway_props"],
+			mission_id + "_near",
+			4
+		)
+	for key in ["jump_obstacles", "slide_obstacles", "distant_tower_props", "distant_spaceship_props", "distant_accent_props"]:
+		if not kit.has(key):
+			continue
+		var existing: Variant = out.get(key, null)
+		if existing is Array and not (existing as Array).is_empty():
+			continue
+		out[key] = (kit[key] as Array).duplicate()
+	return out
 
 
 static func apply_runner_background(mission: Dictionary) -> Dictionary:
@@ -1420,7 +1579,7 @@ static func apply_runner_background(mission: Dictionary) -> Dictionary:
 		for key in existing:
 			env[key] = existing[key]
 	out["environment"] = _sanitize_runner_environment(env, mission_id)
-	return out
+	return apply_visual_kit(out)
 
 
 static func _sanitize_runner_environment(env: Dictionary, mission_id: String = "") -> Dictionary:
@@ -1429,6 +1588,11 @@ static func _sanitize_runner_environment(env: Dictionary, mission_id: String = "
 		# 中继站：轻雾、暖色地平线，避免紫雾洗屏挡障碍
 		out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.04)), 0.05)
 		out["fog_density"] = minf(float(out.get("fog_density", 0.00014)), 0.00020)
+		return out
+	if mission_id == "mission_dome_h1":
+		# 居民穹顶 H1：允许略深雾与透视，营造近暖远紫的废墟长桥
+		out["fog_aerial_perspective"] = clampf(float(out.get("fog_aerial_perspective", 0.12)), 0.08, 0.16)
+		out["fog_density"] = clampf(float(out.get("fog_density", 0.00065)), 0.00048, 0.00082)
 		return out
 	# 远景透视过高会把天空洗成纯色雾带
 	out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.07)), 0.09)
@@ -1786,6 +1950,24 @@ static func get_location_hearth_model(location_id: String) -> String:
 	if model_path != "":
 		return model_path
 	return String(ASSETS.get("hearth", ""))
+
+
+static func get_location_finish_silhouette(location_id: String) -> String:
+	var entry: Dictionary = MVP_LOCATIONS.get(location_id, {})
+	var silhouette := String(entry.get("finish_silhouette", "")).strip_edges()
+	if silhouette != "" and _finish_silhouette_resource_exists(silhouette):
+		return silhouette
+	return ""
+
+
+static func _finish_silhouette_resource_exists(path: String) -> bool:
+	if path.strip_edges() == "":
+		return false
+	if FileAccess.file_exists(path):
+		return true
+	if not ResourceLoader.exists(path):
+		return false
+	return ResourceLoader.load(path) is Texture2D
 
 
 static func get_cargo_icon_path(mission: Dictionary) -> String:

@@ -1,45 +1,45 @@
 {
-	"note": "D2 重装跑酷 · 建设包超重 + 障碍组合最密",
+	"note": "D2 侧墙突击 · 直角弯后中段分叉+侧墙",
 	"layout_id": "mission_gate_d2",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
+	"version": 2,
 	"track_segments": [
 		{
-			"length": 170,
-			"turn": 0
+			"length": 200.0,
+			"turn": 0.0
 		},
 		{
-			"length": 48,
+			"length": 48.0,
 			"turn": 1.047
 		},
 		{
-			"length": 360,
-			"turn": 0
+			"length": 360.0,
+			"turn": 0.0
 		},
 		{
-			"length": 48,
+			"length": 48.0,
 			"turn": -1.047
 		},
 		{
-			"length": 340,
-			"turn": 0
+			"length": 340.0,
+			"turn": 0.0
 		},
 		{
-			"length": 160,
-			"turn": 0
+			"length": 160.0,
+			"turn": 0.0
 		}
 	],
 	"junction_zones": [
 		{
-			"distance": 102,
-			"length": 92,
-			"spread": 22,
+			"distance": 248.0,
+			"length": 90.0,
+			"spread": 18.0,
 			"lane_a": 0,
-			"label_a": "安全岔路",
+			"label_a": "掩体支路",
 			"effect_a": "safe",
 			"lane_b": 2,
-			"label_b": "速通岔路",
+			"label_b": "突击支路",
 			"effect_b": "fast"
 		}
 	],
@@ -114,6 +114,13 @@
 			"distance": 252.0,
 			"lane": -1,
 			"type": "jump"
+		},
+		{
+			"distance": 252.0,
+			"lane": 0,
+			"type": "meteorite_gate",
+			"drop_count": 6,
+			"drop_interval": 0.95
 		},
 		{
 			"distance": 280.0,

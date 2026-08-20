@@ -5,17 +5,18 @@ extends RefCounted
 
 const DATA_DIR := "res://assets/maps/route_levels/planets/data/"
 
-## 三套共享障碍：早期据点(dome+reservoir) / 危机(medical+gate) / 中继(relay)
-## 逻辑 layout_id → 实际 JSON 文件名（可交叉复用 dome/reservoir 等已调优布局）
+## 三套视觉素材 + 独立跑道 JSON：
+## early(dome+reservoir) / crisis(medical+gate) / relay — 见 planet_glass_desert EARLY_VISUAL_KIT 等
+## layout_set_* 为编辑器/旧引用保留；正式关卡直接用 mission_* layout_id
 const LAYOUT_FILE_ALIASES := {
-	"layout_set_early_1": "mission_reservoir_w1",
+	"layout_set_early_1": "mission_dome_h1",
 	"layout_set_early_2": "mission_dome_h2",
-	"layout_set_early_3": "mission_reservoir_w3",
+	"layout_set_early_3": "mission_dome_h3",
 	"layout_set_early_4": "mission_dome_h4",
 	"layout_set_crisis_1": "mission_medical_m1",
-	"layout_set_crisis_2": "mission_gate_d2",
+	"layout_set_crisis_2": "mission_medical_m2",
 	"layout_set_crisis_3": "mission_medical_m3",
-	"layout_set_crisis_4": "mission_gate_d4",
+	"layout_set_crisis_4": "mission_medical_m4",
 	"layout_set_relay_1": "mission_relay_e1",
 	"layout_set_relay_2": "mission_relay_e2",
 	"layout_set_relay_3": "mission_relay_e3",
@@ -713,6 +714,16 @@ static func normalize_item(raw: Dictionary) -> Dictionary:
 		item["low_slide"] = bool(raw["low_slide"])
 	if raw.has("jump_style"):
 		item["jump_style"] = String(raw["jump_style"])
+	if raw.has("fall_roll"):
+		item["fall_roll"] = bool(raw["fall_roll"])
+	if raw.has("fall_height"):
+		item["fall_height"] = float(raw["fall_height"])
+	if raw.has("roll_speed"):
+		item["roll_speed"] = float(raw["roll_speed"])
+	if raw.has("meteor_state"):
+		item["meteor_state"] = String(raw["meteor_state"])
+	if raw.has("meteor_air_y"):
+		item["meteor_air_y"] = float(raw["meteor_air_y"])
 	return item
 
 
@@ -735,6 +746,8 @@ static func type_color(obstacle_type: String) -> Color:
 			return Color(1.0, 0.82, 0.25)
 		"meteorite":
 			return Color(0.55, 0.78, 1.0)
+		"meteorite_gate":
+			return Color(1.0, 0.48, 0.18)
 		"slide", "high_bar":
 			return Color(0.95, 0.45, 1.0)
 		"train", "train_moving":

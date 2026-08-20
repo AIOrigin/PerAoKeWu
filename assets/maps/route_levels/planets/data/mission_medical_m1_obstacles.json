@@ -1,45 +1,56 @@
 {
-	"note": "M1 医疗补给 · 40秒限时 + 加速靴",
+	"note": "M1 医疗补给 · 长直热身→晚段分叉+侧墙抬升",
 	"layout_id": "mission_medical_m1",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
+	"version": 2,
 	"track_segments": [
 		{
-			"length": 280,
-			"turn": 0
+			"length": 360.0,
+			"turn": 0.0
 		},
 		{
-			"length": 40,
+			"length": 40.0,
 			"turn": 0.785
 		},
 		{
-			"length": 260,
-			"turn": 0
+			"length": 200.0,
+			"turn": 0.0
 		},
 		{
-			"length": 40,
+			"length": 40.0,
 			"turn": -0.785
 		},
 		{
-			"length": 220,
-			"turn": 0
+			"length": 180.0,
+			"turn": 0.0
 		}
 	],
 	"junction_zones": [
 		{
-			"distance": 118,
-			"length": 82,
-			"spread": 17,
+			"distance": 380.0,
+			"length": 86.0,
+			"spread": 18.0,
 			"lane_a": 0,
-			"label_a": "安全岔路",
+			"label_a": "薄雾支路",
 			"effect_a": "repair",
 			"lane_b": 2,
-			"label_b": "速通岔路",
+			"label_b": "速通支路",
 			"effect_b": "fast"
 		}
 	],
-	"side_runway_zones": [],
+	"side_runway_zones": [
+		{
+			"start": 520.0,
+			"length": 76.0,
+			"side": "outer",
+			"fallback_side": 1,
+			"lateral_offset": 7.2,
+			"layer": 1,
+			"entry_window": 11.0,
+			"speed_mult": 1.05
+		}
+	],
 	"sandstorm_zones": [
 		{
 			"start": 198,

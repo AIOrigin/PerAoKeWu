@@ -1,42 +1,42 @@
 {
-	"note": "M4 双货紧急 · 医疗+净水 40秒限时",
+	"note": "M4 双货紧急 · 长直→晚段 safe/bonus 分叉",
 	"layout_id": "mission_medical_m4",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
+	"version": 2,
 	"track_segments": [
 		{
-			"length": 190,
-			"turn": 0
+			"length": 260.0,
+			"turn": 0.0
 		},
 		{
-			"length": 38,
+			"length": 38.0,
 			"turn": 0.698
 		},
 		{
-			"length": 190,
-			"turn": 0
+			"length": 200.0,
+			"turn": 0.0
 		},
 		{
-			"length": 38,
+			"length": 38.0,
 			"turn": -0.698
 		},
 		{
-			"length": 180,
-			"turn": 0
+			"length": 180.0,
+			"turn": 0.0
 		}
 	],
 	"junction_zones": [
 		{
-			"distance": 96,
-			"length": 80,
-			"spread": 18,
+			"distance": 300.0,
+			"length": 82.0,
+			"spread": 18.0,
 			"lane_a": 0,
 			"label_a": "安全岔路",
-			"effect_a": "repair",
+			"effect_a": "safe",
 			"lane_b": 2,
-			"label_b": "速通岔路",
-			"effect_b": "fast"
+			"label_b": "奖励岔路",
+			"effect_b": "bonus"
 		}
 	],
 	"side_runway_zones": [],

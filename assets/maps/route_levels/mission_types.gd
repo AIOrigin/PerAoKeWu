@@ -214,8 +214,8 @@ static func adapt_obstacles(items: Array, profile: Dictionary, track_length: flo
 				item["distance"] = abs_dist
 				result.append(item)
 			continue
-		# 终点前陨石：绝对距离摆放，避免缩放/抽稀后消失
-		if otype == "meteorite":
+		# 终点前陨石 / 陨石门：绝对距离摆放，避免缩放/抽稀后消失
+		if otype in ["meteorite", "meteorite_gate"]:
 			if abs_dist_raw >= 30.0 and abs_dist_raw < finish_cut:
 				item["distance"] = abs_dist_raw
 				result.append(item)

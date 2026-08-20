@@ -1,12 +1,12 @@
 {
-	"note": "W4 紧急限时 · 跳铲留距 · 中后段陨石与紫球",
+	"note": "W4 紧急限时 · 蛇形弯+晚段奖励分叉（无早段分叉）",
 	"layout_id": "mission_reservoir_w4",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 6,
+	"version": 7,
 	"track_segments": [
 		{
-			"length": 200.0,
+			"length": 240.0,
 			"turn": 0.0
 		},
 		{
@@ -44,15 +44,15 @@
 	],
 	"junction_zones": [
 		{
-			"distance": 100.0,
-			"length": 88.0,
-			"spread": 17.0,
+			"distance": 380.0,
+			"length": 86.0,
+			"spread": 18.0,
 			"lane_a": 0,
 			"label_a": "安全岔路",
-			"effect_a": "repair",
+			"effect_a": "safe",
 			"lane_b": 2,
-			"label_b": "速通岔路",
-			"effect_b": "fast"
+			"label_b": "奖励岔路",
+			"effect_b": "bonus"
 		}
 	],
 	"side_runway_zones": [],

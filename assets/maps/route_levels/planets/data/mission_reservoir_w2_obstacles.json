@@ -1,12 +1,12 @@
 {
-	"note": "W2 超重双击跳 · 左右 Y 分叉（安全/速通）+ 侧墙加速绕坑",
+	"note": "W2 超重双击跳 · 长直→直角弯→中段分叉+侧墙",
 	"layout_id": "mission_reservoir_w2",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 18,
+	"version": 19,
 	"track_segments": [
 		{
-			"length": 220.0,
+			"length": 280.0,
 			"turn": 0.0
 		},
 		{
@@ -22,7 +22,7 @@
 			"turn": -1.5707963267948966
 		},
 		{
-			"length": 340.0,
+			"length": 260.0,
 			"turn": 0.0
 		},
 		{
@@ -32,12 +32,12 @@
 	],
 	"junction_zones": [
 		{
-			"distance": 100.0,
+			"distance": 268.0,
 			"length": 88.0,
 			"spread": 17.0,
 			"lane_a": 0,
 			"label_a": "安全岔路",
-			"effect_a": "repair",
+			"effect_a": "safe",
 			"lane_b": 2,
 			"label_b": "速通岔路",
 			"effect_b": "fast"

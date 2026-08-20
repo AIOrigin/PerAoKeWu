@@ -3,31 +3,26 @@ class_name SettlementHorizonLayer
 
 ## 样例结算页：青蓝天空 + 建筑剪影 + 紫白同心环 + 跃起小人
 
+const PlanetGlassDesert = preload("res://assets/maps/route_levels/planets/planet_glass_desert.gd")
 const BUILDING_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png"
-const BUILDING_SILHOUETTE_BY_LOCATION := {
-	"reservoir": "res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png",
-	"dome": "res://assets/maps/route_levels/runner_60s/settlement/habitat_dome_silhouette.jpg",
-	"medical": "res://mvp素材第一批/医疗据点2d.webp",
-	"gate": "res://mvp素材第一批/防御哨站2d.webp",
-}
 const FIGURE_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/elsa_jump_silhouette.png"
 const FIGURE_FAILURE_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/elsa_failure_dejected_silhouette.png"
 
-const SKY_TOP := Color("#8A5A38")
-const SKY_MID := Color("#B87848")
-const SKY_NEAR := Color("#E8C090")
-const GROUND_TOP := Color("#1A120C")
-const GROUND_BOT := Color("#0E0A08")
-const HORIZON_CORE := Color("#FFE8C8")
-const HORIZON_GLOW := Color("#FFD898")
-const AURA_CORE := Color("#FFB040")
-const AURA_MID := Color("#E87828")
+const SKY_TOP := Color(0.52, 0.58, 0.66)
+const SKY_MID := Color(0.30, 0.36, 0.46)
+const SKY_NEAR := Color(0.14, 0.18, 0.28)
+const GROUND_TOP := Color(0.06, 0.09, 0.14)
+const GROUND_BOT := Color(0.025, 0.035, 0.07)
+const HORIZON_CORE := Color(0.92, 0.98, 1.0)
+const HORIZON_GLOW := Color(0.72, 0.94, 1.0)
+const AURA_CORE := Color(0.55, 0.88, 1.0)
+const AURA_MID := Color(0.48, 0.36, 0.78)
 const RING_INNER := Color("#E8DCFF")
 const RING_MID := Color("#B898E8")
 const RING_OUTER := Color("#8868B8")
 const SILHOUETTE := Color("#0A0E16")
-const SILHOUETTE_RIM := Color("#7AD4FF")
-const DOME_GLOW := Color("#88E8FF")
+const SILHOUETTE_LINE := Color("#68C8F0")
+const SILHOUETTE_LINE_SOFT := Color("#4AA8E8")
 const FAIL_RING_INNER := Color("#F0B0FF")
 const FAIL_RING_MID := Color("#C868E8")
 const FAIL_RING_OUTER := Color("#8848B8")
@@ -120,6 +115,7 @@ func _build_layers() -> void:
 	_building_clip.name = "BuildingClip"
 	_building_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_building_clip.clip_contents = true
+	_building_clip.z_index = 0
 	add_child(_building_clip)
 
 	_building = TextureRect.new()
@@ -191,10 +187,13 @@ func _make_figure_glow_rect(node_name: String, tint: Color, z: int) -> TextureRe
 func configure(outpost_name: String, location_id: String, _hearth_scene_path: String, failed: bool = false) -> void:
 	outpost_title = outpost_name if outpost_name != "" else "Destination"
 	_is_failure = failed
-	var silhouette_path := String(BUILDING_SILHOUETTE_BY_LOCATION.get(location_id, BUILDING_SILHOUETTE_PATH))
+	var silhouette_path := _resolve_silhouette_path(location_id)
 	if _building != null:
-		_building.texture = _load_building_tex(silhouette_path, failed)
-		_building.modulate = Color(0.72, 0.76, 0.82, 0.78) if failed else Color(1.0, 1.0, 1.0, 1.0)
+		if failed:
+			_building.texture = _load_building_tex_failure(silhouette_path)
+		else:
+			_building.texture = _load_station_silhouette_tex(silhouette_path)
+		_building.modulate = Color(0.72, 0.76, 0.82, 0.78) if failed else Color(0.94, 0.98, 1.0, 1.0)
 	if _figure != null:
 		var figure_path := FIGURE_FAILURE_SILHOUETTE_PATH if failed else FIGURE_SILHOUETTE_PATH
 		var fig_tex := _load_failure_figure_tex(figure_path) if failed else _load_black_figure_tex(FIGURE_SILHOUETTE_PATH)
@@ -218,11 +217,39 @@ func _load_tex(path: String) -> Texture2D:
 	return null
 
 
+func _resolve_silhouette_path(location_id: String) -> String:
+	var candidates: Array[String] = []
+	var primary := PlanetGlassDesert.get_location_finish_silhouette(location_id).strip_edges()
+	if primary != "":
+		candidates.append(primary)
+	match location_id:
+		"dome":
+			candidates.append_array([
+				"res://assets/maps/route_levels/runner_60s/settlement/habitat_dome_silhouette.jpg",
+				"res://mvp素材第一批/居民穹顶2d展示图.webp",
+			])
+		"reservoir":
+			candidates.append_array([
+				"res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png",
+				"res://mvp素材第一批/水源据点2d.webp",
+			])
+		"medbay":
+			candidates.append("res://mvp素材第一批/医疗据点2d.webp")
+		"relay":
+			candidates.append("res://mvp素材第一批/星火中继站2d.webp")
+		"outpost":
+			candidates.append("res://mvp素材第一批/防御哨站2d.webp")
+	if not candidates.has(BUILDING_SILHOUETTE_PATH):
+		candidates.append(BUILDING_SILHOUETTE_PATH)
+	for path in candidates:
+		if path != "" and (ResourceLoader.exists(path) or FileAccess.file_exists(path)):
+			return path
+	return BUILDING_SILHOUETTE_PATH
+
+
 func _load_building_tex(path: String, failed: bool = false) -> Texture2D:
 	if failed:
 		return _load_building_tex_failure(path)
-	if path.contains("habitat_dome"):
-		return _load_dome_silhouette_tex(path)
 	return _load_station_silhouette_tex(path)
 
 
@@ -254,9 +281,13 @@ func _load_station_silhouette_tex(path: String) -> Texture2D:
 	var tex := _load_tex(path)
 	if tex == null:
 		return null
+	var lower := path.to_lower()
+	if lower.ends_with(".jpg") or lower.ends_with(".jpeg") or lower.ends_with(".webp") or "silhouette" in lower:
+		return _prepare_settlement_building_tex(tex, path)
 	var img := tex.get_image()
 	if img == null or img.is_empty():
 		return tex
+	img = img.duplicate()
 	img.convert(Image.FORMAT_RGBA8)
 	for y in img.get_height():
 		for x in img.get_width():
@@ -270,29 +301,45 @@ func _load_station_silhouette_tex(path: String) -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
-func _load_dome_silhouette_tex(path: String) -> Texture2D:
-	var tex := _load_tex(path)
-	if tex == null:
-		return null
-	var img := tex.get_image()
+func _color_saturation(c: Color) -> float:
+	return maxf(c.r, maxf(c.g, c.b)) - minf(c.r, minf(c.g, c.b))
+
+
+func _prepare_settlement_building_tex(source: Texture2D, path: String) -> Texture2D:
+	var img := source.get_image()
 	if img == null or img.is_empty():
-		return tex
+		return source
+	img = img.duplicate()
 	img.convert(Image.FORMAT_RGBA8)
 	for y in img.get_height():
 		for x in img.get_width():
 			var c := img.get_pixel(x, y)
 			if c.a < 0.04:
+				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
 				continue
 			var luma := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
-			if luma > 0.72:
-				c = DOME_GLOW.lerp(HORIZON_CORE, 0.18)
-				c.a = maxf(c.a, 0.96)
-			elif luma > 0.22:
-				c = SILHOUETTE_RIM.lerp(DOME_GLOW, 0.35)
-				c.a = maxf(c.a, 0.92)
+			var sat := _color_saturation(c)
+			# 去掉白底/灰格，避免整图变成与背景融为一体的实心黑块
+			if luma > 0.72 and sat < 0.28:
+				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+				continue
+			if luma > 0.58 and sat < 0.12:
+				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+				continue
+			# 保留源图里的青蓝线框（水源据点同款）
+			if c.b > c.r + 0.06 and c.b > 0.32 and luma > 0.22:
+				var line_a := clampf(maxf(c.a, 0.78) + (luma - 0.22) * 0.35, 0.0, 1.0)
+				img.set_pixel(x, y, Color(SILHOUETTE_LINE.r, SILHOUETTE_LINE.g, SILHOUETTE_LINE.b, line_a))
+				continue
+			if luma < 0.34:
+				img.set_pixel(x, y, Color(SILHOUETTE.r, SILHOUETTE.g, SILHOUETTE.b, maxf(c.a, 0.94)))
+				continue
+			var fill_a := clampf((0.56 - luma) / 0.34, 0.0, 1.0)
+			if fill_a < 0.06:
+				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
 			else:
-				c = Color(SILHOUETTE.r, SILHOUETTE.g, SILHOUETTE.b, maxf(c.a, 0.98))
-			img.set_pixel(x, y, c)
+				var tone := SILHOUETTE.lerp(SILHOUETTE_LINE_SOFT, clampf((luma - 0.18) * 1.4, 0.0, 0.42))
+				img.set_pixel(x, y, Color(tone.r, tone.g, tone.b, fill_a * 0.92))
 	return ImageTexture.create_from_image(img)
 
 
@@ -474,7 +521,7 @@ func _draw_fx() -> void:
 		var aura_rect := Rect2(ring_center.x - aura_w * 0.5, ring_center.y - aura_h * 0.58, aura_w, aura_h)
 		_fx.draw_texture_rect(_flare_tex, aura_rect, false, Color(AURA_CORE.r, AURA_CORE.g, AURA_CORE.b, 0.28 * pulse))
 		var mid_rect := Rect2(ring_center.x - aura_w * 0.42, ring_center.y - aura_h * 0.48, aura_w * 0.84, aura_h * 0.72)
-		_fx.draw_texture_rect(_flare_tex, mid_rect, false, Color(0.92, 0.82, 1.0, 0.16 * pulse))
+		_fx.draw_texture_rect(_flare_tex, mid_rect, false, Color(0.72, 0.86, 1.0, 0.16 * pulse))
 	for i in 6:
 		var t := float(i) / 5.0
 		var r := sz.x * lerpf(0.10, 0.30, t)
