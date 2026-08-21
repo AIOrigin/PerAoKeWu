@@ -192,6 +192,7 @@ const OBSTACLE_LAYOUT_SETS := {
 
 ## 2048×1024 等距柱状全景（由桌面「场景全景图」裁制）；全关共用，靠 Y 轴旋转区分视角
 const RUNNER_SKY_PANORAMA := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w1_scene_sky.png"
+const MEDICAL_SKY_PANORAMA := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png"
 const RUNNER_GROUND_TEXTURE := "res://assets/maps/route_levels/runner_60s/backgrounds/textures/glass_desert_w1_ground_albedo.jpg"
 ## 星火中继站最终关素材（桌面「最后关卡物体」）
 const RELAY_FINAL_ROOT := "res://assets/maps/route_levels/runner_60s/relay_final/"
@@ -224,16 +225,16 @@ const RUNNER_SKY_PROGRESS_SCROLL := 0.52
 const RUNNER_SKY_YAW := {
 	"mission_reservoir_01": 0.0,
 	"mission_reservoir_02": 0.85,
-	"mission_reservoir_03": 1.72,
-	"mission_reservoir_04": 2.58,
+	"mission_reservoir_03": -0.40,
+	"mission_reservoir_04": 0.36,
 	"mission_dome_h1": -0.95,
 	"mission_dome_h2": -1.82,
 	"mission_dome_h3": -2.69,
 	"mission_dome_h4": -3.56,
-	"mission_medical_m1": 3.45,
-	"mission_medical_m2": 3.58,
-	"mission_medical_m3": 3.71,
-	"mission_medical_m4": 3.84,
+	"mission_medical_m1": 0.0,
+	"mission_medical_m2": -0.38,
+	"mission_medical_m3": 0.46,
+	"mission_medical_m4": 0.78,
 	"mission_relay_e1": 2.12,
 	"mission_relay_e2": 2.58,
 	"mission_relay_e3": 3.06,
@@ -244,6 +245,11 @@ const RUNNER_SKY_YAW := {
 	"mission_gate_d3": 5.44,
 	"mission_gate_d4": 5.57,
 }
+## 同张全景：第四关对准地平线剪影带，不要对着太阳核也不要抬头进天顶
+const RUNNER_SKY_PITCH := {
+	"mission_reservoir_03": 0.0,
+	"mission_reservoir_04": 0.0,
+}
 
 const RUNNER_PROP_ROOT := "res://assets/maps/route_levels/runner_60s/"
 const RUNNER_MID := RUNNER_PROP_ROOT + "midground_props/"
@@ -251,6 +257,110 @@ const RUNNER_DIST := RUNNER_PROP_ROOT + "distant_props/"
 const RUNNER_OBS_LIGHT := RUNNER_PROP_ROOT + "obstacles_lightweight/"
 const RUNNER_ENV_V2 := RUNNER_PROP_ROOT + "environment_pack_v2/"
 const MVP2_OBS := "res://mvp素材第二批/障碍物/0803/"
+
+## 水源据点第一关：湖泊夕照。后续关卡用各自 environment，不要套这套橙黄底色。
+const RESERVOIR_W1_ENVIRONMENT := {
+	"panorama_energy": 1.56,
+	"fog_color": Color(0.56, 0.40, 0.28),
+	"fog_density": 0.00034,
+	"fog_aerial_perspective": 0.06,
+	"ambient": Color(0.66, 0.52, 0.38),
+	"ambient_energy": 0.78,
+	"sun_color": Color(0.96, 0.78, 0.52),
+	"sun_energy": 1.82,
+	"tonemap_exposure": 1.06,
+}
+
+## 水源 W2：粉紫混蓝全景云层，雾要薄才能看见明暗
+const RESERVOIR_W2_ENVIRONMENT := {
+	"panorama_energy": 1.18,
+	"fog_color": Color(0.46, 0.48, 0.70),
+	"fog_density": 0.00012,
+	"fog_aerial_perspective": 0.018,
+	"ambient": Color(0.48, 0.46, 0.68),
+	"ambient_energy": 0.72,
+	"sun_color": Color(0.80, 0.74, 0.96),
+	"sun_energy": 1.52,
+	"tonemap_exposure": 1.02,
+}
+
+## 水源 W3：第一关原图，略偏一侧仍对着云层和高楼剪影
+const RESERVOIR_W3_ENVIRONMENT := {
+	"panorama_energy": 1.56,
+	"fog_color": Color(0.56, 0.40, 0.28),
+	"fog_density": 0.00034,
+	"fog_aerial_perspective": 0.06,
+	"ambient": Color(0.66, 0.52, 0.38),
+	"ambient_energy": 0.78,
+	"sun_color": Color(0.96, 0.78, 0.52),
+	"sun_energy": 1.82,
+	"tonemap_exposure": 1.06,
+}
+
+## 水源 W4：第一关原图，另一侧看云层和高楼暗影，雾色跟第一关一样才不会发灰
+const RESERVOIR_W4_ENVIRONMENT := {
+	"panorama_energy": 1.56,
+	"fog_color": Color(0.56, 0.40, 0.28),
+	"fog_density": 0.00034,
+	"fog_aerial_perspective": 0.06,
+	"ambient": Color(0.66, 0.52, 0.38),
+	"ambient_energy": 0.78,
+	"sun_color": Color(0.96, 0.78, 0.52),
+	"sun_energy": 1.82,
+	"tonemap_exposure": 1.06,
+}
+
+## 医疗四关：水源第一关接法，朝阳全景（粉白→粉→紫→深蓝），不要琥珀橙雾
+const MEDICAL_M1_ENVIRONMENT := {
+	"panorama_energy": 1.48,
+	"fog_color": Color(0.58, 0.46, 0.62),
+	"fog_density": 0.00022,
+	"fog_aerial_perspective": 0.04,
+	"ambient": Color(0.54, 0.46, 0.62),
+	"ambient_energy": 0.74,
+	"sun_color": Color(1.0, 0.88, 0.90),
+	"sun_energy": 1.70,
+	"tonemap_exposure": 1.04,
+}
+
+## 医疗 M2：同一张朝阳全景，略偏一侧
+const MEDICAL_M2_ENVIRONMENT := {
+	"panorama_energy": 1.46,
+	"fog_color": Color(0.54, 0.46, 0.64),
+	"fog_density": 0.00020,
+	"fog_aerial_perspective": 0.038,
+	"ambient": Color(0.52, 0.46, 0.64),
+	"ambient_energy": 0.72,
+	"sun_color": Color(0.94, 0.80, 0.92),
+	"sun_energy": 1.62,
+	"tonemap_exposure": 1.02,
+}
+
+## 医疗 M3：同一张朝阳全景，另一侧
+const MEDICAL_M3_ENVIRONMENT := {
+	"panorama_energy": 1.44,
+	"fog_color": Color(0.50, 0.46, 0.66),
+	"fog_density": 0.00020,
+	"fog_aerial_perspective": 0.036,
+	"ambient": Color(0.50, 0.46, 0.64),
+	"ambient_energy": 0.72,
+	"sun_color": Color(0.88, 0.78, 0.94),
+	"sun_energy": 1.58,
+	"tonemap_exposure": 1.02,
+}
+
+## 医疗 M4：同一张朝阳全景
+const MEDICAL_M4_ENVIRONMENT := {
+	"panorama_energy": 1.50,
+	"fog_color": Color(0.60, 0.48, 0.60),
+	"fog_density": 0.00020,
+	"fog_aerial_perspective": 0.036,
+	"ambient": Color(0.56, 0.48, 0.60),
+	"ambient_energy": 0.76,
+	"sun_color": Color(1.0, 0.90, 0.88),
+	"sun_energy": 1.74,
+	"tonemap_exposure": 1.06,
+}
 
 const DOME_LIGHTWEIGHT_JUMP := [
 	RUNNER_OBS_LIGHT + "jump_crumbling_ruined_wall.glb",
@@ -483,23 +593,24 @@ const LOCATION_MISSIONS := [
 		"textured_ground": true,
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
-			"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
 		],
+		"near_runway_props": [
+			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+		],
+		"environment": RESERVOIR_W1_ENVIRONMENT,
+		"environment_pack_v2_mix": 0.0,
 		"sky_accents": {
 			"energy_gates": true,
 			"aurora": false,
 			"panorama_billboards": false,
-			"distant_density": 1.32,
-		},
-		"environment": {
-			"panorama_energy": 1.56,
-			"sky_rotation_y": 0.0,
-			"fog_color": Color(0.56, 0.40, 0.28),
-			"fog_density": 0.00034,
-			"fog_aerial_perspective": 0.06,
-			"ambient": Color(0.66, 0.52, 0.38),
-			"ambient_energy": 0.78,
+			"distant_density": 1.48,
 		},
 		"runner_code": "Elsa",
 		"cargo_name": "净水包",
@@ -528,10 +639,25 @@ const LOCATION_MISSIONS := [
 		"location_id": "reservoir",
 		"layout_id": "mission_reservoir_w2",
 		"midground_props": [
-			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
-			"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 		],
+		"near_runway_props": [
+			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+		],
+		"environment": RESERVOIR_W2_ENVIRONMENT,
+		"environment_pack_v2_mix": 0.0,
+		"sky_accents": {
+			"energy_gates": true,
+			"aurora": false,
+			"panorama_billboards": false,
+			"distant_density": 1.42,
+		},
 		"runner_code": "Elsa",
 		"cargo_name": "建设包",
 		"cargo_name_en": "Construction Kit",
@@ -548,7 +674,7 @@ const LOCATION_MISSIONS := [
 		"difficulty": 2,
 		"base_reward": 50,
 		"runner_rhythm": "超重建设包：单击只会短跳（更低），需快速双击才达标准高度。跳跃障碍请连点两次越过。",
-		"environment_factor": "负重增加，跳跃高度降低。",
+		"environment_factor": "淡粉紫混蓝天空，路边物体用暖石色/青色拉开层次。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "建设包是修复水源设施的基础物资，需完整送达。",
@@ -557,11 +683,27 @@ const LOCATION_MISSIONS := [
 		"mission_id": "mission_reservoir_03",
 		"location_id": "reservoir",
 		"layout_id": "mission_reservoir_w3",
+		"panorama": "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w1_scene_sky.png",
 		"midground_props": [
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+		],
+		"near_runway_props": [
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
-			"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
 		],
+		"environment": RESERVOIR_W3_ENVIRONMENT,
+		"environment_pack_v2_mix": 0.0,
+		"sky_accents": {
+			"energy_gates": true,
+			"aurora": false,
+			"panorama_billboards": false,
+			"distant_density": 1.40,
+		},
 		"runner_code": "Elsa",
 		"cargo_name": "建设包",
 		"cargo_name_en": "Construction Kit",
@@ -578,7 +720,7 @@ const LOCATION_MISSIONS := [
 		"difficulty": 3,
 		"base_reward": 60,
 		"runner_rhythm": "重装躲避：连续障碍带。建设包单击短跳、双击满跳，提前判断连点时机。",
-		"environment_factor": "水库盐雾会降低远景对比。",
+		"environment_factor": "粉紫混橙暮空，冰蓝极光拉开层次。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "建设组件需同步送达，完成抢修作业。",
@@ -587,11 +729,27 @@ const LOCATION_MISSIONS := [
 		"mission_id": "mission_reservoir_04",
 		"location_id": "reservoir",
 		"layout_id": "mission_reservoir_w4",
+		"panorama": "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w1_scene_sky.png",
 		"midground_props": [
-			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
-			"res://assets/maps/route_levels/runner_60s/midground_props/cracked_sphere_robot.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
 		],
+		"near_runway_props": [
+			"res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/glowing_energy_meteorite.glb",
+			"res://assets/maps/route_levels/runner_60s/midground_props/neon_sign_prop.glb",
+		],
+		"environment": RESERVOIR_W4_ENVIRONMENT,
+		"environment_pack_v2_mix": 0.0,
+		"sky_accents": {
+			"energy_gates": true,
+			"aurora": false,
+			"panorama_billboards": false,
+			"distant_density": 1.36,
+		},
 		"runner_code": "Elsa",
 		"cargo_name": "净水包",
 		"cargo_name_en": "Water Pack",
@@ -611,7 +769,7 @@ const LOCATION_MISSIONS := [
 		"base_reward": 80,
 		"mechanics_hint": "限时挑战：多吃加速靴提速。集满 5 个解锁紧急冲刺（电脑 Shift/E，手机点按冲刺键）。",
 		"runner_rhythm": "毒雾初见：暴露会阶梯掉损，用冲刺缩短暴露时间，注意限时。",
-		"environment_factor": "40 秒限时，超时任务失败。",
+		"environment_factor": "40 秒限时；暮色压暗，洋红雾带。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "紧急净水补给：限时送达，路线短但障碍密集。",
@@ -620,19 +778,13 @@ const LOCATION_MISSIONS := [
 		"mission_id": "mission_medical_m1",
 		"location_id": "medical",
 		"layout_id": "mission_medical_m1",
+		"panorama": "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
 		],
-		"environment": {
-			"panorama_energy": 1.62,
-			"fog_color": Color(0.42, 0.34, 0.28),
-			"fog_density": 0.00052,
-			"fog_aerial_perspective": 0.11,
-			"ambient": Color(0.52, 0.46, 0.50),
-			"ambient_energy": 0.76,
-		},
+		"environment": MEDICAL_M1_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "医疗包",
 		"cargo_name_en": "Medical Pack",
@@ -649,7 +801,7 @@ const LOCATION_MISSIONS := [
 		"base_reward": 50,
 		"mechanics_hint": "40 秒限时：多吃加速靴缩短暴露时间。",
 		"runner_rhythm": "补给运输：路线含多段加速靴，在限时内送达医疗包。",
-		"environment_factor": "青绿薄雾医疗区，侧景为医疗舱与净水设备。",
+		"environment_factor": "朝阳刚升，金粉云层压着淡蓝天。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "第一批医疗包需送达医疗据点，重启基础救治能力。",
@@ -658,18 +810,12 @@ const LOCATION_MISSIONS := [
 		"mission_id": "mission_medical_m2",
 		"location_id": "medical",
 		"layout_id": "mission_medical_m2",
+		"panorama": "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod.glb",
 		],
-		"environment": {
-			"panorama_energy": 1.58,
-			"fog_color": Color(0.38, 0.32, 0.26),
-			"fog_density": 0.00058,
-			"fog_aerial_perspective": 0.12,
-			"ambient": Color(0.48, 0.44, 0.48),
-			"ambient_energy": 0.74,
-		},
+		"environment": MEDICAL_M2_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "医疗包",
 		"cargo_name_en": "Medical Pack",
@@ -688,7 +834,7 @@ const LOCATION_MISSIONS := [
 		"base_reward": 60,
 		"mechanics_hint": "40 秒限时 + 极脆医疗包：障碍极密，零碰撞才安全。",
 		"runner_rhythm": "极限护送：障碍组合极密，冲刺与换道都要精准。",
-		"environment_factor": "低能见度毒雾，医疗舱侧景更密集。",
+		"environment_factor": "朝阳升高，粉金云层还在，天空更亮。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "抢修医疗物资：任何碰撞都会重创极脆医疗包。",
@@ -697,19 +843,13 @@ const LOCATION_MISSIONS := [
 		"mission_id": "mission_medical_m3",
 		"location_id": "medical",
 		"layout_id": "mission_medical_m3",
+		"panorama": "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb",
 		],
-		"environment": {
-			"panorama_energy": 1.60,
-			"fog_color": Color(0.40, 0.36, 0.30),
-			"fog_density": 0.00056,
-			"fog_aerial_perspective": 0.12,
-			"ambient": Color(0.50, 0.48, 0.46),
-			"ambient_energy": 0.75,
-		},
+		"environment": MEDICAL_M3_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "净水包",
 		"cargo_name_en": "Water Pack",
@@ -728,7 +868,7 @@ const LOCATION_MISSIONS := [
 		"difficulty": 3,
 		"base_reward": 70,
 		"runner_rhythm": "长途毒雾：多处分叉，选薄雾支路并控速通过长段毒雾。",
-		"environment_factor": "贯穿全程的毒雾带，侧墙可绕开部分主路坍塌。",
+		"environment_factor": "清晨青金天空，云层仍有明暗。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "净水包中继运输：为医疗据点提供长期净水补给。",
@@ -737,18 +877,12 @@ const LOCATION_MISSIONS := [
 		"mission_id": "mission_medical_m4",
 		"location_id": "medical",
 		"layout_id": "mission_medical_m4",
+		"panorama": "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png",
 		"midground_props": [
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb",
 			"res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb",
 		],
-		"environment": {
-			"panorama_energy": 1.58,
-			"fog_color": Color(0.40, 0.34, 0.28),
-			"fog_density": 0.00058,
-			"fog_aerial_perspective": 0.13,
-			"ambient": Color(0.50, 0.46, 0.48),
-			"ambient_energy": 0.74,
-		},
+		"environment": MEDICAL_M4_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "医疗包",
 		"cargo_name_en": "Medical Pack",
@@ -768,7 +902,7 @@ const LOCATION_MISSIONS := [
 		"base_reward": 80,
 		"mechanics_hint": "40 秒限时：医疗+净水双货，兼顾零碰撞与加速靴。",
 		"runner_rhythm": "紧急双货：限时内同时保护医疗包与净水包完整度。",
-		"environment_factor": "短程高密毒雾，末段加速靴密集。",
+		"environment_factor": "晨光更亮，金边云层拉开层次。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "紧急医疗与净水同步送达，完成医疗据点核心补给。",
@@ -1286,7 +1420,7 @@ const ASSETS := {
 	"player": PLAYER_ELSA,
 }
 
-## 早期批次：水源据点 + 居民穹顶共用远景/中景/近景障碍素材（可交叉能量陨石、霓虹牌等）
+## 早期批次：居民穹顶专用（断墙/锈管/尖刺 + 废墟中景）。水源据点用 RESERVOIR_VISUAL_KIT，互不覆盖。
 const EARLY_VISUAL_KIT := {
 	"midground_props": [
 		RUNNER_MID + "amber_crystal_coral.glb",
@@ -1310,6 +1444,47 @@ const EARLY_VISUAL_KIT := {
 	],
 	"distant_spaceship_props": [
 		RUNNER_DIST + "futuristic_spaceship.glb",
+	],
+}
+
+## 水源据点：两侧高大水晶/能量山内倾成通道，底座不得压跑道
+const RESERVOIR_VISUAL_KIT := {
+	"midground_props": [
+		RUNNER_MID + "amber_crystal_coral.glb",
+		RUNNER_MID + "midground_water_purifier.glb",
+		RUNNER_MID + "glowing_energy_meteorite.glb",
+		RUNNER_MID + "neon_sign_prop.glb",
+		RUNNER_MID + "midground_excavator_robot.glb",
+	],
+	"near_runway_props": [
+		RUNNER_MID + "amber_crystal_coral.glb",
+		RUNNER_MID + "midground_water_purifier.glb",
+		RUNNER_MID + "glowing_energy_meteorite.glb",
+		RUNNER_MID + "neon_sign_prop.glb",
+	],
+	"jump_obstacles": [
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
+		"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_angry_2_5d.png",
+	],
+	"slide_obstacles": [
+		MVP2_OBS + "废旧广告牌（滑铲）.glb",
+	],
+	"distant_tower_props": [
+		RUNNER_DIST + "fantasy_crystal_tower.glb",
+		RUNNER_DIST + "giant_energy_crystal_pillar_1.glb",
+		RUNNER_DIST + "giant_energy_crystal_pillar_2.glb",
+	],
+	"distant_accent_props": [
+		RUNNER_MID + "midground_water_purifier.glb",
+		RUNNER_MID + "amber_crystal_coral.glb",
+		RUNNER_MID + "midground_excavator_robot.glb",
+	],
+	"distant_hearth_props": [
+		MVP_ROOT + "水源据点3d.glb",
+	],
+	"distant_spaceship_props": [
+		RUNNER_DIST + "futuristic_spaceship.glb",
+		RUNNER_DIST + "futuristic_pod.glb",
 	],
 }
 
@@ -1503,7 +1678,9 @@ static func _rotated_prop_pool(pool: Array, seed_key: String, count: int = 3) ->
 
 static func _visual_kit_for_location(location_id: String) -> Dictionary:
 	match location_id:
-		"reservoir", "dome":
+		"reservoir":
+			return RESERVOIR_VISUAL_KIT
+		"dome":
 			return EARLY_VISUAL_KIT
 		"medical", "gate":
 			return CRISIS_VISUAL_KIT
@@ -1532,18 +1709,24 @@ static func apply_visual_kit(mission: Dictionary) -> Dictionary:
 				rotated.append(p)
 	out["midground_props"] = rotated.slice(0, mini(rotated.size(), 6))
 	if kit.has("near_runway_props"):
-		out["near_runway_props"] = _rotated_prop_pool(
-			kit["near_runway_props"],
-			mission_id + "_near",
-			4
-		)
-	for key in ["jump_obstacles", "slide_obstacles", "distant_tower_props", "distant_spaceship_props", "distant_accent_props"]:
+		var existing_near: Variant = out.get("near_runway_props", null)
+		if not (existing_near is Array and not (existing_near as Array).is_empty()):
+			out["near_runway_props"] = _rotated_prop_pool(
+				kit["near_runway_props"],
+				mission_id + "_near",
+				4
+			)
+	for key in ["jump_obstacles", "slide_obstacles", "distant_tower_props", "distant_spaceship_props", "distant_accent_props", "distant_hearth_props"]:
 		if not kit.has(key):
 			continue
 		var existing: Variant = out.get(key, null)
 		if existing is Array and not (existing as Array).is_empty():
 			continue
 		out[key] = (kit[key] as Array).duplicate()
+	if loc == "reservoir":
+		out["slide_obstacles"] = [MVP2_OBS + "废旧广告牌（滑铲）.glb"]
+		if not out.has("environment_pack_v2_mix"):
+			out["environment_pack_v2_mix"] = 0.0
 	return out
 
 
@@ -1553,12 +1736,16 @@ static func apply_runner_background(mission: Dictionary) -> Dictionary:
 	var out: Dictionary = mission.duplicate(true)
 	var mission_id := String(out.get("mission_id", ""))
 	var yaw := float(RUNNER_SKY_YAW.get(mission_id, 0.0))
+	var pitch := float(RUNNER_SKY_PITCH.get(mission_id, 0.0))
 	if mission_id.begins_with("mission_relay"):
 		if String(out.get("ground_texture", "")).strip_edges() == "":
 			out["ground_texture"] = RELAY_GROUND_TEXTURE
 		out["textured_ground"] = true
 		if String(out.get("panorama", "")).strip_edges() == "":
 			out["panorama"] = RELAY_SKY_PANORAMA
+	elif mission_id.begins_with("mission_medical"):
+		if String(out.get("panorama", "")).strip_edges() == "":
+			out["panorama"] = MEDICAL_SKY_PANORAMA
 	elif String(out.get("panorama", "")).strip_edges() == "":
 		out["panorama"] = RUNNER_SKY_PANORAMA
 	if not mission_id.begins_with("mission_relay") and String(out.get("ground_texture", "")).strip_edges() == "":
@@ -1572,12 +1759,28 @@ static func apply_runner_background(mission: Dictionary) -> Dictionary:
 			accents[key] = existing_accents[key]
 	out["sky_accents"] = accents
 	var env: Dictionary = RUNNER_ENVIRONMENT_BASE.duplicate(true)
-	if absf(yaw) > 0.001:
-		env["sky_rotation_y"] = yaw
+	if mission_id == "mission_reservoir_01":
+		env = RESERVOIR_W1_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_reservoir_03":
+		env = RESERVOIR_W3_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_reservoir_04":
+		env = RESERVOIR_W4_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_medical_m1":
+		env = MEDICAL_M1_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_medical_m2":
+		env = MEDICAL_M2_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_medical_m3":
+		env = MEDICAL_M3_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_medical_m4":
+		env = MEDICAL_M4_ENVIRONMENT.duplicate(true)
 	var existing = out.get("environment", {})
 	if typeof(existing) == TYPE_DICTIONARY:
 		for key in existing:
 			env[key] = existing[key]
+	if absf(yaw) > 0.001:
+		env["sky_rotation_y"] = yaw
+	if absf(pitch) > 0.001 or mission_id in ["mission_reservoir_03", "mission_reservoir_04"]:
+		env["sky_rotation_x"] = pitch
 	out["environment"] = _sanitize_runner_environment(env, mission_id)
 	return apply_visual_kit(out)
 
@@ -1589,10 +1792,30 @@ static func _sanitize_runner_environment(env: Dictionary, mission_id: String = "
 		out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.04)), 0.05)
 		out["fog_density"] = minf(float(out.get("fog_density", 0.00014)), 0.00020)
 		return out
+	if mission_id.begins_with("mission_medical"):
+		# 与水源第一关相同：薄雾，不要把天空洗成纯色
+		out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.06)), 0.08)
+		out["fog_density"] = minf(float(out.get("fog_density", 0.00034)), 0.00042)
+		return out
 	if mission_id == "mission_dome_h1":
 		# 居民穹顶 H1：允许略深雾与透视，营造近暖远紫的废墟长桥
 		out["fog_aerial_perspective"] = clampf(float(out.get("fog_aerial_perspective", 0.12)), 0.08, 0.16)
 		out["fog_density"] = clampf(float(out.get("fog_density", 0.00065)), 0.00048, 0.00082)
+		return out
+	if mission_id == "mission_reservoir_01":
+		# 水源第一关：湖泊夕照，保留琥珀雾，不掺紫
+		out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.06)), 0.08)
+		out["fog_density"] = minf(float(out.get("fog_density", 0.00034)), 0.00042)
+		return out
+	if mission_id in ["mission_reservoir_03", "mission_reservoir_04"]:
+		# 跟第一关同一套琥珀薄雾，灰紫雾会把云和高楼剪影洗掉
+		out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.06)), 0.08)
+		out["fog_density"] = minf(float(out.get("fog_density", 0.00034)), 0.00042)
+		return out
+	if mission_id.begins_with("mission_reservoir"):
+		# 后续关允许粉紫/明暗变化，不要洗回橙黄或统一紫灰
+		out["fog_aerial_perspective"] = clampf(float(out.get("fog_aerial_perspective", 0.10)), 0.06, 0.16)
+		out["fog_density"] = clampf(float(out.get("fog_density", 0.00042)), 0.00028, 0.00070)
 		return out
 	# 远景透视过高会把天空洗成纯色雾带
 	out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.07)), 0.09)
@@ -1867,19 +2090,23 @@ static func build_side_runway_coins() -> Array:
 
 
 static func build_shield_crystals() -> Array:
-	# 青色防护水晶：只投放在沙尘暴前后，后半无沙暴段不再刷
+	# 热浪前给水晶，最后一片热浪结束后不再刷
 	var crystals: Array = []
-	for zone in SANDSTORM_ZONES:
+	var n := SANDSTORM_ZONES.size()
+	if n == 0:
+		return crystals
+	var first := float(SANDSTORM_ZONES[0].get("start", 0.0))
+	crystals.append({"lane": 0, "distance": minf(75.0, first - 48.0), "layer": 0})
+	crystals.append({"lane": 0, "distance": minf(108.0, first - 28.0), "layer": 0})
+	for i in n:
+		var zone: Dictionary = SANDSTORM_ZONES[i]
 		var start := float(zone.get("start", 0.0))
 		var length := float(zone.get("length", 40.0))
 		crystals.append({"lane": 0, "distance": start - 18.0, "layer": 0})
-		crystals.append({"lane": 1, "distance": start - 10.0, "layer": 0})
-		crystals.append({"lane": -1, "distance": start - 6.0, "layer": 0})
-		crystals.append({"lane": 0, "distance": start + length * 0.35, "layer": 0})
-		crystals.append({"lane": 1, "distance": start + length + 10.0, "layer": 0})
-	# 开局少量试用，方便学会开罩
-	crystals.append({"lane": 0, "distance": 75.0, "layer": 0})
-	crystals.append({"lane": 1, "distance": 92.0, "layer": 0})
+		if length >= 36.0:
+			crystals.append({"lane": 0, "distance": start + length * 0.40, "layer": 0})
+		if i < n - 1:
+			crystals.append({"lane": 0, "distance": start + length + 12.0, "layer": 0})
 	return crystals
 
 

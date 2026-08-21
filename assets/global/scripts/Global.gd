@@ -65,6 +65,8 @@ const HOME_BGM_PATH := "res://assets/audio/music/ember_runners.mp3"
 const RUNNER_BGM_PATH := "res://assets/audio/music/never_stop_running.mp3"
 const DOME_BGM_PATH := "res://assets/audio/music/my_people.mp3"
 const MEDICAL_BGM_PATH := "res://assets/audio/music/medical_rooftop_bounce.mp3"
+const GATE_BGM_PATH := "res://assets/audio/music/parkour_leap.mp3"
+const RELAY_BGM_PATH := "res://assets/audio/music/heavy_wall_echo.mp3"
 const HOME_BGM_DB := -8.0
 const RUNNER_BGM_DB := -6.0
 const BGM_FADE_OUT_DB := -48.0
@@ -159,7 +161,23 @@ func _notification(what: int) -> void:
 		_shutdown_audio_output()
 
 
+func _ensure_resource_uid_registered(path: String) -> void:
+	# 新导入的 mp3 可能还没进 uid_cache，load/exists 会报 Unrecognized UID
+	if path.strip_edges() == "":
+		return
+	var uid := ResourceLoader.get_resource_uid(path)
+	if uid == ResourceUID.INVALID_ID or ResourceUID.has_id(uid):
+		return
+	ResourceUID.add_id(uid, path)
+
+
 func _setup_game_music() -> void:
+	_ensure_resource_uid_registered(HOME_BGM_PATH)
+	_ensure_resource_uid_registered(RUNNER_BGM_PATH)
+	_ensure_resource_uid_registered(DOME_BGM_PATH)
+	_ensure_resource_uid_registered(MEDICAL_BGM_PATH)
+	_ensure_resource_uid_registered(GATE_BGM_PATH)
+	_ensure_resource_uid_registered(RELAY_BGM_PATH)
 	if _music_player != null and is_instance_valid(_music_player):
 		return
 	_music_player = AudioStreamPlayer.new()
@@ -314,6 +332,14 @@ func is_medical_mission_id(mission_id: String) -> bool:
 	return String(mission_id).begins_with("mission_medical_")
 
 
+func is_gate_mission_id(mission_id: String) -> bool:
+	return String(mission_id).begins_with("mission_gate_")
+
+
+func is_relay_mission_id(mission_id: String) -> bool:
+	return String(mission_id).begins_with("mission_relay_")
+
+
 func _is_my_people_style_bgm(path: String) -> bool:
 	return path == DOME_BGM_PATH or path == MEDICAL_BGM_PATH
 
@@ -331,6 +357,21 @@ func get_runner_bgm_path(mission_id: String = "") -> String:
 		if ResourceLoader.exists(DOME_BGM_PATH):
 			return DOME_BGM_PATH
 		push_warning("Dome BGM missing at %s — using runner fallback" % DOME_BGM_PATH)
+		return RUNNER_BGM_PATH
+	var want_gate := is_gate_mission_id(key) or (runner_location_id == "gate" and key != "")
+	if want_gate:
+		_ensure_resource_uid_registered(GATE_BGM_PATH)
+		if ResourceLoader.exists(GATE_BGM_PATH):
+			return GATE_BGM_PATH
+		push_warning("Gate BGM missing at %s — using runner fallback" % GATE_BGM_PATH)
+		return RUNNER_BGM_PATH
+	var want_relay := is_relay_mission_id(key) or (runner_location_id == "relay" and key != "")
+	if want_relay:
+		_ensure_resource_uid_registered(RELAY_BGM_PATH)
+		if ResourceLoader.exists(RELAY_BGM_PATH):
+			return RELAY_BGM_PATH
+		push_warning("Relay BGM missing at %s — using runner fallback" % RELAY_BGM_PATH)
+		return RUNNER_BGM_PATH
 	return RUNNER_BGM_PATH
 
 
@@ -704,6 +745,7 @@ func _shutdown_audio_output() -> void:
 
 
 func _load_looped_bgm(path: String, loop: bool) -> AudioStream:
+	_ensure_resource_uid_registered(path)
 	if not ResourceLoader.exists(path):
 		return null
 	var loaded := load(path)
