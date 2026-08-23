@@ -5,15 +5,45 @@ extends RefCounted
 
 const DATA_DIR := "res://assets/maps/route_levels/planets/data/"
 
+## 三套视觉素材 + 独立跑道 JSON：
+## 视觉素材分据点：dome=EARLY_VISUAL_KIT / reservoir=RESERVOIR_VISUAL_KIT / crisis / relay
+## layout_set_* 为编辑器/旧引用保留；正式关卡直接用 mission_* layout_id
+const LAYOUT_FILE_ALIASES := {
+	"layout_set_early_1": "mission_dome_h1",
+	"layout_set_early_2": "mission_dome_h2",
+	"layout_set_early_3": "mission_dome_h3",
+	"layout_set_early_4": "mission_dome_h4",
+	"layout_set_crisis_1": "mission_medical_m1",
+	"layout_set_crisis_2": "mission_medical_m2",
+	"layout_set_crisis_3": "mission_medical_m3",
+	"layout_set_crisis_4": "mission_medical_m4",
+	"layout_set_relay_1": "mission_relay_e1",
+	"layout_set_relay_2": "mission_relay_e2",
+	"layout_set_relay_3": "mission_relay_e3",
+	"layout_set_relay_4": "mission_relay_e4",
+	"mission_relay_01": "mission_relay_e1",
+}
+
 static var _root_cache: Dictionary = {}
 
 
+static func resolve_file_id(layout_id: String) -> String:
+	var id := String(layout_id).strip_edges()
+	if id == "":
+		return ""
+	return String(LAYOUT_FILE_ALIASES.get(id, id))
+
+
 static func layout_path(planet_id: String) -> String:
-	return DATA_DIR + String(planet_id) + "_obstacles.json"
+	var file_id := resolve_file_id(planet_id)
+	if file_id == "":
+		return ""
+	return DATA_DIR + file_id + "_obstacles.json"
 
 
 static func has_layout(planet_id: String) -> bool:
-	return FileAccess.file_exists(layout_path(planet_id))
+	var path := layout_path(planet_id)
+	return path != "" and FileAccess.file_exists(path)
 
 
 static func load_items(planet_id: String) -> Array:
@@ -38,28 +68,29 @@ static func clear_root_cache(layout_id: String = "") -> void:
 
 
 static func load_root(layout_id: String) -> Dictionary:
-	var id := String(layout_id)
+	var id := String(layout_id).strip_edges()
 	if id == "":
 		return {}
-	if _root_cache.has(id):
-		return _root_cache[id]
+	var file_id := resolve_file_id(id)
+	if _root_cache.has(file_id):
+		return _root_cache[file_id]
 	var path := layout_path(id)
-	if not FileAccess.file_exists(path):
-		_root_cache[id] = {}
+	if path == "" or not FileAccess.file_exists(path):
+		_root_cache[file_id] = {}
 		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		push_warning("ObstacleLayout: cannot read %s" % path)
-		_root_cache[id] = {}
+		_root_cache[file_id] = {}
 		return {}
 	var text := file.get_as_text()
 	file.close()
 	var parsed: Variant = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("ObstacleLayout: invalid JSON root in %s" % path)
-		_root_cache[id] = {}
+		_root_cache[file_id] = {}
 		return {}
-	_root_cache[id] = parsed
+	_root_cache[file_id] = parsed
 	return parsed
 
 
@@ -137,6 +168,7 @@ static func normalize_sandstorm_zone(raw: Dictionary) -> Dictionary:
 		lane_count = int(raw["lanes"])
 	lane_count = clampi(lane_count, 1, 3)
 	var lane_anchor := int(raw.get("lane", raw.get("lane_anchor", 0)))
+	var base: Dictionary
 	if raw.has("covered_lanes") and typeof(raw["covered_lanes"]) == TYPE_ARRAY:
 		var covered_raw: Array = raw["covered_lanes"]
 		var covered: Array = []
@@ -149,7 +181,7 @@ static func normalize_sandstorm_zone(raw: Dictionary) -> Dictionary:
 			var hazard_kind := String(raw.get("hazard_kind", raw.get("variant", "sand")))
 			if hazard_kind not in ["sand", "poison"]:
 				hazard_kind = "sand"
-			return {
+			base = {
 				"start": float(raw.get("start", 0.0)),
 				"length": float(raw.get("length", 40.0)),
 				"dps": float(raw.get("dps", 9.0)),
@@ -159,20 +191,50 @@ static func normalize_sandstorm_zone(raw: Dictionary) -> Dictionary:
 				"lane": lane_anchor,
 				"covered_lanes": covered,
 			}
-	var covered2: Array = sandstorm_covered_lanes(lane_count, lane_anchor)
-	var hazard_kind := String(raw.get("hazard_kind", raw.get("variant", "sand")))
-	if hazard_kind not in ["sand", "poison"]:
-		hazard_kind = "sand"
-	return {
-		"start": float(raw.get("start", 0.0)),
-		"length": float(raw.get("length", 40.0)),
-		"dps": float(raw.get("dps", 9.0)),
-		"label": String(raw.get("label", "毒雾" if hazard_kind == "poison" else "沙尘暴")),
-		"hazard_kind": hazard_kind,
-		"lane_count": lane_count,
-		"lane": int(covered2[0]) if lane_count < 3 else lane_anchor,
-		"covered_lanes": covered2,
-	}
+	else:
+		var covered2: Array = sandstorm_covered_lanes(lane_count, lane_anchor)
+		var hazard_kind2 := String(raw.get("hazard_kind", raw.get("variant", "sand")))
+		if hazard_kind2 not in ["sand", "poison"]:
+			hazard_kind2 = "sand"
+		base = {
+			"start": float(raw.get("start", 0.0)),
+			"length": float(raw.get("length", 40.0)),
+			"dps": float(raw.get("dps", 9.0)),
+			"label": String(raw.get("label", "毒雾" if hazard_kind2 == "poison" else "沙尘暴")),
+			"hazard_kind": hazard_kind2,
+			"lane_count": lane_count,
+			"lane": int(covered2[0]) if lane_count < 3 else lane_anchor,
+			"covered_lanes": covered2,
+		}
+	return _merge_side_emit_fields(base, raw)
+
+
+static func _merge_side_emit_fields(base: Dictionary, raw: Dictionary) -> Dictionary:
+	var out := base.duplicate(true)
+	var emit_style := String(raw.get("emit_style", "volume"))
+	if emit_style not in ["volume", "side_cave"]:
+		emit_style = "volume"
+	out["emit_style"] = emit_style
+	if emit_style != "side_cave":
+		return out
+	out["emit_pattern"] = String(raw.get("emit_pattern", "alternate"))
+	out["burst_interval"] = maxf(0.35, float(raw.get("burst_interval", 0.82)))
+	out["burst_duration"] = maxf(0.2, float(raw.get("burst_duration", 0.55)))
+	if raw.has("left_cover_lanes") and typeof(raw["left_cover_lanes"]) == TYPE_ARRAY:
+		var left: Array = []
+		for v in raw["left_cover_lanes"]:
+			left.append(clampi(int(v), -1, 1))
+		out["left_cover_lanes"] = left
+	else:
+		out["left_cover_lanes"] = [-1, 0]
+	if raw.has("right_cover_lanes") and typeof(raw["right_cover_lanes"]) == TYPE_ARRAY:
+		var right: Array = []
+		for v in raw["right_cover_lanes"]:
+			right.append(clampi(int(v), -1, 1))
+		out["right_cover_lanes"] = right
+	else:
+		out["right_cover_lanes"] = [0, 1]
+	return out
 
 
 static func sort_sandstorm_zones(zones: Array) -> Array:
@@ -529,6 +591,23 @@ static func normalize_junction_zone(raw: Dictionary) -> Dictionary:
 	}
 
 
+static func load_shield_crystals(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	var out: Array = []
+	for raw in root.get("shield_crystals", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		out.append({
+			"lane": int(raw.get("lane", 0)),
+			"distance": float(raw.get("distance", 0.0)),
+			"layer": int(raw.get("layer", 0)),
+		})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	return out
+
+
 static func load_speed_boosts(layout_id: String) -> Array:
 	var root := load_root(layout_id)
 	var out: Array = []
@@ -648,6 +727,20 @@ static func normalize_item(raw: Dictionary) -> Dictionary:
 		item["span"] = float(raw["span"])
 	if raw.has("height"):
 		item["height"] = float(raw["height"])
+	if raw.has("low_slide"):
+		item["low_slide"] = bool(raw["low_slide"])
+	if raw.has("jump_style"):
+		item["jump_style"] = String(raw["jump_style"])
+	if raw.has("fall_roll"):
+		item["fall_roll"] = bool(raw["fall_roll"])
+	if raw.has("fall_height"):
+		item["fall_height"] = float(raw["fall_height"])
+	if raw.has("roll_speed"):
+		item["roll_speed"] = float(raw["roll_speed"])
+	if raw.has("meteor_state"):
+		item["meteor_state"] = String(raw["meteor_state"])
+	if raw.has("meteor_air_y"):
+		item["meteor_air_y"] = float(raw["meteor_air_y"])
 	return item
 
 
@@ -670,6 +763,8 @@ static func type_color(obstacle_type: String) -> Color:
 			return Color(1.0, 0.82, 0.25)
 		"meteorite":
 			return Color(0.55, 0.78, 1.0)
+		"meteorite_gate":
+			return Color(1.0, 0.48, 0.18)
 		"slide", "high_bar":
 			return Color(0.95, 0.45, 1.0)
 		"train", "train_moving":

@@ -1,12 +1,12 @@
 {
-	"note": "W2 超重双击跳 · 左右 Y 分叉（安全/速通）+ 侧墙加速绕坑",
+	"note": "W2 超重双击跳 · 长直→直角弯→中段分叉+侧墙",
 	"layout_id": "mission_reservoir_w2",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 18,
+	"version": 19,
 	"track_segments": [
 		{
-			"length": 220.0,
+			"length": 280.0,
 			"turn": 0.0
 		},
 		{
@@ -22,7 +22,7 @@
 			"turn": -1.5707963267948966
 		},
 		{
-			"length": 340.0,
+			"length": 260.0,
 			"turn": 0.0
 		},
 		{
@@ -32,12 +32,12 @@
 	],
 	"junction_zones": [
 		{
-			"distance": 100.0,
+			"distance": 268.0,
 			"length": 88.0,
 			"spread": 17.0,
 			"lane_a": 0,
 			"label_a": "安全岔路",
-			"effect_a": "repair",
+			"effect_a": "safe",
 			"lane_b": 2,
 			"label_b": "速通岔路",
 			"effect_b": "fast"
@@ -81,7 +81,8 @@
 		{
 			"distance": 72.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 210.0,
@@ -92,7 +93,8 @@
 		{
 			"distance": 232.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 262.0,
@@ -118,7 +120,8 @@
 			"distance": 342.0,
 			"lane": -1,
 			"type": "slide",
-			"layer": 1
+			"layer": 1,
+			"low_slide": true
 		},
 		{
 			"distance": 354.0,
@@ -129,7 +132,8 @@
 		{
 			"distance": 378.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 392.0,
@@ -144,7 +148,8 @@
 		{
 			"distance": 478.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 492.0,
@@ -170,7 +175,8 @@
 		{
 			"distance": 452.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 510.0,
@@ -180,7 +186,8 @@
 		{
 			"distance": 560.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 600.0,
@@ -409,7 +416,8 @@
 		{
 			"distance": 782.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 830.0,
@@ -582,7 +590,8 @@
 	"finish_sprints": [
 		{
 			"distance": 900.0,
-			"lane": -1
+			"lane": 0,
+			"width_ratio": 0.58
 		}
 	]
 }

@@ -1,243 +1,158 @@
 {
-	"note": "D3 长途运输 · 防御+能源双特性",
+	"note": "D3 中继/防御+能源 · 长途S弯+分叉+右弹射过熔岩+平台跳+侧墙。90秒约1710m。格挡+点按散热。",
 	"layout_id": "mission_gate_d3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
+	"version": 4,
+	"lava_cross_mode": "side_wall",
 	"track_segments": [
-		{
-			"length": 200,
-			"turn": 0
-		},
-		{
-			"length": 46,
-			"turn": 0.785
-		},
-		{
-			"length": 220,
-			"turn": 0
-		},
-		{
-			"length": 46,
-			"turn": -0.785
-		},
-		{
-			"length": 220,
-			"turn": 0
-		},
-		{
-			"type": "y_fork",
-			"branch_length": 50,
-			"angle_deg": 40
-		},
-		{
-			"length": 240,
-			"turn": 0
-		}
+		{"length": 160.0, "turn": 0.0},
+		{"length": 40.0, "turn": 0.55},
+		{"length": 200.0, "turn": 0.0},
+		{"length": 40.0, "turn": -0.55},
+		{"length": 280.0, "turn": 0.0},
+		{"length": 40.0, "turn": 0.72},
+		{"length": 260.0, "turn": 0.0},
+		{"length": 40.0, "turn": -0.62},
+		{"length": 360.0, "turn": 0.0},
+		{"length": 300.0, "turn": 0.0}
 	],
 	"junction_zones": [
 		{
-			"distance": 112,
-			"length": 94,
-			"spread": 19,
+			"distance": 480.0,
+			"length": 86.0,
+			"spread": 18.0,
 			"lane_a": 0,
-			"label_a": "安全岔路",
+			"label_a": "修复岔路",
 			"effect_a": "repair",
 			"lane_b": 2,
 			"label_b": "速通岔路",
 			"effect_b": "fast"
-		},
-		{
-			"distance": 480,
-			"length": 90,
-			"spread": 21,
-			"lane_a": 0,
-			"label_a": "左支",
-			"effect_a": "repair",
-			"lane_b": 2,
-			"label_b": "右支",
-			"effect_b": "bonus"
 		}
 	],
 	"side_runway_zones": [
 		{
-			"start": 278,
-			"length": 60,
+			"start": 1288.0,
+			"length": 68.0,
 			"side": "outer",
 			"fallback_side": -1,
 			"lateral_offset": 7.0,
 			"layer": 1,
-			"entry_window": 12,
-			"blocker_profile": "light"
-		},
-		{
-			"start": 560,
-			"length": 58,
-			"side": "outer",
-			"fallback_side": 1,
-			"lateral_offset": 7.0,
-			"layer": 1,
-			"entry_window": 12,
+			"entry_window": 12.0,
 			"blocker_profile": "light"
 		}
 	],
 	"sandstorm_zones": [
+		{"start": 220, "length": 40, "dps": 10, "label": "热浪", "hazard_kind": "sand", "lane_count": 3},
+		{"start": 780, "length": 36, "dps": 11, "label": "强热浪", "hazard_kind": "sand", "lane_count": 2, "lane": 0},
+		{"start": 1420, "length": 40, "dps": 12, "label": "末段热浪", "hazard_kind": "sand", "lane_count": 3}
+	],
+	"open_gaps": [
+		{"start": 348.0, "end": 356.0, "kind": "launch"}
+	],
+	"launch_pads": [
 		{
-			"start": 178,
-			"length": 55,
-			"dps": 10,
-			"label": "热浪",
-			"hazard_kind": "sand",
-			"lane_count": 3
+			"id": "d3_lava_right",
+			"distance": 340.0,
+			"lane": 1,
+			"impulse": 15.8,
+			"half_depth": 2.2,
+			"lock_air_lane": true,
+			"lock_distance": 22.0,
+			"hint": "换到右道踩垫 · 飞过熔岩"
 		},
 		{
-			"start": 520,
-			"length": 50,
-			"dps": 11,
-			"label": "强热浪",
-			"hazard_kind": "sand",
-			"lane_count": 3
-		},
-		{
-			"start": 880,
-			"length": 45,
-			"dps": 12,
-			"label": "末段热浪",
-			"hazard_kind": "sand",
-			"lane_count": 3
+			"id": "d3_speed_left",
+			"distance": 820.0,
+			"lane": -1,
+			"impulse": 12.8,
+			"half_depth": 1.8,
+			"lock_air_lane": false,
+			"lock_distance": 16.0,
+			"speed_boost": true,
+			"boost_time": 2.4,
+			"hint": "左道弹射加速 · 过热就点按散热"
 		}
 	],
 	"obstacles": [
-		{
-			"distance": 36.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 84.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 132.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 180.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 228.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 276.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 324.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 372.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 420.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 468.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 516.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 564.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 612.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 660.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 708.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 756.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 804.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 852.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 900.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 948.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 996.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 1044.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 1092.0,
-			"lane": 0,
-			"type": "slide"
-		},
-		{
-			"distance": 1140.0,
-			"lane": 1,
-			"type": "train"
-		},
-		{
-			"distance": 1188.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 1236.0,
-			"lane": 0,
-			"type": "slide"
-		}
+		{"distance": 28.0, "lane": -1, "type": "jump"},
+		{"distance": 50.0, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 72.0, "lane": 1, "type": "train"},
+		{"distance": 94.0, "lane": 0, "type": "jump"},
+		{"distance": 116.0, "lane": -1, "type": "orb", "orb_size": "small"},
+		{"distance": 138.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 216.0, "lane": 0, "type": "jump"},
+		{"distance": 224.0, "lane": -1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 6.5},
+		{"distance": 232.0, "lane": 1, "type": "meteorite", "span": 1.8, "fall_roll": true, "fall_height": 14.0},
+		{"distance": 238.0, "lane": -1, "type": "train"},
+		{"distance": 250.0, "lane": 0, "type": "meteorite_gate", "drop_count": 6, "drop_interval": 0.84},
+		{"distance": 260.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 282.0, "lane": 0, "type": "jump"},
+		{"distance": 304.0, "lane": -1, "type": "slide", "low_slide": true},
+		{"distance": 326.0, "lane": 0, "type": "jump"},
+		{"distance": 372.0, "lane": 0, "type": "jump"},
+		{"distance": 456.0, "lane": -1, "type": "jump"},
+		{"distance": 468.0, "lane": 1, "type": "train"},
+		{"distance": 590.0, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 612.0, "lane": 1, "type": "jump"},
+		{"distance": 634.0, "lane": -1, "type": "train"},
+		{"distance": 656.0, "lane": 0, "type": "orb", "orb_size": "small"},
+		{"distance": 678.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 688.0, "lane": -1, "type": "orb", "orb_size": "small", "orb_tint": "purple", "drift_speed": 7.1},
+		{"distance": 700.0, "lane": 0, "type": "meteorite_gate", "drop_count": 7, "drop_interval": 0.76},
+		{"distance": 772.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "float_amp": 0.24},
+		{"distance": 780.0, "lane": 0, "type": "jump"},
+		{"distance": 790.0, "lane": -1, "type": "meteorite", "span": 1.5, "fall_roll": true, "fall_height": 11.2},
+		{"distance": 802.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 846.0, "lane": 1, "type": "meteorite", "span": 2.7, "fall_roll": true, "fall_height": 18.0},
+		{"distance": 852.0, "lane": 0, "type": "orb", "orb_size": "medium", "orb_tint": "purple"},
+		{"distance": 838.0, "lane": -1, "type": "jump"},
+		{"distance": 860.0, "lane": 0, "type": "train"},
+		{"distance": 882.0, "lane": 1, "type": "orb", "orb_size": "medium"},
+		{"distance": 920.0, "lane": 0, "type": "main_block", "layer": 0, "half_depth": 18.0, "cross": "platform"},
+		{"distance": 1080.0, "lane": -1, "type": "jump"},
+		{"distance": 1090.0, "lane": 0, "type": "meteorite", "span": 2.2, "fall_roll": true, "fall_height": 15.0},
+		{"distance": 1102.0, "lane": 0, "type": "slide", "low_slide": true},
+		{"distance": 1124.0, "lane": 1, "type": "train"},
+		{"distance": 1146.0, "lane": 0, "type": "jump"},
+		{"distance": 1156.0, "lane": 0, "type": "meteorite_gate", "drop_count": 6, "drop_interval": 0.8},
+		{"distance": 1168.0, "lane": -1, "type": "orb", "orb_size": "small"},
+		{"distance": 1190.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 1212.0, "lane": 0, "type": "jump"},
+		{"distance": 1234.0, "lane": 1, "type": "train"},
+		{"distance": 1256.0, "lane": -1, "type": "jump"},
+		{"distance": 1276.0, "lane": 0, "type": "ramp", "layer": 0, "target_layer": 1},
+		{"distance": 1318.0, "lane": 0, "type": "main_block", "layer": 0, "half_depth": 20.0, "cross": "side_wall"},
+		{"distance": 1380.0, "lane": 0, "type": "jump"},
+		{"distance": 1402.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 1440.0, "lane": -1, "type": "train"},
+		{"distance": 1462.0, "lane": 0, "type": "orb", "orb_size": "small"},
+		{"distance": 1484.0, "lane": 1, "type": "jump"},
+		{"distance": 1506.0, "lane": -1, "type": "slide", "low_slide": true},
+		{"distance": 1528.0, "lane": 0, "type": "jump"},
+		{"distance": 1550.0, "lane": 1, "type": "train"},
+		{"distance": 1572.0, "lane": 0, "type": "orb", "orb_size": "medium"},
+		{"distance": 1594.0, "lane": -1, "type": "jump"},
+		{"distance": 1616.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 1638.0, "lane": 0, "type": "jump"}
 	],
-	"speed_boosts": []
+	"shield_crystals": [
+		{"distance": 198.0, "lane": 0, "layer": 0},
+		{"distance": 210.0, "lane": 1, "layer": 0},
+		{"distance": 400.0, "lane": -1, "layer": 0},
+		{"distance": 760.0, "lane": 0, "layer": 0},
+		{"distance": 900.0, "lane": 1, "layer": 0},
+		{"distance": 1200.0, "lane": 0, "layer": 0},
+		{"distance": 1398.0, "lane": -1, "layer": 0}
+	],
+	"speed_boosts": [
+		{"distance": 44.0, "lane": 0, "layer": 0},
+		{"distance": 280.0, "lane": 1, "layer": 0},
+		{"distance": 600.0, "lane": 0, "layer": 0},
+		{"distance": 1088.0, "lane": 1, "layer": 0},
+		{"distance": 1400.0, "lane": -1, "layer": 0}
+	],
+	"finish_sprints": [
+		{"distance": 1684.0, "lane": 0, "width_ratio": 0.58}
+	]
 }

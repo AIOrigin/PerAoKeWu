@@ -2482,9 +2482,17 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	)
 	var reward := int(mission.get("base_reward", profile.get("base_reward", 50)))
 	var accepted := Global.is_mission_accepted(planet_id, mission_id)
+	var is_preview := MissionDispatch.is_preview_location(planet_id, location_id)
 	var accent := _mission_type_accent(String(mission.get("task_type", "")))
 
 	var panel := _make_tasks_mission_card_shell(accent, is_done, reward_pending)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_on_tasks_mission_action(planet_id, mission.duplicate(true))
+		elif event is InputEventScreenTouch and event.pressed:
+			_on_tasks_mission_action(planet_id, mission.duplicate(true))
+	)
 	_tasks_missions_box.add_child(panel)
 
 	var open_detail := func(event: InputEvent) -> void:
@@ -2597,9 +2605,12 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	else:
 		var action_btn := Button.new()
 		action_btn.focus_mode = Control.FOCUS_NONE
-		action_btn.text = "RUN" if accepted else "ACCEPT"
+		if is_preview:
+			action_btn.text = "试玩" if MissionDispatch.can_preview_trial_run(planet_id, location_id) else "PREVIEW"
+		else:
+			action_btn.text = "RUN" if accepted else "ACCEPT"
 		action_btn.custom_minimum_size = Vector2(_tasks_spec_w(88), _tasks_spec_h(34))
-		_apply_mission_action_button_style(action_btn, accepted)
+		_apply_mission_action_button_style(action_btn, accepted and not is_preview)
 		action_btn.pressed.connect(_on_tasks_mission_action.bind(planet_id, mission.duplicate(true), action_btn))
 		right.add_child(action_btn)
 
@@ -2690,6 +2701,13 @@ func _on_tasks_mission_action(planet_id: String, mission: Dictionary, action_but
 	var mission_id := Global.mission_key(mission)
 	if location_id == "":
 		return
+	if MissionDispatch.is_preview_location(planet_id, location_id):
+		if MissionDispatch.can_preview_trial_run(planet_id, location_id):
+			_start_runner_for_mission(planet_id, mission, true)
+		else:
+			_open_task_detail(planet_id, mission)
+			_show_toast("预览任务 · 解锁后可接取出发")
+		return
 	if Global.is_mission_completed(planet_id, mission_id):
 		if Global.is_mission_reward_pending(planet_id, mission_id):
 			return
@@ -2709,8 +2727,14 @@ func _on_tasks_mission_action(planet_id: String, mission: Dictionary, action_but
 	call_deferred("_refresh_tasks_mission_cards", planet_id)
 
 
-func _start_runner_for_mission(planet_id: String, mission: Dictionary) -> void:
+func _start_runner_for_mission(planet_id: String, mission: Dictionary, trial_run: bool = false) -> void:
 	var location_id := String(mission.get("location_id", "dome"))
+	if MissionDispatch.is_preview_location(planet_id, location_id):
+		if trial_run and MissionDispatch.can_preview_trial_run(planet_id, location_id):
+			_show_toast("调优试玩 · 进度暂不计入任务板")
+		else:
+			_show_toast("该批次任务尚未解锁")
+			return
 	var mission_id := Global.mission_key(mission)
 	_sync_selected_character_from_global()
 	_selected_planet_id = planet_id
@@ -3540,12 +3564,21 @@ func _open_task_detail(planet_id: String, mission: Dictionary) -> void:
 	_ensure_task_detail()
 	if _bottom_nav_root:
 		_bottom_nav_root.visible = false
+	if _page_scrim:
+		_page_scrim.visible = true
+		_page_scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_task_detail.z_index = 240
+	if _ui_root and _task_detail.get_parent() == _ui_root:
+		_ui_root.move_child(_task_detail, -1)
 	_task_detail.open(planet_id, mission)
 
 
 func _on_task_detail_closed() -> void:
 	if _bottom_nav_root:
 		_bottom_nav_root.visible = true
+	if _page_scrim:
+		_page_scrim.visible = _selected_tab != TAB_HOME and _selected_tab != TAB_MAP
+		_page_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: String = "") -> void:
@@ -3559,6 +3592,14 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 		mission = cfg.get_mission_by_id(mission_id)
 	if mission.is_empty():
 		mission = cfg.get_mission_for_location(location_id) if cfg != null else {"location_id": location_id}
+	if MissionDispatch.is_preview_location(planet_id, location_id):
+		if MissionDispatch.can_preview_trial_run(planet_id, location_id):
+			if _task_detail:
+				_task_detail.close()
+			_start_runner_for_mission(planet_id, mission, true)
+		else:
+			_show_toast("预览任务 · 网络核心批次解锁后可接取出发")
+		return
 	var mission_done := Global.is_mission_completed(planet_id, mission_id)
 	var reward_pending := Global.is_mission_reward_pending(planet_id, mission_id)
 	var location_lit := Global.get_completed_runner_locations(planet_id).has(location_id)
@@ -4519,10 +4560,15 @@ func _find_next_mission_entry() -> Dictionary:
 
 		var active := Global.validate_active_mission(planet_id)
 		var active_id := String(active.get("location_id", ""))
-		if active_id != "":
-			var active_mission: Dictionary = cfg.get_mission_for_location(active_id)
+		var active_mission_id := String(active.get("mission_id", ""))
+		if active_mission_id != "" and cfg.has_method("get_mission_by_id"):
+			var active_mission: Dictionary = cfg.get_mission_by_id(active_mission_id)
 			if not active_mission.is_empty():
 				return {"planet_id": planet_id, "location_id": active_id, "mission": active_mission}
+		if active_id != "":
+			var fallback_mission: Dictionary = cfg.get_mission_for_location(active_id)
+			if not fallback_mission.is_empty():
+				return {"planet_id": planet_id, "location_id": active_id, "mission": fallback_mission}
 
 		var board := Global.get_mission_board_slots(planet_id)
 		for mission_id in board:

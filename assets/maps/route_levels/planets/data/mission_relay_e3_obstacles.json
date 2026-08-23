@@ -1,0 +1,207 @@
+{
+	"note": "E3 紧急运输 · 短程蛇形+中段安全分叉",
+	"layout_id": "mission_relay_e3",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 2,
+	"track_segments": [
+		{
+			"length": 110.0,
+			"turn": 0.0
+		},
+		{
+			"length": 36.0,
+			"turn": 0.872
+		},
+		{
+			"length": 110.0,
+			"turn": 0.0
+		},
+		{
+			"length": 36.0,
+			"turn": -0.872
+		},
+		{
+			"length": 110.0,
+			"turn": 0.0
+		},
+		{
+			"length": 36.0,
+			"turn": 0.698
+		},
+		{
+			"length": 120.0,
+			"turn": 0.0
+		}
+	],
+	"junction_zones": [
+		{
+			"distance": 380.0,
+			"length": 78.0,
+			"spread": 16.0,
+			"lane_a": 0,
+			"label_a": "安全支路",
+			"effect_a": "safe",
+			"lane_b": 2,
+			"label_b": "速通支路",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{
+			"start": 196,
+			"length": 36,
+			"dps": 12.0,
+			"label": "紧急沙暴",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 380,
+			"length": 32,
+			"dps": 13.0,
+			"label": "浓沙暴",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 24.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 52.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 80.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 108.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 136.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 164.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 192.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 220.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 248.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 276.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 304.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 332.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 360.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 388.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 416.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 444.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 472.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 500.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 528.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 528.0,
+			"lane": 1,
+			"type": "meteorite",
+			"span": 2.2,
+			"fall_roll": true,
+			"fall_height": 14.0,
+			"roll_speed": -5.2
+		},
+		{
+			"distance": 548.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 2.0,
+			"fall_roll": true,
+			"fall_height": 15.0,
+			"roll_speed": -4.8
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 420.0,
+			"lane": 0,
+			"width_ratio": 0.48
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 548.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
+	]
+}

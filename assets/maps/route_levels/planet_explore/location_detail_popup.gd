@@ -8,6 +8,7 @@ signal reward_claim_pressed
 signal view_runner_pressed(character_id: String)
 
 const MissionTypes = preload("res://assets/maps/route_levels/mission_types.gd")
+const MissionDispatch = preload("res://assets/maps/route_levels/mission_dispatch.gd")
 const TaskDetailSheet = preload("res://assets/maps/route_levels/mobile_home/task_detail_sheet.gd")
 const CharacterUnlockReveal = preload("res://assets/maps/route_levels/planet_explore/character_unlock_reveal.gd")
 
@@ -91,12 +92,19 @@ func _apply_payload(payload: Dictionary) -> void:
 	_planet_id = String(payload.get("planet_id", Global.exploration_planet_id))
 	_selected_mission_id = ""
 	_revealed = bool(payload.get("revealed", false))
+	var preview := bool(payload.get("preview", false))
 	_icon_label.text = String(payload.get("type_icon", "◎"))
 	_title_label.text = String(payload.get("title", "Outpost Detail"))
 	_title_en_label.visible = false
 	_status_label.text = String(payload.get("status", ""))
 	if _revealed:
 		_desc_label.text = String(payload.get("description", ""))
+	elif preview:
+		_desc_label.text = "%s\n%s%s" % [
+			String(payload.get("description", "")),
+			String(payload.get("locked_hint", "")),
+			"",
+		]
 	else:
 		_desc_label.text = "This outpost is not open yet.%s" % String(payload.get("locked_hint", ""))
 	_set_stars(int(payload.get("danger_stars", 3)))
@@ -318,6 +326,18 @@ func _open_task_detail(mission: Dictionary) -> void:
 func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: String = "") -> void:
 	if mission_id == "":
 		mission_id = location_id
+	if MissionDispatch.is_preview_location(planet_id, location_id):
+		if MissionDispatch.can_preview_trial_run(planet_id, location_id):
+			var trial_mission := _find_mission(mission_id)
+			if trial_mission.is_empty():
+				return
+			if _task_detail:
+				_task_detail.close()
+			_selected_mission_id = mission_id
+			runner_pressed.emit(mission_id)
+		else:
+			_show_preview_toast()
+		return
 	var mission := _find_mission(mission_id)
 	if mission.is_empty():
 		return
@@ -1015,6 +1035,24 @@ func _on_background_style_option_selected(index: int) -> void:
 	if index < 0 or index >= Global.RUNNER_BACKGROUND_STYLE_ORDER.size():
 		return
 	Global.set_runner_background_style(Global.RUNNER_BACKGROUND_STYLE_ORDER[index])
+
+
+func _show_preview_toast() -> void:
+	var toast := Label.new()
+	toast.text = "预览模式 · 可点「试玩体验」直接进关调优"
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	toast.set_anchors_preset(PRESET_CENTER_TOP)
+	toast.offset_top = 88.0
+	toast.offset_left = 24.0
+	toast.offset_right = -24.0
+	toast.add_theme_font_size_override("font_size", 17)
+	toast.add_theme_color_override("font_color", STATUS)
+	toast.add_theme_stylebox_override("normal", _panel_style(Color(0.12, 0.08, 0.04, 0.94), GOLD, 1))
+	add_child(toast)
+	var tween := create_tween()
+	tween.tween_property(toast, "modulate:a", 0.0, 0.35).set_delay(2.2)
+	tween.tween_callback(toast.queue_free)
 
 
 func _close() -> void:

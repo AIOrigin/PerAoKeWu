@@ -9,7 +9,7 @@ const REGION_REVEAL_RADIUS := 0.155
 const CEREMONY_REVEAL_SOFTNESS := 0.085
 const MOBILE_ASPECT_THRESHOLD := 1.15
 const MOBILE_VIEWPORT_SIZE := Vector2(1080, 1920)
-const MOBILE_TOP_CHROME_HEIGHT := 108.0
+const MOBILE_TOP_CHROME_HEIGHT := 116.0
 const MOBILE_BOTTOM_HINT_HEIGHT := 44.0
 ## 底图内装饰边框相对贴图的内缩（对齐顶栏与羊皮纸框）
 const MAP_ART_FRAME_INSET := Vector4(0.045, 0.028, 0.045, 0.035) # L T R B
@@ -62,6 +62,7 @@ var _story_button: Button
 var _scan_button: Button
 var _runner_button: Button
 var _title_panel: PanelContainer
+var _map_title_label: Label
 var _top_back_button: Button
 var _mobile_hint_label: Label
 var _detail_popup: LocationDetailPopup
@@ -77,6 +78,7 @@ var _ceremony_hint_active := false
 var _temp_ceremony_points: Array[Vector2] = []
 var _temp_ceremony_radius := 0.0
 var _mobile_hint_panel: PanelContainer
+var _mobile_aspect_frame: AspectRatioContainer
 
 @onready var legacy_panel: PanelContainer = $UI/Panel
 @onready var hint_label: Label = $UI/Hint
@@ -139,9 +141,8 @@ func _set_ceremony_hint(text: String) -> void:
 
 func _clear_ceremony_hint() -> void:
 	_ceremony_hint_active = false
-	if _mobile_hint_label:
-		_mobile_hint_label.text = "点击地图上的地点打开详情 · 拖拽旋转 3D 建筑"
-	_apply_mobile_hint_layout()
+	if _mobile_hint_panel:
+		_mobile_hint_panel.visible = false
 
 
 func _maybe_show_pending_showcase() -> void:
@@ -192,7 +193,7 @@ func _relayout_light_focus_ui() -> void:
 	if loc.is_empty():
 		return
 	if _light_pulse != null and _light_pulse.visible:
-		_layout_light_pulse_at(loc.get("pos", Vector2(0.5, 0.5)) as Vector2)
+		_layout_light_pulse_at(_location_tap_uv(loc))
 	if _ceremony_hint_active:
 		_layout_ceremony_hint_above_pulse()
 
@@ -214,8 +215,9 @@ func _build_mobile_frame(ui: CanvasLayer) -> Control:
 
 	var frame := AspectRatioContainer.new()
 	frame.name = "MobileExploreFrame"
+	_mobile_aspect_frame = frame
 	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
-	frame.stretch_mode = AspectRatioContainer.STRETCH_FIT
+	frame.stretch_mode = AspectRatioContainer.STRETCH_WIDTH_CONTROLS_HEIGHT
 	frame.ratio = MOBILE_VIEWPORT_SIZE.x / MOBILE_VIEWPORT_SIZE.y
 	frame.alignment_horizontal = AspectRatioContainer.ALIGNMENT_CENTER
 	frame.alignment_vertical = AspectRatioContainer.ALIGNMENT_CENTER
@@ -315,10 +317,10 @@ func _build_map_ui() -> void:
 	_location_layer.name = "LocationLayer"
 	_location_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_location_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_location_layer.visible = false
+	_location_layer.visible = true
 	_map_root.add_child(_location_layer)
 
-	# 不再生成 MapLocationMarker 圆形节点；点击走底图 hit-test
+	_spawn_map_tap_markers()
 	_build_info_panel(_ui_shell)
 	_build_top_chrome(_ui_shell)
 	_build_mobile_hint(_ui_shell)
@@ -452,7 +454,6 @@ func _build_top_chrome(ui: Control) -> void:
 	const CHROME_FILL := Color(0.06, 0.08, 0.12, 0.94)
 	const CHROME_BORDER := Color(0.34, 0.52, 0.68, 0.88)
 	const CHROME_TEXT := Color(0.92, 0.95, 0.98)
-	const CHROME_MUTED := Color(0.58, 0.64, 0.72)
 	const CHROME_ACCENT := Color(0.42, 0.82, 0.98)
 
 	_title_panel = PanelContainer.new()
@@ -461,43 +462,39 @@ func _build_top_chrome(ui: Control) -> void:
 	ui.add_child(_title_panel)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_bottom", 6)
 	_title_panel.add_child(margin)
 
 	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
+	hbox.add_theme_constant_override("separation", 12)
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	margin.add_child(hbox)
 
 	var accent_bar := ColorRect.new()
-	accent_bar.custom_minimum_size = Vector2(3, 0)
-	accent_bar.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	accent_bar.custom_minimum_size = Vector2(4, 52)
+	accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	accent_bar.color = CHROME_ACCENT
 	accent_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(accent_bar)
 
-	var title_box := VBoxContainer.new()
-	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_box.add_theme_constant_override("separation", 2)
-	hbox.add_child(title_box)
-
 	var title := Label.new()
-	title.text = "MAP 1"
+	title.text = _resolve_map_chrome_title()
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_color", CHROME_TEXT)
-	title.add_theme_font_size_override("font_size", 22)
-	title_box.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.text = "ENDLESS GLASS DESERT"
-	subtitle.add_theme_color_override("font_color", CHROME_MUTED)
-	subtitle.add_theme_font_size_override("font_size", 12)
-	title_box.add_child(subtitle)
+	title.add_theme_font_size_override("font_size", 32)
+	hbox.add_child(title)
+	_map_title_label = title
 
 	_map_stats_label = Label.new()
 	_map_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_map_stats_label.add_theme_font_size_override("font_size", 13)
+	_map_stats_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_map_stats_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_map_stats_label.add_theme_font_size_override("font_size", 14)
 	hbox.add_child(_map_stats_label)
 	_refresh_map_stats()
 
@@ -509,6 +506,73 @@ func _build_top_chrome(ui: Control) -> void:
 	_style_chrome_button(_top_back_button)
 	_top_back_button.pressed.connect(_return_to_galaxy)
 	hbox.add_child(_top_back_button)
+
+
+func _resolve_map_chrome_title() -> String:
+	match Global.exploration_planet_id:
+		"glass_desert":
+			return PlanetDatabase.GlassDesert.MAP_CHROME_TITLE
+		"rust_belt":
+			return PlanetDatabase.RustBelt.MAP_NAME_EN
+		"savanna_ring":
+			return PlanetDatabase.SavannaRing.MAP_NAME_EN
+		_:
+			return "Crystal Waste"
+
+
+func _map_uses_cover_fill() -> bool:
+	return _mobile_layout
+
+func _map_root_local_rect() -> Rect2:
+	var root_size := _map_root.size if _map_root != null else Vector2.ZERO
+	if root_size.x <= 1.0 or root_size.y <= 1.0:
+		root_size = get_viewport().get_visible_rect().size
+	return Rect2(Vector2.ZERO, root_size)
+
+func _map_uv_to_local(uv: Vector2) -> Vector2:
+	var root_size := _map_root_local_rect().size
+	if not _map_uses_cover_fill():
+		var image_rect := _get_map_image_rect()
+		return image_rect.position + Vector2(image_rect.size.x * uv.x, image_rect.size.y * uv.y)
+	var image_aspect := _map_image_size.x / maxf(_map_image_size.y, 1.0)
+	var root_aspect := root_size.x / maxf(root_size.y, 1.0)
+	if root_aspect > image_aspect:
+		var tex_display_h := root_size.x / image_aspect
+		var crop_top := (tex_display_h - root_size.y) * 0.5
+		return Vector2(uv.x * root_size.x, uv.y * tex_display_h - crop_top)
+	var tex_display_w := root_size.y * image_aspect
+	var crop_left := (tex_display_w - root_size.x) * 0.5
+	return Vector2(uv.x * tex_display_w - crop_left, uv.y * root_size.y)
+
+func _map_local_to_uv(local_pos: Vector2) -> Vector2:
+	if not _map_uses_cover_fill():
+		var image_rect := _get_map_image_rect()
+		return Vector2(
+			(local_pos.x - image_rect.position.x) / maxf(image_rect.size.x, 1.0),
+			(local_pos.y - image_rect.position.y) / maxf(image_rect.size.y, 1.0)
+		)
+	var root_size := _map_root_local_rect().size
+	var image_aspect := _map_image_size.x / maxf(_map_image_size.y, 1.0)
+	var root_aspect := root_size.x / maxf(root_size.y, 1.0)
+	if root_aspect > image_aspect:
+		var tex_display_h := root_size.x / image_aspect
+		var crop_top := (tex_display_h - root_size.y) * 0.5
+		return Vector2(
+			local_pos.x / maxf(root_size.x, 1.0),
+			(local_pos.y + crop_top) / maxf(tex_display_h, 1.0)
+		)
+	var tex_display_w := root_size.y * image_aspect
+	var crop_left := (tex_display_w - root_size.x) * 0.5
+	return Vector2(
+		(local_pos.x + crop_left) / maxf(tex_display_w, 1.0),
+		local_pos.y / maxf(root_size.y, 1.0)
+	)
+
+
+func _get_map_chrome_align_rect() -> Rect2:
+	if _ui_shell == null:
+		return Rect2()
+	return Rect2(Vector2.ZERO, Vector2(_ui_shell.size.x, 0.0))
 
 
 func _build_mobile_hint(ui: Control) -> void:
@@ -525,6 +589,7 @@ func _build_mobile_hint(ui: Control) -> void:
 	hint_style.content_margin_top = 8
 	hint_style.content_margin_bottom = 8
 	_mobile_hint_panel.add_theme_stylebox_override("panel", hint_style)
+	_mobile_hint_panel.visible = false
 	ui.add_child(_mobile_hint_panel)
 
 	_mobile_hint_label = Label.new()
@@ -661,16 +726,24 @@ func _apply_responsive_layout() -> void:
 	_apply_top_chrome_layout()
 	_apply_info_panel_layout()
 	if _map_texture:
-		_map_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		_map_texture.stretch_mode = (
+			TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			if _mobile_layout
+			else TextureRect.STRETCH_KEEP_ASPECT
+		)
+	if _mobile_aspect_frame:
+		_mobile_aspect_frame.stretch_mode = (
+			AspectRatioContainer.STRETCH_WIDTH_CONTROLS_HEIGHT
+			if _mobile_layout
+			else AspectRatioContainer.STRETCH_FIT
+		)
 	if _info_preview:
 		_info_preview.custom_minimum_size = Vector2(0, 168 if _mobile_layout else 128)
 		_info_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	if hint_label:
 		hint_label.visible = not _mobile_layout
 	if _mobile_hint_panel:
-		_mobile_hint_panel.visible = _mobile_layout
-	if _mobile_hint_label and _mobile_layout and not _ceremony_hint_active:
-		_mobile_hint_label.text = "点击地图上的地点打开详情 · 拖拽旋转 3D 建筑"
+		_mobile_hint_panel.visible = _mobile_layout and _ceremony_hint_active
 	_apply_mobile_hint_layout()
 
 
@@ -678,9 +751,9 @@ func _apply_map_root_layout() -> void:
 	_map_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	if _mobile_layout:
 		_map_root.offset_left = 0.0
-		_map_root.offset_top = MOBILE_TOP_CHROME_HEIGHT + 18.0
+		_map_root.offset_top = MOBILE_TOP_CHROME_HEIGHT + 10.0
 		_map_root.offset_right = 0.0
-		_map_root.offset_bottom = -24.0
+		_map_root.offset_bottom = -8.0
 	else:
 		_map_root.offset_left = 0.0
 		_map_root.offset_top = 0.0
@@ -692,23 +765,16 @@ func _apply_top_chrome_layout() -> void:
 	if _title_panel == null:
 		return
 	if _mobile_layout:
-		# 与 TextureRect KEEP_ASPECT 居中结果一致，再按美术边框内缩
-		var image_rect := _get_map_image_rect()
-		var frame := _get_map_frame_rect(image_rect)
-		var shell_w := _ui_shell.size.x if _ui_shell != null else 0.0
-		var left := 14.0
-		var right_inset := 14.0
-		if shell_w > 8.0 and frame.size.x > 8.0:
-			left = maxf(6.0, frame.position.x)
-			right_inset = maxf(6.0, shell_w - frame.end.x)
+		var bar_h := MOBILE_TOP_CHROME_HEIGHT
+		var bar_top := 8.0
 		_title_panel.anchor_left = 0.0
 		_title_panel.anchor_right = 1.0
 		_title_panel.anchor_top = 0.0
 		_title_panel.anchor_bottom = 0.0
-		_title_panel.offset_left = left
-		_title_panel.offset_top = 12.0
-		_title_panel.offset_right = -right_inset
-		_title_panel.offset_bottom = MOBILE_TOP_CHROME_HEIGHT - 6.0
+		_title_panel.offset_left = 0.0
+		_title_panel.offset_top = bar_top
+		_title_panel.offset_right = 0.0
+		_title_panel.offset_bottom = -(bar_top + bar_h)
 	else:
 		_title_panel.anchor_left = 0.0
 		_title_panel.anchor_right = 0.0
@@ -744,25 +810,106 @@ func _apply_info_panel_layout() -> void:
 
 
 func _add_location_button(location: Dictionary) -> void:
-	# 保留接口兼容；探索地图已改为点底图地点，不再创建圆形标记
 	pass
+
+
+func _spawn_map_tap_markers() -> void:
+	for child in _location_layer.get_children():
+		child.queue_free()
+	_location_buttons.clear()
+	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
+	for location in _location_data:
+		var id := String(location.get("id", ""))
+		if id == "":
+			continue
+		if not bool(location.get("open_detail", true)):
+			continue
+		var marker := MapLocationMarker.new()
+		marker.name = "Tap_%s" % id
+		var preview_path := ""
+		if cfg != null and cfg.has_method("get_location_preview_path"):
+			preview_path = String(cfg.get_location_preview_path(id))
+		var display_name := String(location.get("name_en", location.get("name", id)))
+		var type_icon := "◎"
+		if cfg != null and cfg.has_method("get_type_icon"):
+			type_icon = String(cfg.get_type_icon(id))
+		marker.configure(id, display_name, preview_path, type_icon)
+		marker.set_pin_mode(true)
+		marker.activated.connect(_on_map_marker_activated.bind(id))
+		_location_layer.add_child(marker)
+		_location_buttons[id] = marker
+	call_deferred("_layout_location_buttons")
+
+
+func _on_map_marker_activated(location_id: String) -> void:
+	if _ceremony_animating:
+		return
+	var location := _get_location(location_id)
+	if location.is_empty():
+		return
+	var open_detail := bool(location.get("open_detail", true))
+	var needs_ceremony := Global.is_map_light_ceremony_pending(Global.exploration_planet_id, location_id)
+	if needs_ceremony:
+		_play_light_ceremony_then_maybe_open(location_id, open_detail)
+		return
+	if not open_detail:
+		_select_location(location_id)
+		return
+	_open_location_detail(location_id)
+
+
+func _location_tap_uv(location: Dictionary) -> Vector2:
+	if location.has("tap_uv"):
+		return location.get("tap_uv") as Vector2
+	return location.get("pos", Vector2(0.5, 0.5)) as Vector2
 
 
 func _layout_location_buttons() -> void:
-	# 无圆形节点可布局；连线层已隐藏
-	pass
+	if _location_layer == null:
+		return
+	for location in _location_data:
+		var id := String(location.get("id", ""))
+		var marker: MapLocationMarker = _location_buttons.get(id)
+		if marker == null:
+			continue
+		var uv := _location_tap_uv(location)
+		var pixel_offset := Vector2.ZERO
+		if location.has("tap_offset"):
+			pixel_offset = location.get("tap_offset") as Vector2
+		var center := _map_uv_to_local(uv) + pixel_offset
+		var size := marker.size
+		if size.x <= 1.0:
+			size = Vector2(MapLocationMarker.PIN_HIT, MapLocationMarker.PIN_HIT)
+		# pin 三角尖端对准 tap_uv（底图圆标中心）
+		marker.position = center - Vector2(size.x * 0.5, size.y * 0.5 + MapLocationMarker.PIN_TIP_OFFSET_Y)
+		var revealed := _is_revealed(id)
+		var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, id)
+		var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(id)
+		var selected := id == _selected_location_id
+		marker.apply_state(revealed, completed, selected, preview)
 
 
 func _on_map_gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
-			_try_open_location_at_map_pos(touch.position)
+			_try_open_location_at_map_pos(_map_input_local_pos(event))
 		return
 	if event is InputEventMouseButton:
 		var mouse := event as InputEventMouseButton
 		if mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
-			_try_open_location_at_map_pos(mouse.position)
+			_try_open_location_at_map_pos(_map_input_local_pos(event))
+
+
+func _map_input_local_pos(event: InputEvent) -> Vector2:
+	if _map_texture == null:
+		return Vector2.ZERO
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		return _map_texture.get_global_transform_with_canvas().affine_inverse() * touch.position
+	if event is InputEventMouseButton:
+		return (event as InputEventMouseButton).position
+	return Vector2.ZERO
 
 
 func _try_open_location_at_map_pos(local_pos: Vector2) -> void:
@@ -826,7 +973,7 @@ func _start_location_light_pulse(location_id: String) -> void:
 	var location := _get_location(location_id)
 	if location.is_empty():
 		return
-	_layout_light_pulse_at(location.get("pos", Vector2(0.5, 0.5)) as Vector2)
+	_layout_light_pulse_at(_location_tap_uv(location))
 	_light_pulse.visible = true
 	_light_pulse.modulate = Color(1, 1, 1, 1)
 	if _light_pulse_tween and _light_pulse_tween.is_valid():
@@ -849,9 +996,9 @@ func _stop_location_light_pulse() -> void:
 func _layout_light_pulse_at(map_pos: Vector2) -> void:
 	if _light_pulse == null:
 		return
-	var image_rect := _get_map_image_rect()
-	var center := image_rect.position + Vector2(image_rect.size.x * map_pos.x, image_rect.size.y * map_pos.y)
-	var diameter := mini(image_rect.size.x, image_rect.size.y) * 0.28
+	var center := _map_uv_to_local(map_pos)
+	var root_size := _map_root_local_rect().size
+	var diameter := mini(root_size.x, root_size.y) * 0.28
 	_light_pulse.size = Vector2(diameter, diameter)
 	_light_pulse.position = center - _light_pulse.size * 0.5
 
@@ -883,15 +1030,12 @@ func _open_location_detail(location_id: String) -> void:
 
 
 func _hit_test_map_location(local_pos: Vector2) -> String:
-	var image_rect := _get_map_image_rect()
-	if image_rect.size.x <= 1.0 or image_rect.size.y <= 1.0:
+	var bounds := _map_root_local_rect()
+	if bounds.size.x <= 1.0 or bounds.size.y <= 1.0:
 		return ""
-	if not image_rect.has_point(local_pos):
+	if not bounds.has_point(local_pos):
 		return ""
-	var uv := Vector2(
-		(local_pos.x - image_rect.position.x) / image_rect.size.x,
-		(local_pos.y - image_rect.position.y) / image_rect.size.y
-	)
+	var uv := _map_local_to_uv(local_pos)
 	var best_id := ""
 	var best_score := 999.0
 	for location in _location_data:
@@ -907,7 +1051,7 @@ func _hit_test_map_location(local_pos: Vector2) -> String:
 				hit = true
 				score = uv.distance_to(location["pos"] as Vector2)
 		if not hit:
-			var anchor: Vector2 = location["pos"]
+			var anchor: Vector2 = _location_tap_uv(location)
 			var radius := float(location.get("hit_radius", 0.09))
 			var dist := uv.distance_to(anchor)
 			if dist <= radius:
@@ -920,6 +1064,8 @@ func _hit_test_map_location(local_pos: Vector2) -> String:
 
 
 func _get_map_image_rect() -> Rect2:
+	if _map_uses_cover_fill():
+		return _map_root_local_rect()
 	# 与 TextureRect STRETCH_KEEP_ASPECT 一致：等比缩放并居中
 	var root_size := _map_root.size if _map_root != null else get_viewport().get_visible_rect().size
 	if root_size.x <= 1.0 or root_size.y <= 1.0:
@@ -955,15 +1101,18 @@ func _select_location(location_id: String) -> void:
 	if location.is_empty():
 		return
 	var revealed := _is_revealed(location_id)
+	var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, location_id)
 	var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(location_id)
 	_info_title.text = String(location["name"])
 	if completed:
 		_info_status.text = "● 状态：已点亮"
+	elif preview:
+		_info_status.text = "● 状态：预览（批次未开放）"
 	elif revealed:
 		_info_status.text = "● 状态：运输修复中"
 	else:
 		_info_status.text = "● 状态：未开放"
-	if revealed:
+	if revealed or preview:
 		_info_desc.text = "%s\n%s" % [String(location.get("tagline", "")), String(location.get("goal", ""))]
 	else:
 		_info_desc.text = "还没轮到这个据点的任务哦。"
@@ -986,7 +1135,7 @@ func _set_detail_chrome_visible(visible: bool) -> void:
 	if _top_back_button:
 		_top_back_button.visible = visible
 	if _mobile_hint_panel:
-		_mobile_hint_panel.visible = visible and _mobile_layout
+		_mobile_hint_panel.visible = visible and _mobile_layout and _ceremony_hint_active
 	elif _mobile_hint_label:
 		_mobile_hint_label.visible = visible and _mobile_layout
 
@@ -1001,6 +1150,10 @@ func _on_detail_story_pressed() -> void:
 
 
 func _on_detail_runner_pressed(mission_id: String = "") -> void:
+	var location_id := _selected_location_id
+	if MissionDispatch.is_preview_location(Global.exploration_planet_id, location_id):
+		if not MissionDispatch.can_preview_trial_run(Global.exploration_planet_id, location_id):
+			return
 	_pending_detail_mission_id = mission_id
 	_close_location_detail()
 	_start_runner_with_transition()
@@ -1062,11 +1215,12 @@ func _warm_runner_assets() -> void:
 
 
 func _build_location_detail_payload(location_id: String) -> Dictionary:
-	var revealed := _is_revealed(location_id)
+	var batch_revealed := _is_revealed(location_id)
+	var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, location_id)
 	var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(location_id)
 	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
 	if cfg.has_method("build_detail_payload"):
-		return cfg.build_detail_payload(location_id, revealed, completed)
+		return cfg.build_detail_payload(location_id, batch_revealed, completed, preview)
 	return {}
 
 
@@ -1133,15 +1287,7 @@ func _has_locked_linked_locations(location: Dictionary) -> bool:
 
 
 func _update_location_buttons() -> void:
-	for location in _location_data:
-		var id := String(location["id"])
-		var marker: MapLocationMarker = _location_buttons.get(id)
-		if marker == null:
-			continue
-		var revealed := _is_revealed(id)
-		var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(id)
-		var selected := id == _selected_location_id
-		marker.apply_state(revealed, completed, selected)
+	call_deferred("_layout_location_buttons")
 
 
 func _update_reveal_shader() -> void:
@@ -1173,11 +1319,10 @@ func _update_reveal_shader() -> void:
 
 
 func _map_pos_to_screen_uv(map_pos: Vector2) -> Vector2:
-	var image_rect := _get_map_image_rect()
 	var root_size := _map_root.size if _map_root != null else get_viewport().get_visible_rect().size
 	if root_size.x <= 1.0 or root_size.y <= 1.0:
 		root_size = get_viewport().get_visible_rect().size
-	var local_pos := image_rect.position + Vector2(image_rect.size.x * map_pos.x, image_rect.size.y * map_pos.y)
+	var local_pos := _map_uv_to_local(map_pos)
 	return Vector2(local_pos.x / root_size.x, local_pos.y / root_size.y)
 
 
@@ -1241,28 +1386,11 @@ func _style_explore_option_button(option: OptionButton) -> void:
 func _apply_mobile_hint_layout() -> void:
 	if _mobile_hint_panel == null:
 		return
-	if not _mobile_layout:
+	if not _mobile_layout or not _ceremony_hint_active:
 		_mobile_hint_panel.visible = false
 		return
-	_mobile_hint_panel.visible = true
-	if _ceremony_hint_active and Global.pending_map_light_focus != "":
+	if Global.pending_map_light_focus != "":
 		_layout_ceremony_hint_above_pulse()
-		return
-	_mobile_hint_panel.anchor_left = 0.0
-	_mobile_hint_panel.anchor_right = 1.0
-	_mobile_hint_panel.anchor_top = 1.0
-	_mobile_hint_panel.anchor_bottom = 1.0
-	var image_rect := _get_map_image_rect()
-	var shell_w := _ui_shell.size.x if _ui_shell != null else 0.0
-	var left := 24.0
-	var right_inset := 24.0
-	if shell_w > 8.0 and image_rect.size.x > 8.0:
-		left = maxf(16.0, image_rect.position.x + 12.0)
-		right_inset = maxf(16.0, shell_w - (image_rect.position.x + image_rect.size.x) + 12.0)
-	_mobile_hint_panel.offset_left = left
-	_mobile_hint_panel.offset_right = -right_inset
-	_mobile_hint_panel.offset_top = -MOBILE_BOTTOM_HINT_HEIGHT - 28.0
-	_mobile_hint_panel.offset_bottom = -18.0
 
 
 func _layout_ceremony_hint_above_pulse() -> void:
@@ -1274,15 +1402,12 @@ func _layout_ceremony_hint_above_pulse() -> void:
 	var location := _get_location(focus_id)
 	if location.is_empty() or _map_root == null:
 		return
-	var map_pos: Vector2 = location.get("pos", Vector2(0.5, 0.5))
-	var image_rect := _get_map_image_rect()
-	var pulse_center_local := image_rect.position + Vector2(
-		image_rect.size.x * map_pos.x,
-		image_rect.size.y * map_pos.y
-	)
+	var map_pos: Vector2 = _location_tap_uv(location)
+	var pulse_center_local := _map_uv_to_local(map_pos)
+	var root_size := _map_root_local_rect().size
 	var pulse_center_shell := _map_root.position + pulse_center_local
-	var diameter := mini(image_rect.size.x, image_rect.size.y) * 0.28
-	var hint_w := clampf(image_rect.size.x * 0.72, 280.0, 520.0)
+	var diameter := mini(root_size.x, root_size.y) * 0.28
+	var hint_w := clampf(root_size.x * 0.72, 280.0, 520.0)
 	var hint_h := 64.0
 	var hint_x := pulse_center_shell.x - hint_w * 0.5
 	var hint_y := pulse_center_shell.y - diameter * 0.52 - hint_h - 12.0
@@ -1322,12 +1447,11 @@ func _layout_connections() -> void:
 	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
 	if not cfg.has_method("get_explore_connections"):
 		return
-	var image_rect := _get_map_image_rect()
 	var pos_map := {}
 	for location in _location_data:
 		var id := String(location["id"])
 		var pos: Vector2 = location["pos"]
-		pos_map[id] = image_rect.position + Vector2(image_rect.size.x * pos.x, image_rect.size.y * pos.y)
+		pos_map[id] = _map_uv_to_local(pos)
 	for pair in cfg.get_explore_connections():
 		if pair.size() < 2:
 			continue
@@ -1380,7 +1504,8 @@ func _setup_pause_overlay() -> void:
 
 func _start_runner() -> void:
 	if not MissionDispatch.is_location_batch_unlocked(Global.exploration_planet_id, _selected_location_id):
-		return
+		if not MissionDispatch.can_preview_trial_run(Global.exploration_planet_id, _selected_location_id):
+			return
 	Global.runner_planet_id = Global.exploration_planet_id
 	Global.runner_location_id = _selected_location_id
 	var mission_id := _pending_detail_mission_id

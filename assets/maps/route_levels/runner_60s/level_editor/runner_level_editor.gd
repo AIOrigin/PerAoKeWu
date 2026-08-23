@@ -96,6 +96,8 @@ var _lane_option: OptionButton
 var _planet_option: OptionButton
 var _layout_option: OptionButton
 var _road_style_option: OptionButton
+var _editor_bgm_check: CheckButton
+var _mission_layout_options: Array[Dictionary] = []
 var _dragging_marker := false
 var _drag_index := -1
 var _drag_lane_accum := 0.0
@@ -123,17 +125,7 @@ const DEFAULT_SEG_LENGTH := 80.0
 const DEFAULT_Y_FORK_BRANCH := 55.0
 const DEFAULT_Y_FORK_ANGLE_DEG := 45.0
 
-## 正式任务关卡 JSON（planets/data/mission_reservoir_w*_obstacles.json）
-const MISSION_LAYOUT_OPTIONS: Array[Dictionary] = [
-	{"file_id": "mission_dome_h1", "label": "H1 能源补给", "mission_id": "mission_dome_h1", "duration": 50.0},
-	{"file_id": "mission_dome_h2", "label": "H2 防御抢修", "mission_id": "mission_dome_h2", "duration": 65.0},
-	{"file_id": "mission_dome_h3", "label": "H3 能源中继", "mission_id": "mission_dome_h3", "duration": 75.0},
-	{"file_id": "mission_dome_h4", "label": "H4 紧急建设", "mission_id": "mission_dome_h4", "duration": 40.0},
-	{"file_id": "mission_reservoir_w1", "label": "W1 水源据点", "mission_id": "mission_reservoir_01", "duration": 55.0},
-	{"file_id": "mission_reservoir_w2", "label": "W2 超重双击跳", "mission_id": "mission_reservoir_02", "duration": 55.0},
-	{"file_id": "mission_reservoir_w3", "label": "W3 重装躲避", "mission_id": "mission_reservoir_03", "duration": 65.0},
-	{"file_id": "mission_reservoir_w4", "label": "W4 紧急限时", "mission_id": "mission_reservoir_04", "duration": 40.0},
-]
+## 正式任务关卡 JSON（由 planet_glass_desert.LOCATION_MISSIONS 动态生成）
 
 const EDIT_MODE_TRACK := "track"
 const EDIT_MODE_OBSTACLES := "obstacles"
@@ -152,6 +144,7 @@ var _phase_hint: Label
 func _ready() -> void:
 	if Global.runner_return_scene == "":
 		Global.runner_return_scene = PlanetDatabase.MOBILE_HOME_SCENE
+	_mission_layout_options = _build_mission_layout_options()
 	_build_ui()
 	_setup_world()
 	_planet_id = "glass_desert"
@@ -162,6 +155,7 @@ func _ready() -> void:
 	_set_edit_mode(EDIT_MODE_TRACK)
 	_refresh_all()
 	call_deferred("_layout_editor_panel")
+	call_deferred("_sync_editor_bgm")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -433,13 +427,24 @@ func _build_ui() -> void:
 
 	v.add_child(_make_label("任务关卡布局"))
 	_layout_option = OptionButton.new()
-	_layout_option.add_item("（星球默认 JSON）")
-	for opt in MISSION_LAYOUT_OPTIONS:
-		_layout_option.add_item("%s · %s" % [String(opt["label"]), String(opt["file_id"])])
+	_populate_layout_option_items()
 	_layout_option.item_selected.connect(func(i: int) -> void:
 		_on_layout_option_selected(i)
 	)
 	v.add_child(_layout_option)
+
+	var bgm_row := HBoxContainer.new()
+	bgm_row.add_theme_constant_override("separation", int(round(8.0 * EDITOR_UI_SCALE)))
+	v.add_child(bgm_row)
+	_editor_bgm_check = CheckButton.new()
+	_editor_bgm_check.text = "编辑时播放 BGM"
+	_editor_bgm_check.button_pressed = true
+	_editor_bgm_check.add_theme_font_size_override("font_size", _ui_fs(17))
+	_editor_bgm_check.toggled.connect(_on_editor_bgm_toggled)
+	bgm_row.add_child(_editor_bgm_check)
+	bgm_row.add_child(_make_button("重播", func() -> void:
+		_sync_editor_bgm(true)
+	))
 
 	v.add_child(_make_label("跑道样式（可更换）"))
 	_road_style_option = OptionButton.new()
@@ -1158,14 +1163,115 @@ func _layout_data_file_id() -> String:
 	return _planet_id
 
 
+func _build_mission_layout_options() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var cfg: Script = PlanetDatabase.get_runner_config("glass_desert")
+	if cfg == null or not cfg.has_method("get_location_missions"):
+		return out
+	for raw in cfg.get_location_missions():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var m: Dictionary = raw
+		var mission_id := String(m.get("mission_id", ""))
+		if mission_id == "":
+			continue
+		var file_id := String(m.get("layout_id", ""))
+		if file_id == "":
+			file_id = mission_id
+		out.append({
+			"file_id": file_id,
+			"label": _mission_editor_label(m),
+			"mission_id": mission_id,
+			"duration": float(m.get("duration", 65.0)),
+			"location_id": String(m.get("location_id", "dome")),
+		})
+	return out
+
+
+func _mission_editor_label(m: Dictionary) -> String:
+	var code := _mission_editor_short_code(String(m.get("mission_id", "")))
+	var detail := String(m.get("cargo_name", ""))
+	if detail == "":
+		detail = String(m.get("target_hearth", "任务"))
+	return "%s %s" % [code, detail]
+
+
+func _mission_editor_short_code(mission_id: String) -> String:
+	var s := mission_id.replace("mission_", "")
+	if s.begins_with("dome_h"):
+		return "H" + s.substr(5)
+	if s.begins_with("reservoir_"):
+		return "W" + str(int(s.substr(10)))
+	if s.begins_with("medical_m"):
+		return "M" + s.substr(9)
+	if s.begins_with("gate_d"):
+		return "D" + s.substr(6)
+	if s.begins_with("relay_"):
+		return "R" + str(int(s.substr(6)))
+	return s
+
+
+func _populate_layout_option_items() -> void:
+	if _layout_option == null:
+		return
+	_layout_option.clear()
+	_layout_option.add_item("（星球默认 JSON）")
+	for opt in _mission_layout_options:
+		_layout_option.add_item("%s · %s" % [String(opt.get("label", "")), String(opt.get("file_id", ""))])
+
+
+func _find_mission_layout_option(file_id: String) -> Dictionary:
+	for opt in _mission_layout_options:
+		if String(opt.get("file_id", "")) == file_id:
+			return opt
+	return {}
+
+
+func _mission_layout_duration(file_id: String) -> float:
+	var opt := _find_mission_layout_option(file_id)
+	if not opt.is_empty():
+		return float(opt.get("duration", 65.0))
+	var cfg: Script = PlanetDatabase.get_runner_config("glass_desert")
+	if cfg != null and cfg.has_method("get_mission_by_id"):
+		for opt2 in _mission_layout_options:
+			if String(opt2.get("file_id", "")) == file_id:
+				var m: Dictionary = cfg.get_mission_by_id(String(opt2.get("mission_id", "")))
+				if not m.is_empty():
+					return float(m.get("duration", 65.0))
+	return 65.0
+
+
+func _sync_editor_bgm(force_restart: bool = false) -> void:
+	if _editor_bgm_check != null and not _editor_bgm_check.button_pressed:
+		return
+	if _is_mission_layout_active() and _mission_playtest_id != "":
+		var opt := _find_mission_layout_option(_layout_file_id)
+		Global.runner_mission_id = _mission_playtest_id
+		Global.runner_location_id = String(opt.get("location_id", "dome"))
+	else:
+		Global.runner_mission_id = ""
+		Global.runner_location_id = "dome"
+	if force_restart and Global.has_method("stop_bgm"):
+		Global.stop_bgm(0.08)
+	if Global.has_method("play_runner_bgm_from_start"):
+		Global.play_runner_bgm_from_start(0.32)
+
+
+func _on_editor_bgm_toggled(pressed: bool) -> void:
+	if pressed:
+		_sync_editor_bgm(true)
+	elif Global.has_method("stop_bgm"):
+		Global.stop_bgm(0.25)
+
+
 func _is_mission_layout_active() -> bool:
-	return _layout_file_id != "" and (_layout_file_id.begins_with("mission_reservoir_") or _layout_file_id.begins_with("mission_dome_"))
+	return _layout_file_id != "" and _layout_file_id.begins_with("mission_")
 
 
 func _mission_layout_option(index: int) -> Dictionary:
-	if index < 0 or index >= MISSION_LAYOUT_OPTIONS.size():
+	if index < 0 or index >= _mission_layout_options.size():
 		return {}
-	return MISSION_LAYOUT_OPTIONS[index]
+	return _mission_layout_options[index]
 
 
 func _select_layout_option_index(index: int) -> void:
@@ -1192,6 +1298,7 @@ func _on_layout_option_selected(option_index: int) -> void:
 			_visual_factory.configure_from_level_config(LevelConfig)
 	_load_layout_data()
 	_refresh_all()
+	_sync_editor_bgm(true)
 	if _is_mission_layout_active():
 		_flash_status("已载入任务布局：%s" % _layout_file_id)
 	else:
@@ -1225,10 +1332,7 @@ func _load_planet(planet_id: String) -> void:
 func _load_layout_data() -> void:
 	var file_id := _layout_data_file_id()
 	if _is_mission_layout_active():
-		for opt in MISSION_LAYOUT_OPTIONS:
-			if String(opt.get("file_id", "")) == _layout_file_id:
-				_track_length = MissionTypes.track_length_for(float(opt.get("duration", 65.0)))
-				break
+		_track_length = MissionTypes.track_length_for(_mission_layout_duration(_layout_file_id))
 	if ObstacleLayout.has_layout(file_id):
 		var layout_root: Dictionary = ObstacleLayout.load_root(file_id)
 		_items = ObstacleLayout.sort_items(ObstacleLayout.load_items(file_id))
@@ -2670,7 +2774,7 @@ func _delete_selected() -> void:
 
 func _save_mission_layout() -> void:
 	if not _is_mission_layout_active():
-		_flash_status("请先在「任务关卡布局」中选择 W1–W4")
+		_flash_status("请先在「任务关卡布局」中选择正式任务")
 		return
 	_items = ObstacleLayout.sort_items(_items)
 	var file_id := _layout_file_id
@@ -2740,8 +2844,9 @@ func _playtest_layout() -> void:
 	if _is_mission_layout_active() and _mission_playtest_id != "":
 		if _dirty:
 			_save_mission_layout()
+		var opt := _find_mission_layout_option(_layout_file_id)
 		Global.runner_planet_id = _planet_id
-		Global.runner_location_id = "reservoir"
+		Global.runner_location_id = String(opt.get("location_id", "dome"))
 		Global.runner_mission_id = _mission_playtest_id
 		Global.runner_return_scene = CustomLevels.EDITOR_SCENE
 		Global.set_runner_road_style(_road_style_id)
@@ -2879,6 +2984,8 @@ func _exit_editor() -> void:
 	if back == "":
 		back = PlanetDatabase.MOBILE_HOME_SCENE
 	Global.runner_return_scene = ""
+	if Global.has_method("play_home_bgm"):
+		Global.play_home_bgm(0.35)
 	Global.change_game_scene(back)
 
 

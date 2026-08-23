@@ -1,12 +1,12 @@
 {
-	"note": "W3 · 末段落陨石减密约35%（相较 v10）· 去末段沙暴叠卡",
+	"note": "W3 长途 · 超长直道→三连弯→双晚段分叉",
 	"layout_id": "mission_reservoir_w3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 13,
+	"version": 16,
 	"track_segments": [
 		{
-			"length": 340.0,
+			"length": 420.0,
 			"turn": 0.0
 		},
 		{
@@ -44,7 +44,7 @@
 	],
 	"junction_zones": [
 		{
-			"distance": 100.0,
+			"distance": 248.0,
 			"length": 88.0,
 			"spread": 17.0,
 			"lane_a": 0,
@@ -55,41 +55,21 @@
 			"effect_b": "fast"
 		},
 		{
-			"distance": 420.0,
+			"distance": 520.0,
 			"length": 88.0,
 			"spread": 21.0,
 			"lane_a": 0,
 			"label_a": "左支缓冲",
-			"effect_a": "repair",
+			"effect_a": "safe",
 			"lane_b": 2,
 			"label_b": "右支奖励",
 			"effect_b": "bonus"
-		},
-		{
-			"distance": 688.0,
-			"length": 88.0,
-			"spread": 20.0,
-			"lane_a": 0,
-			"label_a": "安全岔路",
-			"effect_a": "repair",
-			"lane_b": 2,
-			"label_b": "速通岔路",
-			"effect_b": "fast"
 		}
 	],
 	"side_runway_zones": [
 		{
-			"start": 285.0,
-			"length": 55.0,
-			"side": "outer",
-			"fallback_side": 1,
-			"lateral_offset": 7.2,
-			"layer": 1,
-			"entry_window": 14.0
-		},
-		{
-			"start": 548.0,
-			"length": 54.0,
+			"start": 618.0,
+			"length": 62.0,
 			"side": "outer",
 			"fallback_side": -1,
 			"lateral_offset": 7.2,
@@ -125,7 +105,8 @@
 		{
 			"distance": 72.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 210.0,
@@ -136,7 +117,8 @@
 		{
 			"distance": 232.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 398.0,
@@ -146,7 +128,8 @@
 		{
 			"distance": 412.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 448.0,
@@ -161,19 +144,26 @@
 		{
 			"distance": 498.0,
 			"lane": 1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 548.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 638.0,
 			"lane": 0,
 			"type": "jump",
 			"layer": 1
 		},
 		{
-			"distance": 612.0,
+			"distance": 678.0,
 			"lane": -1,
 			"type": "slide",
-			"layer": 1
+			"layer": 1,
+			"low_slide": true
 		},
 		{
 			"distance": 668.0,
@@ -183,7 +173,8 @@
 		{
 			"distance": 248.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 258.0,
@@ -193,21 +184,16 @@
 		{
 			"distance": 270.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
-			"distance": 282.0,
+			"distance": 380.0,
+			"half_depth": 22.0,
 			"lane": 0,
 			"layer": 0,
-			"target_layer": 1,
-			"type": "ramp"
-		},
-		{
-			"distance": 312.0,
-			"half_depth": 26.0,
-			"lane": 0,
-			"layer": 0,
-			"type": "main_block"
+			"type": "main_block",
+			"cross": "platform"
 		},
 		{
 			"distance": 336.0,
@@ -217,7 +203,8 @@
 		{
 			"distance": 348.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 360.0,
@@ -227,7 +214,8 @@
 		{
 			"distance": 382.0,
 			"lane": 0,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 430.0,
@@ -245,15 +233,15 @@
 			"type": "train"
 		},
 		{
-			"distance": 562.0,
+			"distance": 612.0,
 			"lane": 0,
 			"layer": 0,
 			"target_layer": 1,
 			"type": "ramp"
 		},
 		{
-			"distance": 592.0,
-			"half_depth": 26.0,
+			"distance": 648.0,
+			"half_depth": 20.0,
 			"lane": 0,
 			"layer": 0,
 			"type": "main_block"
@@ -276,7 +264,8 @@
 		{
 			"distance": 658.0,
 			"lane": -1,
-			"type": "slide"
+			"type": "slide",
+			"low_slide": true
 		},
 		{
 			"distance": 688.0,
@@ -756,6 +745,13 @@
 			"roll_speed": -6.0,
 			"fall_speed": 27.1,
 			"fall_trigger_ahead": 36.0
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 1169.9,
+			"lane": 0,
+			"width_ratio": 0.58
 		}
 	]
 }

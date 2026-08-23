@@ -5,47 +5,229 @@
 	"road_style": "holographic",
 	"version": 1,
 	"obstacles": [
-		{"distance": 95.0, "lane": 0, "type": "jump"},
-		{"distance": 100.0, "lane": 1, "type": "turn_left"},
-		{"distance": 100.0, "lane": -1, "type": "turn_right"},
-		{"distance": 145.0, "lane": -1, "type": "slide"},
-		{"distance": 190.0, "lane": 1, "type": "jump"},
-		{"distance": 250.0, "lane": 0, "type": "train"},
-		{"distance": 277.0, "lane": 0, "layer": 0, "target_layer": 1, "type": "ramp"},
-		{"distance": 312.0, "half_depth": 26.0, "lane": 0, "layer": 0, "type": "main_block"},
-		{"distance": 350.0, "lane": 0, "move_speed": -10.0, "type": "train_moving"},
-		{"distance": 360.0, "lane": 1, "type": "jump"},
-		{"distance": 375.0, "lane": -1, "type": "slide"},
-		{"distance": 410.0, "lane": -1, "type": "turn_right"},
-		{"distance": 410.0, "lane": 1, "type": "turn_left"},
-		{"distance": 430.0, "lane": 1, "type": "jump"},
-		{"distance": 480.0, "lane": -1, "type": "jump"},
-		{"distance": 540.0, "lane": 0, "layer": 0, "target_layer": 1, "type": "ramp"},
-		{"distance": 575.0, "half_depth": 26.0, "lane": 0, "layer": 0, "type": "main_block"},
-		{"distance": 650.0, "lane": 1, "type": "block_right"},
-		{"distance": 680.0, "lane": -1, "type": "jump"},
-		{"distance": 710.0, "lane": 1, "type": "turn_right"},
-		{"distance": 710.0, "lane": -1, "type": "turn_left"},
-		{"distance": 740.0, "lane": 0, "move_speed": 11.0, "type": "train_moving"},
-		{"distance": 800.0, "lane": 1, "type": "jump"},
-		{"distance": 860.0, "lane": -1, "type": "slide"},
-		{"distance": 920.0, "lane": 0, "type": "train"},
-		{"distance": 980.0, "lane": 1, "type": "block_left"},
-		{"distance": 1040.0, "lane": 0, "type": "jump"},
-		{"distance": 1100.0, "lane": -1, "move_speed": -12.0, "type": "train_moving"},
-		{"distance": 1160.0, "lane": 1, "type": "slide"},
-		{"distance": 1220.0, "lane": 0, "type": "jump"}
+		{
+			"distance": 95.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 100.0,
+			"lane": 1,
+			"type": "turn_left"
+		},
+		{
+			"distance": 100.0,
+			"lane": -1,
+			"type": "turn_right"
+		},
+		{
+			"distance": 145.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 190.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 250.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 277.0,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 312.0,
+			"half_depth": 26.0,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		},
+		{
+			"distance": 350.0,
+			"lane": 0,
+			"move_speed": -10.0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 360.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 375.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 410.0,
+			"lane": -1,
+			"type": "turn_right"
+		},
+		{
+			"distance": 410.0,
+			"lane": 1,
+			"type": "turn_left"
+		},
+		{
+			"distance": 430.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 480.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 540.0,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 575.0,
+			"half_depth": 26.0,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		},
+		{
+			"distance": 650.0,
+			"lane": 1,
+			"type": "block_right"
+		},
+		{
+			"distance": 680.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 710.0,
+			"lane": 1,
+			"type": "turn_right"
+		},
+		{
+			"distance": 710.0,
+			"lane": -1,
+			"type": "turn_left"
+		},
+		{
+			"distance": 740.0,
+			"lane": 0,
+			"move_speed": 11.0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 800.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 860.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 920.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 980.0,
+			"lane": 1,
+			"type": "block_left"
+		},
+		{
+			"distance": 1040.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 1100.0,
+			"lane": -1,
+			"move_speed": -12.0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 1160.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1220.0,
+			"lane": 0,
+			"type": "jump"
+		}
 	],
 	"speed_boosts": [
-		{"distance": 72.0, "lane": 0, "layer": 0},
-		{"distance": 128.0, "lane": 1, "layer": 0},
-		{"distance": 184.0, "lane": -1, "layer": 0},
-		{"distance": 240.0, "lane": 0, "layer": 0},
-		{"distance": 296.0, "lane": 1, "layer": 0},
-		{"distance": 352.0, "lane": -1, "layer": 0},
-		{"distance": 408.0, "lane": 0, "layer": 0},
-		{"distance": 464.0, "lane": 1, "layer": 0},
-		{"distance": 520.0, "lane": -1, "layer": 0},
-		{"distance": 576.0, "lane": 0, "layer": 0}
+		{
+			"distance": 72.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 128.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 184.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 240.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 296.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 352.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 408.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 464.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 520.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 576.0,
+			"lane": 0,
+			"layer": 0
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 1031.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
 	]
 }

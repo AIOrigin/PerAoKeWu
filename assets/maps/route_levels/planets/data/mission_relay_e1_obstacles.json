@@ -1,0 +1,251 @@
+{
+	"note": "E1 危机降临 · 超长直道+晚段分叉（无早段套路）",
+	"layout_id": "mission_relay_e1",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 2,
+	"track_segments": [
+		{
+			"length": 520.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": 0.785
+		},
+		{
+			"length": 420.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": -0.785
+		},
+		{
+			"length": 480.0,
+			"turn": 0.0
+		}
+	],
+	"junction_zones": [
+		{
+			"distance": 680.0,
+			"length": 88.0,
+			"spread": 20.0,
+			"lane_a": 0,
+			"label_a": "沙暴外缘",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "直穿核心",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [],
+	"sandstorm_zones": [
+		{
+			"start": 168,
+			"length": 72,
+			"dps": 11.0,
+			"label": "危机沙暴",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 520,
+			"length": 56,
+			"dps": 12.5,
+			"label": "强沙暴",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 980,
+			"length": 48,
+			"dps": 13.0,
+			"label": "末段沙暴",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 36.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 74.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 112.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 150.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 188.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 226.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 248,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 278,
+			"half_depth": 24,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block"
+		},
+		{
+			"distance": 340.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 378.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 416.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 454.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 492.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 600.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 638.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 676.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 714.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 752.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 790.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 828.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 866.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 904.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 942.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 1050.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1088.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 1126.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1164.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 1202.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1240.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 1278.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1316.0,
+			"lane": 1,
+			"type": "jump"
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 1368.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
+	]
+}

@@ -1,0 +1,307 @@
+{
+	"note": "E2 炼狱迷宫 · 中段分叉+Y 岔+末段双弯",
+	"layout_id": "mission_relay_e2",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 2,
+	"track_segments": [
+		{
+			"length": 240.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": 0.785
+		},
+		{
+			"length": 220.0,
+			"turn": 0.0
+		},
+		{
+			"type": "y_fork",
+			"branch_length": 52.0,
+			"angle_deg": 40.0
+		},
+		{
+			"length": 240.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": -0.698
+		},
+		{
+			"length": 220.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": 0.698
+		},
+		{
+			"length": 240.0,
+			"turn": 0.0
+		}
+	],
+	"junction_zones": [
+		{
+			"distance": 280.0,
+			"length": 92.0,
+			"spread": 19.0,
+			"lane_a": 0,
+			"label_a": "散热支路",
+			"effect_a": "repair",
+			"lane_b": 2,
+			"label_b": "速通支路",
+			"effect_b": "fast"
+		},
+		{
+			"distance": 720.0,
+			"length": 88.0,
+			"spread": 20.0,
+			"lane_a": 0,
+			"label_a": "冷却岔路",
+			"effect_a": "safe",
+			"lane_b": 2,
+			"label_b": "高温直穿",
+			"effect_b": "bonus"
+		}
+	],
+	"side_runway_zones": [
+		{
+			"start": 620,
+			"length": 64,
+			"side": "outer",
+			"fallback_side": 1,
+			"lateral_offset": 7.2,
+			"layer": 1,
+			"entry_window": 12,
+			"blocker_profile": "light"
+		}
+	],
+	"sandstorm_zones": [
+		{
+			"start": 240,
+			"length": 140,
+			"dps": 13.5,
+			"label": "炼狱高温",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 560,
+			"length": 100,
+			"dps": 14.0,
+			"label": "熔砂区",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		},
+		{
+			"start": 780,
+			"length": 88,
+			"dps": 11.5,
+			"label": "毒雾散热点",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		},
+		{
+			"start": 1080,
+			"length": 96,
+			"dps": 12.5,
+			"label": "浓毒雾",
+			"hazard_kind": "poison",
+			"lane_count": 3
+		},
+		{
+			"start": 1320,
+			"length": 72,
+			"dps": 14.5,
+			"label": "末段高温",
+			"hazard_kind": "sand",
+			"lane_count": 3
+		}
+	],
+	"obstacles": [
+		{
+			"distance": 32.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 84.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 136.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 188.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 240.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 292.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 344.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 396.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 448.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 500.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 552.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 604.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 656.0,
+			"lane": -1,
+			"type": "train"
+		},
+		{
+			"distance": 708.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 760.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 812.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 864.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 916.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 968.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 1020.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1072.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 1124.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1176.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 1228.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 1280.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1332.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 1384.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1436.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 1488.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1540.0,
+			"lane": 1,
+			"type": "jump"
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 840.0,
+			"lane": 0,
+			"width_ratio": 0.42
+		},
+		{
+			"distance": 1260.0,
+			"lane": -1,
+			"width_ratio": 0.38
+		}
+	],
+	"finish_sprints": [
+		{
+			"distance": 1588.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
+	]
+}
