@@ -3,7 +3,7 @@
 	"layout_id": "mission_reservoir_w3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 14,
+	"version": 16,
 	"track_segments": [
 		{
 			"length": 420.0,
@@ -68,17 +68,8 @@
 	],
 	"side_runway_zones": [
 		{
-			"start": 285.0,
-			"length": 55.0,
-			"side": "outer",
-			"fallback_side": 1,
-			"lateral_offset": 7.2,
-			"layer": 1,
-			"entry_window": 14.0
-		},
-		{
-			"start": 548.0,
-			"length": 54.0,
+			"start": 618.0,
+			"length": 62.0,
 			"side": "outer",
 			"fallback_side": -1,
 			"lateral_offset": 7.2,
@@ -159,11 +150,16 @@
 		{
 			"distance": 548.0,
 			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 638.0,
+			"lane": 0,
 			"type": "jump",
 			"layer": 1
 		},
 		{
-			"distance": 612.0,
+			"distance": 678.0,
 			"lane": -1,
 			"type": "slide",
 			"layer": 1,
@@ -192,18 +188,12 @@
 			"low_slide": true
 		},
 		{
-			"distance": 282.0,
+			"distance": 380.0,
+			"half_depth": 22.0,
 			"lane": 0,
 			"layer": 0,
-			"target_layer": 1,
-			"type": "ramp"
-		},
-		{
-			"distance": 312.0,
-			"half_depth": 26.0,
-			"lane": 0,
-			"layer": 0,
-			"type": "main_block"
+			"type": "main_block",
+			"cross": "platform"
 		},
 		{
 			"distance": 336.0,
@@ -243,15 +233,15 @@
 			"type": "train"
 		},
 		{
-			"distance": 562.0,
+			"distance": 612.0,
 			"lane": 0,
 			"layer": 0,
 			"target_layer": 1,
 			"type": "ramp"
 		},
 		{
-			"distance": 592.0,
-			"half_depth": 26.0,
+			"distance": 648.0,
+			"half_depth": 20.0,
 			"lane": 0,
 			"layer": 0,
 			"type": "main_block"

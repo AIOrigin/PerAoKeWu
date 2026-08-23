@@ -6,7 +6,7 @@ extends RefCounted
 const DATA_DIR := "res://assets/maps/route_levels/planets/data/"
 
 ## 三套视觉素材 + 独立跑道 JSON：
-## early(dome+reservoir) / crisis(medical+gate) / relay — 见 planet_glass_desert EARLY_VISUAL_KIT 等
+## 视觉素材分据点：dome=EARLY_VISUAL_KIT / reservoir=RESERVOIR_VISUAL_KIT / crisis / relay
 ## layout_set_* 为编辑器/旧引用保留；正式关卡直接用 mission_* layout_id
 const LAYOUT_FILE_ALIASES := {
 	"layout_set_early_1": "mission_dome_h1",
@@ -589,6 +589,23 @@ static func normalize_junction_zone(raw: Dictionary) -> Dictionary:
 		"label_b": String(raw.get("label_b", "速通岔路")),
 		"effect_b": String(raw.get("effect_b", "fast")),
 	}
+
+
+static func load_shield_crystals(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	var out: Array = []
+	for raw in root.get("shield_crystals", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		out.append({
+			"lane": int(raw.get("lane", 0)),
+			"distance": float(raw.get("distance", 0.0)),
+			"layer": int(raw.get("layer", 0)),
+		})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	return out
 
 
 static func load_speed_boosts(layout_id: String) -> Array:

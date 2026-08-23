@@ -384,8 +384,9 @@ func _point(sample_path: Callable, distance: float, half_width: float, y: float,
 	var right: Vector3 = sample["right"]
 	var L := origin - right * half_width
 	var R := origin + right * half_width
-	L.y = y
-	R.y = y
+	var lift := (sample["pos"] as Vector3).y
+	L.y = y + lift
+	R.y = y + lift
 	return {"L": L, "R": R, "d": distance}
 
 

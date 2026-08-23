@@ -17,8 +17,11 @@ const ROAD_HOLOGRAPHIC_SHADER = preload("res://assets/maps/route_levels/runner_6
 const PIT_LAVA_SHADER = preload("res://assets/maps/route_levels/runner_60s/pit_lava.gdshader")
 const RESERVOIR_W2_SKY_SHADER = preload("res://assets/maps/route_levels/runner_60s/reservoir_w2_sky.gdshader")
 const MEDICAL_SUNRISE_SKY_SHADER = preload("res://assets/maps/route_levels/runner_60s/medical_sunrise_sky.gdshader")
+const W1_SKY_AURORA_SHADER = preload("res://assets/maps/route_levels/runner_60s/w1_sky_aurora.gdshader")
 const RESERVOIR_SKY_DOME_SHADER = preload("res://assets/maps/route_levels/runner_60s/reservoir_sky_dome.gdshader")
 const RESERVOIR_W1_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w1_scene_sky.png")
+const RESERVOIR_W2_PINK_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w2_pink_sky.png")
+const MEDICAL_M2_DUSK_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w2_scene_sky.png")
 const MEDICAL_SUNRISE_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png")
 const RESERVOIR_W3_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w3_scene_sky.png")
 const RESERVOIR_W4_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w4_scene_sky.png")
@@ -556,6 +559,7 @@ var _distant_background_root: Node3D
 var _runway_side_lights_root: Node3D
 var _ruin_backdrop_root: Node3D
 var _sky_accents_root: Node3D
+var _medical_m2_aurora_root: Node3D
 var _road_root: Node3D
 var _lava_platform_visual_root: Node3D = null
 var _world_environment: WorldEnvironment
@@ -740,6 +744,14 @@ var _heat_tick_accum := 0.0
 var _side_runway_penalty_accum := 0.0
 var _lava_platforms: Array = []
 var _lava_platform_hint_timer := 0.0
+var _path_height_keys: Array = []
+var _launch_pads: Array = []
+var _width_zones: Array = []
+var _open_gaps: Array = []
+var _mechanic_layout_ready := false
+var _launch_air_lock_until_d := -1.0
+var _triggered_launch_ids: Dictionary = {}
+var _mechanic_hint_warned: Dictionary = {}
 var _sandstorm_tick_accum := 0.0
 var _sandstorm_active := false
 var _sandstorm_warned_keys: Array = []
@@ -1174,25 +1186,14 @@ func _end_tutorial_pause() -> void:
 	_tutorial_expect = ""
 
 func _try_jump() -> void:
+	if _is_wall_running():
+		_end_slide()
+		_execute_wall_jump()
+		return
 	if _is_sliding():
 		return
 	if not _tutorial_allows_action("jump"):
 		_show_gate_toast("请按教学提示操作")
-		return
-	if _is_wall_running():
-		vertical_velocity = JUMP_SPEED * 0.95
-		_end_slide()
-		# 墙上跳：优先抬到高列，动作更明显
-		if lane_index < 2:
-			_set_lane(mini(lane_index + 1, 2))
-		else:
-			body_squash_timer = 0.14
-			_jump_fx_timer = 0.4
-			camera_shake = maxf(camera_shake, 0.16)
-			_emit_jump_takeoff_fx()
-			_show_gate_toast("侧墙高跳")
-			strike_toast_label.modulate = Color(0.75, 0.92, 1.0, 1.0)
-			strike_toast_timer = 0.85
 		return
 	# 建设包：空中第二下补满跳（须在接地判定之前）
 	if _is_overweight_cargo() and not _is_on_ground():
@@ -1231,28 +1232,65 @@ func _try_jump() -> void:
 	_execute_jump(JUMP_SPEED)
 
 func _try_slide() -> void:
+	if _is_wall_running():
+		_execute_wall_slide()
+		return
 	if not _tutorial_allows_action("slide"):
 		_show_gate_toast("请按教学提示操作")
-		return
-	if _is_wall_running():
-		# 侧墙上滑铲 = 切到最低列，带明显俯冲
-		var was_low := lane_index == 0
-		_set_lane(0)
-		body_squash_timer = maxf(body_squash_timer, 0.2)
-		if player_body:
-			player_body.scale = Vector3(1.14, 0.82, 1.1)
-		_emit_landing_particles()
-		camera_shake = maxf(camera_shake, 0.18)
-		_notify_coach_action("slide")
-		if was_low:
-			_show_gate_toast("侧墙滑铲 · 低列")
-			strike_toast_label.modulate = Color(0.7, 0.9, 1.0, 1.0)
-			strike_toast_timer = 0.85
 		return
 	if not _is_on_ground():
 		return
 	_start_slide()
 	_notify_coach_action("slide")
+
+func _execute_wall_jump() -> void:
+	if not _tutorial_allows_action("jump"):
+		_show_gate_toast("请按教学提示操作")
+		return
+	var dest := mini(lane_index + 1, WALL_LANE_HEIGHTS.size() - 1)
+	lane_index = dest
+	target_lane_x = 0.0
+	var dest_y := float(WALL_LANE_HEIGHTS[dest])
+	current_wall_y = dest_y
+	if player != null:
+		player.position.y = dest_y + 0.42
+	vertical_velocity = JUMP_SPEED * 0.78
+	body_squash_timer = 0.16
+	_jump_fx_timer = 0.42
+	camera_shake = maxf(camera_shake, 0.2)
+	_set_player_pose("jump")
+	_play_player_animation("jump", true)
+	_emit_jump_takeoff_fx()
+	_notify_coach_action("jump")
+	_show_gate_toast("侧墙跳跃 · %s" % WALL_LANE_LABELS[dest])
+	if strike_toast_label:
+		strike_toast_label.modulate = Color(1.0, 0.78, 0.32, 1.0)
+	strike_toast_timer = 0.85
+
+func _execute_wall_slide() -> void:
+	if not _tutorial_allows_action("slide"):
+		_show_gate_toast("请按教学提示操作")
+		return
+	lane_index = 0
+	target_lane_x = 0.0
+	var dest_y := float(WALL_LANE_HEIGHTS[0])
+	current_wall_y = dest_y
+	if player != null:
+		player.position.y = dest_y
+	vertical_velocity = -6.5
+	slide_timer = 0.38
+	body_squash_timer = maxf(body_squash_timer, 0.22)
+	if player_body:
+		player_body.scale = Vector3(1.16, 0.78, 1.12)
+	_set_player_pose("slide")
+	_play_player_animation("slide", true)
+	_emit_landing_particles()
+	camera_shake = maxf(camera_shake, 0.2)
+	_notify_coach_action("slide")
+	_show_gate_toast("侧墙滑铲 · 低列")
+	if strike_toast_label:
+		strike_toast_label.modulate = Color(0.45, 0.88, 1.0, 1.0)
+	strike_toast_timer = 0.85
 
 func _restart_run() -> void:
 	if state_restart_button != null and state_restart_button.disabled:
@@ -1335,7 +1373,7 @@ func _physics_process(delta: float) -> void:
 		_speed_feel_punch = maxf(_speed_feel_punch - delta * 2.4, 0.0)
 
 	var effective_speed := current_speed * speed_penalty_mult * _effective_speed_boost_mult()
-	if not _is_on_ground() and not _is_wall_running() and not _is_sliding():
+	if not _is_on_ground() and not _is_wall_running() and not _is_sliding() and not _is_safe_launch_flight():
 		effective_speed *= AIR_FORWARD_SPEED_MULT
 	# 岔路横向外撇会拉长实际路程；平滑弧长补偿，避免忽快忽慢
 	var path_stretch := _path_world_stretch(track_distance, current_lateral)
@@ -1352,7 +1390,10 @@ func _physics_process(delta: float) -> void:
 		var lane_ease := lane_change_ease
 		# 空中大幅削弱换道，加速段几乎锁死横向，避免跳起来飘太远
 		if not _is_on_ground() and not _is_wall_running():
-			lane_ease *= AIR_LANE_CHANGE_RUSH_MULT if _is_fork_rushing() else AIR_LANE_CHANGE_MULT
+			if _is_launch_air_locked():
+				lane_ease *= 0.02
+			else:
+				lane_ease *= AIR_LANE_CHANGE_RUSH_MULT if _is_fork_rushing() else AIR_LANE_CHANGE_MULT
 		current_lateral = lerpf(current_lateral, target_lane_x, 1.0 - exp(-lane_ease * delta))
 
 	if _is_wall_running():
@@ -1367,7 +1408,7 @@ func _physics_process(delta: float) -> void:
 		player.position.y = minf(next_y, ceiling)
 	else:
 		vertical_velocity -= GRAVITY * delta
-		var ground_y := _layer_height(0)
+		var ground_y := _ground_y_at(track_distance)
 		var next_y := player.position.y + vertical_velocity * delta
 		var over_pit := _is_over_open_pit()
 		if over_pit:
@@ -1389,10 +1430,15 @@ func _physics_process(delta: float) -> void:
 				player.position.y = next_y
 			else:
 				# 真正坠落：不要先陷 2cm 再掉，否则会透过全息网格看见熔岩又弹回来
-				if next_y <= ground_y and vertical_velocity > -4.0:
+				if next_y <= ground_y and vertical_velocity > -4.0 and not _is_safe_launch_flight():
 					vertical_velocity = -8.5
+				if _is_safe_launch_flight() and _open_gap_kind_at(track_distance) == "launch":
+					var glide_y := ground_y + 0.42
+					if next_y < glide_y:
+						next_y = glide_y
+						vertical_velocity = maxf(vertical_velocity, -1.6)
 				player.position.y = next_y
-			if player.position.y < ground_y - 0.55 and _pit_fall_grace <= 0.0:
+			if player.position.y < ground_y - 0.55 and _pit_fall_grace <= 0.0 and not _is_safe_launch_flight():
 				_fail_into_pit()
 		elif next_y <= ground_y and vertical_velocity <= 0.0:
 			_pit_fall_grace = 0.0
@@ -1413,6 +1459,10 @@ func _physics_process(delta: float) -> void:
 				player.position.y = ground_y
 			vertical_velocity = 0.0
 
+	_try_trigger_launch_pads()
+	_update_lift_pad_visuals()
+	_update_mechanic_lab_hints()
+	_update_launch_pad_approach_hints()
 	_check_ramps()
 	_maybe_auto_arm_wall_mount()
 	_try_side_runway_entry()
@@ -1503,6 +1553,9 @@ func _try_lane_change(next_lane_index: int) -> void:
 	if not _tutorial_allows_action("lane"):
 		_show_gate_toast("请按教学提示操作")
 		return
+	if _is_launch_air_locked():
+		_show_gate_toast("弹射中 · 先落地再换道")
+		return
 	if _is_sliding():
 		_end_slide()
 	# 主路最外道再朝侧墙按一次 = 预备上墙（不自动吸附）
@@ -1571,6 +1624,144 @@ func _nearest_lane_index(lateral: float) -> int:
 func _layer_height(layer: int) -> float:
 	return LAYER_HEIGHTS[clampi(layer, 0, LAYER_HEIGHTS.size() - 1)]
 
+func _is_gate_lab_mission() -> bool:
+	return _mission_id_str() == "mission_gate_lab" or _runner_layout_id() == "mission_gate_lab"
+
+func _ensure_mechanic_layout() -> void:
+	if _mechanic_layout_ready:
+		return
+	_mechanic_layout_ready = true
+	_path_height_keys.clear()
+	_launch_pads.clear()
+	_width_zones.clear()
+	_open_gaps.clear()
+	var layout_id := _runner_layout_id()
+	if layout_id == "":
+		return
+	var root: Dictionary = ObstacleLayout.load_root(layout_id)
+	for raw in root.get("height_keys", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		_path_height_keys.append({
+			"d": float(raw.get("d", raw.get("distance", 0.0))),
+			"y": float(raw.get("y", raw.get("lift", 0.0))),
+		})
+	_path_height_keys.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("d", 0.0)) < float(b.get("d", 0.0))
+	)
+	for raw in root.get("launch_pads", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var pad_lane := clampi(int(raw.get("lane", 0)), -1, 1)
+		_launch_pads.append({
+			"id": String(raw.get("id", "launch_%d" % _launch_pads.size())),
+			"distance": float(raw.get("distance", 0.0)),
+			"lane": pad_lane,
+			"impulse": float(raw.get("impulse", JUMP_SPEED * 1.45)),
+			"half_depth": float(raw.get("half_depth", 1.6)),
+			"lock_air_lane": bool(raw.get("lock_air_lane", true)),
+			"lock_distance": float(raw.get("lock_distance", 28.0)),
+			"speed_boost": bool(raw.get("speed_boost", false)),
+			"boost_time": float(raw.get("boost_time", 2.4)),
+			"hint": String(raw.get("hint", "弹射")),
+		})
+	for raw in root.get("width_zones", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		_width_zones.append({
+			"start": float(raw.get("start", 0.0)),
+			"length": float(raw.get("length", 40.0)),
+			"half_width": float(raw.get("half_width", 1.25)),
+		})
+	for raw in root.get("open_gaps", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var start := float(raw.get("start", 0.0))
+		var end := float(raw.get("end", start + float(raw.get("length", 0.0))))
+		if end > start + 1.5:
+			_open_gaps.append({
+				"start": start,
+				"end": end,
+				"kind": String(raw.get("kind", "")),
+			})
+
+func _path_height_lift_at(distance: float) -> float:
+	_ensure_mechanic_layout()
+	if _path_height_keys.is_empty():
+		return 0.0
+	var d := distance
+	var first: Dictionary = _path_height_keys[0]
+	if d <= float(first.get("d", 0.0)):
+		return float(first.get("y", 0.0))
+	var last: Dictionary = _path_height_keys[_path_height_keys.size() - 1]
+	if d >= float(last.get("d", 0.0)):
+		return float(last.get("y", 0.0))
+	for i in range(_path_height_keys.size() - 1):
+		var a: Dictionary = _path_height_keys[i]
+		var b: Dictionary = _path_height_keys[i + 1]
+		var da := float(a.get("d", 0.0))
+		var db := float(b.get("d", 0.0))
+		if d >= da and d <= db:
+			var t := 0.0 if db <= da + 0.0001 else clampf((d - da) / (db - da), 0.0, 1.0)
+			t = t * t * (3.0 - 2.0 * t)
+			return lerpf(float(a.get("y", 0.0)), float(b.get("y", 0.0)), t)
+	return 0.0
+
+func _ground_y_at(distance: float) -> float:
+	return GROUND_Y + _path_height_lift_at(distance)
+
+func _width_zone_at(distance: float) -> Dictionary:
+	_ensure_mechanic_layout()
+	for zone in _width_zones:
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 0.0))
+		if distance >= start and distance <= start + length:
+			return zone
+	return {}
+
+func _is_on_narrow_beam(distance: float = NAN, lateral: float = NAN) -> bool:
+	var d := track_distance if is_nan(distance) else distance
+	var lat := current_lateral if is_nan(lateral) else lateral
+	var zone := _width_zone_at(d)
+	if zone.is_empty():
+		return false
+	return absf(lat) <= float(zone.get("half_width", 1.2)) - 0.08
+
+func _is_off_narrow_beam() -> bool:
+	var zone := _width_zone_at(track_distance)
+	if zone.is_empty():
+		return false
+	return not _is_on_narrow_beam()
+
+func _open_gap_kind_at(distance: float) -> String:
+	_ensure_mechanic_layout()
+	for gap in _open_gaps:
+		if distance >= float(gap.get("start", 0.0)) and distance <= float(gap.get("end", 0.0)):
+			return String(gap.get("kind", ""))
+	return ""
+
+func _is_launch_air_locked() -> bool:
+	return _launch_air_lock_until_d > track_distance and not _is_on_ground() and not _is_wall_running()
+
+func _is_safe_launch_flight() -> bool:
+	if _launch_air_lock_until_d <= track_distance or _is_wall_running():
+		return false
+	if _open_gap_kind_at(track_distance) == "launch":
+		return true
+	if player != null and player.position.y > _ground_y_at(track_distance) + 0.55:
+		return true
+	return vertical_velocity > 1.2
+
+func _lift_pad_surface_y(plat: Dictionary, dist: float = NAN) -> float:
+	var d := track_distance if is_nan(dist) else dist
+	var base := float(plat.get("base_y", plat.get("surface_y", GROUND_Y)))
+	var amp := float(plat.get("bob_amp", plat.get("amp", 0.0)))
+	if amp <= 0.001:
+		return base
+	var period := maxf(float(plat.get("bob_period_m", plat.get("period_m", 32.0))), 8.0)
+	var phase := float(plat.get("bob_phase", plat.get("phase", 0.0)))
+	return base + amp * sin((d / period) * TAU + phase)
+
 func _is_wall_running() -> bool:
 	return track_layer == WALL_RUN_LAYER
 
@@ -1580,7 +1771,7 @@ func _is_on_ground() -> bool:
 	var plat_y := _lava_platform_surface_under_player()
 	if plat_y > GROUND_Y - 0.25 and player.position.y <= plat_y + 0.14 and vertical_velocity <= 0.01:
 		return true
-	return player.position.y <= _layer_height(0) + 0.02 and vertical_velocity <= 0.01
+	return player.position.y <= _ground_y_at(track_distance) + 0.02 and vertical_velocity <= 0.01
 
 func _player_in_air_pose(delta: float) -> bool:
 	# 防抖：避免主路微颠簸把骨骼跑切到静态跳跃姿势（角色会闪没）
@@ -1815,6 +2006,13 @@ func _sample_path_for_obstacle(distance: float, fork_branch: int = 0) -> Diction
 		_bake_track_path()
 	var d := clampf(distance, 0.0, maxf(_path_length, 0.0))
 	if fork_branch != 0:
+		var y_region := _y_fork_region_at(d)
+		if not y_region.is_empty():
+			if fork_branch > 0:
+				var y_right: Array = y_region.get("right", [])
+				if y_right.size() >= 2:
+					return _sample_path_samples(y_right, d)
+			return _sample_path_samples(_path_samples, d)
 		var j_region := _junction_fork_region_at(d)
 		if not j_region.is_empty():
 			var branch_key := "right" if fork_branch > 0 else "left"
@@ -1868,7 +2066,9 @@ func _sample_path_samples(samples: Array, distance: float) -> Dictionary:
 	var d := distance
 	if samples.size() == 1:
 		var only: Dictionary = samples[0]
-		return _pack_path_sample(only["pos"], float(only["yaw"]))
+		var only_pos: Vector3 = only["pos"]
+		only_pos.y = _path_height_lift_at(d)
+		return _pack_path_sample(only_pos, float(only["yaw"]))
 	var lo := 0
 	var hi := samples.size() - 1
 	while lo < hi - 1:
@@ -1884,6 +2084,7 @@ func _sample_path_samples(samples: Array, distance: float) -> Dictionary:
 	var t := 0.0 if db <= da + 0.0001 else clampf((d - da) / (db - da), 0.0, 1.0)
 	var pos: Vector3 = (a["pos"] as Vector3).lerp(b["pos"] as Vector3, t)
 	var yaw := lerp_angle(float(a["yaw"]), float(b["yaw"]), t)
+	pos.y = _path_height_lift_at(d)
 	return _pack_path_sample(pos, yaw)
 
 func _pack_path_sample(pos: Vector3, yaw: float) -> Dictionary:
@@ -2617,7 +2818,7 @@ func _check_y_fork_approach() -> void:
 		if track_distance < at_distance - 38.0 or track_distance > at_distance - 28.0:
 			continue
 		_y_fork_approach_warned.append(i)
-		_show_gate_toast("前方 Y 分叉 · 左道走左岔 · 右道走右岔")
+		_show_gate_toast("前方 Y 分叉 · 左岔障碍 · 右岔奖励加障碍")
 
 func _check_y_forks() -> void:
 	for i in _y_fork_regions.size():
@@ -3002,13 +3203,19 @@ func _set_sandstorm_visual(volume_fx_active: bool, region_active: bool = true) -
 	if _world_environment and _world_environment.environment:
 		var env := _world_environment.environment
 		var storm_boost := 1.42 if _is_relay_mission() else 2.35
+		if _uses_medical_sunrise_sky():
+			storm_boost = 1.22
 		var target_density := _base_fog_density * (storm_boost if region_active else 1.0)
 		env.fog_density = lerpf(env.fog_density, target_density, 0.18)
 		var region := _sandstorm_region_at(track_distance)
 		var is_poison := String(region.get("hazard_kind", "sand")) == "poison"
+		if _uses_medical_sunrise_sky():
+			# 毒雾只标路面危险，不要把整片天洗成荧光绿遮罩
+			env.fog_aerial_perspective = lerpf(env.fog_aerial_perspective, 0.02 if region_active else 0.05, 0.18)
+		var poison_mix := 0.16 if _uses_medical_sunrise_sky() else 0.48
 		var storm_tint := _base_fog_light_color.lerp(
-			Color(0.55, 0.88, 0.38, 1.0) if is_poison else Color(0.82, 0.55, 0.32),
-			0.48
+			Color(0.42, 0.58, 0.36, 1.0) if is_poison else Color(0.82, 0.55, 0.32),
+			poison_mix
 		)
 		var target_color := storm_tint if region_active else _base_fog_light_color
 		env.fog_light_color = env.fog_light_color.lerp(target_color, 0.16)
@@ -3352,6 +3559,21 @@ func _orb_collision_scale(obstacle: Dictionary) -> float:
 		return 0.0
 	return _orb_pop_visual_scale(pop)
 
+func _obstacle_world_near_player(obstacle: Dictionary) -> bool:
+	# 路程对上但模型在另一条岔路上：不能撞碎「看不见」的东西
+	var node := obstacle.get("node") as Node3D
+	if node == null or not is_instance_valid(node) or player == null:
+		return false
+	if not node.visible:
+		return false
+	var delta: Vector3 = node.global_position - player.global_position
+	delta.y = 0.0
+	var max_r := 5.2
+	if _is_full_width_obstacle_type(String(obstacle.get("type", ""))):
+		max_r = 6.4
+	return delta.length() <= max_r
+
+
 func _obstacle_collision_active(obstacle: Dictionary) -> bool:
 	if bool(obstacle.get("float_orb", false)):
 		if not _obstacle_has_meaningful_visual(obstacle):
@@ -3447,10 +3669,14 @@ func _check_obstacles(dist_from: float, dist_to: float) -> void:
 			continue
 		# 已选岔路时，主路障碍（含全宽滑铲）不应误伤分支上的玩家
 		if _fork_side != 0 and int(obstacle.get("fork_branch", 0)) == 0:
-			if not _junction_fork_region_at(float(obstacle.get("distance", 0.0))).is_empty():
+			var obs_d := float(obstacle.get("distance", 0.0))
+			if not _junction_fork_region_at(obs_d).is_empty() or not _y_fork_region_at(obs_d).is_empty():
 				i += 1
 				continue
 		if not _obstacle_collision_active(obstacle):
+			i += 1
+			continue
+		if not _obstacle_world_near_player(obstacle):
 			i += 1
 			continue
 		var obs_dist: float = float(obstacle["distance"]) + float(obstacle.get("move_offset", 0.0))
@@ -3636,16 +3862,33 @@ func _update_runner_sky_presentation(_delta: float) -> void:
 	var path_yaw_rad := deg_to_rad(_path_yaw)
 	# 全程随里程轻滚全景 + 转弯补偿：云层/明暗带在整局内持续变化
 	var scroll_mult := 0.30 if _is_relay_mission() else 1.0
+	var turn_comp := 0.22 if _is_relay_mission() else 0.48
 	if _mission_id_str() in ["mission_reservoir_03", "mission_reservoir_04"]:
-		# 对着全景里太阳/云/高楼那一段，不要滚出画面
+		# 对着全景里太阳/云那一段，不要滚出画面
 		scroll_mult = 0.18
+	elif _mission_id_str() == "mission_reservoir_02":
+		scroll_mult = 0.16
+		turn_comp = 0.10
+	elif _mission_id_str() == "mission_medical_m2":
+		# 第二关需要整局云层明暗滚得更明显，但仍停在云带上
+		scroll_mult = 0.22
+		turn_comp = 0.10
+	elif _uses_medical_sunrise_sky():
+		# 医疗二三关一旦滚偏就会变成一片，并可能滚进发绿的区域
+		scroll_mult = 0.06
+		turn_comp = 0.08
 	var scroll := prog * SKY_PROGRESS_SCROLL * scroll_mult
-	var sky_yaw := _base_sky_yaw + scroll - path_yaw_rad * (0.22 if _is_relay_mission() else 0.48)
+	var sky_yaw := _base_sky_yaw + scroll - path_yaw_rad * turn_comp
 	var target_fog := _base_fog_light_color
 	var target_amb := _base_ambient_light_color
 	var cloud_phase := elapsed * 0.40 + prog * 5.8 + track_distance * 0.0020
 	var pan_energy := _base_panorama_energy
-	pan_energy = _base_panorama_energy * (1.0 + 0.040 * sin(cloud_phase) + 0.024 * sin(cloud_phase * 2.31))
+	if _mission_id_str() == "mission_medical_m2":
+		pan_energy = _base_panorama_energy * (0.86 + 0.16 * sin(cloud_phase) + 0.10 * sin(cloud_phase * 1.72))
+	elif _mission_id_str() == "mission_reservoir_02":
+		pan_energy = _base_panorama_energy * (0.92 + 0.10 * sin(cloud_phase) + 0.06 * sin(cloud_phase * 1.64))
+	else:
+		pan_energy = _base_panorama_energy * (1.0 + 0.040 * sin(cloud_phase) + 0.024 * sin(cloud_phase * 2.31))
 	env.sky_rotation = Vector3(_base_sky_pitch, _base_sky_yaw, 0.0) if _uses_reservoir_sky_gradient() else Vector3(_base_sky_pitch, sky_yaw, 0.0)
 	var sky_mat := env.sky.sky_material if env.sky != null else null
 	if _is_relay_mission() and sky_mat is ProceduralSkyMaterial:
@@ -3680,12 +3923,16 @@ func _update_runner_sky_presentation(_delta: float) -> void:
 			sun.light_color = cool.lerp(rim, rim_mix)
 		elif _mission_id_str() == "mission_reservoir_02":
 			sun.rotation_degrees = Vector3(-48.0 + sun_sway * 0.4, 28.0 + prog * 8.0, 0.0)
-			var lilac := Color(0.86, 0.72, 0.96)
-			var cool := Color(0.68, 0.74, 0.98)
-			sun.light_color = lilac.lerp(cool, 0.45 + 0.30 * sin(elapsed * 0.32 + prog * 1.7))
-			sun.light_energy = _base_sun_energy * (0.92 + 0.10 * sin(elapsed * 0.36 + prog * 1.9))
-			if sky_mat is ShaderMaterial:
-				_apply_reservoir_graded_sky(sky_mat as ShaderMaterial, cloud_phase)
+			var rose := Color(0.98, 0.70, 0.78)
+			var lilac := Color(0.82, 0.64, 0.92)
+			sun.light_color = rose.lerp(lilac, 0.38 + 0.28 * sin(elapsed * 0.32 + prog * 1.7))
+			sun.light_energy = _base_sun_energy * (0.90 + 0.12 * sin(elapsed * 0.36 + prog * 1.9))
+		elif _mission_id_str() == "mission_medical_m2":
+			sun.rotation_degrees = Vector3(-50.0 + sun_sway * 0.55, 32.0 + prog * 10.0, 0.0)
+			var warm := Color(0.96, 0.78, 0.56)
+			var cool_m2 := Color(0.70, 0.74, 0.96)
+			sun.light_color = warm.lerp(cool_m2, 0.32 + 0.42 * sin(elapsed * 0.30 + prog * 1.8))
+			sun.light_energy = _base_sun_energy * (0.82 + 0.20 * sin(elapsed * 0.34 + prog * 2.0))
 		elif _mission_id_str() == "mission_reservoir_03":
 			sun.rotation_degrees = Vector3(-52.0 + sun_sway * 0.35, 35.0 + prog * 8.0, 0.0)
 			sun.light_color = Color(0.96, 0.78, 0.52)
@@ -3696,7 +3943,7 @@ func _update_runner_sky_presentation(_delta: float) -> void:
 			sun.light_energy = _base_sun_energy * (0.95 + 0.06 * sin(elapsed * 0.30 + prog * 1.5))
 		elif _uses_medical_sunrise_sky():
 			sun.rotation_degrees = Vector3(-52.0 + sun_sway * 0.30, 35.0 + prog * 6.0, 0.0)
-			sun.light_color = Color(1.0, 0.88, 0.90)
+			sun.light_color = _base_sun_color
 			sun.light_energy = _base_sun_energy * (0.96 + 0.05 * sin(elapsed * 0.28 + prog * 1.3))
 		elif _uses_reservoir_sky_gradient():
 			var dusk := Color(minf(_base_sun_color.r * 0.92, 1.0), _base_sun_color.g * 0.78, minf(_base_sun_color.b * 1.18, 1.0))
@@ -3816,6 +4063,12 @@ func _is_reservoir_location() -> bool:
 	return String(mission.get("location_id", "")) == "reservoir"
 
 
+func _is_gate_location() -> bool:
+	if String(Global.runner_location_id) == "gate":
+		return true
+	return String(mission.get("location_id", "")) == "gate"
+
+
 func _reservoir_orb_tint_at(distance: float) -> String:
 	# 第二关天空偏浅，紫球能看清；其它粉紫关仍用青/金拉开对比。
 	if _mission_id_str() == "mission_reservoir_02":
@@ -3825,7 +4078,8 @@ func _reservoir_orb_tint_at(distance: float) -> String:
 
 
 func _uses_reservoir_sky_gradient() -> bool:
-	return _mission_id_str() == "mission_reservoir_02"
+	# 水源第二关改走第一关全景粉紫偏色，不再用会洗成一片紫的程序天
+	return false
 
 
 func _uses_medical_sunrise_sky() -> bool:
@@ -4173,6 +4427,7 @@ func _mount_side_runway(zone: Dictionary, toast: String = "侧墙跑 · 上下�
 	# 必须先算墙侧再设墙跑层：_wall_zone_side 在墙跑中会锁定旧 _last_wall_side
 	var mount_side := _wall_zone_side(zone, track_distance)
 	track_layer = WALL_RUN_LAYER
+	_end_slide()
 	_wall_mount_armed = false
 	_pit_fall_grace = 0.0
 	_last_wall_side = mount_side
@@ -4231,6 +4486,10 @@ func _is_over_open_pit() -> bool:
 	# 岔路支线是实路，不能因为主路熔岩坑距离重叠而往下掉
 	if _is_on_fork_branch_road(track_distance):
 		return false
+	if _is_on_narrow_beam():
+		return false
+	if _is_off_narrow_beam():
+		return true
 	if _is_in_side_runway_pit(track_distance):
 		return true
 	if not _is_in_main_block_pit(track_distance):
@@ -4265,7 +4524,11 @@ func _is_in_main_block_pit(distance: float) -> bool:
 func _fail_into_pit(reason: String = "坠入主路熔岩坍塌坑") -> void:
 	if is_failed or is_finished:
 		return
-	if _lava_platforms.size() > 0:
+	if _is_off_narrow_beam() or _open_gap_kind_at(track_distance) == "beam":
+		reason = "偏离窄梁 · 回到中间道"
+	elif _open_gap_kind_at(track_distance) == "launch":
+		reason = "没踩上弹射垫 · 缺口前踩发光板飞过去"
+	elif _lava_platforms.size() > 0:
 		reason = "坠入熔岩 · 沿空中平台逐格跳跃通过"
 	elif _wall_tut_step >= WALL_TUT_APPROACH and _wall_tut_step < WALL_TUT_DONE:
 		reason = "坠入坍塌坑 · 需：贴墙道→再朝墙按→跳跃"
@@ -4840,8 +5103,9 @@ func _enforce_track_layer() -> void:
 			vertical_velocity = 0.0
 		return
 	if _is_on_ground() and not _is_over_open_pit() and _lava_platform_surface_under_player() < GROUND_Y - 0.2:
-		if absf(player.position.y - _layer_height(0)) > 0.05:
-			player.position.y = _layer_height(0)
+		var snap_y := _ground_y_at(track_distance)
+		if absf(player.position.y - snap_y) > 0.05:
+			player.position.y = snap_y
 			vertical_velocity = 0.0
 
 func _check_ramps() -> void:
@@ -5003,6 +5267,103 @@ func _inject_sparse_runway_obstacles() -> void:
 	for item in inserts:
 		_register_obstacle(item)
 
+
+func _gate_tension_step() -> float:
+	if _mission_id_str() == "mission_gate_d4" or _is_emergency_run:
+		return 9.0
+	if _mission_id_str() == "mission_gate_d2":
+		return 10.0
+	if _mission_id_str() == "mission_gate_d3":
+		return 11.0
+	return 10.4
+
+
+func _gate_has_nearby_obstacle(distance: float, gap: float) -> bool:
+	for obstacle in obstacles:
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if absf(float(obstacle.get("distance", 0.0)) - distance) < gap:
+			return true
+	return false
+
+
+func _gate_tension_skip_distance(distance: float) -> bool:
+	if _sparse_obstacle_skip_distance(distance):
+		return true
+	_ensure_mechanic_layout()
+	for pad in _launch_pads:
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		if absf(float(pad.get("distance", 0.0)) - distance) < 10.0:
+			return true
+	return false
+
+
+func _inject_gate_tension_obstacles() -> void:
+	# 防御哨站：直道用紫球+高低/降落陨石填满只剩金币的空档
+	if not _is_gate_location():
+		return
+	_ensure_mechanic_layout()
+	var finish_cut := maxf(_track_length - 28.0, _track_length * 0.92)
+	var step := _gate_tension_step()
+	var pattern: Array[String] = [
+		"orb", "meteorite", "orb", "orb", "jump",
+		"meteorite", "orb", "slide", "orb", "meteorite",
+		"orb", "train",
+	]
+	if _mission_id_str() == "mission_gate_d2":
+		pattern = [
+			"orb", "meteorite", "orb", "jump", "orb",
+			"meteorite", "orb", "slide", "orb", "meteorite",
+		]
+	var d := START_PAD_LENGTH + 16.0
+	var pi := 0
+	while d < finish_cut:
+		if _gate_tension_skip_distance(d):
+			d += 5.0
+			continue
+		if _gate_has_nearby_obstacle(d, 6.0):
+			d += step * 0.45
+			continue
+		var lane: int = int(LANES[(pi + int(d * 0.17)) % LANES.size()])
+		var otype: String = pattern[pi % pattern.size()]
+		if pi % 17 == 8 and not _gate_has_nearby_obstacle(d, 14.0):
+			otype = "meteorite_gate"
+		pi += 1
+		var item: Dictionary = {
+			"distance": d,
+			"lane": lane,
+			"type": otype,
+			"layer": 0,
+		}
+		if otype == "slide":
+			item["low_slide"] = true
+		elif otype == "orb":
+			var sizes: Array[String] = ["tiny", "small", "small", "medium", "tiny"]
+			item["orb_size"] = sizes[pi % sizes.size()]
+			item["orb_tint"] = "purple"
+			if pi % 2 == 0:
+				item["drift_speed"] = 6.2 + float(pi % 5) * 0.85
+				item["drift_span"] = LANE_WIDTH * (1.35 + float(pi % 3) * 0.22)
+				item["float_speed"] = 2.6 + float(pi % 4) * 0.4
+				item["float_amp"] = 0.14 + float(pi % 3) * 0.06
+		elif otype == "meteorite":
+			var spans: Array[float] = [1.45, 1.85, 2.2, 2.65, 3.05]
+			item["span"] = spans[pi % spans.size()]
+			var falling := (pi % 3) != 1
+			item["fall_roll"] = falling
+			if falling:
+				var heights: Array[float] = [9.8, 12.4, 15.2, 17.6, 19.4]
+				item["fall_height"] = heights[pi % heights.size()]
+				item["meteor_fall_speed"] = 18.0 + float(pi % 5) * 2.2
+				item["roll_speed"] = -4.6 - float(pi % 4) * 0.35
+		elif otype == "meteorite_gate":
+			item["drop_count"] = 6
+			item["drop_interval"] = 0.82
+		_register_obstacle(item)
+		d += step + float(pi % 3) * 0.8
+
+
 func _inject_finish_sprint_orb_gauntlet() -> void:
 	# SPEED UP 之后到终点门：密集横向漂移的紫色能量球
 	var sprint_d := -1.0
@@ -5048,95 +5409,174 @@ func _inject_finish_sprint_orb_gauntlet() -> void:
 
 
 func _inject_side_runway_wave_arc_obstacles() -> void:
+	# 侧墙用高对比跳栏 / 滑梁，不再刷看不清的粉紫拱门
 	for zone in _side_runway_zones():
 		if typeof(zone) != TYPE_DICTIONARY:
 			continue
 		var start := float(zone.get("start", 0.0))
 		var length := float(zone.get("length", 70.0))
 		var entry := float(zone.get("entry_window", 12.0))
-		for t in [0.34, 0.62, 0.86]:
-			var dist: float = start + entry + maxf(length - entry * 0.65, 18.0) * float(t)
+		var span := maxf(length - entry * 0.65, 18.0)
+		var specs: Array[Dictionary] = [
+			{"t": 0.28, "type": "jump"},
+			{"t": 0.52, "type": "slide"},
+			{"t": 0.76, "type": "jump"},
+		]
+		for spec in specs:
+			var dist: float = start + entry + span * float(spec.get("t", 0.5))
 			var crowded := false
 			for obstacle in obstacles:
 				if int(obstacle.get("layer", 0)) != WALL_RUN_LAYER:
 					continue
-				if absf(float(obstacle.get("distance", 0.0)) - dist) < 9.0:
+				if absf(float(obstacle.get("distance", 0.0)) - dist) < 8.0:
 					crowded = true
 					break
 			if crowded:
 				continue
-			_register_obstacle({
+			var item: Dictionary = {
 				"distance": dist,
 				"lane": 0,
-				"type": "wave_arc_slide",
+				"type": String(spec.get("type", "jump")),
 				"layer": WALL_RUN_LAYER,
-			})
+			}
+			if String(item["type"]) == "slide":
+				item["low_slide"] = true
+			_register_obstacle(item)
+
+func _junction_overlaps_y_fork(zone: Dictionary) -> bool:
+	var start := float(zone.get("distance", 0.0))
+	var end := start + float(zone.get("length", 70.0))
+	for region in _y_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		var y0 := float(region.get("d_start", 0.0))
+		var y1 := float(region.get("d_end", 0.0))
+		if start < y1 and y0 < end:
+			return true
+	return false
+
+
+func _inject_y_fork_branch_obstacles() -> void:
+	for region in _y_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		var start := float(region.get("d_start", 0.0))
+		var length := maxf(float(region.get("d_end", start)) - start, 20.0)
+		var left_pattern: Array[Dictionary] = [
+			{"t": 0.18, "lane": -1, "type": "jump"},
+			{"t": 0.34, "lane": 0, "type": "slide"},
+			{"t": 0.50, "lane": 1, "type": "meteorite", "fall_roll": true},
+			{"t": 0.66, "lane": 0, "type": "orb", "orb_size": "small"},
+			{"t": 0.82, "lane": -1, "type": "jump"},
+		]
+		var right_pattern: Array[Dictionary] = [
+			{"t": 0.20, "lane": 0, "type": "jump"},
+			{"t": 0.38, "lane": 1, "type": "orb", "orb_size": "small"},
+			{"t": 0.54, "lane": -1, "type": "slide"},
+			{"t": 0.70, "lane": 0, "type": "meteorite", "fall_roll": true},
+			{"t": 0.84, "lane": 1, "type": "jump"},
+		]
+		for spec in left_pattern:
+			_register_fork_branch_obstacle_spec(start, length, spec, -1)
+		for spec in right_pattern:
+			_register_fork_branch_obstacle_spec(start, length, spec, 1)
+
+
+func _register_y_fork_branch_rewards() -> void:
+	for region in _y_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		var start := float(region.get("d_start", 0.0))
+		var end := float(region.get("d_end", start + 80.0))
+		var d := start + 10.0
+		var i := 0
+		while d < end - 8.0:
+			var lane := int(LANES[i % LANES.size()])
+			var y: float = _coin_collectible_y(i % 3 == 0, 0)
+			_register_collectible_data(lane, d, y, 0, "coin", i % 3 == 0, 1)
+			i += 1
+			d += 7.0
+		_register_collectible_data(0, start + (end - start) * 0.42, _speed_boost_collectible_y(0, 0), 0, "speed_boost", false, 1)
+		_register_collectible_data(1, start + (end - start) * 0.68, _layer_height(0) + 0.85, 0, "shield_crystal", false, 1)
+
 
 func _inject_junction_fork_branch_obstacles() -> void:
 	for zone in _junction_zones():
 		if typeof(zone) != TYPE_DICTIONARY:
 			continue
+		if _junction_overlaps_y_fork(zone):
+			continue
 		var start := float(zone.get("distance", 0.0))
 		var length := float(zone.get("length", 70.0))
-		var effect_a := String(zone.get("effect_a", "repair"))
 		var effect_b := String(zone.get("effect_b", "fast"))
-		var left_pattern: Array[Dictionary] = []
-		var right_pattern: Array[Dictionary] = []
-		if effect_a in ["repair", "safe"]:
-			left_pattern = [
-				{"t": 0.24, "lane": -1, "type": "jump"},
-				{"t": 0.42, "lane": 0, "type": "slide"},
-				{"t": 0.60, "lane": 1, "type": "train"},
-				{"t": 0.78, "lane": 0, "type": "jump"},
-			]
+		var left_pattern: Array[Dictionary] = [
+			{"t": 0.18, "lane": -1, "type": "jump"},
+			{"t": 0.32, "lane": 0, "type": "meteorite", "fall_roll": true},
+			{"t": 0.46, "lane": 1, "type": "slide"},
+			{"t": 0.60, "lane": 0, "type": "orb", "orb_size": "small"},
+			{"t": 0.74, "lane": -1, "type": "jump"},
+			{"t": 0.88, "lane": 1, "type": "orb", "orb_size": "small"},
+		]
+		var right_pattern: Array[Dictionary] = [
+			{"t": 0.16, "lane": 0, "type": "jump"},
+			{"t": 0.30, "lane": 1, "type": "orb", "orb_size": "small"},
+			{"t": 0.44, "lane": -1, "type": "slide"},
+			{"t": 0.58, "lane": 0, "type": "meteorite", "fall_roll": true},
+			{"t": 0.72, "lane": 1, "type": "jump"},
+			{"t": 0.86, "lane": 0, "type": "orb", "orb_size": "small"},
+		]
 		if effect_b == "fast":
 			right_pattern = [
-				{"t": 0.20, "lane": 0, "type": "jump"},
-				{"t": 0.36, "lane": -1, "type": "train"},
-				{"t": 0.52, "lane": 1, "type": "jump"},
-				{"t": 0.68, "lane": 0, "type": "slide"},
+				{"t": 0.16, "lane": 0, "type": "jump"},
+				{"t": 0.30, "lane": -1, "type": "train"},
+				{"t": 0.44, "lane": 1, "type": "orb", "orb_size": "small"},
+				{"t": 0.58, "lane": 0, "type": "slide"},
+				{"t": 0.72, "lane": 1, "type": "jump"},
+				{"t": 0.86, "lane": -1, "type": "meteorite", "fall_roll": true},
 			]
-		elif effect_b == "bonus":
-			right_pattern = [
-				{"t": 0.30, "lane": 0, "type": "jump"},
-				{"t": 0.55, "lane": 1, "type": "slide"},
-				{"t": 0.72, "lane": -1, "type": "jump"},
-			]
+		if _is_gate_location():
+			left_pattern.append_array([
+				{"t": 0.24, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple"},
+				{"t": 0.40, "lane": -1, "type": "meteorite", "fall_roll": true, "span": 1.7, "fall_height": 13.5},
+				{"t": 0.68, "lane": 0, "type": "orb", "orb_size": "small", "orb_tint": "purple"},
+			])
+			right_pattern.append_array([
+				{"t": 0.24, "lane": -1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple"},
+				{"t": 0.50, "lane": 1, "type": "meteorite", "fall_roll": true, "span": 2.1, "fall_height": 16.0},
+				{"t": 0.80, "lane": 0, "type": "orb", "orb_size": "medium", "orb_tint": "purple"},
+			])
 		for spec in left_pattern:
-			var dist := start + length * float(spec.get("t", 0.0))
-			if _uses_beat_sync_content():
-				dist = _w1_beat_distance(float(_distance_to_w1_beat(dist)))
-			if _has_fork_branch_obstacle_near(dist, -1):
-				continue
-			var item: Dictionary = {
-				"distance": dist,
-				"lane": int(spec.get("lane", 0)),
-				"type": String(spec.get("type", "jump")),
-				"layer": 0,
-				"fork_branch": -1,
-			}
-			if String(spec.get("type", "")) == "slide":
-				item["low_slide"] = true
-			_register_obstacle(item)
+			_register_fork_branch_obstacle_spec(start, length, spec, -1)
 		for spec in right_pattern:
-			var dist := start + length * float(spec.get("t", 0.0))
-			if _uses_beat_sync_content():
-				dist = _w1_beat_distance(float(_distance_to_w1_beat(dist)))
-			if _has_fork_branch_obstacle_near(dist, 1):
-				continue
-			var item: Dictionary = {
-				"distance": dist,
-				"lane": int(spec.get("lane", 0)),
-				"type": String(spec.get("type", "jump")),
-				"layer": 0,
-				"fork_branch": 1,
-			}
-			if String(spec.get("type", "")) == "slide":
-				item["low_slide"] = true
-			_register_obstacle(item)
+			_register_fork_branch_obstacle_spec(start, length, spec, 1)
 	obstacles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a["distance"]) < float(b["distance"])
 	)
+
+func _register_fork_branch_obstacle_spec(start: float, length: float, spec: Dictionary, fork_branch: int) -> void:
+	var dist := start + length * float(spec.get("t", 0.0))
+	if _has_fork_branch_obstacle_near(dist, fork_branch):
+		return
+	var otype := String(spec.get("type", "jump"))
+	var item: Dictionary = {
+		"distance": dist,
+		"lane": int(spec.get("lane", 0)),
+		"type": otype,
+		"layer": 0,
+		"fork_branch": fork_branch,
+	}
+	if otype == "slide":
+		item["low_slide"] = true
+	if otype == "orb":
+		item["orb_size"] = String(spec.get("orb_size", "small"))
+		if spec.has("orb_tint"):
+			item["orb_tint"] = String(spec.get("orb_tint", "purple"))
+	if otype == "meteorite":
+		item["span"] = float(spec.get("span", 1.9))
+		item["fall_roll"] = bool(spec.get("fall_roll", true))
+		if spec.has("fall_height"):
+			item["fall_height"] = float(spec.get("fall_height", 16.0))
+	_register_obstacle(item)
 
 func _has_fork_branch_obstacle_near(distance: float, fork_branch: int) -> bool:
 	for obstacle in obstacles:
@@ -5169,6 +5609,8 @@ func _place_obstacle_node(obstacle: Dictionary, _reposition_only: bool = false) 
 	var dist: float = float(obstacle["distance"]) + float(obstacle.get("move_offset", 0.0))
 	var layer: int = int(obstacle.get("layer", 0))
 	var y := _road_lane_y(layer) + float(obstacle.get("y_offset", 0.0))
+	if layer == 0:
+		y += _path_height_lift_at(dist)
 	var full_width := _is_full_width_obstacle_type(obstacle_type)
 	var lateral := 0.0
 	if not full_width:
@@ -5452,9 +5894,10 @@ func _set_lane(next_lane_index: int) -> void:
 	target_lane_x = LANES[lane_index] * LANE_WIDTH
 	if _is_wall_running() and lane_index != prev:
 		var target_wy := float(WALL_LANE_HEIGHTS[lane_index])
-		# 侧墙换列更干脆，并给明确反馈
-		current_wall_y = lerpf(current_wall_y, target_wy, 0.78)
-		vertical_velocity = maxf(vertical_velocity, 3.6)
+		current_wall_y = target_wy
+		if player != null:
+			player.position.y = lerpf(player.position.y, target_wy + 0.18, 0.85)
+		vertical_velocity = maxf(vertical_velocity, 4.2)
 		body_tilt = clampf(body_tilt + (1.0 if lane_index > prev else -1.0) * 0.55, -0.85, 0.85)
 		camera_shake = maxf(camera_shake, 0.14)
 		var label := WALL_LANE_LABELS[clampi(lane_index, 0, WALL_LANE_LABELS.size() - 1)]
@@ -6288,7 +6731,16 @@ func _load_planet_assets() -> void:
 	var assets: Dictionary = LevelConfig.get_assets()
 	var mission_pano := String(mission.get("panorama", "")).strip_edges()
 	var default_pano := String(assets.get("panorama", "res://3d素材/三拼地图.png")).strip_edges()
-	if mission_pano != "":
+	if _mission_id_str() == "mission_reservoir_02":
+		# 水源第二关：第一关云层全景，色调偏粉紫
+		_world_panorama = RESERVOIR_W2_PINK_SKY_PANORAMA
+	elif _mission_id_str() == "mission_medical_m2":
+		# 医疗第二关：第一关云层 + 暮色光感，不用假极光帘
+		_world_panorama = MEDICAL_M2_DUSK_SKY_PANORAMA
+	elif _uses_medical_sunrise_sky():
+		# 医疗：直接用水源第一关已验证全景，不再走单独导入的医疗图
+		_world_panorama = RESERVOIR_W1_SKY_PANORAMA
+	elif mission_pano != "":
 		_world_panorama = _load_panorama_texture(mission_pano)
 		if _world_panorama == null and default_pano != "":
 			push_warning("Mission panorama failed, fallback: %s" % default_pano)
@@ -6632,7 +7084,7 @@ func _build_world() -> void:
 	world.environment = environment
 	_world_environment = world
 	add_child(world)
-	if _background_uses_starfield() and _mission_id_str() not in ["mission_reservoir_03", "mission_reservoir_04"] and not _uses_medical_sunrise_sky():
+	if _background_uses_starfield() and _mission_id_str() not in ["mission_reservoir_02", "mission_reservoir_03", "mission_reservoir_04"] and not _uses_medical_sunrise_sky():
 		_build_starfield()
 
 	var sun := DirectionalLight3D.new()
@@ -6721,6 +7173,7 @@ func _configure_runner_sky(environment: Environment, theme: Dictionary) -> void:
 		elif _world_panorama != null:
 			var panorama := PanoramaSkyMaterial.new()
 			panorama.panorama = _world_panorama
+			panorama.filter = true
 			var pan_energy := 1.25
 			var mission_env = mission.get("environment", {})
 			if typeof(mission_env) == TYPE_DICTIONARY:
@@ -6760,8 +7213,8 @@ func _configure_runner_sun(sun: DirectionalLight3D, theme: Dictionary) -> void:
 		sun.light_energy = float(theme.get("sun_energy", 1.85 if _background_style_id == "desert_crystal" else 2.4))
 	if _mission_id_str() == "mission_reservoir_02":
 		sun.rotation_degrees = Vector3(-48, 28, 0)
-		sun.light_color = Color(0.82, 0.76, 0.96)
-		sun.light_energy = 1.58
+		sun.light_color = Color(0.96, 0.72, 0.78)
+		sun.light_energy = 1.68
 	elif _mission_id_str() == "mission_reservoir_03":
 		sun.rotation_degrees = Vector3(-52, 35, 0)
 		sun.light_color = Color(0.96, 0.78, 0.52)
@@ -6772,9 +7225,8 @@ func _configure_runner_sun(sun: DirectionalLight3D, theme: Dictionary) -> void:
 		sun.light_energy = 1.82
 	elif _uses_medical_sunrise_sky():
 		sun.rotation_degrees = Vector3(-52, 35, 0)
-		sun.light_color = Color(1.0, 0.88, 0.90)
-		sun.light_energy = 1.70
-		sun.light_energy = 1.68
+		sun.light_color = theme.get("sun_color", Color(1.0, 0.86, 0.88))
+		sun.light_energy = float(theme.get("sun_energy", 1.62))
 
 
 func _apply_relay_procedural_sky(proc: ProceduralSkyMaterial, phase: float) -> void:
@@ -7377,6 +7829,7 @@ func _build_side_runway_tracks() -> void:
 	for gap in _main_block_road_gaps():
 		_attach_main_block_path_pit(gap, kit)
 	_spawn_lava_platform_visuals()
+	_spawn_mechanic_lab_visuals()
 	_setup_side_runway_entry_guides()
 	_setup_wall_run_tutorial_markers()
 
@@ -7582,6 +8035,14 @@ func _main_block_road_gaps() -> Array:
 			gaps.append(_main_block_platform_open_lava_range(center, half))
 		else:
 			gaps.append(Vector2(center - half, center + half))
+	_ensure_mechanic_layout()
+	for gap in _open_gaps:
+		gaps.append(Vector2(float(gap.get("start", 0.0)), float(gap.get("end", 0.0))))
+	for zone in _width_zones:
+		var start := float(zone.get("start", 0.0))
+		var end := start + float(zone.get("length", 0.0))
+		if end > start + 2.0:
+			gaps.append(Vector2(start, end))
 	return gaps
 
 func _layout_lava_cross_mode() -> String:
@@ -7786,6 +8247,26 @@ func _prepare_lava_platforms_from_layout() -> void:
 		var pit := Vector2(center - half, center + half)
 		for spec in _generate_lava_platform_specs(pit, center):
 			_lava_platforms.append(spec)
+	_ensure_mechanic_layout()
+	var layout_id := _runner_layout_id()
+	if layout_id != "":
+		for raw in ObstacleLayout.load_root(layout_id).get("lift_pads", []):
+			if typeof(raw) != TYPE_DICTIONARY:
+				continue
+			var pad: Dictionary = raw
+			_lava_platforms.append({
+				"distance": float(pad.get("distance", 0.0)),
+				"lateral": float(pad.get("lateral", 0.0)),
+				"base_y": float(pad.get("base_y", GROUND_Y + 0.2)),
+				"surface_y": float(pad.get("base_y", GROUND_Y + 0.2)),
+				"bob_amp": float(pad.get("amp", pad.get("bob_amp", 0.0))),
+				"bob_period_m": float(pad.get("period_m", pad.get("bob_period_m", 32.0))),
+				"bob_phase": float(pad.get("phase", pad.get("bob_phase", 0.0))),
+				"half_width": float(pad.get("half_width", LANE_WIDTH * 0.68)),
+				"half_depth": float(pad.get("half_depth", 1.32)),
+				"bridge": bool(pad.get("bridge", false)),
+				"lift": true,
+			})
 
 func _refresh_lava_platforms() -> void:
 	if track_root != null:
@@ -7808,7 +8289,7 @@ func _lava_platform_landing_y(feet_y: float, dist: float, lateral: float) -> flo
 			continue
 		if absf(lateral - float(plat.get("lateral", 0.0))) > hw + 0.26:
 			continue
-		var top := float(plat.get("surface_y", GROUND_Y))
+		var top := _lift_pad_surface_y(plat, dist)
 		if feet_y <= top + 0.36 and feet_y >= top - 3.0:
 			best = maxf(best, top)
 	return best
@@ -7921,9 +8402,12 @@ func _spawn_lava_platform_visuals() -> void:
 		var plat: Dictionary = _lava_platforms[i]
 		var dist := float(plat.get("distance", 0.0))
 		var lateral := float(plat.get("lateral", 0.0))
-		var surface_y := float(plat.get("surface_y", GROUND_Y))
+		var surface_y := _lift_pad_surface_y(plat, dist)
 		var hw := float(plat.get("half_width", LANE_WIDTH * 0.68))
 		var hd := float(plat.get("half_depth", 1.32))
+		if bool(plat.get("lift", false)):
+			_attach_lift_pad_visual(root, plat, i)
+			continue
 		_attach_lava_platform_slab(root, dist, lateral, surface_y, hw, hd, road_mat, line_mat, curb_mat)
 		if surface_y > GROUND_Y + 0.18:
 			var support_mat := _lava_platform_side_material().duplicate()
@@ -7950,6 +8434,8 @@ func _spawn_lava_platform_visuals() -> void:
 func _update_lava_platform_hint(delta: float) -> void:
 	if _lava_platforms.is_empty() or is_failed or is_finished or not gameplay_active:
 		return
+	if _is_gate_lab_mission():
+		return
 	if track_layer != 0:
 		return
 	var show := false
@@ -7970,8 +8456,197 @@ func _update_lava_platform_hint(delta: float) -> void:
 		strike_toast_label.modulate = Color(1.0, 0.72, 0.38, _lava_platform_hint_timer)
 		strike_toast_timer = maxf(strike_toast_timer, 0.12)
 
+func _try_trigger_launch_pads() -> void:
+	if player == null or track_layer != 0 or _is_wall_running() or is_failed or is_finished:
+		return
+	_ensure_mechanic_layout()
+	for pad in _launch_pads:
+		var pid := String(pad.get("id", ""))
+		var dist := float(pad.get("distance", 0.0))
+		var hd := float(pad.get("half_depth", 1.6))
+		if track_distance < dist - hd or track_distance > dist + hd:
+			if track_distance > dist + hd + 8.0:
+				_triggered_launch_ids.erase(pid)
+			continue
+		if _triggered_launch_ids.has(pid):
+			continue
+		var pad_lane := clampi(int(pad.get("lane", 0)), -1, 1)
+		var pad_lat := float(pad_lane) * LANE_WIDTH
+		if absf(current_lateral - pad_lat) > LANE_WIDTH * 0.58:
+			continue
+		var ground_y := _ground_y_at(track_distance)
+		if player.position.y > ground_y + 0.55:
+			continue
+		_triggered_launch_ids[pid] = true
+		vertical_velocity = maxf(vertical_velocity, float(pad.get("impulse", JUMP_SPEED * 1.45)))
+		_pit_fall_grace = maxf(_pit_fall_grace, 2.2)
+		_set_lane(pad_lane + 1)
+		current_lateral = lerpf(current_lateral, pad_lat, 0.55)
+		if bool(pad.get("lock_air_lane", true)):
+			_launch_air_lock_until_d = track_distance + float(pad.get("lock_distance", 28.0))
+		if bool(pad.get("speed_boost", false)):
+			_speed_boost_timer = maxf(_speed_boost_timer, float(pad.get("boost_time", 2.4)))
+			_refresh_buff_hud()
+		camera_shake = maxf(camera_shake, 0.16)
+		var hint := String(pad.get("hint", "")).strip_edges()
+		if hint == "":
+			hint = "弹射"
+		_show_gate_toast(hint)
+
+func _update_lift_pad_visuals() -> void:
+	if _lava_platforms.is_empty():
+		return
+	for raw in _lava_platforms:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var plat: Dictionary = raw
+		if not bool(plat.get("lift", false)):
+			continue
+		var holder := plat.get("holder") as Node3D
+		if holder == null or not is_instance_valid(holder):
+			continue
+		var dist := float(plat.get("distance", 0.0))
+		var lateral := float(plat.get("lateral", 0.0))
+		var surface_y := _lift_pad_surface_y(plat)
+		var placed := _world_on_path(dist, lateral, surface_y)
+		holder.position = placed["pos"]
+		holder.rotation.y = float(placed["yaw"])
+
+func _update_mechanic_lab_hints() -> void:
+	if not _is_gate_lab_mission() or is_failed or is_finished or not gameplay_active:
+		return
+	var hints: Array[Dictionary] = [
+		{"d": 62.0, "text": "前方橙色垫 · 跑上去就飞，不用跳也不用换道"},
+		{"d": 186.0, "text": "平台跳跃 · 逐格跳过去，不用等"},
+		{"d": 276.0, "text": "紫色球会上下漂 · 跳过或换道躲开"},
+		{"d": 292.0, "text": "缓坡来了 · 跟着路面爬升，不用跳"},
+		{"d": 508.0, "text": "窄梁 · 回到中间道，别掉下去"},
+		{"d": 616.0, "text": "再踩橙色垫 · 跑上去就飞上高架"},
+		{"d": 688.0, "text": "高架 U 弯 · 跟着路水平掉头"},
+	]
+	for hint in hints:
+		var key := String(hint.get("text", ""))
+		var at := float(hint.get("d", 0.0))
+		if _mechanic_hint_warned.has(key):
+			continue
+		if track_distance >= at and track_distance <= at + 18.0:
+			_mechanic_hint_warned[key] = true
+			_show_gate_toast(key)
+
+func _update_launch_pad_approach_hints() -> void:
+	if is_failed or is_finished or not gameplay_active:
+		return
+	_ensure_mechanic_layout()
+	for pad in _launch_pads:
+		var pid := "approach_%s" % String(pad.get("id", ""))
+		if _mechanic_hint_warned.has(pid):
+			continue
+		var dist := float(pad.get("distance", 0.0))
+		if track_distance < dist - 24.0 or track_distance > dist - 3.0:
+			continue
+		_mechanic_hint_warned[pid] = true
+		var lane := clampi(int(pad.get("lane", 0)), -1, 1)
+		var side := "左道" if lane < 0 else ("右道" if lane > 0 else "中道")
+		var hint := String(pad.get("hint", "")).strip_edges()
+		if hint == "":
+			hint = "%s弹射垫 · 换到%s踩上去" % [side, side]
+		_show_gate_toast(hint)
+
+func _attach_lift_pad_visual(parent: Node3D, plat: Dictionary, index: int) -> void:
+	var dist := float(plat.get("distance", 0.0))
+	var lateral := float(plat.get("lateral", 0.0))
+	var surface_y := _lift_pad_surface_y(plat, dist)
+	var hw := float(plat.get("half_width", LANE_WIDTH * 0.68))
+	var hd := float(plat.get("half_depth", 1.32))
+	var placed := _world_on_path(dist, lateral, surface_y)
+	var holder := Node3D.new()
+	holder.name = "LiftPad_%d" % index
+	holder.position = placed["pos"]
+	holder.rotation.y = float(placed["yaw"])
+	parent.add_child(holder)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.12, 0.42, 0.48)
+	mat.metallic = 0.35
+	mat.roughness = 0.38
+	mat.emission_enabled = true
+	mat.emission = Color(0.18, 0.78, 0.86)
+	mat.emission_energy_multiplier = 0.85 if float(plat.get("bob_amp", 0.0)) > 0.01 else 0.42
+	var body := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(hw * 2.0, 0.22, hd * 2.0)
+	body.mesh = mesh
+	body.material_override = mat
+	body.position = Vector3(0.0, -0.11, 0.0)
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	holder.add_child(body)
+	plat["holder"] = holder
+	_lava_platforms[index] = plat
+
+func _spawn_mechanic_lab_visuals() -> void:
+	_ensure_mechanic_layout()
+	if track_root == null:
+		return
+	var old := track_root.get_node_or_null("MechanicLabVisuals")
+	if old != null:
+		old.queue_free()
+	var root := Node3D.new()
+	root.name = "MechanicLabVisuals"
+	track_root.add_child(root)
+	for pad in _launch_pads:
+		var dist := float(pad.get("distance", 0.0))
+		var hd := float(pad.get("half_depth", 1.6))
+		var pad_lane := clampi(int(pad.get("lane", 0)), -1, 1)
+		var pad_lat := float(pad_lane) * LANE_WIDTH
+		var placed := _world_on_path(dist, pad_lat, _ground_y_at(dist) + 0.04)
+		var holder := Node3D.new()
+		holder.name = "LaunchPad"
+		holder.position = placed["pos"]
+		holder.rotation.y = float(placed["yaw"])
+		root.add_child(holder)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.92, 0.46, 0.12)
+		mat.metallic = 0.2
+		mat.roughness = 0.32
+		mat.emission_enabled = true
+		mat.emission = Color(1.0, 0.55, 0.12)
+		mat.emission_energy_multiplier = 1.35
+		var body := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(LANE_WIDTH * 0.92, 0.16, hd * 2.0)
+		body.mesh = mesh
+		body.material_override = mat
+		body.position = Vector3(0.0, 0.02, 0.0)
+		body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(body)
+		var chevron := Label3D.new()
+		chevron.text = "左弹射" if pad_lane < 0 else ("右弹射" if pad_lane > 0 else "弹射")
+		chevron.font_size = 42
+		chevron.modulate = Color(1.0, 0.86, 0.42)
+		chevron.position = Vector3(0.0, 1.15, 0.0)
+		chevron.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		holder.add_child(chevron)
+	for zone in _width_zones:
+		var start := float(zone.get("start", 0.0))
+		var end := start + float(zone.get("length", 0.0))
+		var hw := float(zone.get("half_width", 1.25))
+		var kit: Dictionary = _road_style_kit if not _road_style_kit.is_empty() else _make_road_style_kit(_road_style_id)
+		var road_mat: Material = kit.get("road", _make_holographic_road_material())
+		var edge_mat := StandardMaterial3D.new()
+		edge_mat.albedo_color = Color(0.95, 0.78, 0.22)
+		edge_mat.emission_enabled = true
+		edge_mat.emission = Color(1.0, 0.82, 0.28)
+		edge_mat.emission_energy_multiplier = 0.9
+		_attach_path_strip_segment(start, end, hw, GROUND_Y - 0.02, road_mat, 1.1, 0.0)
+		_attach_path_strip_segment(start, end, 0.07, GROUND_Y + 0.03, edge_mat, 1.1, hw - 0.05)
+		_attach_path_strip_segment(start, end, 0.07, GROUND_Y + 0.03, edge_mat, 1.1, -(hw - 0.05))
+
 func _main_block_pit_uses_platforms(pit: Vector2) -> bool:
 	var mid := (pit.x + pit.y) * 0.5
+	_ensure_mechanic_layout()
+	if _open_gap_kind_at(mid) == "lifts":
+		return true
+	if _open_gap_kind_at(mid) in ["launch", "beam"]:
+		return false
 	for raw in _layout_obstacle_items_raw():
 		if typeof(raw) != TYPE_DICTIONARY:
 			continue
@@ -8057,7 +8732,11 @@ func _attach_path_pit_visual(pit: Vector2, kit: Dictionary, node_name: String) -
 	var sample := _sample_path(mid)
 	var label := Label3D.new()
 	label.name = node_name + "Label"
-	if _main_block_pit_uses_platforms(pit):
+	if _open_gap_kind_at(mid) == "launch":
+		label.text = "弹射缺口\n踩发光板飞过"
+	elif _open_gap_kind_at(mid) == "beam":
+		label.text = "窄梁\n走中间道"
+	elif _main_block_pit_uses_platforms(pit):
 		label.text = "熔岩区\n平台跳跃通过"
 	else:
 		label.text = "主路熔岩坍塌\n上侧墙绕过"
@@ -8814,8 +9493,9 @@ func _path_strip_point_shaped(
 	var right: Vector3 = sample["right"]
 	var L: Vector3 = origin - right * half_left
 	var R: Vector3 = origin + right * half_right
-	L.y = y
-	R.y = y
+	var lift := (sample["pos"] as Vector3).y
+	L.y = y + lift
+	R.y = y + lift
 	return {"L": L, "R": R, "d": distance, "pos": origin, "right": right}
 
 func _strip_corner_color(
@@ -9381,7 +10061,7 @@ func _build_fork_branch_roads(
 	)
 	_build_fork_junction_sand_base(zone, lane_y, sand_fill)
 	_build_fork_gap_ground_fill(zone, lane_y, sand_fill)
-	if _mission_uses_textured_ground():
+	if _mission_uses_textured_ground() and not _is_gate_location():
 		_build_fork_gap_decor(zone, lane_y)
 
 func _attach_fork_center_island(zone: Dictionary, material: Material, y: float) -> void:
@@ -9781,6 +10461,90 @@ func _build_planet_surroundings(theme: Dictionary) -> void:
 		_build_near_sky_layers()
 	if not _distant_tower_paths.is_empty() or not _distant_spaceship_paths.is_empty() or not _distant_hearth_paths.is_empty():
 		_build_distant_background(theme)
+	# 医疗第二关不再挂假极光帘，天空走真实全景光影
+
+
+func _build_medical_m2_aurora_curtains() -> void:
+	# 已停用：假极光帘看起来像贴画
+	return
+	if _mission_id_str() != "mission_medical_m2":
+		return
+	if _medical_m2_aurora_root != null:
+		_medical_m2_aurora_root.queue_free()
+	_medical_m2_aurora_root = Node3D.new()
+	_medical_m2_aurora_root.name = "MedicalM2Aurora"
+	if track_root != null:
+		track_root.add_child(_medical_m2_aurora_root)
+	else:
+		add_child(_medical_m2_aurora_root)
+	# 钉在跑道两侧和高空，不跟镜头。比上一版更大、更亮，仍从旁边掠过。
+	var spots: Array[Dictionary] = [
+		{"d": 72.0, "side": -1.0, "lat": 28.0, "y": 42.0, "w": 40.0, "h": 58.0, "purple": true},
+		{"d": 72.0, "side": 1.0, "lat": 30.0, "y": 44.0, "w": 36.0, "h": 56.0, "purple": false},
+		{"d": 150.0, "side": -1.0, "lat": 24.0, "y": 48.0, "w": 44.0, "h": 62.0, "purple": false},
+		{"d": 150.0, "side": 1.0, "lat": 26.0, "y": 46.0, "w": 38.0, "h": 60.0, "purple": true},
+		{"d": 230.0, "side": -1.0, "lat": 32.0, "y": 44.0, "w": 42.0, "h": 58.0, "purple": true},
+		{"d": 230.0, "side": 1.0, "lat": 22.0, "y": 50.0, "w": 40.0, "h": 64.0, "purple": false},
+		{"d": 320.0, "side": -1.0, "lat": 26.0, "y": 47.0, "w": 46.0, "h": 60.0, "purple": false},
+		{"d": 320.0, "side": 1.0, "lat": 34.0, "y": 43.0, "w": 38.0, "h": 56.0, "purple": true},
+		{"d": 400.0, "side": -1.0, "lat": 20.0, "y": 52.0, "w": 48.0, "h": 66.0, "purple": true},
+		{"d": 400.0, "side": 1.0, "lat": 28.0, "y": 48.0, "w": 42.0, "h": 60.0, "purple": false},
+	]
+	for i in spots.size():
+		var spot: Dictionary = spots[i]
+		var purple := bool(spot.get("purple", true))
+		var color_a := Color(0.68, 0.42, 1.0, 0.34) if purple else Color(0.38, 0.82, 1.0, 0.32)
+		var color_b := Color(0.40, 0.88, 1.0, 0.26) if purple else Color(0.78, 0.46, 1.0, 0.26)
+		_add_medical_m2_aurora_curtain(
+			i,
+			float(spot["d"]),
+			float(spot["side"]) * float(spot["lat"]),
+			float(spot["y"]),
+			float(spot["w"]),
+			float(spot["h"]),
+			color_a,
+			color_b,
+			0.028 + float(i) * 0.006,
+			float(i) * 1.7
+		)
+
+
+func _add_medical_m2_aurora_curtain(
+	index: int,
+	distance: float,
+	lateral: float,
+	height: float,
+	width: float,
+	tall: float,
+	color_a: Color,
+	color_b: Color,
+	speed: float,
+	band_seed: float
+) -> void:
+	var placed := _world_on_path(distance, lateral, GROUND_Y + height)
+	var sample := _sample_path(distance)
+	var quad := QuadMesh.new()
+	quad.size = Vector2(width, tall)
+	var mesh := MeshInstance3D.new()
+	mesh.name = "AuroraCurtain_%d" % index
+	mesh.mesh = quad
+	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mat := ShaderMaterial.new()
+	mat.shader = W1_SKY_AURORA_SHADER
+	mat.render_priority = -90 + index
+	mat.set_shader_parameter("color_a", color_a)
+	mat.set_shader_parameter("color_b", color_b)
+	mat.set_shader_parameter("scroll_speed", speed)
+	mat.set_shader_parameter("band_seed", band_seed)
+	mat.set_shader_parameter("horizon_glow", 0.42)
+	mat.set_shader_parameter("float_strength", 0.55)
+	mesh.material_override = mat
+	var pos: Vector3 = placed["pos"]
+	mesh.position = pos
+	# 面向跑道，让玩家往前跑时从侧面掠过，而不是贴在镜头上
+	mesh.rotation.y = float(sample.get("yaw", 0.0)) + PI
+	_medical_m2_aurora_root.add_child(mesh)
+
 
 func _build_void_surroundings_for_energy_road() -> void:
 	# 极暗地面托底：顶面贴近路肩下沿，避免两侧露出垂直缝
@@ -9976,6 +10740,9 @@ func _build_runway_edge_fillers(parent: Node3D, track_end: float) -> void:
 	var d := 22.0
 	var slot := 0
 	while d < track_end:
+		if _is_gate_location() and not _fork_zone_covering(d, 16.0).is_empty():
+			d += rng.randf_range(16.0, 24.0)
+			continue
 		if rng.randf() < 0.42:
 			d += rng.randf_range(16.0, 24.0)
 			continue
@@ -10000,6 +10767,8 @@ func _build_runway_edge_fillers(parent: Node3D, track_end: float) -> void:
 			inst.rotation.y = yaw + side_sign * rng.randf_range(0.1, 0.5)
 			var sc := rng.randf_range(0.14, 0.28)
 			inst.scale = Vector3(sc, sc * rng.randf_range(0.55, 0.82), sc)
+			if _is_gate_location():
+				_clamp_edge_filler_off_runway(inst, d, side_sign, road_half)
 			_disable_mesh_shadows(inst)
 		d += rng.randf_range(18.0, 28.0)
 
@@ -10418,6 +11187,9 @@ func _build_near_runway_dressing(_theme: Dictionary) -> void:
 		if path == "":
 			d += rng.randf_range(14.0, 22.0)
 			continue
+		if _is_gate_location() and _is_runway_wrapping_prop(path):
+			d += rng.randf_range(10.0, 16.0)
+			continue
 		if _is_reservoir_location() and ("purifier" in path.to_lower() or "coral" in path.to_lower()):
 			d += rng.randf_range(14.0, 22.0)
 			continue
@@ -10432,11 +11204,19 @@ func _build_near_runway_dressing(_theme: Dictionary) -> void:
 				height = rng.randf_range(6.4, 10.5)
 			else:
 				height = rng.randf_range(1.6, 2.6)
+		elif _is_gate_location():
+			if _is_bulky_near_runway_prop(path):
+				lateral = side * rng.randf_range(10.2, 13.6)
+				height = rng.randf_range(1.8, 2.8)
+			else:
+				lateral = side * rng.randf_range(9.2, 12.2)
+				height = rng.randf_range(1.5, 2.4)
+			lateral = _gate_dressing_lateral_outside_runway(d, side, absf(lateral), rng)
 		elif "purifier" in path.to_lower() or "coral" in path.to_lower():
 			height = rng.randf_range(2.2, 3.4)
-		if "pod" in path.to_lower() and not _is_reservoir_location():
+		if "pod" in path.to_lower() and not _is_reservoir_location() and not _is_gate_location():
 			height = rng.randf_range(1.8, 2.8)
-		_spawn_midground_prop(d, lateral, path, height, rng, 0.85)
+		_spawn_midground_prop(d, lateral, path, height, rng, 0.85, _is_gate_location())
 		d += rng.randf_range(14.0, 22.0)
 
 
@@ -10629,6 +11409,8 @@ func _build_midground_dressing_pass(
 				if side_i > 0:
 					offset_d += rng.randf_range(1.5, 5.0)
 				var offset_lat := lateral + float(ci - cluster_count * 0.5) * rng.randf_range(0.8, 1.6)
+				if _is_gate_location():
+					offset_lat = _gate_dressing_lateral_outside_runway(offset_d, side, absf(offset_lat), rng)
 				var target_h := _midground_target_height(rng, asset_path, side, spec)
 				if _spawn_midground_prop(
 					offset_d,
@@ -10825,10 +11607,18 @@ func _pick_midground_asset_path(
 	if base_pool.is_empty() and _environment_pack_v2_paths.is_empty():
 		return ""
 	if _should_pick_environment_pack_v2(rng) and not _environment_pack_v2_paths.is_empty():
-		return _pick_weighted_midground_from_pool(rng, phase, _environment_pack_v2_paths)
+		var packed := _pick_weighted_midground_from_pool(rng, phase, _environment_pack_v2_paths)
+		if not (_is_gate_location() and _is_runway_wrapping_prop(packed)):
+			return packed
 	if base_pool.is_empty():
-		return _pick_environment_pack_v2_path(rng)
-	return _pick_weighted_midground_from_pool(rng, phase, base_pool)
+		var fallback := _pick_environment_pack_v2_path(rng)
+		if _is_gate_location() and _is_runway_wrapping_prop(fallback):
+			return ""
+		return fallback
+	var picked := _pick_weighted_midground_from_pool(rng, phase, base_pool)
+	if _is_gate_location() and _is_runway_wrapping_prop(picked):
+		return ""
+	return picked
 
 func _pick_weighted_midground_from_pool(
 	rng: RandomNumberGenerator,
@@ -11067,6 +11857,25 @@ func _should_skip_distant_at(distance: float) -> bool:
 func _should_skip_midground_at(distance: float) -> bool:
 	if distance < START_PAD_LENGTH + 4.0:
 		return true
+	if _is_gate_location():
+		# 分叉段改把近/中景推到岔路外侧，不再整段不刷
+		if not _y_fork_region_at(distance).is_empty():
+			return true
+		for gap in _main_block_road_gaps():
+			if typeof(gap) == TYPE_VECTOR2 and distance >= gap.x - 6.0 and distance <= gap.y + 6.0:
+				return true
+		for zone in _side_runway_zones():
+			var wall_start := float(zone.get("start", 0.0))
+			var entry_window := float(zone.get("entry_window", 10.0))
+			if distance >= wall_start - entry_window and distance <= wall_start + entry_window:
+				return true
+			var pit: Vector2 = _side_runway_pit_range(zone)
+			if distance >= pit.x - 8.0 and distance <= pit.y + 8.0:
+				return true
+		var gate_finish := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+		if distance >= gate_finish - 95.0:
+			return true
+		return false
 	if _should_skip_distant_at(distance):
 		return true
 	if _is_in_fork_main_gap(distance):
@@ -11088,7 +11897,8 @@ func _spawn_midground_prop(
 	asset_path: String,
 	target_height: float,
 	rng: RandomNumberGenerator,
-	emission_boost: float = 1.0
+	emission_boost: float = 1.0,
+	near_runway: bool = false
 ) -> bool:
 	var scene := _load_runner_scene(asset_path, false)
 	if scene == null:
@@ -11122,7 +11932,11 @@ func _spawn_midground_prop(
 	var preferred_fp := clampf(target_height * 1.15, 1.8, 4.2)
 	if is_neon:
 		preferred_fp = clampf(target_height * 1.05, 1.8, 3.6)
+	if _is_gate_location() and near_runway:
+		preferred_fp = clampf(target_height * 1.85, 3.2, 7.4)
 	var footprint := -1.0 if channel else _midground_safe_footprint(lateral, preferred_fp)
+	if _is_gate_location() and near_runway:
+		footprint = _gate_near_safe_footprint(lateral, preferred_fp)
 	var model := _add_scaled_model_visual(
 		root,
 		scene,
@@ -11145,11 +11959,15 @@ func _spawn_midground_prop(
 	elif not _is_wide_midground_prop(asset_path):
 		_enforce_midground_min_size(model, target_height)
 		_clamp_midground_footprint(model, footprint)
+	elif _is_gate_location():
+		_clamp_midground_footprint(model, footprint if footprint > 0.0 else 8.0)
 	_preserve_midground_materials(root)
 	if _is_midground_meteorite(asset_path):
 		_apply_midground_meteorite_variant(root, _pick_meteorite_palette(rng, distance, lateral))
 	elif _is_reservoir_location() and _is_reservoir_crystal_prop(asset_path):
 		_apply_reservoir_crystal_look(root, rng, distance, lateral)
+	if _is_gate_location():
+		_keep_dressing_prop_clear_runway(root, distance, lateral, near_runway)
 	_disable_mesh_shadows(root)
 	return true
 
@@ -11383,6 +12201,86 @@ func _is_wide_midground_prop(path: String) -> bool:
 	)
 
 
+func _is_runway_wrapping_prop(path: String) -> bool:
+	var lower := String(path).to_lower()
+	return "spark_ring" in lower or "星火环" in lower
+
+
+func _is_bulky_near_runway_prop(path: String) -> bool:
+	var lower := String(path).to_lower()
+	return (
+		_is_runway_wrapping_prop(path)
+		or _is_midground_robot(path)
+		or _is_wide_midground_prop(path)
+		or "neon_sign" in lower
+		or "purifier" in lower
+		or "medical_pod" in lower
+	)
+
+
+func _is_in_junction_dressing_span(distance: float, pad: float = 10.0) -> bool:
+	return not _fork_zone_covering(distance, pad).is_empty()
+
+
+func _fork_zone_covering(distance: float, pad: float = 16.0) -> Dictionary:
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("distance", 0.0))
+		var length := float(zone.get("length", 70.0))
+		if distance >= start - pad and distance <= start + length + pad:
+			return zone
+	return {}
+
+
+func _fork_envelope_at_distance(distance: float, zone: Dictionary) -> float:
+	var start := float(zone.get("distance", 0.0))
+	var length := float(zone.get("length", 70.0))
+	var t := clampf((distance - start) / maxf(length, 0.001), 0.0, 1.0)
+	return _fork_envelope(t)
+
+
+func _gate_runway_lateral_bands(distance: float) -> Array:
+	var bands: Array = []
+	var road_half := _holographic_road_half() if _road_style_id == "holographic" else 6.3
+	var zone := _fork_zone_covering(distance, 16.0)
+	if zone.is_empty():
+		bands.append(Vector2(-road_half, road_half))
+		return bands
+	var envelope := _fork_envelope_at_distance(distance, zone)
+	var spread := float(zone.get("spread", 17.0))
+	var branch_half := _fork_branch_half_width()
+	var center_abs := spread * envelope
+	if center_abs < 1.2:
+		bands.append(Vector2(-road_half, road_half))
+		return bands
+	bands.append(Vector2(-center_abs - branch_half, -center_abs + branch_half))
+	bands.append(Vector2(center_abs - branch_half, center_abs + branch_half))
+	if envelope < 0.28:
+		bands.append(Vector2(-road_half, road_half))
+	return bands
+
+
+func _gate_dressing_lateral_outside_runway(
+	distance: float,
+	side: float,
+	preferred_abs: float,
+	rng: RandomNumberGenerator
+) -> float:
+	var sign_v := 1.0 if side >= 0.0 else -1.0
+	var zone := _fork_zone_covering(distance, 16.0)
+	if zone.is_empty():
+		return sign_v * preferred_abs
+	var envelope := _fork_envelope_at_distance(distance, zone)
+	var spread := float(zone.get("spread", 17.0))
+	var branch_half := _fork_branch_half_width()
+	var outer := spread * envelope + branch_half
+	if outer < 7.2:
+		return sign_v * maxf(preferred_abs, 9.2)
+	var abs_lat := rng.randf_range(outer + 1.6, outer + 4.6)
+	return sign_v * abs_lat
+
+
 func _is_channel_midground_prop(path: String) -> bool:
 	return _is_wide_midground_prop(path)
 
@@ -11476,6 +12374,107 @@ func _midground_safe_footprint(lateral: float, preferred: float) -> float:
 	var edge_room := absf(lateral) - (road_half + MIDGROUND_RUNWAY_CLEARANCE)
 	var max_fp := maxf(edge_room * 1.55, 1.4)
 	return clampf(minf(preferred, max_fp), 1.4, 4.4)
+
+
+func _gate_near_safe_footprint(lateral: float, preferred: float) -> float:
+	# 外道可被挡住形成通道，中道 |lat|<2.45 必须留空
+	var keep := 2.45
+	var edge_room := maxf(absf(lateral) - keep, 2.2)
+	return clampf(minf(preferred, edge_room * 1.12), 2.6, 8.0)
+
+
+func _dressing_lateral_extents(root: Node3D, origin: Vector3, right: Vector3) -> Vector2:
+	var min_lat := 1.0e9
+	var max_lat := -1.0e9
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh == null:
+			continue
+		mesh_instance.force_update_transform()
+		for corner in _aabb_corners(mesh_instance.mesh.get_aabb()):
+			var world_point: Vector3 = mesh_instance.global_transform * (corner as Vector3)
+			var lat: float = (world_point - origin).dot(right)
+			min_lat = minf(min_lat, lat)
+			max_lat = maxf(max_lat, lat)
+	if min_lat > 1.0e8:
+		return Vector2.ZERO
+	return Vector2(min_lat, max_lat)
+
+
+func _keep_dressing_prop_clear_runway(
+	root: Node3D,
+	distance: float,
+	lateral: float,
+	near_runway: bool = false
+) -> void:
+	if root == null:
+		return
+	root.force_update_transform()
+	var sample := _sample_path(distance)
+	var right: Vector3 = sample["right"]
+	var origin: Vector3 = sample["pos"]
+	var keep := 2.45
+	var max_span := 8.6 if near_runway else 12.0
+	var extents := _dressing_lateral_extents(root, origin, right)
+	if extents == Vector2.ZERO:
+		return
+	var span := extents.y - extents.x
+	if span > max_span:
+		var model := root.get_node_or_null("MidPropModel") as Node3D
+		if model == null:
+			model = root
+		_squash_midground_footprint_keep_height(model, max_span)
+		root.force_update_transform()
+		extents = _dressing_lateral_extents(root, origin, right)
+		if extents == Vector2.ZERO:
+			return
+	var side := 1.0 if lateral >= 0.0 else -1.0
+	var extra := 0.0
+	var bands: Array = _gate_runway_lateral_bands(distance)
+	if bands.is_empty():
+		if side > 0.0:
+			extra = maxf(0.0, keep - extents.x)
+		else:
+			extra = maxf(0.0, extents.y + keep)
+	else:
+		for raw in bands:
+			var band: Vector2 = raw
+			var center := (band.x + band.y) * 0.5
+			if extents.x >= center + keep or extents.y <= center - keep:
+				continue
+			if side > 0.0:
+				extra = maxf(extra, (center + keep) - extents.x)
+			else:
+				extra = maxf(extra, extents.y - (center - keep))
+	if extra > 0.04:
+		root.global_position += right * side * extra
+		root.force_update_transform()
+	_resit_midground_on_ground(root, 1.2)
+
+
+func _clamp_edge_filler_off_runway(inst: Node3D, distance: float, side_sign: float, road_half: float) -> void:
+	if inst == null:
+		return
+	inst.force_update_transform()
+	var bounds := _compute_node_aabb(inst)
+	var footprint := maxf(bounds.size.x, bounds.size.z)
+	if footprint > 1.8 and footprint > 0.001:
+		inst.scale *= 1.8 / footprint
+		inst.force_update_transform()
+	var sample := _sample_path(distance)
+	var right: Vector3 = sample["right"]
+	var origin: Vector3 = sample["pos"]
+	var extents := _dressing_lateral_extents(inst, origin, right)
+	if extents == Vector2.ZERO:
+		return
+	var keep := road_half - 0.35
+	var extra := 0.0
+	if side_sign > 0.0:
+		extra = maxf(0.0, keep - extents.x)
+	else:
+		extra = maxf(0.0, extents.y + keep)
+	if extra > 0.03:
+		inst.global_position += right * side_sign * extra
 
 
 func _clamp_midground_footprint(model: Node3D, max_footprint: float) -> void:
@@ -13950,6 +14949,12 @@ func _w1_is_finish_straight(dist: float) -> bool:
 	return dist >= _finish_straight_zone_start()
 
 
+func _should_skip_mechanic_collectible(distance: float, lane: int) -> bool:
+	var zone := _width_zone_at(distance)
+	if not zone.is_empty():
+		return absf(float(lane) * LANE_WIDTH) > float(zone.get("half_width", 1.2)) - 0.08
+	return _is_in_main_block_pit(distance)
+
 func _w1_teaching_coins() -> Array:
 	# 参考视频：每拍+半拍密币（卡 128BPM），跑道左/中/右交错
 	var coins: Array = []
@@ -13959,7 +14964,7 @@ func _w1_teaching_coins() -> Array:
 		if _w1_beat_blocked_for_coins(b, obstacle_beats, 0.22):
 			continue
 		var d := _w1_beat_distance(float(b))
-		if d <= 0.01 or _is_in_fork_main_gap(d):
+		if d <= 0.01 or _is_in_fork_main_gap(d) or _should_skip_mechanic_collectible(d, lane_pat[b % lane_pat.size()]):
 			continue
 		var finish_zone := _w1_is_finish_straight(d)
 		var lane := lane_pat[b % lane_pat.size()]
@@ -13985,7 +14990,7 @@ func _snap_w1_layout_items_to_beats(items: Array) -> void:
 			continue
 		var item: Dictionary = raw
 		var otype := String(item.get("type", ""))
-		if otype in ["ramp", "turn_left", "turn_right"]:
+		if otype in ["ramp", "turn_left", "turn_right", "main_block"]:
 			continue
 		var dist := float(item.get("distance", 0.0))
 		if dist <= 1.0:
@@ -14054,20 +15059,23 @@ func _build_content() -> void:
 			_mission_profile,
 			_track_length
 		)
-	# adapt 缩放/加密后可能把下滑门等漂进侧墙走廊，再滤一次
+	# 先吸附拍点，再滤侧墙/熔岩排除带，避免吸附后障碍又叠进坑或走廊
+	if _uses_beat_sync_content():
+		_snap_w1_layout_items_to_beats(obstacle_items)
+	# adapt / 拍点后可能把下滑门等漂进侧墙走廊，再滤一次
 	obstacle_items = _filter_adapted_obstacles_from_wall_corridors(obstacle_items)
 	obstacle_items = _filter_obstacles_near_lava_platform_pits(obstacle_items)
 	# 关卡 JSON / 自定义关：保留编辑器摆放的全类型障碍；仅 procedural 回落才裁成跳铲球
 	if _runner_layout_id() == "" and not CustomLevels.has_level(Global.runner_location_id):
 		obstacle_items = _filter_core_obstacle_types(obstacle_items)
-	if _uses_beat_sync_content():
-		_snap_w1_layout_items_to_beats(obstacle_items)
 	for item in obstacle_items:
 		_register_obstacle(item)
 	_inject_sparse_runway_obstacles()
+	_inject_gate_tension_obstacles()
 	_inject_finish_sprint_orb_gauntlet()
 	_inject_side_runway_wave_arc_obstacles()
 	_inject_junction_fork_branch_obstacles()
+	_inject_y_fork_branch_obstacles()
 	_purge_obstacles_in_lava_platform_zones()
 	_refresh_smash_budget()
 	obstacles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -14095,10 +15103,14 @@ func _build_content() -> void:
 			var dist: float = float(item.get("distance", 0.0))
 			if _is_in_fork_main_gap(dist):
 				continue
+			if _should_skip_mechanic_collectible(dist, lane):
+				continue
 			var layer: int = int(item.get("layer", 0))
 			var air := bool(item.get("air", false))
 			var air_tier := int(item.get("air_tier", 1 if air else 0))
 			var y: float = _coin_collectible_y(air, layer, 0, air_tier)
+			if layer == 0:
+				y += _path_height_lift_at(dist)
 			var collectible := _make_collectible(lane, dist, y, layer)
 			collectibles.append({
 				"node": collectible,
@@ -14165,6 +15177,7 @@ func _build_content() -> void:
 	_spawn_shield_crystals()
 	_register_speed_boost_data()
 	_register_bonus_fork_rewards()
+	_register_y_fork_branch_rewards()
 	_materialize_registered_collectibles()
 	_refresh_smash_budget()
 	total_collectibles = 0
@@ -14223,13 +15236,13 @@ func _materialize_registered_collectibles() -> void:
 		var node: Node3D = null
 		match kind:
 			"coin":
-				node = _make_collectible(lane, dist, y, layer)
+				node = _make_collectible(lane, dist, y, layer, fork_side)
 			"speed_boost":
 				node = _make_speed_boost(lane, dist, y, layer, fork_side)
 			"shield_crystal":
-				node = _make_shield_crystal(lane, dist, y, layer)
+				node = _make_shield_crystal(lane, dist, y, layer, fork_side)
 			_:
-				node = _make_collectible(lane, dist, y, layer)
+				node = _make_collectible(lane, dist, y, layer, fork_side)
 		entry["node"] = node
 
 
@@ -14423,6 +15436,8 @@ func _register_bonus_fork_rewards() -> void:
 			continue
 		if String(zone.get("effect_b", "")) != "bonus":
 			continue
+		if _junction_overlaps_y_fork(zone):
+			continue
 		var z_start := float(zone.get("distance", 0.0))
 		var z_len := float(zone.get("length", 50.0))
 		var d0 := z_start + 8.0
@@ -14435,12 +15450,8 @@ func _register_bonus_fork_rewards() -> void:
 			var lane := int(LANES[coin_i % LANES.size()])
 			var y: float = _coin_collectible_y(false, 0)
 			_register_collectible_data(lane, d, y, 0, "coin", false, 1)
-			# 三连币：同距相邻道再补一枚，奖励更密
-			if coin_i % 2 == 0:
-				var lane2 := int(LANES[(coin_i + 1) % LANES.size()])
-				_register_collectible_data(lane2, d + 1.1, y, 0, "coin", false, 1)
 			coin_i += 1
-			d += 3.0
+			d += 6.5
 		var boost_i := 0
 		d = d0 + 3.5
 		while d <= d1:
@@ -14456,11 +15467,12 @@ func _register_bonus_fork_rewards() -> void:
 
 func _spawn_shield_crystals() -> void:
 	var items: Array = []
-	if _runner_layout_id() != "" or CustomLevels.has_level(Global.runner_location_id):
-		items = _default_shield_crystals_from_sandstorms()
-	elif LevelConfig != null and LevelConfig.has_method("build_shield_crystals") and not CustomLevels.has_level(Global.runner_location_id):
+	var layout_id := _runner_layout_id()
+	if layout_id != "":
+		items = ObstacleLayout.load_shield_crystals(layout_id)
+	if items.is_empty() and LevelConfig != null and LevelConfig.has_method("build_shield_crystals") and layout_id == "" and not CustomLevels.has_level(Global.runner_location_id):
 		items = LevelConfig.build_shield_crystals()
-	else:
+	if items.is_empty():
 		items = _default_shield_crystals_from_sandstorms()
 	var seen_dist: Dictionary = {}
 	var deduped: Array = []
@@ -14568,7 +15580,8 @@ func _register_obstacle(item: Dictionary) -> Node3D:
 			var t := (dist - float(zone["distance"])) / maxf(float(zone.get("length", 70.0)), 0.001)
 			if t > 0.04 and t < 0.96:
 				return null
-	if not _is_distance_on_main_ground_runway(dist, layer):
+	# 支路障碍铺在分叉地面上，不能按「主路挖空」丢掉
+	if fork_branch == 0 and not _is_distance_on_main_ground_runway(dist, layer):
 		return null
 	if layer == 0 and fork_branch == 0 and obstacle_type != "main_block" and _is_distance_on_track_turn(dist, 12.0):
 		return null
@@ -14767,48 +15780,48 @@ func _build_wall_face_obstacle(root: Node3D, item: Dictionary, obstacle_type: St
 	bar.name = "WallFaceObstacleBar"
 	var box := BoxMesh.new()
 	if is_slide:
-		# 悬梁：挡中高列，下滑到低列或高跳越过
-		box.size = Vector3(0.55, 1.65, 2.8)
+		# 青蓝横梁挡中高列：必须滑到低列
+		box.size = Vector3(0.72, 1.85, 3.4)
 	else:
-		# 低栏：贴低列，中列需跳过
-		box.size = Vector3(0.5, 0.9, 2.6)
+		# 橙色低栏挡低列：必须跳到中/高列
+		box.size = Vector3(0.7, 1.15, 3.2)
 	bar.mesh = box
 	var mat := StandardMaterial3D.new()
 	if is_slide:
-		mat.albedo_color = Color(0.15, 0.55, 0.95, 0.92)
-		mat.emission = Color(0.2, 0.75, 1.0)
+		mat.albedo_color = Color(0.08, 0.72, 1.0, 1.0)
+		mat.emission = Color(0.12, 0.85, 1.0)
 	else:
-		mat.albedo_color = Color(0.95, 0.45, 0.12, 0.95)
-		mat.emission = Color(1.0, 0.4, 0.08)
+		mat.albedo_color = Color(1.0, 0.42, 0.06, 1.0)
+		mat.emission = Color(1.0, 0.48, 0.05)
 	mat.emission_enabled = true
-	mat.emission_energy_multiplier = 1.8
-	mat.metallic = 0.35
-	mat.roughness = 0.35
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.emission_energy_multiplier = 3.4
+	mat.metallic = 0.18
+	mat.roughness = 0.28
 	bar.material_override = mat
-	bar.position = Vector3(0.0, box.size.y * 0.5, 0.0)
+	bar.position = Vector3(0.22, box.size.y * 0.5 + (0.85 if is_slide else 0.08), 0.0)
 	root.add_child(bar)
-	var rim := MeshInstance3D.new()
-	rim.name = "WallFaceObstacleRim"
-	var rim_box := BoxMesh.new()
-	rim_box.size = box.size + Vector3(0.08, 0.08, 0.08)
-	rim.mesh = rim_box
-	var rim_mat := StandardMaterial3D.new()
-	rim_mat.albedo_color = Color(1.0, 1.0, 1.0, 0.18)
-	rim_mat.emission_enabled = true
-	rim_mat.emission = mat.emission
-	rim_mat.emission_energy_multiplier = 0.7
-	rim_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	rim_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	rim.material_override = rim_mat
-	rim.position = bar.position
-	root.add_child(rim)
+	var stripe := MeshInstance3D.new()
+	stripe.name = "WallFaceObstacleStripe"
+	var stripe_box := BoxMesh.new()
+	stripe_box.size = Vector3(box.size.x + 0.06, 0.16, box.size.z + 0.08)
+	stripe.mesh = stripe_box
+	var stripe_mat := StandardMaterial3D.new()
+	stripe_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	stripe_mat.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
+	stripe_mat.emission_enabled = true
+	stripe_mat.emission = Color(1.0, 1.0, 1.0)
+	stripe_mat.emission_energy_multiplier = 2.2
+	stripe.material_override = stripe_mat
+	stripe.position = bar.position + Vector3(0.02, (0.62 if is_slide else -0.28), 0.0)
+	root.add_child(stripe)
 	var tip := Label3D.new()
-	tip.text = "滑到低列 / 跳过" if is_slide else "跳跃越过"
-	tip.font_size = 42
-	tip.modulate = Color(0.75, 1.0, 0.95) if is_slide else Color(1.0, 0.75, 0.35)
+	tip.text = "滑铲" if is_slide else "跳跃"
+	tip.font_size = 96
+	tip.outline_size = 18
+	tip.modulate = Color(0.55, 0.96, 1.0) if is_slide else Color(1.0, 0.72, 0.22)
+	tip.outline_modulate = Color(0.02, 0.04, 0.08, 0.9)
 	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tip.position = Vector3(0.0, box.size.y + 0.55, 0.0)
+	tip.position = bar.position + Vector3(0.4, box.size.y * 0.62, 0.0)
 	root.add_child(tip)
 
 
@@ -16120,7 +17133,7 @@ func _build_turn_sign(root: Node3D, turn_type: String) -> void:
 	pad.position = Vector3(0.0, 0.04, 0.0)
 	root.add_child(pad)
 
-func _make_collectible(lane: int, distance: float, y: float, layer: int) -> Node3D:
+func _make_collectible(lane: int, distance: float, y: float, layer: int, fork_side: int = 0) -> Node3D:
 	var collectible := Node3D.new()
 	collectible.name = "EmberCoin"
 	var coin_scale := 1.08
@@ -16194,6 +17207,8 @@ func _make_collectible(lane: int, distance: float, y: float, layer: int) -> Node
 	var placed: Dictionary
 	if layer == WALL_RUN_LAYER:
 		placed = _world_on_path(distance, 0.0, y, WALL_RUN_LAYER)
+	elif fork_side != 0:
+		placed = _world_on_path_forced_fork(distance, float(lane) * LANE_WIDTH, y, layer, fork_side)
 	else:
 		placed = _world_on_path(distance, float(lane) * LANE_WIDTH, y, layer)
 	collectible.position = placed["pos"]
@@ -18023,6 +19038,11 @@ func _apply_mission_environment() -> void:
 			sun.light_energy = float(overlay["sun_energy"])
 	if overlay.has("tonemap_exposure"):
 		env.tonemap_exposure = float(overlay["tonemap_exposure"])
+	if overlay.has("adjustment_brightness") or overlay.has("adjustment_contrast") or overlay.has("adjustment_saturation"):
+		env.adjustment_enabled = true
+		env.adjustment_brightness = float(overlay.get("adjustment_brightness", 1.0))
+		env.adjustment_contrast = float(overlay.get("adjustment_contrast", 1.0))
+		env.adjustment_saturation = float(overlay.get("adjustment_saturation", 1.0))
 
 
 func _apply_settlement_button_style(button: Button, bg: Color, border: Color) -> void:
