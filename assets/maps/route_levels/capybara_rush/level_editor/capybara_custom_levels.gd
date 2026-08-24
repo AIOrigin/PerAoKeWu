@@ -6,7 +6,7 @@ extends RefCounted
 const CUSTOM_DIR := CapybaraLevelLayout.CUSTOM_DIR
 const INDEX_PATH := CUSTOM_DIR + "custom_levels_index.json"
 const PLAYTEST_ID := "custom_playtest"
-const PLAYTEST_NAME := "试玩草稿"
+const PLAYTEST_NAME := "Playtest Draft"
 const EDITOR_SCENE := "res://assets/maps/route_levels/capybara_rush/level_editor/capybara_level_editor.tscn"
 const GAME_SCENE := "res://assets/maps/route_levels/capybara_rush/capybara_rush.tscn"
 
@@ -78,7 +78,7 @@ static func format_id(seq: int) -> String:
 
 
 static func format_name(seq: int) -> String:
-	return "自定义%02d" % seq
+	return "Custom %02d" % seq
 
 
 static func create_level(cfg: Dictionary) -> Dictionary:

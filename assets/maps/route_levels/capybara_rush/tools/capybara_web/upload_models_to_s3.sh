@@ -21,6 +21,10 @@ MODELS_DIR="$ROOT/assets/maps/route_levels/capybara_rush/models"
 : "${CAPYBARA_S3_PREFIX:=public/games/capybara-rush/capybara/models}"
 DRY_RUN="${DRY_RUN:-0}"
 
+PATCH="$SCRIPT_DIR/patch_web_cache_bust.py"
+ASSET_VER="$(python3 "$PATCH" version)"
+PREFIX="${CAPYBARA_S3_PREFIX%/}/${ASSET_VER}"
+
 if [[ ! -d "$MODELS_DIR" ]]; then
 	echo "找不到 models 目录：$MODELS_DIR" >&2
 	exit 1
@@ -78,8 +82,8 @@ if [[ -z "$LIST" ]]; then
 	exit 1
 fi
 
-DEST="s3://${CAPYBARA_S3_BUCKET}/${CAPYBARA_S3_PREFIX}"
-echo "同步正式 GLB -> ${DEST}"
+DEST="s3://${CAPYBARA_S3_BUCKET}/${PREFIX}"
+echo "同步正式 GLB -> ${DEST}  (ASSET_VERSION=${ASSET_VER})"
 echo "$LIST" | sed 's/^/  /'
 BYTES="$(echo "$LIST" | while read -r rel; do stat -f%z "$MODELS_DIR/$rel"; done | python3 -c 'import sys; print("%.1f" % (sum(int(x) for x in sys.stdin)/1024/1024))')"
 echo "合计约 ${BYTES} MB"
@@ -102,7 +106,7 @@ fi
 aws "${SYNC_ARGS[@]}"
 
 echo ""
-echo "完成。CloudFront："
-echo "  https://de0csn75w3vhy.cloudfront.net/games/capybara-rush/capybara/models"
+echo "完成。CloudFront 本版路径："
+echo "  https://de0csn75w3vhy.cloudfront.net/games/capybara-rush/capybara/models/${ASSET_VER}/"
 echo "若网页跨域失败："
 echo "  aws s3api put-bucket-cors --bucket ${CAPYBARA_S3_BUCKET} --cors-configuration file://${SCRIPT_DIR}/s3-cors.json"

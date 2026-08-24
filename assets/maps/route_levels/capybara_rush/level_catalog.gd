@@ -36,7 +36,7 @@ static func load_level(level_id: int) -> Dictionary:
 	if cfg.is_empty():
 		cfg = {
 			"id": id,
-			"name": "关卡 %d" % id,
+			"name": "Level %d" % id,
 			"theme_id": "lake_clear",
 			"track_length": 288.0,
 			"run_speed": 12.0,

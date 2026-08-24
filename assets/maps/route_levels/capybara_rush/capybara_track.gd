@@ -11,8 +11,8 @@ const CapybaraWebConfig := preload("res://assets/maps/route_levels/capybara_rush
 const CapybaraLevelCatalog = LevelCatalogScript
 
 const LANE_COUNT := 3
-const LANE_WIDTH := 1.08
-const ROAD_HALF_W := 2.05
+const LANE_WIDTH := 1.52
+const ROAD_HALF_W := LANE_WIDTH * 1.5
 const ROAD_THICKNESS := 0.18
 const ROAD_SURFACE_Y := ROAD_THICKNESS * 0.5
 const START_LINE_PROGRESS := 8.5
@@ -203,7 +203,7 @@ func _setup_environment() -> void:
 	_host._sun_light.rotation_degrees = Vector3(-48, 35, 0)
 	_host._sun_light.light_color = Color(1.0, 0.96, 0.9)
 	_host._sun_light.light_energy = 0.95
-	_host._sun_light.shadow_enabled = true
+	_host._sun_light.shadow_enabled = not OS.has_feature("web")
 	# 高模自阴影 acne 会在亮色赛道上显成白噪点；略增 bias、收软阴影
 	_host._sun_light.shadow_bias = 0.06
 	_host._sun_light.shadow_normal_bias = 1.5
@@ -480,7 +480,3 @@ func _model_path_available(p: String) -> bool:
 	if CapybaraWebConfig.cdn_enabled():
 		return FileAccess.file_exists(CapybaraWebConfig.cache_path_for_res_model(p))
 	return false
-
-
-
-

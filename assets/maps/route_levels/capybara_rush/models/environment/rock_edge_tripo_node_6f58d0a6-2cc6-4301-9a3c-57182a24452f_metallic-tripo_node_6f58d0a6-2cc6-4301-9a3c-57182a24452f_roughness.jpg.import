@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://b3sdx3anvlu4u"
+path="res://.godot/imported/rock_edge_tripo_node_6f58d0a6-2cc6-4301-9a3c-57182a24452f_metallic-tripo_node_6f58d0a6-2cc6-4301-9a3c-57182a24452f_roughness.jpg-08306b10b4578dfa478b781675cdff50.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "dbc4aa26f5a78c7fdf18d68f368b72d9"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/environment/rock_edge_tripo_node_6f58d0a6-2cc6-4301-9a3c-57182a24452f_metallic-tripo_node_6f58d0a6-2cc6-4301-9a3c-57182a24452f_roughness.jpg"
+dest_files=["res://.godot/imported/rock_edge_tripo_node_6f58d0a6-2cc6-4301-9a3c-57182a24452f_metallic-tripo_node_6f58d0a6-2cc6-4301-9a3c-57182a24452f_roughness.jpg-08306b10b4578dfa478b781675cdff50.ctex"]
+
+[params]
+
+compress/mode=3
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

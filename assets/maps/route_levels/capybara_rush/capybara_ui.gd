@@ -6,6 +6,7 @@ extends RefCounted
 const LevelCatalogScript := preload("res://assets/maps/route_levels/capybara_rush/level_catalog.gd")
 const CapybaraRushPaths := preload("res://assets/maps/route_levels/capybara_rush/model_paths.gd")
 const CapybaraLevelCatalog = LevelCatalogScript
+const UI_FONT := preload("res://assets/arts_graphic/font/LiberationMono-Regular-变体.tres")
 
 const RUN_SPEED := 12.0
 const CHAR_CAPYBARA := "capybara"
@@ -63,12 +64,31 @@ var _hud_progress: ProgressBar
 var _hud_progress_text: Label
 var _hud_controls: Control
 var _start_overlay: Control
+var _start_pulse: Tween
 var _pause_btn: BaseButton
 var _tex_cache: Dictionary = {}
+var _ui_theme: Theme
 
 
 func _init(host: Node) -> void:
 	_host = host
+	_install_ui_font()
+
+
+func _install_ui_font() -> void:
+	if UI_FONT == null:
+		return
+	ThemeDB.fallback_font = UI_FONT
+	_ui_theme = Theme.new()
+	_ui_theme.default_font = UI_FONT
+
+
+func _bind_font(ctrl: Control) -> void:
+	if UI_FONT == null:
+		return
+	ctrl.add_theme_font_override("font", UI_FONT)
+	if _ui_theme != null:
+		ctrl.theme = _ui_theme
 
 
 func is_select_active() -> bool:
@@ -251,14 +271,14 @@ func request_character_select() -> void:
 	CapybaraUi.pending_character_id = ""
 	CapybaraUi.pending_custom_level_id = ""
 	CapybaraUi.pending_open_level_select = false
-	_host.get_tree().reload_current_scene()
+	_host.reload_game_scene()
 
 
 func request_level_select() -> void:
 	CapybaraUi.pending_level_id = 0
 	CapybaraUi.pending_character_id = _host._character_id
 	CapybaraUi.pending_open_level_select = true
-	_host.get_tree().reload_current_scene()
+	_host.reload_game_scene()
 
 
 func _setup_hud() -> void:
@@ -269,6 +289,8 @@ func _setup_hud() -> void:
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _ui_theme != null:
+		root.theme = _ui_theme
 	hud_layer.add_child(root)
 
 	var top := MarginContainer.new()
@@ -310,7 +332,7 @@ func _setup_hud() -> void:
 	prog_panel.add_child(prog_inner)
 
 	_host._hud_label = Label.new()
-	_host._hud_label.text = "卡皮冲冲冲"
+	_host._hud_label.text = "Capy Rush"
 	_host._hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_host._hud_label.add_theme_font_size_override("font_size", 14)
 	_host._hud_label.add_theme_color_override("font_color", COL_MUTED)
@@ -450,28 +472,32 @@ func _show_start_overlay() -> void:
 	v.add_child(play_icon)
 
 	var title := Label.new()
-	title.text = "点屏幕出发"
+	title.text = "Tap to Start"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", COL_INK)
 	v.add_child(title)
 
 	var sub := Label.new()
-	sub.text = "左右换道 · 跳跃躲障 · 叠得越高越好"
+	sub.text = "Swipe lanes · Jump obstacles · Stack higher"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 15)
 	sub.add_theme_color_override("font_color", COL_MUTED)
 	v.add_child(sub)
 
 	card.pivot_offset = Vector2(210, 46)
-	var tw := _host.create_tween()
-	tw.set_loops()
-	tw.set_trans(Tween.TRANS_SINE)
-	tw.tween_property(card, "scale", Vector2(1.04, 1.04), 0.7)
-	tw.tween_property(card, "scale", Vector2.ONE, 0.7)
+	# 必须绑在卡片上：挂在 _host 上的 set_loops tween 会在 overlay 释放后空转刷屏并把网页打崩
+	_start_pulse = card.create_tween()
+	_start_pulse.set_loops()
+	_start_pulse.set_trans(Tween.TRANS_SINE)
+	_start_pulse.tween_property(card, "scale", Vector2(1.04, 1.04), 0.7)
+	_start_pulse.tween_property(card, "scale", Vector2.ONE, 0.7)
 
 
 func _hide_start_overlay() -> void:
+	if _start_pulse != null:
+		_start_pulse.kill()
+		_start_pulse = null
 	if _start_overlay:
 		_start_overlay.queue_free()
 		_start_overlay = null
@@ -501,20 +527,20 @@ func _show_pause_menu() -> void:
 	card.get_child(0).add_child(v)
 
 	var title := Label.new()
-	title.text = "暂停一下"
+	title.text = "Paused"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", COL_INK)
 	v.add_child(title)
 
-	v.add_child(_make_text_button("继续跑", COL_PINK, func() -> void: resume_game()))
-	v.add_child(_make_text_button("重开本关", COL_SKY, func() -> void: reload_same_level()))
-	v.add_child(_make_text_button("换关卡", Color(0.95, 0.72, 0.45), func() -> void: request_level_select()))
-	v.add_child(_make_text_button("换角色", Color(0.78, 0.62, 0.92), func() -> void: request_character_select()))
+	v.add_child(_make_text_button("Resume", COL_PINK, func() -> void: resume_game()))
+	v.add_child(_make_text_button("Restart", COL_SKY, func() -> void: reload_same_level()))
+	v.add_child(_make_text_button("Levels", Color(0.95, 0.72, 0.45), func() -> void: request_level_select()))
+	v.add_child(_make_text_button("Characters", Color(0.78, 0.62, 0.92), func() -> void: request_character_select()))
 	_pop_in(card, Vector2(280, 250))
 
 
-func show_cdn_loading(text: String = "正在下载关卡资源…") -> void:
+func show_cdn_loading(text: String = "Downloading level assets…\nFirst time may take ~1 min. Keep this page open.") -> void:
 	hide_cdn_loading()
 	_cdn_loading_ui = CanvasLayer.new()
 	_cdn_loading_ui.layer = 120
@@ -538,9 +564,11 @@ func show_cdn_loading(text: String = "正在下载关卡资源…") -> void:
 	var label := Label.new()
 	label.name = "CdnLoadingLabel"
 	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 20)
 	label.add_theme_color_override("font_color", COL_INK)
+	_bind_font(label)
 	v.add_child(label)
 
 
@@ -551,9 +579,9 @@ func update_cdn_loading(done: int, total: int, _path: String) -> void:
 	if label == null:
 		return
 	if total <= 0:
-		label.text = "正在下载关卡资源…"
+		label.text = "Downloading level assets…\nFirst time may take ~1 min. Keep this page open."
 	else:
-		label.text = "正在下载关卡资源… %d / %d" % [done, total]
+		label.text = "Downloading level assets… %d / %d\nKeep this page open" % [done, total]
 
 
 func on_cdn_preload_progress(done: int, total: int, path: String) -> void:
@@ -582,7 +610,7 @@ func _show_fail_screen(reason: String) -> void:
 	card.get_child(0).add_child(v)
 
 	var badge := Label.new()
-	badge.text = "差一点！"
+	badge.text = "So Close!"
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.add_theme_font_size_override("font_size", 18)
 	badge.add_theme_color_override("font_color", COL_PINK_DEEP)
@@ -596,23 +624,23 @@ func _show_fail_screen(reason: String) -> void:
 	title.add_theme_color_override("font_color", COL_INK)
 	v.add_child(title)
 
-	v.add_child(_result_stat_chip("进度", "%d%%" % int((_host._progress / maxf(_host._track_len(), 1.0)) * 100.0), Color(1.0, 0.93, 0.88)))
-	v.add_child(_result_stat_chip("碰撞", "%d 次" % _host._collision_count, Color(1.0, 0.93, 0.88)))
+	v.add_child(_result_stat_chip("Progress", "%d%%" % int((_host._progress / maxf(_host._track_len(), 1.0)) * 100.0), Color(1.0, 0.93, 0.88)))
+	v.add_child(_result_stat_chip("Hits", "%d" % _host._collision_count, Color(1.0, 0.93, 0.88)))
 
 	var tip := Label.new()
-	tip.text = "只剩一只时撞障会失败"
+	tip.text = "Hitting an obstacle with only one left ends the run"
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tip.add_theme_font_size_override("font_size", 15)
 	tip.add_theme_color_override("font_color", COL_MUTED)
 	v.add_child(tip)
 
-	v.add_child(_make_text_button("再试一次", COL_PINK, func() -> void: reload_same_level()))
+	v.add_child(_make_text_button("Try Again", COL_PINK, func() -> void: reload_same_level()))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
 	v.add_child(row)
-	row.add_child(_make_text_button("换关卡", COL_SKY, func() -> void: request_level_select(), Vector2(140, 48)))
-	row.add_child(_make_text_button("换角色", Color(0.78, 0.62, 0.92), func() -> void: request_character_select(), Vector2(140, 48)))
+	row.add_child(_make_text_button("Levels", COL_SKY, func() -> void: request_level_select(), Vector2(140, 48)))
+	row.add_child(_make_text_button("Characters", Color(0.78, 0.62, 0.92), func() -> void: request_character_select(), Vector2(140, 48)))
 	_pop_in(card, Vector2(250, 220))
 
 
@@ -634,16 +662,17 @@ func _setup_character_select() -> void:
 	select_ui.add_child(header)
 
 	var game_title := Label.new()
-	game_title.text = "卡皮冲冲冲"
+	game_title.text = "Capy Rush"
 	game_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	game_title.add_theme_font_size_override("font_size", 42)
 	game_title.add_theme_color_override("font_color", COL_INK)
 	game_title.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.85))
 	game_title.add_theme_constant_override("outline_size", 8)
+	_bind_font(game_title)
 	header.add_child(game_title)
 
 	var sub := Label.new()
-	sub.text = "选一只一起去叠高高"
+	sub.text = "Pick a buddy and stack up high"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 18)
 	sub.add_theme_color_override("font_color", COL_MUTED)
@@ -672,18 +701,18 @@ func _setup_character_select() -> void:
 
 	var capy_preview: String = CapybaraRushPaths.CAPYBARA_BASE_RIGGED
 	var cards: Array = [
-		["卡皮巴拉", CHAR_CAPYBARA, capy_preview, Color(1.0, 0.93, 0.88)],
+		["Capybara", CHAR_CAPYBARA, capy_preview, Color(1.0, 0.93, 0.88)],
 	]
 	var extras: Array = [
-		["小怪兽", CHAR_LITTLE_MONSTER, CapybaraRushPaths.LITTLE_MONSTER_RIGGED, CapybaraRushPaths.LITTLE_MONSTER, Color(0.88, 0.98, 0.98)],
-		["小兔子", CHAR_LITTLE_RABBIT, CapybaraRushPaths.LITTLE_RABBIT_RIGGED, CapybaraRushPaths.LITTLE_RABBIT, Color(1.0, 0.94, 0.96)],
-		["柴犬", CHAR_SHIBA, CapybaraRushPaths.SHIBA_RIGGED, CapybaraRushPaths.SHIBA, Color(0.98, 0.92, 0.84)],
-		["小鸟", CHAR_BIRD, CapybaraRushPaths.BIRD_RIGGED, CapybaraRushPaths.BIRD, Color(0.90, 0.96, 1.0)],
-		["小老鼠", CHAR_MOUSE, CapybaraRushPaths.MOUSE_RIGGED, CapybaraRushPaths.MOUSE, Color(0.94, 0.94, 0.90)],
-		["树懒", CHAR_SLOTH, CapybaraRushPaths.SLOTH_RIGGED, CapybaraRushPaths.SLOTH, Color(0.93, 0.90, 0.84)],
-		["小行星", CHAR_TINY_PLANET, CapybaraRushPaths.TINY_PLANET_RIGGED, CapybaraRushPaths.TINY_PLANET, Color(0.90, 0.94, 0.98)],
-		["小熊", CHAR_BEAR, CapybaraRushPaths.BEAR_RIGGED, CapybaraRushPaths.BEAR, Color(0.96, 0.90, 0.84)],
-		["牛来", CHAR_COW, CapybaraRushPaths.COW_RIGGED, CapybaraRushPaths.COW, Color(0.92, 0.88, 0.82)],
+		["Little Monster", CHAR_LITTLE_MONSTER, CapybaraRushPaths.LITTLE_MONSTER_RIGGED, CapybaraRushPaths.LITTLE_MONSTER, Color(0.88, 0.98, 0.98)],
+		["Bunny", CHAR_LITTLE_RABBIT, CapybaraRushPaths.LITTLE_RABBIT_RIGGED, CapybaraRushPaths.LITTLE_RABBIT, Color(1.0, 0.94, 0.96)],
+		["Shiba", CHAR_SHIBA, CapybaraRushPaths.SHIBA_RIGGED, CapybaraRushPaths.SHIBA, Color(0.98, 0.92, 0.84)],
+		["Birdie", CHAR_BIRD, CapybaraRushPaths.BIRD_RIGGED, CapybaraRushPaths.BIRD, Color(0.90, 0.96, 1.0)],
+		["Mouse", CHAR_MOUSE, CapybaraRushPaths.MOUSE_RIGGED, CapybaraRushPaths.MOUSE, Color(0.94, 0.94, 0.90)],
+		["Sloth", CHAR_SLOTH, CapybaraRushPaths.SLOTH_RIGGED, CapybaraRushPaths.SLOTH, Color(0.93, 0.90, 0.84)],
+		["Tiny Planet", CHAR_TINY_PLANET, CapybaraRushPaths.TINY_PLANET_RIGGED, CapybaraRushPaths.TINY_PLANET, Color(0.90, 0.94, 0.98)],
+		["Bear", CHAR_BEAR, CapybaraRushPaths.BEAR_RIGGED, CapybaraRushPaths.BEAR, Color(0.96, 0.90, 0.84)],
+		["Cow", CHAR_COW, CapybaraRushPaths.COW_RIGGED, CapybaraRushPaths.COW, Color(0.92, 0.88, 0.82)],
 	]
 	for e in extras:
 		var preview: String = _host._pick_rigged_or_base(String(e[2]), String(e[3]))
@@ -691,14 +720,15 @@ func _setup_character_select() -> void:
 			continue
 		cards.append([e[0], e[1], preview, e[4]])
 
-	for c in cards:
-		var card := _make_character_card(String(c[0]), String(c[1]), String(c[2]), c[3] as Color)
+	for i in range(cards.size()):
+		var c: Array = cards[i]
+		var card := _make_character_card(String(c[0]), String(c[1]), String(c[2]), c[3] as Color, i)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.custom_minimum_size = Vector2(160, 250)
 		grid.add_child(card)
 
 
-func _make_character_card(label_text: String, char_id: String, model_path: String, tint: Color) -> Control:
+func _make_character_card(label_text: String, char_id: String, model_path: String, tint: Color, preview_delay: int = 0) -> Control:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _cartoon_panel_style(COL_CREAM, Color(1.0, 0.72, 0.82), 24.0, 4.0))
 	panel.gui_input.connect(func(ev: InputEvent) -> void:
@@ -707,6 +737,7 @@ func _make_character_card(label_text: String, char_id: String, model_path: Strin
 	)
 
 	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_theme_constant_override("margin_left", 10)
 	margin.add_theme_constant_override("margin_right", 10)
 	margin.add_theme_constant_override("margin_top", 10)
@@ -715,6 +746,7 @@ func _make_character_card(label_text: String, char_id: String, model_path: Strin
 
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(v)
 
 	var preview_frame := PanelContainer.new()
@@ -723,7 +755,7 @@ func _make_character_card(label_text: String, char_id: String, model_path: Strin
 	preview_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview_frame.add_theme_stylebox_override("panel", _cartoon_panel_style(tint, Color(1, 1, 1, 0.85), 18.0, 2.0, 4))
 	v.add_child(preview_frame)
-	preview_frame.add_child(_make_model_preview(model_path))
+	preview_frame.add_child(_make_model_preview(model_path, preview_delay))
 
 	var name_l := Label.new()
 	name_l.text = label_text
@@ -732,13 +764,13 @@ func _make_character_card(label_text: String, char_id: String, model_path: Strin
 	name_l.add_theme_color_override("font_color", COL_INK)
 	v.add_child(name_l)
 
-	var btn := _make_text_button("选我", COL_PINK, func() -> void: _host._on_character_chosen(char_id), Vector2(0, 44))
+	var btn := _make_text_button("Pick Me", COL_PINK, func() -> void: _host._on_character_chosen(char_id), Vector2(0, 44))
 	btn.add_theme_font_size_override("font_size", 20)
 	v.add_child(btn)
 	return panel
 
 
-func _make_model_preview(model_path: String) -> Control:
+func _make_model_preview(model_path: String, preview_delay: int = 0) -> Control:
 	var host := Control.new()
 	host.custom_minimum_size = Vector2(180, 150)
 	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -788,21 +820,6 @@ func _make_model_preview(model_path: String) -> Control:
 	root.add_child(pivot)
 	var holder := Node3D.new()
 	pivot.add_child(holder)
-	var model: Node3D = _host._instance_fitted(model_path, 0.85, 0.0)
-	if model:
-		_host._mute_animation_players(model)
-		var skel: Skeleton3D = _host._find_skeleton(model)
-		if skel != null:
-			skel.reset_bone_poses()
-		holder.add_child(model)
-	else:
-		var stub := MeshInstance3D.new()
-		var sph := SphereMesh.new()
-		sph.radius = 0.45
-		sph.height = 0.9
-		stub.mesh = sph
-		stub.position.y = 0.45
-		holder.add_child(stub)
 
 	var cam := Camera3D.new()
 	cam.fov = 28.0
@@ -812,9 +829,55 @@ func _make_model_preview(model_path: String) -> Control:
 	cam.look_at(Vector3(0.0, 0.3, 0.0), Vector3.UP)
 
 	select_spin_pivots.append(pivot)
-	_host.call_deferred("_ui_frame_select_preview", cam, holder, pivot)
-	_host.call_deferred("_ui_deferred_reframe_select_preview", cam, holder, pivot)
+
+	var need_cdn: bool = (
+		_host._cdn_sys != null
+		and _host._cdn_sys.is_enabled()
+		and not _host._cdn_sys.is_model_cached(model_path)
+	)
+	if need_cdn:
+		var loading := Label.new()
+		loading.text = "Loading"
+		loading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		loading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		loading.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		loading.add_theme_font_size_override("font_size", 18)
+		loading.add_theme_color_override("font_color", COL_MUTED)
+		_bind_font(loading)
+		loading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		host.add_child(loading)
+		_fill_select_preview(host, holder, cam, pivot, loading, model_path, preview_delay)
+	else:
+		_attach_select_preview_model(holder, cam, pivot, null, model_path)
 	return host
+
+
+func _fill_select_preview(host: Control, holder: Node3D, cam: Camera3D, pivot: Node3D, loading: Label, model_path: String, preview_delay: int = 0) -> void:
+	if preview_delay > 0:
+		await _host.get_tree().create_timer(float(preview_delay) * 0.45)
+	if not is_instance_valid(host):
+		return
+	if _host._cdn_sys != null and _host._cdn_sys.is_enabled():
+		await _host._cdn_sys.ensure_cached(model_path)
+	if not is_instance_valid(host) or not is_instance_valid(holder):
+		return
+	_attach_select_preview_model(holder, cam, pivot, loading, model_path)
+
+
+func _attach_select_preview_model(holder: Node3D, cam: Camera3D, pivot: Node3D, loading: Label, model_path: String) -> void:
+	var model: Node3D = _host._instance_fitted(model_path, 0.85, 0.0)
+	if model:
+		_host._mute_animation_players(model)
+		var skel: Skeleton3D = _host._find_skeleton(model)
+		if skel != null:
+			skel.reset_bone_poses()
+		holder.add_child(model)
+		if loading != null and is_instance_valid(loading):
+			loading.visible = false
+		_host.call_deferred("_ui_frame_select_preview", cam, holder, pivot)
+		_host.call_deferred("_ui_deferred_reframe_select_preview", cam, holder, pivot)
+	elif loading != null and is_instance_valid(loading):
+		loading.text = "Load failed"
 
 
 func _deferred_reframe_select_preview(cam: Camera3D, holder: Node3D, pivot: Node3D) -> void:
@@ -880,21 +943,21 @@ func _show_result_screen() -> void:
 	card.get_child(0).add_child(v)
 
 	var badge := Label.new()
-	badge.text = "通关啦"
+	badge.text = "Cleared!"
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.add_theme_font_size_override("font_size", 18)
 	badge.add_theme_color_override("font_color", COL_PINK_DEEP)
 	v.add_child(badge)
 
 	var title := Label.new()
-	title.text = "到达终点！"
+	title.text = "Finish!"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 38)
 	title.add_theme_color_override("font_color", COL_INK)
 	v.add_child(title)
 
 	var sub := Label.new()
-	sub.text = "本次 · %s" % unit
+	sub.text = "Run · %s" % unit
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 18)
 	sub.add_theme_color_override("font_color", COL_MUTED)
@@ -917,23 +980,23 @@ func _show_result_screen() -> void:
 	hero_row.add_child(hero)
 
 	var hero_cap := Label.new()
-	hero_cap.text = "金币 · %d 只%s抵达" % [arrived, unit]
+	hero_cap.text = "Coins · %d %s arrived" % [arrived, unit]
 	hero_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hero_cap.add_theme_font_size_override("font_size", 18)
 	hero_cap.add_theme_color_override("font_color", COL_INK)
 	v.add_child(hero_cap)
 
-	v.add_child(_result_stat_chip("碰撞", "%d 次" % _host._collision_count, Color(1.0, 0.93, 0.88)))
-	v.add_child(_result_stat_chip("掉落", "%d 只" % _host._drop_count, Color(0.90, 0.96, 0.92)))
-	v.add_child(_result_stat_chip("拾取", "%d 只" % _host._picked_count, Color(0.92, 0.93, 1.0)))
+	v.add_child(_result_stat_chip("Hits", "%d" % _host._collision_count, Color(1.0, 0.93, 0.88)))
+	v.add_child(_result_stat_chip("Drops", "%d" % _host._drop_count, Color(0.90, 0.96, 0.92)))
+	v.add_child(_result_stat_chip("Picks", "%d" % _host._picked_count, Color(0.92, 0.93, 1.0)))
 	if _host._is_frost_theme() or _host._fruit_icecream > 0 or _host._fruit_crystal > 0:
-		v.add_child(_result_stat_chip("雪糕", "%d · +%d" % [_host._fruit_icecream, _host._fruit_icecream * 10], Color(0.92, 0.97, 1.0)))
-		v.add_child(_result_stat_chip("水晶", "%d · +%d" % [_host._fruit_crystal, _host._fruit_crystal * 22], Color(0.85, 0.95, 1.0)))
+		v.add_child(_result_stat_chip("Ice Cream", "%d · +%d" % [_host._fruit_icecream, _host._fruit_icecream * 10], Color(0.92, 0.97, 1.0)))
+		v.add_child(_result_stat_chip("Crystal", "%d · +%d" % [_host._fruit_crystal, _host._fruit_crystal * 22], Color(0.85, 0.95, 1.0)))
 	else:
-		v.add_child(_result_stat_chip("水果", "橙%d 苹%d 蕉%d" % [_host._fruit_orange, _host._fruit_apple, _host._fruit_banana], Color(1.0, 0.96, 0.82)))
+		v.add_child(_result_stat_chip("Fruit", "Or.%d Ap.%d Ba.%d" % [_host._fruit_orange, _host._fruit_apple, _host._fruit_banana], Color(1.0, 0.96, 0.82)))
 		if _host._fruit_pineapple > 0 or _host._fruit_durian > 0:
-			v.add_child(_result_stat_chip("珍果", "菠萝%d 榴莲%d" % [_host._fruit_pineapple, _host._fruit_durian], Color(1.0, 0.94, 0.75)))
-	v.add_child(_result_stat_chip("西瓜", "%d · +%d" % [_host._watermelon_count, _host._watermelon_count * 20], Color(1.0, 0.90, 0.92)))
+			v.add_child(_result_stat_chip("Rares", "Pine%d Dur%d" % [_host._fruit_pineapple, _host._fruit_durian], Color(1.0, 0.94, 0.75)))
+	v.add_child(_result_stat_chip("Melon", "%d · +%d" % [_host._watermelon_count, _host._watermelon_count * 20], Color(1.0, 0.90, 0.92)))
 
 	CapybaraLevelCatalog.mark_cleared(_host._level_id)
 
@@ -941,10 +1004,10 @@ func _show_result_screen() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 12)
 	v.add_child(row)
-	row.add_child(_make_text_button("再来一局", COL_PINK, func() -> void: reload_same_level(), Vector2(150, 54)))
+	row.add_child(_make_text_button("Play Again", COL_PINK, func() -> void: reload_same_level(), Vector2(150, 54)))
 	if _host._level_id < CapybaraLevelCatalog.LEVEL_COUNT:
-		row.add_child(_make_text_button("下一关", COL_SKY, func() -> void: reload_next_level(), Vector2(150, 54)))
-	v.add_child(_make_text_button("选关卡", Color(0.95, 0.72, 0.45), func() -> void: request_level_select(), Vector2(0, 48)))
+		row.add_child(_make_text_button("Next Level", COL_SKY, func() -> void: reload_next_level(), Vector2(150, 54)))
+	v.add_child(_make_text_button("Levels", Color(0.95, 0.72, 0.45), func() -> void: request_level_select(), Vector2(0, 48)))
 	_pop_in(card, Vector2(270, 340))
 
 
@@ -959,9 +1022,11 @@ func _setup_level_select() -> void:
 
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	if _ui_theme != null:
+		root.theme = _ui_theme
 	level_ui.add_child(root)
 
-	var back := _make_text_button("← 角色", Color(0.78, 0.62, 0.92), func() -> void:
+	var back := _make_text_button("← Characters", Color(0.78, 0.62, 0.92), func() -> void:
 		dismiss_level_select()
 		setup_character_select()
 	, Vector2(120, 48))
@@ -973,7 +1038,7 @@ func _setup_level_select() -> void:
 	root.add_child(back)
 
 	var title := Label.new()
-	title.text = "选择关卡"
+	title.text = "Select Level"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	title.offset_left = -200
@@ -1062,7 +1127,7 @@ func _make_level_button(level_id: int, unlocked: int) -> Control:
 	v.add_child(num)
 
 	var name_l := Label.new()
-	name_l.text = "锁定" if locked else String(cfg.get("name", ""))
+	name_l.text = "Locked" if locked else String(cfg.get("name", ""))
 	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	name_l.add_theme_font_size_override("font_size", 14)
@@ -1119,13 +1184,13 @@ func _result_stat_chip(stat_name: String, value: String, bg: Color) -> Control:
 func _reload_same_level() -> void:
 	CapybaraUi.pending_level_id = _host._level_id
 	CapybaraUi.pending_character_id = _host._character_id
-	_host.get_tree().reload_current_scene()
+	_host.reload_game_scene()
 
 
 func _reload_next_level() -> void:
 	CapybaraUi.pending_level_id = mini(_host._level_id + 1, CapybaraLevelCatalog.LEVEL_COUNT)
 	CapybaraUi.pending_character_id = _host._character_id
-	_host.get_tree().reload_current_scene()
+	_host.reload_game_scene()
 
 
 func _make_stat_chip(icon_path: String) -> Dictionary:
@@ -1175,6 +1240,7 @@ func _make_text_button(text: String, fill: Color, on_press: Callable, min_size: 
 		btn.custom_minimum_size = Vector2(0, 52)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.add_theme_font_size_override("font_size", 22)
+	_bind_font(btn)
 	btn.add_theme_color_override("font_color", Color(1, 1, 1))
 	btn.add_theme_color_override("font_hover_color", Color(1, 1, 1))
 	btn.add_theme_color_override("font_pressed_color", Color(1, 0.95, 0.98))
@@ -1197,6 +1263,8 @@ func _make_dialog_card(half: Vector2, bg: Color, border: Color) -> PanelContaine
 	card.offset_top = -half.y
 	card.offset_bottom = half.y
 	card.add_theme_stylebox_override("panel", _cartoon_panel_style(bg, border, 28.0, 5.0))
+	if _ui_theme != null:
+		card.theme = _ui_theme
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 24)
 	margin.add_theme_constant_override("margin_right", 24)
@@ -1249,7 +1317,7 @@ func _add_menu_wash(layer: CanvasLayer, dim_col: Color, blob_col: Color) -> void
 func _pop_in(card: Control, half: Vector2) -> void:
 	card.scale = Vector2(0.82, 0.82)
 	card.pivot_offset = half
-	var tw := _host.create_tween()
+	var tw := card.create_tween()
 	tw.set_ease(Tween.EASE_OUT)
 	tw.set_trans(Tween.TRANS_BACK)
 	tw.tween_property(card, "scale", Vector2.ONE, 0.4)

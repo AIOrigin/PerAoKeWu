@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cagkupcie50x8"
+path="res://.godot/imported/neon_cone_tripo_node_8e57e1ac-dcdf-4d9d-90ca-5fe5bb9a4606_metallic-tripo_node_8e57e1ac-dcdf-4d9d-90ca-5fe5bb9a4606_roughness.jpg-dce23f7d026732abb6d1bdb27cec25b6.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "df6c8ae442abeec18e8ef1a7c195ff40"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/obstacles/neon_cone_tripo_node_8e57e1ac-dcdf-4d9d-90ca-5fe5bb9a4606_metallic-tripo_node_8e57e1ac-dcdf-4d9d-90ca-5fe5bb9a4606_roughness.jpg"
+dest_files=["res://.godot/imported/neon_cone_tripo_node_8e57e1ac-dcdf-4d9d-90ca-5fe5bb9a4606_metallic-tripo_node_8e57e1ac-dcdf-4d9d-90ca-5fe5bb9a4606_roughness.jpg-dce23f7d026732abb6d1bdb27cec25b6.ctex"]
+
+[params]
+
+compress/mode=3
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://b2dlavefatpq5"
+path="res://.godot/imported/finish_arch_tripo_normal_bde7ef75-a367-4f96-8147-b92794d6303a.jpg-1472873b1cfc5f5d485968451a23d11a.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "1037933eb9e2ab378856bf38add3a282"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/_decimate_backup/props/finish_arch_tripo_normal_bde7ef75-a367-4f96-8147-b92794d6303a.jpg"
+dest_files=["res://.godot/imported/finish_arch_tripo_normal_bde7ef75-a367-4f96-8147-b92794d6303a.jpg-1472873b1cfc5f5d485968451a23d11a.ctex"]
+
+[params]
+
+compress/mode=3
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

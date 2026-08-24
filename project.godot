@@ -19,6 +19,8 @@ config/version="v0.1.0-dev.2"
 config/tags=PackedStringArray("master")
 run/main_scene="res://assets/maps/route_levels/mobile_home/mobile_home.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus", "Mobile")
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/show_image=false
 config/icon="res://icon.svg"
 
 [audio]

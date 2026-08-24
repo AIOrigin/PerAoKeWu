@@ -7,10 +7,10 @@ const CapybaraRushPaths := preload("res://assets/maps/route_levels/capybara_rush
 
 const LANE_COUNT := 3
 const ROAD_SURFACE_Y := 0.09
-const STACK_STEP_Y := 0.88
-const TARGET_CAPY_HEIGHT := 0.92
-const PICKUP_RADIUS_X := 1.15
-const PICKUP_RADIUS_Z := 1.4
+const STACK_STEP_Y := 1.18
+const TARGET_CAPY_HEIGHT := 1.24
+const PICKUP_RADIUS_X := 0.72
+const PICKUP_RADIUS_Z := 1.15
 const PICKUP_LOOK_RANGE := 22.0
 const PICKUP_LOOK_MAX := 2.45
 const PICKUP_LOOK_HALF_FACE := 2.2
@@ -321,24 +321,33 @@ func _try_drop_layers(delta: float) -> void:
 
 
 func _force_drop_from_hazard(h: Dictionary = {}) -> void:
-	# 撞障碍：重叠几层掉几只；会清空整塔或只剩 0 → 失败
-	# 注意：拾取动画中不要直接 return 吞掉伤害——由 _try_hit_hazards 排队，结束后再结算
+	_drop_stack_by_count(_hazard_drop_count(h))
+
+
+func _hazard_drop_count(h: Dictionary) -> int:
+	## 骰子/胡萝卜/冰块：几颗就掉几只（竖叠 rows 或并排各算）
+	var rows := int(h.get("rows", 0))
+	if rows > 0:
+		return rows
+	var kind := String(h.get("kind", ""))
+	if kind in ["dice", "carrot", "ice", "blocks"]:
+		return maxi(1, int(round(CapybaraHazards.hit_top(h) / (BLOCK_SIZE + BLOCK_GAP))))
+	return 1
+
+
+func _drop_stack_by_count(n: int) -> void:
 	if _host._stack.size() <= 1:
-		_host._fail_game("撞到障碍，游戏失败")
+		_host._fail_game("Hit an obstacle — run over")
 		return
-	var idxs := _hit_stack_layer_indices(h)
-	if idxs.is_empty():
-		idxs = [0]
-	if idxs.size() >= _host._stack.size():
-		_host._fail_game("撞到障碍，游戏失败")
+	n = maxi(n, 1)
+	if n >= _host._stack.size():
+		_host._fail_game("Hit an obstacle — run over")
 		return
-	# 从高下标到低剔除，避免 remove 后下标错位
-	idxs.sort()
-	idxs.reverse()
-	for idx in idxs:
-		_drop_layer_at(int(idx), true)
+	# 从塔顶甩出，剩余层不用瞬间下压（下压会被看成多飞出一只）
+	for _i in n:
+		_drop_layer_at(_host._stack.size() - 1, true)
 	_host._drop_cd = _drop_cooldown()
-	_host._sway = minf(_host._sway + 1.2 + float(idxs.size()) * 0.15, 3.0)
+	_host._sway = minf(_host._sway + 1.2 + float(n) * 0.15, 3.0)
 
 
 func _hit_stack_layer_indices(h: Dictionary) -> Array[int]:
@@ -389,7 +398,7 @@ func _drop_layer_at(idx: int, allow_hop: bool = false) -> void:
 	if is_zero_approx(side):
 		side = -1.0 if randf() < 0.5 else 1.0
 	var vel := Vector3(
-		side * randf_range(3.2, 5.8),
+		side * randf_range(5.2, 8.0),
 		randf_range(5.5, 7.5) if allow_hop else randf_range(4.0, 6.5),
 		randf_range(-0.5, 2.2)
 	)
@@ -710,7 +719,9 @@ func _play_capy_clip(visual: Node, clip_keys: Array, loop: bool = true) -> void:
 		ap.play(clip)
 	var anim := ap.get_animation(clip)
 	if anim != null:
-		anim.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
+		var desired := Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
+		if anim.loop_mode != desired and anim.resource_path.is_empty():
+			anim.loop_mode = desired
 
 
 func _freeze_soft_skin_rest(visual: Node) -> void:
@@ -828,27 +839,27 @@ func _ensure_mesh_skeleton(root: Node, skel: Skeleton3D) -> void:
 func _character_display_name() -> String:
 	match _host._character_id:
 		CHAR_QINGQING:
-			return "青青"
+			return "Qingqing"
 		CHAR_LITTLE_MONSTER:
-			return "小怪兽"
+			return "Little Monster"
 		CHAR_LITTLE_RABBIT:
-			return "小兔子"
+			return "Bunny"
 		CHAR_SHIBA:
-			return "柴犬"
+			return "Shiba"
 		CHAR_BIRD:
-			return "小鸟"
+			return "Birdie"
 		CHAR_MOUSE:
-			return "小老鼠"
+			return "Mouse"
 		CHAR_SLOTH:
-			return "树懒"
+			return "Sloth"
 		CHAR_TINY_PLANET:
-			return "小行星"
+			return "Tiny Planet"
 		CHAR_BEAR:
-			return "小熊"
+			return "Bear"
 		CHAR_COW:
-			return "牛来"
+			return "Cow"
 		_:
-			return "卡皮巴拉"
+			return "Capybara"
 
 
 func _pick_rigged_or_base(rigged: String, base: String) -> String:
@@ -969,7 +980,7 @@ func _start_ready_spin() -> void:
 	_host._grounded = true
 	if _host._hud_tip:
 		_host._hud_tip.visible = true
-		_host._hud_tip.text = "%s 准备出发 · 点屏幕开跑" % _character_display_name()
+		_host._hud_tip.text = "%s ready · tap to run" % _character_display_name()
 	if _host._tower == null or _host._stack.is_empty():
 		_host._begin_gameplay()
 		return
@@ -986,7 +997,7 @@ func _start_ready_spin() -> void:
 	_host.call_deferred("_resnap_then_ready_idle", layer)
 	_host._race_sys.update_camera()
 	if _host._hud_tip:
-		_host._hud_tip.text = "%s 准备出发 · 点屏幕开跑" % _character_display_name()
+		_host._hud_tip.text = "%s ready · tap to run" % _character_display_name()
 	_host._ui_sys.show_ready_chrome()
 
 
@@ -1313,42 +1324,60 @@ func _spawn_pickups() -> void:
 
 
 func _try_hit_hazards() -> void:
+	var hits: Array[Dictionary] = []
 	for h in _host._hazard_sys.items:
 		if bool(h.get("hit", false)):
 			continue
 		if _host._hazard_sys.overlap(h, _host._progress, _host._lane_x, _host._air_y) == false:
 			continue
 		# 脚底必须真正超过障碍顶才算跳过。
-		# 以前用偏低的 clear_y：看起来还在穿模，却判定“跳过了”→ 不掉层。
 		var hit_top := CapybaraHazards.hit_top(h)
 		if (not _host._grounded) and _host._air_y >= hit_top - 0.02:
 			continue
-		# 拾取叠层动画中：先记下，动画结束后再掉层（避免 hit=true 却直接 return）
-		if _host._stack_animating:
+		hits.append(h)
+	if hits.is_empty():
+		return
+	# 拾取叠层动画中：先记下，动画结束后再掉层（避免 hit=true 却直接 return）
+	if _host._stack_animating:
+		for h in hits:
 			h["pending_hit"] = true
-			continue
-		_apply_hazard_hit(h)
+		return
+	_apply_hazard_hits(hits)
 
 
 func _apply_hazard_hit(h: Dictionary) -> void:
-	if bool(h.get("hit", false)):
+	_apply_hazard_hits([h])
+
+
+func _apply_hazard_hits(hits: Array) -> void:
+	var drop_n := 0
+	for h in hits:
+		if typeof(h) != TYPE_DICTIONARY:
+			continue
+		var hd: Dictionary = h
+		if bool(hd.get("hit", false)):
+			continue
+		hd["hit"] = true
+		hd["pending_hit"] = false
+		drop_n += _hazard_drop_count(hd)
+	if drop_n <= 0:
 		return
-	h["hit"] = true
-	h["pending_hit"] = false
 	_host._collision_count += 1
 	_host._play_sfx_hit()
-	_force_drop_from_hazard(h)
-	# 障碍物保持原地，不被撞飞
+	_drop_stack_by_count(drop_n)
 
 
 func _flush_pending_hazard_hits() -> void:
 	## 拾取动画结束：结算期间擦过的障碍（即使人已离开碰撞盒也要掉）
+	var hits: Array[Dictionary] = []
 	for h in _host._hazard_sys.items:
 		if bool(h.get("hit", false)):
 			continue
 		if not bool(h.get("pending_hit", false)):
 			continue
-		_apply_hazard_hit(h)
+		hits.append(h)
+	if not hits.is_empty():
+		_apply_hazard_hits(hits)
 
 
 
@@ -1592,6 +1621,7 @@ func _instance_fitted(path: String, target_height: float, yaw: float = 0.0, star
 
 	_host.remove_child(wrap)
 	if is_char:
+		_strip_helper_meshes(wrap)
 		if want_run:
 			_play_capy_clip(wrap, ["run"], true)
 		else:
@@ -1691,6 +1721,16 @@ func _make_sealed_material(tex: Texture2D) -> StandardMaterial3D:
 	sm.albedo_color = Color.WHITE
 	sm.albedo_texture = tex
 	return sm
+
+
+func _strip_helper_meshes(root: Node) -> void:
+	for node in _find_meshes(root):
+		var mi := node as MeshInstance3D
+		if mi == null:
+			continue
+		var n := mi.name.to_lower()
+		if n.begins_with("ico") or n == "icosphere":
+			mi.visible = false
 
 
 func _apply_preview_albedo(root: Node, model_path: String) -> void:

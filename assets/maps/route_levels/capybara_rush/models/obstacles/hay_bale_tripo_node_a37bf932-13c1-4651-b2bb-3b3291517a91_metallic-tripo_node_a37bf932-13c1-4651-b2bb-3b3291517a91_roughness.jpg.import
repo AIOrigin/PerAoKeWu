@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://d2gbr2v4hpln5"
+path="res://.godot/imported/hay_bale_tripo_node_a37bf932-13c1-4651-b2bb-3b3291517a91_metallic-tripo_node_a37bf932-13c1-4651-b2bb-3b3291517a91_roughness.jpg-e957ff445cdb250986e2c38d71af042b.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "8b1499ce34bc07c62c63b6f4898e07ea"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/obstacles/hay_bale_tripo_node_a37bf932-13c1-4651-b2bb-3b3291517a91_metallic-tripo_node_a37bf932-13c1-4651-b2bb-3b3291517a91_roughness.jpg"
+dest_files=["res://.godot/imported/hay_bale_tripo_node_a37bf932-13c1-4651-b2bb-3b3291517a91_metallic-tripo_node_a37bf932-13c1-4651-b2bb-3b3291517a91_roughness.jpg-e957ff445cdb250986e2c38d71af042b.ctex"]
+
+[params]
+
+compress/mode=3
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

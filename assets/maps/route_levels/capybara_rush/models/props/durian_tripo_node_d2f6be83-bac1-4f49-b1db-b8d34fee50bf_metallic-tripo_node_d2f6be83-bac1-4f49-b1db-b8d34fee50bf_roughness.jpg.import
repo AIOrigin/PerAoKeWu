@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://mfmltwnn6dyf"
+path="res://.godot/imported/durian_tripo_node_d2f6be83-bac1-4f49-b1db-b8d34fee50bf_metallic-tripo_node_d2f6be83-bac1-4f49-b1db-b8d34fee50bf_roughness.jpg-0864ee5a986ffcb9853c8f064575d691.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "231116ebac41898fb0b91ab215898786"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/props/durian_tripo_node_d2f6be83-bac1-4f49-b1db-b8d34fee50bf_metallic-tripo_node_d2f6be83-bac1-4f49-b1db-b8d34fee50bf_roughness.jpg"
+dest_files=["res://.godot/imported/durian_tripo_node_d2f6be83-bac1-4f49-b1db-b8d34fee50bf_metallic-tripo_node_d2f6be83-bac1-4f49-b1db-b8d34fee50bf_roughness.jpg-0864ee5a986ffcb9853c8f064575d691.ctex"]
+
+[params]
+
+compress/mode=3
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

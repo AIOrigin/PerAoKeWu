@@ -9,6 +9,23 @@ const CapybaraRushPaths := preload("res://assets/maps/route_levels/capybara_rush
 signal preload_progress(done: int, total: int, path: String)
 signal preload_finished()
 
+## 同一 CDN 域名并发过高会占满浏览器连接池，后续请求一直 Pending
+const MAX_CONCURRENT_DOWNLOADS := 2
+const DOWNLOAD_TIMEOUT_SEC := 120.0
+
+signal _download_slot_done(success: bool, path: String)
+
+var _inflight: Dictionary = {}
+var _download_queue: Array[String] = []
+var _running_downloads := 0
+
+
+func _ready() -> void:
+	if is_enabled():
+		# Web 切后台时 SceneTree 会 pause，CDN 下载仍需推进
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		_prune_old_cdn_caches()
+
 
 func is_enabled() -> bool:
 	return WebConfig.cdn_enabled()
@@ -34,38 +51,30 @@ func _character_res_path(char_id: String, rigged: String, plain: String) -> Stri
 		return rigged
 	return plain
 
+
 func preload_all_characters() -> void:
+	await preload_paths_async(_all_character_paths())
+
+
+func preload_all_characters_async() -> void:
+	preload_paths_async(_all_character_paths())
+
+
+func _all_character_paths() -> Array[String]:
 	var ids := [
 		"capybara", "little_monster", "little_rabbit", "shiba", "bird",
 		"mouse", "sloth", "tiny_planet", "bear", "cow",
 	]
 	var paths: Array[String] = []
 	for id in ids:
-		var p := _character_model_path(id)
+		var p := character_model_path(id)
 		if not p.is_empty() and p not in paths:
 			paths.append(p)
-	await preload_paths_async(paths)
+	return paths
 
 
 func preload_paths(paths: Array) -> void:
-	if not is_enabled() or paths.is_empty():
-		preload_finished.emit()
-		return
-	var todo: Array[String] = []
-	for raw in paths:
-		var p := String(raw)
-		if p.is_empty() or not p.ends_with(".glb"):
-			continue
-		if p in todo:
-			continue
-		todo.append(p)
-	var total := todo.size()
-	var done := 0
-	for p in todo:
-		preload_progress.emit(done, total, p)
-		await _ensure_cached(p)
-		done += 1
-		preload_progress.emit(done, total, p)
+	await preload_paths_async(paths)
 	preload_finished.emit()
 
 
@@ -73,20 +82,37 @@ func preload_for_theme(theme_cfg: Dictionary, character_id: String) -> void:
 	var paths: Array[String] = []
 	paths.append_array(_core_model_paths())
 	paths.append_array(_paths_from_theme(theme_cfg))
-	var char_path: String = _character_model_path(character_id)
+	var char_path: String = character_model_path(character_id)
 	if not char_path.is_empty():
 		paths.append(char_path)
-	# 选角预览常用：默认卡皮巴拉
 	if character_id != "capybara":
-		var capy := _character_model_path("capybara")
+		var capy := character_model_path("capybara")
 		if not capy.is_empty():
 			paths.append(capy)
 	await preload_paths_async(paths)
 
 
 func preload_paths_async(paths: Array) -> void:
-	if not is_enabled() or paths.is_empty():
+	if not is_enabled():
 		return
+	var todo := _collect_glb_paths(paths)
+	var total := todo.size()
+	if total == 0:
+		return
+	var done := 0
+	for p in todo:
+		if _is_cached(p):
+			done += 1
+			preload_progress.emit(done, total, p)
+	for p in todo:
+		if _is_cached(p):
+			continue
+		await _ensure_cached(p)
+		done += 1
+		preload_progress.emit(done, total, p)
+
+
+func _collect_glb_paths(paths: Array) -> Array[String]:
 	var todo: Array[String] = []
 	for raw in paths:
 		var p := String(raw)
@@ -95,31 +121,103 @@ func preload_paths_async(paths: Array) -> void:
 		if p in todo:
 			continue
 		todo.append(p)
-	var total := todo.size()
-	var done := 0
-	for p in todo:
-		preload_progress.emit(done, total, p)
-		await _ensure_cached(p)
-		done += 1
-		preload_progress.emit(done, total, p)
-		await get_tree().process_frame
+	return todo
+
+
+func _is_cached(res_path: String) -> bool:
+	if not res_path.begins_with(WebConfig.RES_MODELS_ROOT):
+		return true
+	var cached := WebConfig.cache_path_for_res_model(res_path)
+	if FileAccess.file_exists(cached):
+		return true
+	return ResourceLoader.exists(res_path) and not WebConfig.cdn_enabled()
+
+
+func is_model_cached(res_path: String) -> bool:
+	return _is_cached(res_path)
+
+
+func ensure_cached(res_path: String) -> void:
+	await _ensure_cached(res_path)
 
 
 func _ensure_cached(res_path: String) -> void:
+	if _is_cached(res_path):
+		return
+	if bool(_inflight.get(res_path, false)):
+		while not _is_cached(res_path) and bool(_inflight.get(res_path, false)):
+			var slot: Array = await _download_slot_done
+			if String(slot[1]) == res_path:
+				return
+		return
+	_enqueue_download(res_path)
+	while not _is_cached(res_path):
+		var slot: Array = await _download_slot_done
+		if String(slot[1]) == res_path:
+			return
+
+
+func _enqueue_download(res_path: String) -> void:
+	if not is_enabled():
+		return
 	if not res_path.begins_with(WebConfig.RES_MODELS_ROOT):
 		return
-	var cached := WebConfig.cache_path_for_res_model(res_path)
-	if FileAccess.file_exists(cached):
+	if _is_cached(res_path):
 		return
-	# Web 导出已排除 models/，res:// 上即使有 .import 也不代表能实例化
-	if ResourceLoader.exists(res_path) and not WebConfig.cdn_enabled():
+	if bool(_inflight.get(res_path, false)):
 		return
+	if res_path in _download_queue:
+		return
+	_download_queue.append(res_path)
+	_pump_download_queue()
+
+
+func _pump_download_queue() -> void:
+	while _running_downloads < MAX_CONCURRENT_DOWNLOADS and not _download_queue.is_empty():
+		var res_path: String = _download_queue.pop_front()
+		if _is_cached(res_path) or bool(_inflight.get(res_path, false)):
+			continue
+		_inflight[res_path] = true
+		_running_downloads += 1
+		_start_download(res_path)
+
+
+func _start_download(res_path: String) -> void:
 	var url := WebConfig.remote_url_for_res_model(res_path)
+	var dest := WebConfig.cache_path_for_res_model(res_path)
 	if url.is_empty():
+		call_deferred("_finish_download", false, res_path)
 		return
-	var ok: bool = await _download_to_cache(url, cached)
-	if not ok:
-		push_warning("CapybaraCdn download failed: %s" % url)
+	_ensure_cache_dir(dest.get_base_dir())
+	var http := HTTPRequest.new()
+	http.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(http)
+	http.timeout = DOWNLOAD_TIMEOUT_SEC
+	http.request_completed.connect(
+		func(_result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+			http.queue_free()
+			var ok := false
+			if (code == 200 or code == 206) and not body.is_empty():
+				var f := FileAccess.open(dest, FileAccess.WRITE)
+				if f != null:
+					f.store_buffer(body)
+					ok = true
+			if not ok:
+				push_warning("CapybaraCdn download failed (%s): %s" % [code, url])
+			_finish_download(ok, res_path),
+		CONNECT_ONE_SHOT
+	)
+	var err := http.request(url)
+	if err != OK:
+		http.queue_free()
+		call_deferred("_finish_download", false, res_path)
+
+
+func _finish_download(_ok: bool, res_path: String) -> void:
+	_inflight.erase(res_path)
+	_running_downloads = maxi(0, _running_downloads - 1)
+	_download_slot_done.emit(_ok, res_path)
+	_pump_download_queue()
 
 
 func _paths_from_theme(theme_cfg: Dictionary) -> Array[String]:
@@ -155,7 +253,7 @@ func _core_model_paths() -> Array[String]:
 	]
 
 
-func _character_model_path(char_id: String) -> String:
+func character_model_path(char_id: String) -> String:
 	match char_id:
 		"capybara":
 			return _character_res_path(char_id, CapybaraRushPaths.CAPYBARA_BASE_RIGGED, CapybaraRushPaths.CAPYBARA_BASE)
@@ -181,28 +279,47 @@ func _character_model_path(char_id: String) -> String:
 			return CapybaraRushPaths.CAPYBARA_BASE
 
 
-func _download_to_cache(url: String, dest_path: String) -> bool:
-	_ensure_cache_dir(dest_path.get_base_dir())
-	var http := HTTPRequest.new()
-	add_child(http)
-	var err := http.request(url)
-	if err != OK:
-		http.queue_free()
-		return false
-	var result: Array = await http.request_completed
-	http.queue_free()
-	if result.size() < 4:
-		return false
-	var code: int = int(result[1])
-	var body: PackedByteArray = result[3]
-	if code != 200 or body.is_empty():
-		return false
-	var f := FileAccess.open(dest_path, FileAccess.WRITE)
-	if f == null:
-		return false
-	f.store_buffer(body)
-	return true
-
-
 func _ensure_cache_dir(abs_dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(abs_dir)
+
+
+func _prune_old_cdn_caches() -> void:
+	var root := WebConfig.CACHE_ROOT.trim_suffix("/")
+	var da := DirAccess.open(root)
+	if da == null:
+		return
+	var keep := WebConfig.asset_version()
+	var stale: PackedStringArray = []
+	da.list_dir_begin()
+	var name := da.get_next()
+	while name != "":
+		if name != "." and name != ".." and da.current_is_dir() and name != keep:
+			stale.append(name)
+		name = da.get_next()
+	da.list_dir_end()
+	for old in stale:
+		_remove_dir_recursive(root.path_join(old))
+
+
+func _remove_dir_recursive(abs_path: String) -> void:
+	var da := DirAccess.open(abs_path)
+	if da == null:
+		DirAccess.remove_absolute(abs_path)
+		return
+	da.list_dir_begin()
+	var name := da.get_next()
+	var files: PackedStringArray = []
+	var dirs: PackedStringArray = []
+	while name != "":
+		if name != "." and name != "..":
+			if da.current_is_dir():
+				dirs.append(name)
+			else:
+				files.append(name)
+		name = da.get_next()
+	da.list_dir_end()
+	for f in files:
+		da.remove(f)
+	for d in dirs:
+		_remove_dir_recursive(abs_path.path_join(d))
+	DirAccess.remove_absolute(abs_path)

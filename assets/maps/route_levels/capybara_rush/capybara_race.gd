@@ -17,9 +17,9 @@ const BOOST_MAX_TIME := 12.0
 const SPEED_ORB_MUL := 1.18
 const SPEED_LANE_MUL := 1.48
 const TRAMPOLINE_AIR_SPEED_MUL := 1.45
-const TARGET_CAPY_HEIGHT := 0.92
+const TARGET_CAPY_HEIGHT := 1.24
 const TARGET_PILOT_HEIGHT := 1.55
-const STACK_STEP_Y := 0.88
+const STACK_STEP_Y := 1.18
 const SPACESHIP_FORWARD_YAW := 0.0
 const MODE_RACE := "race"
 const MODE_STACK := "stack"
@@ -28,10 +28,10 @@ const MIN_STACK_TO_DROP := 3
 const HIGH_STACK_THRESHOLD := 8
 const PILOT_FORWARD_YAW := 0.0
 ## 叠高时相机缓拉远/抬高，避免塔顶视角过高
-const CAM_STACK_DIST_BASE := 9.0
+const CAM_STACK_DIST_BASE := 10.4
 const CAM_STACK_DIST_SCALE := 0.58
-const CAM_STACK_DIST_MAX := 14.8
-const CAM_STACK_Y_BASE := 3.35
+const CAM_STACK_DIST_MAX := 16.2
+const CAM_STACK_Y_BASE := 3.85
 const CAM_STACK_Y_SCALE := 0.26
 const CAM_STACK_Y_MAX := 5.6
 const CAM_LOOK_LIFT_BASE := TARGET_CAPY_HEIGHT * 0.26
@@ -180,7 +180,7 @@ func _load_audio_stream(path: String) -> AudioStream:
 		var ogg_res: Resource = load(ogg_path)
 		if ogg_res is AudioStream:
 			return ogg_res as AudioStream
-	push_warning("Audio missing: %s（放到 audio/ 目录即可）" % path)
+	push_warning("Audio missing: %s (place under audio/)" % path)
 	return null
 
 
@@ -228,11 +228,21 @@ func _load_wav_stream(path: String) -> AudioStreamWAV:
 func _start_bgm() -> void:
 	if _host._bgm_player == null or _host._stream_bgm == null:
 		return
-	if _host._stream_bgm is AudioStreamWAV:
-		(_host._stream_bgm as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
-	elif _host._stream_bgm is AudioStreamOggVorbis:
-		(_host._stream_bgm as AudioStreamOggVorbis).loop = true
-	_host._bgm_player.stream = _host._stream_bgm
+	var stream: AudioStream = _host._stream_bgm
+	# Web/导出包里的导入资源只读，直接改 loop 会报错
+	if stream is AudioStreamWAV:
+		var wav := (stream as AudioStreamWAV).duplicate() as AudioStreamWAV
+		if wav != null:
+			wav.resource_path = ""
+			wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			stream = wav
+	elif stream is AudioStreamOggVorbis:
+		var ogg := (stream as AudioStreamOggVorbis).duplicate() as AudioStreamOggVorbis
+		if ogg != null:
+			ogg.resource_path = ""
+			ogg.loop = true
+			stream = ogg
+	_host._bgm_player.stream = stream
 	_host._bgm_player.volume_db = -10.0
 	if not _host._bgm_player.playing:
 		_host._bgm_player.play()
@@ -563,7 +573,8 @@ func _update_camera() -> void:
 		desired = base + Vector3(-sin(ang) * dist, cam_y, -cos(ang) * dist)
 		look = base + Vector3(0.0, look_lift, 8.0)
 	_host._cam.global_position = _host._cam.global_position.lerp(desired, 0.14)
-	_host._cam.look_at(look, Vector3.UP)
+	if _host._cam.global_position.distance_squared_to(look) > 0.0001:
+		_host._cam.look_at(look, Vector3.UP)
 	if _is_race():
 		_host._cam.fov = lerpf(52.0, 66.0, 1.0 if _host._boosting else 0.0)
 	else:
@@ -580,7 +591,7 @@ func _update_hud() -> void:
 	if _host._hud_label == null or _host._finished:
 		return
 	if _host._speed_buff_left > 0.0 and _host._hud_tip:
-		_host._hud_tip.text = "加速中 %.1fs" % _host._speed_buff_left
+		_host._hud_tip.text = "Boost %.1fs" % _host._speed_buff_left
 	_host._ui_sys.update_play_hud()
 
 

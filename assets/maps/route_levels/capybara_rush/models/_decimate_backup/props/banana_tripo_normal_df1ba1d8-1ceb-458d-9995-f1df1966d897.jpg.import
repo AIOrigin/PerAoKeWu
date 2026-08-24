@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dyh1ahl6b0p2t"
+path="res://.godot/imported/banana_tripo_normal_df1ba1d8-1ceb-458d-9995-f1df1966d897.jpg-0e4eed1edbb741847fa06d67b6466314.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "0901f07a3a02f49e2f2ed58313f8a7ce"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/capybara_rush/models/_decimate_backup/props/banana_tripo_normal_df1ba1d8-1ceb-458d-9995-f1df1966d897.jpg"
+dest_files=["res://.godot/imported/banana_tripo_normal_df1ba1d8-1ceb-458d-9995-f1df1966d897.jpg-0e4eed1edbb741847fa06d67b6466314.ctex"]
+
+[params]
+
+compress/mode=3
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

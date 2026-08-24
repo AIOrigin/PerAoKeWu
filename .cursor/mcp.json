@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "gdai-mcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "${workspaceFolder}/addons/gdai-mcp-plugin-godot/gdai_mcp_server.py"
+      ]
+    },
+    "tiled": {
+      "command": "npx",
+      "args": ["-y", "tiled-mcp"],
+      "env": {
+        "TILED_PROJECT_DIR": "${workspaceFolder}/tiled_maps"
+      }
+    }
+  }
+}

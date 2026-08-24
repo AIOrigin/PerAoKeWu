@@ -1,0 +1,216 @@
+{
+  "categories": [
+    "props",
+    "environment",
+    "obstacles"
+  ],
+  "files": 34,
+  "before_mb": 124.93704605102539,
+  "after_mb": 33.1899528503418,
+  "items": [
+    {
+      "file": "props/apple.glb",
+      "before": 2744824,
+      "after": 386836,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/banana.glb",
+      "before": 3721428,
+      "after": 654192,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/boost_pack.glb",
+      "before": 3581028,
+      "after": 675484,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/durian.glb",
+      "before": 4271192,
+      "after": 420248,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/finish_arch.glb",
+      "before": 4528988,
+      "after": 665584,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/golden_bell_shield.glb",
+      "before": 103740,
+      "after": 106692,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/orange.glb",
+      "before": 3106564,
+      "after": 486156,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/pickup_glow_pad.glb",
+      "before": 3633068,
+      "after": 493044,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/pineapple.glb",
+      "before": 4050852,
+      "after": 566212,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/spaceship.glb",
+      "before": 3275536,
+      "after": 473652,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/speed_orb.glb",
+      "before": 1168876,
+      "after": 754492,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/treasure_chest.glb",
+      "before": 2263276,
+      "after": 1735404,
+      "ratio": -1.0
+    },
+    {
+      "file": "props/watermelon_slice.glb",
+      "before": 3611948,
+      "after": 597212,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/bush_round.glb",
+      "before": 4898756,
+      "after": 865356,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/cloud_fluffy.glb",
+      "before": 3498476,
+      "after": 499912,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/hay_bale.glb",
+      "before": 3389828,
+      "after": 589288,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/neon_sign_post.glb",
+      "before": 3854284,
+      "after": 433572,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/palm_tree.glb",
+      "before": 330072,
+      "after": 329996,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/palm_tree_high.glb",
+      "before": 14440604,
+      "after": 14694068,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/rock_edge.glb",
+      "before": 3628176,
+      "after": 586632,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/steam_vent.glb",
+      "before": 3161632,
+      "after": 404864,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/step_platform.glb",
+      "before": 3064556,
+      "after": 639120,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/tree_lollipop.glb",
+      "before": 7570924,
+      "after": 1060396,
+      "ratio": -1.0
+    },
+    {
+      "file": "environment/tree_sakura.glb",
+      "before": 4162348,
+      "after": 549968,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/fence_pasture.glb",
+      "before": 3957980,
+      "after": 619160,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/fence_picket.glb",
+      "before": 3585132,
+      "after": 577232,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/gap_edge.glb",
+      "before": 3617976,
+      "after": 473960,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/hay_bale.glb",
+      "before": 4579560,
+      "after": 600008,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/lantern_barrier.glb",
+      "before": 3839516,
+      "after": 639060,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/neon_cone.glb",
+      "before": 2743440,
+      "after": 517080,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/stone_lantern_barrier.glb",
+      "before": 4833160,
+      "after": 812904,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/traffic_cone.glb",
+      "before": 2613544,
+      "after": 393632,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/volcanic_block.glb",
+      "before": 5226588,
+      "after": 786576,
+      "ratio": -1.0
+    },
+    {
+      "file": "obstacles/wood_crate.glb",
+      "before": 3948116,
+      "after": 714196,
+      "ratio": -1.0
+    }
+  ]
+}

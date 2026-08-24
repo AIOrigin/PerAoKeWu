@@ -7,7 +7,6 @@ signal sky_limit_ready
 
 const explod_max_speed: float = 100.0 ## m
 const default_gravity: float = 9.8
-const Hl = preload("res://assets/global/scripts/HL.gd")
 const MOBILE_PROGRESS_SAVE_PATH := "user://mobile_progress.json"
 const MOBILE_PROGRESS_VERSION := 5
 const CharacterProgression = preload("res://assets/maps/route_levels/character_progression.gd")
@@ -111,15 +110,26 @@ func ready_global_scenes() -> void:
 
 
 func reload_current_scene() -> void:
-	get_tree().reload_current_scene()
+	var tree := get_tree()
+	if tree == null:
+		return
+	var path := ""
+	if tree.current_scene:
+		path = String(tree.current_scene.scene_file_path)
+	if path.is_empty():
+		path = String(ProjectSettings.get_setting("application/run/main_scene", ""))
+	if path.is_empty():
+		return
+	tree.paused = false
+	tree.call_deferred("change_scene_to_file", path)
 
 
 func change_game_scene(scene_path: String) -> void:
-	get_tree().paused = false
-	var error := get_tree().change_scene_to_file(scene_path)
-	if error != OK:
-		push_error("Failed to change scene: %s error=%s" % [scene_path, error])
+	var tree := get_tree()
+	if tree == null:
 		return
+	tree.paused = false
+	tree.call_deferred("change_scene_to_file", scene_path)
 	call_deferred("_ready_global_scenes_after_scene_change")
 
 
@@ -271,9 +281,9 @@ func sync_mission_dispatch(planet_id: String) -> Dictionary:
 			"revealed_added": [],
 		}
 	var previous_batch := int(unlocked_mission_batch_by_planet.get(planet_id, 0))
-	var unlocked_batch := MissionDispatch.compute_unlocked_batch(planet_id)
+	var unlocked_batch: int = MissionDispatch.compute_unlocked_batch(planet_id)
 	unlocked_mission_batch_by_planet[planet_id] = unlocked_batch
-	var batch_just_unlocked := previous_batch > 0 and unlocked_batch > previous_batch
+	var batch_just_unlocked: bool = previous_batch > 0 and unlocked_batch > previous_batch
 
 	var revealed := get_revealed_exploration_locations(planet_id, MissionDispatch.get_batch1_location_ids(planet_id))
 	var revealed_added: Array[String] = []
@@ -284,7 +294,7 @@ func sync_mission_dispatch(planet_id: String) -> Dictionary:
 	# 直接写揭示表，避免 set_revealed 再触发一次额外存盘
 	exploration_revealed_locations_by_planet[planet_id] = revealed
 
-	var board := MissionDispatch.fill_board_slots(
+	var board: Array[String] = MissionDispatch.fill_board_slots(
 		planet_id,
 		get_mission_board_slots(planet_id),
 		unlocked_batch
@@ -385,10 +395,10 @@ func get_lane_change_ease_bonus() -> float:
 
 
 func grant_messenger_runner_rewards(grade: String, difficulty: int, first_clear: bool) -> Dictionary:
-	var xp_gain := CharacterProgression.runner_xp_reward(grade, difficulty, first_clear)
-	var old_level := CharacterProgression.level_from_xp(messenger_xp)
+	var xp_gain: int = CharacterProgression.runner_xp_reward(grade, difficulty, first_clear)
+	var old_level: int = CharacterProgression.level_from_xp(messenger_xp)
 	messenger_xp = maxi(messenger_xp + xp_gain, 0)
-	var new_level := CharacterProgression.level_from_xp(messenger_xp)
+	var new_level: int = CharacterProgression.level_from_xp(messenger_xp)
 	if first_clear and Global.runner_location_id == "dome" and Global.runner_planet_id == "glass_desert":
 		_unlock_messenger_story("dome_resident")
 	save_mobile_progress()
@@ -404,7 +414,7 @@ func try_upgrade_messenger_stat(stat_id: String) -> bool:
 	var current_level := _get_messenger_stat_level(stat_id)
 	if not CharacterProgression.can_upgrade(stat_id, current_level, ember_coins):
 		return false
-	var cost := CharacterProgression.upgrade_cost(stat_id, current_level)
+	var cost: int = CharacterProgression.upgrade_cost(stat_id, current_level)
 	ember_coins -= cost
 	_set_messenger_stat_level(stat_id, current_level + 1)
 	save_mobile_progress()
@@ -935,7 +945,7 @@ func get_random_resource(folder_path: String, allowed_types: Array = []) -> Reso
 						valid_resources.append(full_path)
 					else:
 						var rfl := ResourceFormatLoader.new()
-						var resource_type := rfl._get_resource_type(full_path) # buggggggg
+						var resource_type: String = str(rfl._get_resource_type(full_path))
 						if resource_type in allowed_types:
 							valid_resources.append(full_path)
 			file_name = dir.get_next()

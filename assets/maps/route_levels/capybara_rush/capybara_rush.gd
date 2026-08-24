@@ -15,11 +15,11 @@ const CapybaraRaceScript := preload("res://assets/maps/route_levels/capybara_rus
 const CapybaraCdnScript := preload("res://assets/maps/route_levels/capybara_rush/capybara_cdn.gd")
 
 const LANE_COUNT := 3
-## 车道中心间距：略大于障碍边长，三列几乎贴紧
-const LANE_WIDTH := 1.08
-const ROAD_HALF_W := 2.05
-const TRACK_LATERAL_SPEED := 5.5
-const TRACK_LATERAL_MARGIN := 0.68
+## 三车道贴满跑道：3 × 车道宽 = 跑道全宽，三颗骰子并排无左右空隙
+const LANE_WIDTH := 1.52
+const ROAD_HALF_W := LANE_WIDTH * 1.5
+const TRACK_LATERAL_SPEED := 7.2
+const TRACK_LATERAL_MARGIN := 0.52
 const ROTATOR_LATERAL_MARGIN := 0.95
 const ROTATOR_ARENA_RADIUS := 3.2
 const ROTATOR_ANG_SPEED := 1.05
@@ -39,9 +39,9 @@ const BOB_FREQ := 9.0
 const FRUIT_SPIN_SPEED := 2.0
 const SPEED_ORB_SPIN_SPEED := 2.4
 ## 深棕站立卡皮巴拉：目标高度与叠层间距（接近身高，只留一点嵌合）
-const TARGET_CAPY_HEIGHT := 0.92
+const TARGET_CAPY_HEIGHT := 1.24
 const TARGET_PILOT_HEIGHT := 1.55
-const STACK_STEP_Y := 0.88
+const STACK_STEP_Y := 1.18
 ## 网格最长轴在局部 X；-PI/2 使鼻朝跑道前进方向
 const CAPY_FORWARD_YAW := -PI * 0.5
 const QINGQING_FORWARD_YAW := -PI * 0.5
@@ -86,8 +86,9 @@ const CHAR_SOFT_SKIN_IDS: Array[String] = [
 ]
 const MODE_STACK := "stack"
 const MODE_RACE := "race"
-const PICKUP_RADIUS_X := 1.15
-const PICKUP_RADIUS_Z := 1.4
+## 拾取半径小于半车道，避免邻道苹果/卡皮自动吸附
+const PICKUP_RADIUS_X := 0.72
+const PICKUP_RADIUS_Z := 1.15
 ## 竞速：碰飞船冲锋 5s；冲锋中撞障 -1s；加速包 +0.5s
 const BOOST_DURATION := 5.0
 const BOOST_HIT_PENALTY := 1.0
@@ -316,15 +317,13 @@ func _ready() -> void:
 		_start_stack_game()
 	else:
 		_track_sys.load_level_bundle(1)
-		await _prepare_level_assets()
-		_rebuild_level_world()
+		# 选角/选关菜单：不预载关卡 GLB，避免与 wasm/pck 抢带宽；进关后再 _prepare_level_assets
 		if CapybaraUi.pending_open_level_select:
 			_character_id = _normalize_character_id(CapybaraUi.pending_character_id)
 			CapybaraUi.pending_open_level_select = false
 			CapybaraUi.pending_character_id = ""
 			_ui_sys.setup_level_select()
 		else:
-			await _prepare_character_assets()
 			_ui_sys.setup_character_select()
 	_lane_x = _lane_to_x(_lane)
 
@@ -343,7 +342,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _playing or _waiting_to_start:
 			_ui_sys.pause_game()
 			return
-		get_tree().reload_current_scene()
+		reload_game_scene()
 		return
 	if _ui_sys.is_menu_blocking():
 		return
@@ -676,8 +675,8 @@ func _begin_gameplay() -> void:
 		var tip_extra := ""
 		var jumps: Variant = _level_cfg.get("jump_challenges", [])
 		if typeof(jumps) == TYPE_ARRAY and not (jumps as Array).is_empty():
-			tip_extra = " · 水池三连跳"
-		_hud_tip.text = "左右换道 · 点跳跃躲障%s" % tip_extra
+			tip_extra = " · pool triple jump"
+		_hud_tip.text = "Swipe lanes · tap jump%s" % tip_extra
 	_ui_sys.show_playing_chrome()
 	_race_sys.update_camera()
 	_race_sys.update_hud()
@@ -735,13 +734,6 @@ func _prepare_level_assets() -> void:
 	_ui_sys.hide_cdn_loading()
 
 
-func _prepare_character_assets() -> void:
-	if _cdn_sys == null or not _cdn_sys.is_enabled():
-		return
-	_ui_sys.show_cdn_loading("正在下载角色模型…")
-	await _cdn_sys.preload_all_characters()
-	_ui_sys.hide_cdn_loading()
-
 func _is_race() -> bool:
 	return _race_sys.is_race()
 
@@ -764,6 +756,17 @@ func _character_model_path() -> String:
 
 func _character_display_name() -> String:
 	return _stack_sys.character_display_name()
+
+
+func reload_game_scene() -> void:
+	## 不用 reload_current_scene：编辑器 Game 视图里 current_scene 可能不是 SceneTree
+	var tree := get_tree()
+	if tree == null:
+		return
+	var path := scene_file_path
+	if path.is_empty():
+		path = "res://assets/maps/route_levels/capybara_rush/capybara_rush.tscn"
+	tree.call_deferred("change_scene_to_file", path)
 
 
 func _repack_stack_heights() -> void:

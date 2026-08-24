@@ -23,23 +23,23 @@ const PLACE_TYPES: Array[String] = [
 ]
 
 const PLACE_TYPE_LABELS := {
-	"stair_weave": "阶梯交错",
-	"stair_ascend": "阶梯上升",
-	"stair_wave": "阶梯波浪",
-	"hurdle_single": "单道栏",
-	"hurdle_wide": "宽栏",
-	"stripe_single": "单道柱",
-	"combo_stair_hurdle": "阶梯+栏",
-	"sweeper_single": "单扫臂",
-	"sweeper_duel": "双扫臂",
-	"pendulum_triple": "三连摆锤",
-	"swing_hoop": "摆环",
-	"spin_ring": "旋转环",
-	"l_gate": "L 门",
-	"fire_gate": "滑动冰闸",
-	"cross_rotator": "十字转杆",
-	"jump_challenge": "水池三连跳",
-	"cliff": "断崖",
+	"stair_weave": "Stair Weave",
+	"stair_ascend": "Stair Ascend",
+	"stair_wave": "Stair Wave",
+	"hurdle_single": "Single Hurdle",
+	"hurdle_wide": "Wide Hurdle",
+	"stripe_single": "Stripe Pillar",
+	"combo_stair_hurdle": "Stair + Hurdle",
+	"sweeper_single": "Single Sweeper",
+	"sweeper_duel": "Dual Sweepers",
+	"pendulum_triple": "Triple Pendulum",
+	"swing_hoop": "Swing Hoop",
+	"spin_ring": "Spin Ring",
+	"l_gate": "L Gate",
+	"fire_gate": "Sliding Gate",
+	"cross_rotator": "Cross Rotator",
+	"jump_challenge": "Pool Triple Jump",
+	"cliff": "Cliff",
 }
 
 const THEME_IDS: Array[String] = [
@@ -111,7 +111,7 @@ static func sort_jump_challenges(items: Array) -> Array:
 static func default_level_cfg() -> Dictionary:
 	return {
 		"id": 0,
-		"name": "新关卡",
+		"name": "New Level",
 		"theme_id": "lake_clear",
 		"track_length": 288.0,
 		"run_speed": 12.0,
