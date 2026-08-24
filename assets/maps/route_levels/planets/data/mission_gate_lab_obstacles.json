@@ -1,10 +1,10 @@
 {
-	"note": "防御哨站机制试玩：弹射垫→平台跳跃→缓坡高度曲线→窄梁→高架水平U弯。升降踏板因自动前冲无法等待，已改平台跳。60秒补给约1140m。",
+	"note": "防御哨站机制试玩：弹射→平台跳→窄梁→高架弹射。各熔岩过法分段互斥，入口不放滑铲。60秒约1140m。",
 	"layout_id": "mission_gate_lab",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 1,
-	"lava_cross_mode": "side_wall",
+	"version": 2,
+	"lava_cross_mode": "platform",
 	"track_segments": [
 		{"length": 300.0, "turn": 0.0},
 		{"length": 40.0, "turn": 0.42},

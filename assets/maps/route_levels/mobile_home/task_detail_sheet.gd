@@ -495,6 +495,8 @@ func refresh_if_open(planet_id: String, mission: Dictionary) -> void:
 
 
 func _cargo_trait(mission: Dictionary, profile: Dictionary) -> String:
+	if MissionTypes.is_defense_cargo(mission):
+		return "主动防御 · 碰撞减损 · 开局盾25"
 	var custom := String(mission.get("cargo_trait", "")).strip_edges()
 	if custom != "":
 		return custom

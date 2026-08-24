@@ -3,10 +3,16 @@ class_name SettlementHorizonLayer
 
 ## 样例结算页：青蓝天空 + 建筑剪影 + 紫白同心环 + 跃起小人
 
-const PlanetGlassDesert = preload("res://assets/maps/route_levels/planets/planet_glass_desert.gd")
 const BUILDING_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png"
 const FIGURE_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/elsa_jump_silhouette.png"
 const FIGURE_FAILURE_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/elsa_failure_dejected_silhouette.png"
+const SETTLEMENT_SILHOUETTE := {
+	"dome": "res://assets/maps/route_levels/runner_60s/settlement/habitat_dome_silhouette.jpg",
+	"reservoir": "res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png",
+	"medical": "res://assets/maps/route_levels/runner_60s/settlement/medical_settlement_silhouette.png",
+	"gate": "res://assets/maps/route_levels/runner_60s/settlement/defense_settlement_silhouette.png",
+	"relay": "res://assets/maps/route_levels/runner_60s/settlement/relay_settlement_silhouette.png",
+}
 
 const SKY_TOP := Color(0.52, 0.58, 0.66)
 const SKY_MID := Color(0.30, 0.36, 0.46)
@@ -206,8 +212,11 @@ func configure(outpost_name: String, location_id: String, _hearth_scene_path: St
 
 
 func _load_tex(path: String) -> Texture2D:
-	if FileAccess.file_exists(path):
-		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+	if path.strip_edges() == "":
+		return null
+	var abs_path := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(path) or FileAccess.file_exists(abs_path):
+		var img := Image.load_from_file(abs_path)
 		if img != null and not img.is_empty():
 			return ImageTexture.create_from_image(img)
 	if ResourceLoader.exists(path):
@@ -217,32 +226,32 @@ func _load_tex(path: String) -> Texture2D:
 	return null
 
 
+func _silhouette_resource_exists(path: String) -> bool:
+	if path.strip_edges() == "":
+		return false
+	if FileAccess.file_exists(path) or FileAccess.file_exists(ProjectSettings.globalize_path(path)):
+		return true
+	return ResourceLoader.exists(path)
+
+
 func _resolve_silhouette_path(location_id: String) -> String:
+	var loc := location_id
+	if loc == "medbay":
+		loc = "medical"
+	elif loc == "outpost":
+		loc = "gate"
 	var candidates: Array[String] = []
-	var primary := PlanetGlassDesert.get_location_finish_silhouette(location_id).strip_edges()
-	if primary != "":
-		candidates.append(primary)
-	match location_id:
+	if SETTLEMENT_SILHOUETTE.has(loc):
+		candidates.append(String(SETTLEMENT_SILHOUETTE[loc]))
+	match loc:
 		"dome":
-			candidates.append_array([
-				"res://assets/maps/route_levels/runner_60s/settlement/habitat_dome_silhouette.jpg",
-				"res://mvp素材第一批/居民穹顶2d展示图.webp",
-			])
+			candidates.append("res://mvp素材第一批/居民穹顶2d展示图.webp")
 		"reservoir":
-			candidates.append_array([
-				"res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png",
-				"res://mvp素材第一批/水源据点2d.webp",
-			])
-		"medbay":
-			candidates.append("res://mvp素材第一批/医疗据点2d.webp")
-		"relay":
-			candidates.append("res://mvp素材第一批/星火中继站2d.webp")
-		"outpost":
-			candidates.append("res://mvp素材第一批/防御哨站2d.webp")
+			candidates.append("res://mvp素材第一批/水源据点2d.webp")
 	if not candidates.has(BUILDING_SILHOUETTE_PATH):
 		candidates.append(BUILDING_SILHOUETTE_PATH)
 	for path in candidates:
-		if path != "" and (ResourceLoader.exists(path) or FileAccess.file_exists(path)):
+		if _silhouette_resource_exists(path):
 			return path
 	return BUILDING_SILHOUETTE_PATH
 
@@ -326,9 +335,11 @@ func _prepare_settlement_building_tex(source: Texture2D, path: String) -> Textur
 			if luma > 0.58 and sat < 0.12:
 				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
 				continue
-			# 保留源图里的青蓝线框（水源据点同款）
-			if c.b > c.r + 0.06 and c.b > 0.32 and luma > 0.22:
-				var line_a := clampf(maxf(c.a, 0.78) + (luma - 0.22) * 0.35, 0.0, 1.0)
+			# 青蓝或品红线框都收成结算页同一套青线，保持现有色调
+			var is_cyan_line := c.b > c.r + 0.06 and c.b > 0.32 and luma > 0.22
+			var is_purple_line := c.b > 0.26 and c.r > 0.16 and (c.r + c.b) > c.g * 1.85 and luma > 0.16 and sat > 0.10
+			if is_cyan_line or is_purple_line:
+				var line_a := clampf(maxf(c.a, 0.78) + (luma - 0.16) * 0.35, 0.0, 1.0)
 				img.set_pixel(x, y, Color(SILHOUETTE_LINE.r, SILHOUETTE_LINE.g, SILHOUETTE_LINE.b, line_a))
 				continue
 			if luma < 0.34:

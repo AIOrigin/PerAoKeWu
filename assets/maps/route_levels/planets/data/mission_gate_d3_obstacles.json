@@ -1,9 +1,9 @@
 {
-	"note": "D3 中继/防御+能源 · 长途S弯+分叉+右弹射过熔岩+平台跳+侧墙。90秒约1710m。格挡+点按散热。",
+	"note": "D3 · 右弹射熔岩 / 平台跳 / 侧墙熔岩分段互斥，入口均留空。90秒约1710m。",
 	"layout_id": "mission_gate_d3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 4,
+	"version": 6,
 	"lava_cross_mode": "side_wall",
 	"track_segments": [
 		{"length": 160.0, "turn": 0.0},
@@ -48,17 +48,19 @@
 		{"start": 1420, "length": 40, "dps": 12, "label": "末段热浪", "hazard_kind": "sand", "lane_count": 3}
 	],
 	"open_gaps": [
-		{"start": 348.0, "end": 356.0, "kind": "launch"}
+		{"start": 343.0, "end": 357.0, "kind": "launch"}
 	],
 	"launch_pads": [
 		{
 			"id": "d3_lava_right",
 			"distance": 340.0,
 			"lane": 1,
-			"impulse": 15.8,
+			"impulse": 17.4,
 			"half_depth": 2.2,
 			"lock_air_lane": true,
-			"lock_distance": 22.0,
+			"lock_distance": 24.0,
+			"speed_boost": false,
+			"pad_text": "踩上弹射",
 			"hint": "换到右道踩垫 · 飞过熔岩"
 		},
 		{
@@ -71,6 +73,7 @@
 			"lock_distance": 16.0,
 			"speed_boost": true,
 			"boost_time": 2.4,
+			"pad_text": "踩上加速",
 			"hint": "左道弹射加速 · 过热就点按散热"
 		}
 	],
@@ -88,8 +91,6 @@
 		{"distance": 250.0, "lane": 0, "type": "meteorite_gate", "drop_count": 6, "drop_interval": 0.84},
 		{"distance": 260.0, "lane": 1, "type": "slide", "low_slide": true},
 		{"distance": 282.0, "lane": 0, "type": "jump"},
-		{"distance": 304.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 326.0, "lane": 0, "type": "jump"},
 		{"distance": 372.0, "lane": 0, "type": "jump"},
 		{"distance": 456.0, "lane": -1, "type": "jump"},
 		{"distance": 468.0, "lane": 1, "type": "train"},

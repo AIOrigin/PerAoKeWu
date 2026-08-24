@@ -188,6 +188,24 @@ static func is_overweight_cargo(mission: Dictionary) -> bool:
 	return false
 
 
+## 防御包：任意据点/关卡通用。碰撞掉损更低，开局自带防护罩能量。
+static func is_defense_cargo(mission: Dictionary) -> bool:
+	if mission.is_empty():
+		return false
+	if String(mission.get("cargo_mechanic", "")) == "defense":
+		return true
+	if String(mission.get("cargo_icon", "")).strip_edges() == "防御":
+		return true
+	var name := String(mission.get("cargo_name", ""))
+	if "防御包" in name:
+		return true
+	if "defense pack" in String(mission.get("cargo_name_en", "")).strip_edges().to_lower():
+		return true
+	if "防御包" in String(mission.get("cargo_secondary", "")):
+		return true
+	return false
+
+
 static func adapt_obstacles(items: Array, profile: Dictionary, track_length: float) -> Array:
 	var density := clampf(float(profile.get("obstacle_density", 1.0)), 0.35, 2.0)
 	var fork_bias := bool(profile.get("fork_bias", false))
