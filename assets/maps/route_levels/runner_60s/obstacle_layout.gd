@@ -147,6 +147,35 @@ static func load_sandstorm_zones(layout_id: String) -> Array:
 	return out
 
 
+static func load_rain_zones(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	var zones: Array = root.get("rain_zones", [])
+	var out: Array = []
+	for raw in zones:
+		if typeof(raw) == TYPE_DICTIONARY:
+			out.append(normalize_rain_zone(raw))
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("start", 0.0)) < float(b.get("start", 0.0))
+	)
+	return out
+
+
+static func normalize_rain_zone(raw: Dictionary) -> Dictionary:
+	var start := float(raw.get("start", 0.0))
+	var length := maxf(float(raw.get("length", 60.0)), 12.0)
+	var intensity := clampf(float(raw.get("intensity", 1.0)), 0.35, 1.6)
+	var label := String(raw.get("label", "毒雨段")).strip_edges()
+	if label == "":
+		label = "毒雨段"
+	return {
+		"start": start,
+		"length": length,
+		"intensity": intensity,
+		"label": label,
+		"rain_kind": String(raw.get("rain_kind", "toxic")).to_lower(),
+	}
+
+
 static func sandstorm_covered_lanes(lane_count: int, lane_anchor: int) -> Array:
 	var count := clampi(lane_count, 1, 3)
 	match count:

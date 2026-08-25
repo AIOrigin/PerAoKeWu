@@ -121,6 +121,10 @@ static func resolve(mission: Dictionary = {}) -> Dictionary:
 		profile["enable_chaser"] = bool(mission["enable_chaser"])
 	if mission.has("chaser_creep_mult"):
 		profile["chaser_creep_mult"] = clampf(float(mission["chaser_creep_mult"]), 0.5, 2.0)
+	if mission.has("pressure_chaser"):
+		profile["pressure_chaser"] = bool(mission["pressure_chaser"])
+	if mission.has("chaser_mode"):
+		profile["chaser_mode"] = String(mission["chaser_mode"])
 	return profile
 
 

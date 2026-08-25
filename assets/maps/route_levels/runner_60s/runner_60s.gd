@@ -122,6 +122,13 @@ const SPEED_BOOST_DURATION_EMERGENCY := 6.8
 const SPEED_BOOST_MULT := 1.42
 const SPEED_BOOST_MULT_EMERGENCY := 1.55
 const SPEED_BOOST_SKILL_THRESHOLD := 5
+## 路面加速垫：短距爆发 + 短暂余韵，中继站再加强
+const PAD_BURST_DIST := 7.8
+const PAD_BURST_MULT := 2.28
+const PAD_BURST_DIST_RELAY := 10.5
+const PAD_BURST_MULT_RELAY := 2.55
+const PAD_LINGER_BOOST_TIME := 2.1
+const PAD_LINGER_BOOST_TIME_RELAY := 2.8
 const EMERGENCY_DASH_MULT := 1.55
 const EMERGENCY_DASH_DURATION := 2.6
 const EMERGENCY_DASH_HOLD := 0.35
@@ -197,6 +204,8 @@ const SMASH_LAYOUT_IDS := [
 	"mission_relay_e2",
 	"mission_relay_e3",
 	"mission_relay_e4",
+	"mission_relay_lab",
+	"mission_relay_rain",
 	"mission_relay_01",
 ]
 const SMASH_MISSION_IDS := [
@@ -239,17 +248,29 @@ const MAGNET_RADIUS := 3.0
 const MAGNET_SPEED := 14.0
 const MAGNET_LANE_ONLY := true
 
-# 追逐者：零潮追猎
+# 追逐者：身后 Nulltide Wraith（零潮幽影），间距由压迫压力驱动
 const CHASER_START_DISTANCE := 28.0
 const CHASER_INTRO_START := 42.0
+const CHASER_RELAY_INTRO_START := 48.0
 const CHASER_MAX_DISTANCE := 35.0
 const CHASER_BASE_CREEP := 0.42
+const CHASER_RELAY_CREEP_SCALE := 0.78
 const CHASER_HIT_PENALTY := 7.0
+const CHASER_RELAY_HIT_PENALTY := 5.5
 const CHASER_RECOVERY_RATE := 1.8
+const CHASER_BOOST_RECOVERY_MULT := 2.6
+const CHASER_BOOST_REPULSE := 6.0
 const CHASER_CATCH_DISTANCE := 0.5
 const CHASER_VISUAL_SCALE := 0.68
 const CHASER_LATERAL_OFFSET := -0.38
-const CHASER_FLOAT_HEIGHT := 1.72
+const CHASER_FLOAT_HEIGHT := 1.05
+## 开局后侧反打镜头总时长（方案 III）
+const CHASER_REAR_INTRO_TIME := 2.6
+const CHASER_REAR_PREVIEW_GAP := 10.5
+const CHASER_REAR_RETURN_SEC := 0.3
+## 跑酷顺利时，分叉处 Nullfeed 缩短间距比例
+const TIDE_WELL_GAP_SHRINK := 0.25
+const TIDE_WELL_SHOW_GAP := 16.0
 const STRIKE_RECOVERY_TIME := 4.5
 const HIT_SLOW_FACTOR := 0.52
 const HIT_SLOW_DURATION := 1.35
@@ -700,6 +721,25 @@ var _overweight_run_tip_shown := false
 var _overweight_jump_armed := false
 var _overweight_short_jump_timer := 0.0
 var _chaser_enabled := CHASER_ENABLED_DEFAULT
+var _pressure_chaser_enabled := false
+var _energy_chaser: EnergyChaserController = null
+var _chase_overlay: ColorRect = null
+var _chase_overlay_mat: ShaderMaterial = null
+var _capture_swallow: ColorRect = null
+var _capture_swallow_mat: ShaderMaterial = null
+var _capture_cinematic_active := false
+var _capture_cinematic_t := 0.0
+var _capture_fail_reason := ""
+var _capture_settlement_ready := false
+var _chaser_intro_look := 0.0
+## 开局后侧反打：0→2.6s；每关仅播一次
+var _chaser_rear_intro_t := 0.0
+var _chaser_rear_intro_played := false
+var _chaser_rear_flash_done := false
+## 分叉 Nullfeed 标记（左右岔都会经过）
+var _tide_wells: Array[Dictionary] = []
+var _chaser_hint_bar: ProgressBar = null
+const CAPTURE_CINEMATIC_TIME := 1.55
 var obstacles: Array[Dictionary] = []
 var collectibles: Array[Dictionary] = []
 var track_distance := 0.0
@@ -789,6 +829,20 @@ var _sandstorm_tick_accum := 0.0
 var _sandstorm_active := false
 var _sandstorm_warned_keys: Array = []
 var _sandstorm_particles: GPUParticles3D
+var _rain_particles: GPUParticles3D
+var _rain_soft_particles: GPUParticles3D
+var _rain_splash_particles: GPUParticles3D
+var _rain_active := false
+var _rain_intensity := 1.0
+var _rain_puddles: Array[Dictionary] = []
+var _rain_puddle_spawn_accum := 0.0
+var _rain_puddle_next_d := -1.0
+var _rain_puddle_hit_cd := 0.0
+var _rain_puddle_rng := RandomNumberGenerator.new()
+var _cached_rain_zones: Array = []
+var _rain_full_track := false
+var _rain_intro_shown := false
+var _rain_enter_toast_cd := 0.0
 var _side_hazard_emitters: Dictionary = {}
 var _side_hazard_runtime: Dictionary = {}
 var _base_fog_density := 0.0022
@@ -880,6 +934,7 @@ var _coin_pickup_screen_fx: CoinPickupScreenFx
 
 var _speed_boost_timer := 0.0
 var _speed_boost_cycle := 0
+var _pad_burst_until_d := -1.0
 var _is_emergency_run := false
 var _midground_vis_tick := 0
 var _fork_rush_timer := 0.0
@@ -975,6 +1030,14 @@ func _apply_mission_type_profile() -> void:
 	_run_time = float(_mission_profile.get("duration", DEFAULT_RUN_TIME))
 	_track_length = MissionTypes.track_length_for(_run_time)
 	_chaser_enabled = bool(_mission_profile.get("enable_chaser", false))
+	_pressure_chaser_enabled = bool(_mission_profile.get("pressure_chaser", false)) \
+		or String(_mission_profile.get("chaser_mode", mission.get("chaser_mode", ""))) == "pressure" \
+		or bool(mission.get("pressure_chaser", false))
+	# 星火中继站追击关统一走 Pressure 异能量前沿
+	if _chaser_enabled and _is_relay_mission():
+		_pressure_chaser_enabled = true
+	if _pressure_chaser_enabled:
+		_chaser_enabled = true
 	mission["duration"] = _run_time
 	mission["task_type"] = String(_mission_profile.get("task_type", "Supply Run"))
 	mission["task_type_zh"] = String(_mission_profile.get("name_zh", "补给"))
@@ -993,11 +1056,24 @@ func _bootstrap_runner_world() -> void:
 	await get_tree().process_frame
 	_build_content()
 	_load_cargo_icon()
-	chaser_distance = CHASER_INTRO_START
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		_energy_chaser.runner = player
+		_energy_chaser.set_physics_process(false)
+		# 开局只预览潮体（压迫=0），正式追击等后侧镜头结束再 start_chase
+		_energy_chaser.begin_visual_preview(CHASER_REAR_PREVIEW_GAP)
+		chaser_distance = CHASER_REAR_PREVIEW_GAP
+		_chaser_intro_look = 0.0
+		_chaser_rear_intro_t = 0.0
+		_chaser_rear_intro_played = false
+		_chaser_rear_flash_done = false
+	else:
+		chaser_distance = CHASER_RELAY_INTRO_START if (_is_relay_mission() and _chaser_enabled) else CHASER_INTRO_START
 	current_lateral = 0.0
 	target_lane_x = 0.0
 	_sync_player_position()
 	_sync_chaser_from_track()
+	if _pressure_chaser_enabled:
+		_spawn_tide_wells_for_relay()
 	_setup_hit_feedback()
 	if _road_style_id == "alien_energy":
 		_spawn_alien_energy_edge_particles()
@@ -1352,13 +1428,19 @@ func _physics_process(delta: float) -> void:
 			_update_pre_run(delta)
 		return
 
-	if is_finished or is_failed:
+	if is_finished:
+		return
+	if is_failed:
+		if _capture_cinematic_active:
+			_update_capture_cinematic(delta)
 		return
 
 	if is_intro:
 		_update_pre_run(delta)
 		_sync_player_position()
 		_sync_chaser_from_track()
+		_update_rain_weather(delta)
+		_update_rain_corrosive_puddles(delta)
 		_update_runner_feedback(delta)
 		_update_chaser_visuals(delta)
 		_update_distant_depth_cues()
@@ -1456,8 +1538,9 @@ func _physics_process(delta: float) -> void:
 		var next_y := player.position.y + vertical_velocity * delta
 		var over_pit := _is_over_open_pit()
 		if over_pit:
+			var launch_gap := _open_gap_kind_at(track_distance) == "launch"
 			if _pit_fall_grace <= 0.0:
-				_pit_fall_grace = 0.72
+				_pit_fall_grace = 0.28 if launch_gap else 0.72
 			_pit_fall_grace = maxf(_pit_fall_grace - delta, 0.0)
 			_try_pit_entry_wall_rescue()
 			var plat_support := _lava_platform_landing_y(next_y, track_distance, current_lateral)
@@ -1477,13 +1560,21 @@ func _physics_process(delta: float) -> void:
 				if next_y <= ground_y and vertical_velocity > -4.0 and not _is_safe_launch_flight():
 					vertical_velocity = -8.5
 				if _is_safe_launch_flight() and _open_gap_kind_at(track_distance) == "launch":
-					var glide_y := ground_y + 0.42
-					if next_y < glide_y:
-						next_y = glide_y
-						vertical_velocity = maxf(vertical_velocity, -1.6)
+					# 只在明显腾空时保高度；贴近路面则继续下落进坑
+					var glide_y := ground_y + 1.35
+					if next_y < glide_y and player.position.y > ground_y + 1.1:
+						next_y = maxf(next_y, ground_y + 0.95)
+						vertical_velocity = maxf(vertical_velocity, -2.4)
 				player.position.y = next_y
 			if player.position.y < ground_y - 0.55 and _pit_fall_grace <= 0.0 and not _is_safe_launch_flight():
 				_fail_into_pit()
+			elif (
+				_open_gap_kind_at(track_distance) == "launch"
+				and player.position.y <= ground_y + 0.35
+				and _pit_fall_grace <= 0.0
+				and not _is_safe_launch_flight()
+			):
+				_fail_into_pit("坠入弹射熔岩缺口")
 		elif next_y <= ground_y and vertical_velocity <= 0.0:
 			_pit_fall_grace = 0.0
 			var plat_stand := _lava_platform_landing_y(next_y, track_distance, current_lateral)
@@ -1527,6 +1618,8 @@ func _physics_process(delta: float) -> void:
 	_update_wall_run_tutorial(delta)
 	_update_runner_coach_tips(delta)
 	_update_sandstorm_hazard(delta)
+	_update_rain_weather(delta)
+	_update_rain_corrosive_puddles(delta)
 	_update_shield_energy_drain(delta)
 	_update_shield_visual(delta)
 
@@ -1559,6 +1652,7 @@ func _physics_process(delta: float) -> void:
 	_update_collectible_magnet(delta)
 	_update_coin_collectible_visuals(delta)
 	_check_collectibles()
+	_update_tide_wells(delta)
 	_update_sky_cheer_spawns()
 	_update_sky_cheer_visuals(delta)
 	_check_finish_sprint_pads()
@@ -1711,6 +1805,7 @@ func _ensure_mechanic_layout() -> void:
 			"lock_distance": float(raw.get("lock_distance", 28.0)),
 			"speed_boost": bool(raw.get("speed_boost", false)),
 			"boost_time": float(raw.get("boost_time", 2.4)),
+			"launch_cross": bool(raw.get("launch_cross", false)),
 			"hint": String(raw.get("hint", "弹射")),
 			"pad_text": String(raw.get("pad_text", "")),
 		})
@@ -1733,6 +1828,7 @@ func _ensure_mechanic_layout() -> void:
 				"end": end,
 				"kind": String(raw.get("kind", "")),
 			})
+	_resolve_lava_crossing_conflicts()
 
 func _path_height_lift_at(distance: float) -> float:
 	_ensure_mechanic_layout()
@@ -1793,13 +1889,19 @@ func _is_launch_air_locked() -> bool:
 	return _launch_air_lock_until_d > track_distance and not _is_on_ground() and not _is_wall_running()
 
 func _is_safe_launch_flight() -> bool:
+	# 仅「腾空飞过」算安全；落在缺口玻璃/地面高度上必须坠坑
 	if _launch_air_lock_until_d <= track_distance or _is_wall_running():
+		return false
+	if player == null:
+		return false
+	var ground_y := _ground_y_at(track_distance)
+	if player.position.y <= ground_y + 1.05:
 		return false
 	if _open_gap_kind_at(track_distance) == "launch":
 		return true
-	if player != null and player.position.y > _ground_y_at(track_distance) + 0.55:
+	if player.position.y > ground_y + 0.85:
 		return true
-	return vertical_velocity > 1.2
+	return vertical_velocity > 2.2
 
 func _lift_pad_surface_y(plat: Dictionary, dist: float = NAN) -> float:
 	var d := track_distance if is_nan(dist) else dist
@@ -3255,7 +3357,13 @@ func _set_sandstorm_visual(volume_fx_active: bool, region_active: bool = true) -
 			danger_vignette.modulate.a = maxf(danger_vignette.modulate.a, 0.38)
 	if _world_environment and _world_environment.environment:
 		var env := _world_environment.environment
-		var storm_boost := 1.42 if _is_relay_mission() else 2.35
+		if _is_relay_mission():
+			if not _is_rain_weather():
+				# 中继站保持关雾（同水源一），沙暴只用路面/UI提示，不整屏染色
+				env.fog_enabled = false
+				env.fog_aerial_perspective = 0.0
+			return
+		var storm_boost := 2.35
 		if _uses_medical_sunrise_sky():
 			storm_boost = 1.22
 		var target_density := _base_fog_density * (storm_boost if region_active else 1.0)
@@ -3267,16 +3375,10 @@ func _set_sandstorm_visual(volume_fx_active: bool, region_active: bool = true) -
 			env.fog_aerial_perspective = lerpf(env.fog_aerial_perspective, 0.02 if region_active else 0.05, 0.18)
 		var poison_mix := 0.16 if _uses_medical_sunrise_sky() else 0.48
 		var storm_tint: Color
-		if _is_relay_mission():
-			storm_tint = _base_fog_light_color.lerp(
-				Color(0.42, 0.58, 0.36, 1.0) if is_poison else Color(0.28, 0.38, 0.58),
-				0.32 if is_poison else 0.28
-			)
-		else:
-			storm_tint = _base_fog_light_color.lerp(
-				Color(0.42, 0.58, 0.36, 1.0) if is_poison else Color(0.82, 0.55, 0.32),
-				poison_mix
-			)
+		storm_tint = _base_fog_light_color.lerp(
+			Color(0.42, 0.58, 0.36, 1.0) if is_poison else Color(0.82, 0.55, 0.32),
+			poison_mix
+		)
 		var target_color := storm_tint if region_active else _base_fog_light_color
 		env.fog_light_color = env.fog_light_color.lerp(target_color, 0.16)
 
@@ -3285,6 +3387,9 @@ func _apply_gate_effect(effect: String) -> void:
 		"repair", "safe":
 			# 货物完整度会被障碍/环境扣掉；安全岔专门回补，并稳速免障
 			cargo_integrity = minf(cargo_integrity + 10.0, 100.0)
+			if _pressure_chaser_enabled and _energy_chaser != null:
+				_energy_chaser.reward_clean_play(15.0)
+				chaser_distance = _energy_chaser.get_visual_gap()
 			_fork_rush_timer = 0.0
 			_fork_rush_elapsed = 0.0
 			speed_penalty_mult = 1.0
@@ -3294,7 +3399,11 @@ func _apply_gate_effect(effect: String) -> void:
 			_show_runway_combat_tip("完整度 +10", Color(0.45, 0.98, 0.72, 1.0))
 		"fast":
 			run_score += 160
-			chaser_distance = maxf(chaser_distance - 3.0, CHASER_CATCH_DISTANCE)
+			if _pressure_chaser_enabled and _energy_chaser != null:
+				_energy_chaser.add_pressure(8.0)
+				chaser_distance = _energy_chaser.get_visual_gap()
+			else:
+				chaser_distance = maxf(chaser_distance - 3.0, CHASER_CATCH_DISTANCE)
 			_fork_rush_timer = FORK_RUSH_DURATION
 			_fork_rush_elapsed = 0.0
 			_speed_boost_timer = 0.0
@@ -3343,9 +3452,13 @@ func _effective_speed_boost_mult() -> float:
 		return lerpf(FORK_RUSH_START_MULT, FORK_RUSH_MULT, ease)
 	if _fork_side < 0 and not _fork_zone_at(track_distance).is_empty():
 		return FORK_SAFE_SPEED_MULT
+	var boot := 1.0
 	if _speed_boost_timer > 0.0:
-		return SPEED_BOOST_MULT_EMERGENCY if _is_emergency_run else SPEED_BOOST_MULT
-	return 1.0
+		boot = SPEED_BOOST_MULT_EMERGENCY if _is_emergency_run else SPEED_BOOST_MULT
+	var pad := 1.0
+	if _pad_burst_until_d > track_distance:
+		pad = PAD_BURST_MULT_RELAY if _is_relay_mission() else PAD_BURST_MULT
+	return maxf(boot, pad)
 
 func _wall_run_speed_mult() -> float:
 	if not _is_wall_running():
@@ -3982,20 +4095,9 @@ func _update_runner_sky_presentation(_delta: float) -> void:
 		var light_pulse := 0.93 + 0.07 * sin(elapsed * 0.62 + prog * 3.2)
 		sun.light_energy = _base_sun_energy * light_pulse
 		if _is_relay_mission():
-			var cool := Color(0.36, 0.62, 0.98)
-			var spark := Color(0.55, 0.82, 1.00)
-			match _mission_id_str():
-				"mission_relay_e2":
-					cool = Color(0.28, 0.70, 1.00)
-					spark = Color(0.42, 0.86, 1.00)
-				"mission_relay_e3":
-					cool = Color(0.78, 0.36, 0.86)
-					spark = Color(0.96, 0.48, 0.90)
-				"mission_relay_e4":
-					cool = Color(0.42, 0.78, 1.00)
-					spark = Color(0.72, 0.92, 1.00)
-			var spark_mix := 0.22 + 0.12 * sin(elapsed * 0.38 + prog * 2.4)
-			sun.light_color = cool.lerp(spark, spark_mix)
+			# 只微脉冲能量，颜色保持近白，避免把 runner/建筑染成天空色
+			sun.light_energy = _base_sun_energy * (0.94 + 0.08 * sin(elapsed * 0.48 + prog * 2.1))
+			sun.light_color = _base_sun_color
 		elif _mission_id_str() == "mission_reservoir_02":
 			sun.rotation_degrees = Vector3(-48.0 + sun_sway * 0.4, 28.0 + prog * 8.0, 0.0)
 			var rose := Color(0.98, 0.70, 0.78)
@@ -4045,51 +4147,25 @@ func _update_runner_sky_presentation(_delta: float) -> void:
 
 
 func _apply_relay_nightscape_atmosphere_tint(env: Environment, prog: float, phase: float) -> void:
-	# 参考居民穹顶 H1：近处冷暗、远处渐亮，地平线微青与天色拉开层次
-	var near_cool := Color(0.18, 0.24, 0.38)
-	var far_tint := Color(0.28, 0.42, 0.62)
-	var horizon_glow := Color(0.36, 0.56, 0.82)
-	match _mission_id_str():
-		"mission_relay_e2":
-			near_cool = Color(0.16, 0.26, 0.42)
-			far_tint = Color(0.24, 0.46, 0.72)
-			horizon_glow = Color(0.32, 0.62, 0.94)
-		"mission_relay_e3":
-			near_cool = Color(0.22, 0.18, 0.32)
-			far_tint = Color(0.40, 0.24, 0.52)
-			horizon_glow = Color(0.66, 0.36, 0.76)
-		"mission_relay_e4":
-			near_cool = Color(0.18, 0.28, 0.44)
-			far_tint = Color(0.26, 0.44, 0.70)
-			horizon_glow = Color(0.38, 0.66, 0.96)
-	var far_mix := clampf(prog * 1.06 + 0.08, 0.0, 1.0)
-	var pulse := 0.5 + 0.5 * sin(phase * 0.68 + prog * 3.8)
-	env.fog_light_color = _base_fog_light_color.lerp(near_cool, 0.08).lerp(far_tint, far_mix * 0.38)
-	env.fog_light_color = env.fog_light_color.lerp(horizon_glow, (1.0 - far_mix) * 0.06 + pulse * 0.02)
-	env.ambient_light_color = _base_ambient_light_color.lerp(near_cool, 0.06).lerp(
-		far_tint.lightened(0.10),
-		far_mix * 0.28
-	)
-	env.fog_density = lerpf(_base_fog_density, _base_fog_density * (1.08 + far_mix * 0.18), 0.08)
-	env.fog_aerial_perspective = lerpf(
-		env.fog_aerial_perspective,
-		clampf(0.12 + far_mix * 0.04, 0.10, 0.16),
+	# 水源一式：不重染雾/环境光；只做轻微能量脉冲，保住本色与明暗
+	if env.fog_enabled:
+		env.fog_enabled = false
+	env.fog_aerial_perspective = 0.0
+	env.ambient_light_color = _base_ambient_light_color
+	env.ambient_light_energy = lerpf(
+		env.ambient_light_energy,
+		_base_ambient_light_energy * (0.96 + 0.04 * sin(phase * 0.55 + prog * 1.6)),
 		0.08
 	)
 	if env.glow_enabled:
-		env.glow_intensity = 0.12 + 0.06 * pulse
-		env.glow_strength = 0.30 + 0.08 * pulse
+		var pulse := 0.5 + 0.5 * sin(phase * 0.68 + prog * 3.8)
+		env.glow_intensity = 0.08 + 0.04 * pulse
+		env.glow_strength = 0.24 + 0.05 * pulse
 	var sun := get_node_or_null("RunnerSun") as DirectionalLight3D
 	if sun:
-		var cool := Color(0.42, 0.62, 0.92)
-		var accent := Color(0.78, 0.38, 0.82)
-		match _mission_id_str():
-			"mission_relay_e2":
-				accent = Color(0.34, 0.72, 1.0)
-			"mission_relay_e4":
-				accent = Color(0.48, 0.78, 1.0)
-		sun.light_color = cool.lerp(accent, far_mix * 0.42)
-		sun.light_energy = _base_sun_energy * lerpf(0.94, 0.76, far_mix)
+		# 能量随里程微变，颜色锁在基准近白光
+		sun.light_color = _base_sun_color
+		sun.light_energy = _base_sun_energy * (0.94 + 0.08 * sin(phase * 0.48 + prog * 2.1))
 
 
 func _apply_relay_atmosphere_tint(env: Environment, phase: float) -> void:
@@ -4243,6 +4319,94 @@ func _is_relay_mission() -> bool:
 	if String(Global.runner_location_id) == "relay":
 		return true
 	return String(mission.get("mission_id", "")).begins_with("mission_relay")
+
+
+func _is_full_track_rain() -> bool:
+	if String(mission.get("weather", "")).to_lower() == "rain":
+		return true
+	return _mission_id_str() == "mission_relay_rain"
+
+
+func _is_rain_weather() -> bool:
+	# 全图雨、分段毒雨、或本局已启用雨效
+	if _rain_active:
+		return true
+	return _is_full_track_rain()
+
+
+func _relay_disables_fog() -> bool:
+	# 中继站默认关雾；启用毒雨（全图或分段）时保留薄雾
+	return _is_relay_mission() and not _rain_active
+
+
+func _rain_zones() -> Array:
+	if not _cached_rain_zones.is_empty():
+		return _cached_rain_zones
+	var out: Array = []
+	var mission_zones: Variant = mission.get("rain_zones", [])
+	if typeof(mission_zones) == TYPE_ARRAY:
+		for raw in mission_zones:
+			if typeof(raw) == TYPE_DICTIONARY:
+				out.append(ObstacleLayout.normalize_rain_zone(raw))
+	var layout_id := _runner_layout_id()
+	if layout_id != "":
+		for raw in ObstacleLayout.load_rain_zones(layout_id):
+			if typeof(raw) == TYPE_DICTIONARY:
+				out.append(raw)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("start", 0.0)) < float(b.get("start", 0.0))
+	)
+	_cached_rain_zones = out
+	return _cached_rain_zones
+
+
+func _rain_zone_at(distance: float) -> Dictionary:
+	for zone in _rain_zones():
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 60.0))
+		if distance >= start and distance <= start + length:
+			return zone
+	return {}
+
+
+func _is_in_rain_hazard_at(distance: float) -> bool:
+	if not _rain_active:
+		return false
+	if _rain_full_track:
+		return true
+	return not _rain_zone_at(distance).is_empty()
+
+
+func _current_rain_intensity() -> float:
+	var base := clampf(float(mission.get("rain_intensity", 1.0)), 0.35, 1.6)
+	if _rain_full_track:
+		return base
+	var zone := _rain_zone_at(track_distance)
+	if zone.is_empty():
+		return 0.0
+	return clampf(float(zone.get("intensity", base)), 0.35, 1.6)
+
+
+func _generate_random_rain_zones(count: int = 1) -> Array:
+	var track_end := maxf(maxf(_path_length, _track_length) * 0.88, 180.0)
+	var out: Array = []
+	var cursor := 80.0 + _rain_puddle_rng.randf_range(0.0, 40.0)
+	for _i in range(maxi(count, 1)):
+		if cursor + 50.0 >= track_end:
+			break
+		var length := _rain_puddle_rng.randf_range(55.0, 110.0)
+		var start := cursor + _rain_puddle_rng.randf_range(0.0, 30.0)
+		if start + length > track_end:
+			length = maxf(track_end - start, 40.0)
+		out.append(ObstacleLayout.normalize_rain_zone({
+			"start": start,
+			"length": length,
+			"intensity": _rain_puddle_rng.randf_range(0.75, 1.15),
+			"label": "突发毒雨",
+			"rain_kind": "toxic",
+		}))
+		cursor = start + length + _rain_puddle_rng.randf_range(90.0, 160.0)
+	return out
 
 
 func _mission_id_str() -> String:
@@ -4896,13 +5060,6 @@ func _make_wall_tut_pit_warning(distance: float) -> Node3D:
 	gate.mesh = box
 	gate.position.y = 0.12
 	root.add_child(gate)
-	var label := Label3D.new()
-	label.text = "坍塌坑 · 上侧墙"
-	label.font_size = 52
-	label.modulate = Color(1.0, 0.55, 0.25)
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = Vector3(0.0, 2.4, 0.0)
-	root.add_child(label)
 	return root
 
 func _wall_tut_side_name(zone: Dictionary) -> String:
@@ -5397,6 +5554,12 @@ func _inject_sparse_runway_obstacles() -> void:
 			elif otype == "meteorite":
 				item["span"] = 2.15 if pi % 2 == 0 else 1.85
 				item["fall_roll"] = (pi % 3) != 1
+				if bool(item.get("fall_roll", false)):
+					var spd_rng := RandomNumberGenerator.new()
+					spd_rng.seed = int(fill_d * 7.0) + lane * 13 + pi * 5
+					item["meteor_fall_speed"] = spd_rng.randf_range(12.0, 30.0)
+					item["fall_height"] = spd_rng.randf_range(11.0, 19.0)
+					item["roll_speed"] = spd_rng.randf_range(-6.2, -4.0)
 			elif otype == "orb":
 				item["orb_size"] = "medium"
 				item["orb_tint"] = _reservoir_orb_tint_at(fill_d) if _is_reservoir_location() else "purple"
@@ -5547,40 +5710,106 @@ func _inject_finish_sprint_orb_gauntlet() -> void:
 		d += 5.4
 
 
-func _inject_side_runway_wave_arc_obstacles() -> void:
-	# 侧墙用高对比跳栏 / 滑梁，不再刷看不清的粉紫拱门
+func _resolve_lava_crossing_conflicts() -> void:
+	# 熔岩过法互斥：平台跳 / 侧墙跑 段不得再叠加速垫或误放弹射垫
+	# 真正的「弹射过熔岩」垫（launch_cross）保留在 open_gaps 入口
+	var blocked: Array[Vector2] = []
+	for raw in _layout_obstacle_items_raw():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "main_block":
+			continue
+		if int(item.get("layer", 0)) != 0:
+			continue
+		var center := float(item.get("distance", 0.0))
+		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		var mode := _main_block_cross_mode(item)
+		if mode == "platform":
+			blocked.append(Vector2(center - half - 22.0, center + half + 12.0))
+		elif mode == "side_wall":
+			blocked.append(Vector2(center - half - 14.0, center + half + 10.0))
+	for zone in _raw_side_runway_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var zstart := float(zone.get("start", 0.0))
+		var zlen := float(zone.get("length", 55.0))
+		var entry := float(zone.get("entry_window", 10.0))
+		blocked.append(Vector2(zstart - entry - 6.0, zstart + zlen + 6.0))
+	if blocked.is_empty():
+		return
+	for i in range(_launch_pads.size() - 1, -1, -1):
+		var pad: Dictionary = _launch_pads[i]
+		# 过熔岩弹射垫不参与互斥剔除（由关卡 JSON 与 open_gaps 配对）
+		if bool(pad.get("launch_cross", false)):
+			continue
+		var at := float(pad.get("distance", 0.0))
+		for band: Vector2 in blocked:
+			if at >= band.x and at <= band.y:
+				_launch_pads.remove_at(i)
+				break
+
+
+func _pad_is_speed_only(pad: Dictionary) -> bool:
+	return bool(pad.get("speed_boost", false)) and not bool(pad.get("launch_cross", false))
+
+
+func _inject_side_runway_speed_boosts() -> void:
+	# 侧墙跑道只放加速靴，不放跳栏/滑梁
+	var boost_index := collectibles.size()
 	for zone in _side_runway_zones():
 		if typeof(zone) != TYPE_DICTIONARY:
 			continue
 		var start := float(zone.get("start", 0.0))
 		var length := float(zone.get("length", 70.0))
 		var entry := float(zone.get("entry_window", 12.0))
-		var span := maxf(length - entry * 0.65, 18.0)
-		var specs: Array[Dictionary] = [
-			{"t": 0.28, "type": "jump"},
-			{"t": 0.52, "type": "slide"},
-			{"t": 0.76, "type": "jump"},
-		]
-		for spec in specs:
-			var dist: float = start + entry + span * float(spec.get("t", 0.5))
+		var span := maxf(length - entry * 0.55, 14.0)
+		var count := 2 if length <= 38.0 else 3
+		for j in count:
+			var t := (float(j) + 1.0) / float(count + 1)
+			var dist := start + entry + span * t
+			if dist >= _track_length - 24.0:
+				continue
 			var crowded := false
-			for obstacle in obstacles:
-				if int(obstacle.get("layer", 0)) != WALL_RUN_LAYER:
+			for c in collectibles:
+				if String(c.get("kind", "")) != "speed_boost":
 					continue
-				if absf(float(obstacle.get("distance", 0.0)) - dist) < 8.0:
+				if int(c.get("layer", 0)) != WALL_RUN_LAYER:
+					continue
+				if absf(float(c.get("distance", 0.0)) - dist) < 7.0:
 					crowded = true
 					break
 			if crowded:
 				continue
-			var item: Dictionary = {
-				"distance": dist,
-				"lane": 0,
-				"type": String(spec.get("type", "jump")),
-				"layer": WALL_RUN_LAYER,
-			}
-			if String(item["type"]) == "slide":
-				item["low_slide"] = true
-			_register_obstacle(item)
+			var lane := 0 if j % 2 == 0 else 1
+			var y := _wall_lane_height_for_lane_value(lane) + 0.42
+			_register_collectible_data(lane, dist, y, WALL_RUN_LAYER, "speed_boost")
+			boost_index += 1
+
+
+func _purge_side_wall_collision_obstacles() -> void:
+	var keep: Array = []
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != WALL_RUN_LAYER:
+			keep.append(obstacle)
+			continue
+		var otype := String(obstacle.get("type", ""))
+		if otype in ["ramp", "turn_left", "turn_right", "main_block"]:
+			keep.append(obstacle)
+			continue
+		var node := obstacle.get("node") as Node3D
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	obstacles.clear()
+	for o in keep:
+		obstacles.append(o)
+	_obstacle_scan_index = 0
+
+
+func _inject_side_runway_wave_arc_obstacles() -> void:
+	pass
 
 func _junction_overlaps_y_fork(zone: Dictionary) -> bool:
 	var start := float(zone.get("distance", 0.0))
@@ -5773,6 +6002,10 @@ func _place_obstacle_node(obstacle: Dictionary, _reposition_only: bool = false) 
 
 func _finish_run() -> void:
 	is_finished = true
+	if _energy_chaser != null:
+		_energy_chaser.stop_chase()
+	if _chase_overlay != null:
+		_chase_overlay.visible = false
 	_close_settlement_pause()
 	get_tree().paused = false
 	_play_player_animation("celebrate")
@@ -5890,7 +6123,17 @@ func _apply_mission_unlocks() -> void:
 	Global.sync_mission_dispatch(Global.runner_planet_id)
 
 func _fail_run(reason: String = "被零潮捕获") -> void:
+	if _is_chaser_capture_reason(reason) and not _capture_settlement_ready:
+		_begin_capture_cinematic(reason)
+		return
 	is_failed = true
+	_capture_cinematic_active = false
+	if _energy_chaser != null and _energy_chaser.state != EnergyChaserController.ChaseState.CAPTURED:
+		_energy_chaser.stop_chase()
+	if _chase_overlay != null:
+		_chase_overlay.visible = false
+	if _capture_swallow != null:
+		_capture_swallow.visible = false
 	_close_settlement_pause()
 	get_tree().paused = false
 	_clear_sky_cheer_danmaku()
@@ -5943,8 +6186,8 @@ func _fail_reason_en(reason: String) -> String:
 		return "DELIVERY LOST"
 	if text.contains("时间") or text.contains("限时"):
 		return "TIME OUT"
-	if text.contains("零潮") or text.contains("追上"):
-		return "ZERO TIDE CAUGHT YOU"
+	if text.contains("零潮") or text.contains("追上") or text.contains("吞没") or text.contains("异能"):
+		return "ZERO TIDE CONSUMED YOU"
 	if text.contains("坑") or text.contains("熔岩") or text.contains("坍塌"):
 		return "ROUTE FAILED"
 	return text.to_upper()
@@ -6082,6 +6325,19 @@ func _cargo_fragility_mult() -> float:
 	return 1.0
 
 
+func _toxic_rain_cargo_hit_mult() -> float:
+	## 毒雨段内：碰撞货物完整度损失额外 +10%（可用 rain_cargo_hit_mult 覆盖）
+	if not _is_in_rain_hazard_at(track_distance):
+		return 1.0
+	var zone := _rain_zone_at(track_distance)
+	var kind := String(mission.get("rain_kind", "toxic")).to_lower()
+	if not zone.is_empty():
+		kind = String(zone.get("rain_kind", kind)).to_lower()
+	if kind == "clean":
+		return 1.0
+	return clampf(float(mission.get("rain_cargo_hit_mult", 1.1)), 1.0, 2.0)
+
+
 func _cargo_damage_for_smash_obstacle(obstacle: Dictionary) -> float:
 	var otype := String(obstacle.get("type", ""))
 	var tier := float(SMASH_CARGO_TIER.get(otype, 1.0))
@@ -6109,7 +6365,7 @@ func _cargo_damage_for_smash_obstacle(obstacle: Dictionary) -> float:
 			tier *= 1.0
 		else:
 			tier *= 0.82
-	var dmg := SMASH_CARGO_BASE * tier * _cargo_fragility_mult() * Global.get_cargo_damage_multiplier()
+	var dmg := SMASH_CARGO_BASE * tier * _cargo_fragility_mult() * Global.get_cargo_damage_multiplier() * _toxic_rain_cargo_hit_mult()
 	return clampf(dmg, SMASH_CARGO_DAMAGE_MIN, SMASH_CARGO_DAMAGE_MAX)
 
 
@@ -6440,7 +6696,10 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 		return
 	strike_count += 1
 	strike_recovery_timer = 0.0
-	chaser_distance = maxf(chaser_distance - CHASER_HIT_PENALTY, CHASER_CATCH_DISTANCE)
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		pass
+	else:
+		chaser_distance = maxf(chaser_distance - _chaser_hit_penalty(), CHASER_CATCH_DISTANCE)
 	var rushing := _is_fork_rushing()
 	var smash := _uses_smash_collision() and _can_smash_obstacle(obstacle)
 	if smash and not _obstacle_has_meaningful_visual(obstacle):
@@ -6449,7 +6708,7 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 		_smash_hit_count += 1
 		_apply_smash_body_impact(_is_large_smash_obstacle_entry(obstacle))
 		run_score += 18
-		var cargo_dmg := _smash_cargo_damage
+		var cargo_dmg := _smash_cargo_damage * _toxic_rain_cargo_hit_mult()
 		_apply_cargo_loss(cargo_dmg)
 		var hp_lost := Global.apply_runner_hp_loss(SMASH_RUNNER_HP_DAMAGE)
 		var impact_pos := player.global_position + Vector3(0.0, 1.7, 0.0) if player else Vector3.ZERO
@@ -6463,7 +6722,10 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 		_shatter_obstacle(obstacle)
 		if is_failed:
 			return
-		if chaser_distance <= CHASER_CATCH_DISTANCE and _chaser_enabled:
+		if _pressure_chaser_enabled and _energy_chaser != null:
+			_energy_chaser.notify_hit(true)
+			chaser_distance = _energy_chaser.get_visual_gap()
+		elif chaser_distance <= CHASER_CATCH_DISTANCE and _chaser_enabled:
 			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
 			return
 		var toast := "撞碎障碍 · 货物 -%0.0f%%（%d/%d）" % [
@@ -6485,7 +6747,7 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 	chaser_pulse = 1.0
 	var tier := float(STRIKE_DAMAGE_TIER.get(obstacle_type, 1.0))
 	var fragility := _cargo_fragility_mult()
-	var damage: float = float(LevelConfig.CARGO_DAMAGE_PER_HIT) * tier * Global.get_cargo_damage_multiplier() * fragility
+	var damage: float = float(LevelConfig.CARGO_DAMAGE_PER_HIT) * tier * Global.get_cargo_damage_multiplier() * fragility * _toxic_rain_cargo_hit_mult()
 	if rushing:
 		damage *= FORK_RUSH_DAMAGE_MULT
 	var intensity: int = HitFeedback.Intensity.MEDIUM
@@ -6504,7 +6766,11 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 	_pulse_obstacle_hit_visual(obstacle)
 	if is_failed:
 		return
-	if chaser_distance <= CHASER_CATCH_DISTANCE:
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		var severe := rushing or intensity == HitFeedback.Intensity.HEAVY
+		_energy_chaser.notify_hit(severe)
+		chaser_distance = _energy_chaser.get_visual_gap()
+	elif chaser_distance <= CHASER_CATCH_DISTANCE:
 		if _chaser_enabled:
 			_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
 		return
@@ -6558,27 +6824,70 @@ func _show_strike_warning(reason: String) -> void:
 	var color := Color(0.55, 0.88, 1.0, 1.0) if tip.contains("防护罩") else Color(1.0, 0.55, 0.35, 1.0)
 	_show_runway_combat_tip(tip, color)
 
+func _chaser_hit_penalty() -> float:
+	if _is_relay_mission():
+		return CHASER_RELAY_HIT_PENALTY
+	return CHASER_HIT_PENALTY
+
+
+func _chaser_repulse(amount: float) -> void:
+	if not _chaser_enabled:
+		return
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		# 加速靴 / 稳定器：减压，映射方案中的 stabilizer ≈ -15
+		var relief := 15.0 if amount >= CHASER_BOOST_REPULSE * 0.5 else 8.0
+		_energy_chaser.reward_clean_play(relief)
+		chaser_distance = _energy_chaser.get_visual_gap()
+		return
+	chaser_distance = minf(chaser_distance + maxf(amount, 0.0), CHASER_MAX_DISTANCE)
+
+
 func _update_chaser(delta: float) -> void:
 	if not _chaser_enabled:
 		return
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		chaser_distance = _energy_chaser.get_visual_gap()
+		if _energy_chaser.state == EnergyChaserController.ChaseState.CRITICAL:
+			camera_shake = maxf(camera_shake, 0.08 + _energy_chaser.get_normalized_pressure() * 0.06)
+		if strike_count > 0:
+			strike_recovery_timer += delta
+			if strike_recovery_timer >= STRIKE_RECOVERY_TIME:
+				strike_count = 0
+				strike_recovery_timer = 0.0
+		return
 	var creep_mult := clampf(float(_mission_profile.get("chaser_creep_mult", 1.0)), 0.5, 2.0)
+	if _is_relay_mission():
+		creep_mult *= CHASER_RELAY_CREEP_SCALE
 	chaser_distance = maxf(chaser_distance - CHASER_BASE_CREEP * creep_mult * delta, CHASER_CATCH_DISTANCE)
 	if strike_count > 0:
 		strike_recovery_timer += delta
 		if strike_recovery_timer >= STRIKE_RECOVERY_TIME:
 			strike_count = 0
 			strike_recovery_timer = 0.0
-	elif chaser_distance < CHASER_MAX_DISTANCE:
-		chaser_distance = minf(chaser_distance + CHASER_RECOVERY_RATE * delta, CHASER_MAX_DISTANCE)
+	else:
+		var recovery := CHASER_RECOVERY_RATE
+		if _speed_boost_timer > 0.0 or _finish_sprint_timer > 0.0 or _is_fork_rushing():
+			recovery *= CHASER_BOOST_RECOVERY_MULT
+		if chaser_distance < CHASER_MAX_DISTANCE:
+			chaser_distance = minf(chaser_distance + recovery * delta, CHASER_MAX_DISTANCE)
 
 func _check_chaser_caught() -> void:
 	if not _chaser_enabled:
+		return
+	if _pressure_chaser_enabled:
 		return
 	if chaser_distance <= CHASER_CATCH_DISTANCE:
 		_fail_run("%s 追上了你" % LevelConfig.CHASER_NAME)
 
 func _update_pre_run(delta: float) -> void:
 	intro_elapsed += delta
+	if _pressure_chaser_enabled and _energy_chaser != null and is_intro:
+		# 开局：压迫冻结为 0，只展示潮体；后侧反打驱动镜头
+		_energy_chaser.pressure = 0.0
+		_energy_chaser._clean_timer = 0.0
+		_energy_chaser.preview_gap = CHASER_REAR_PREVIEW_GAP
+		_update_chaser_rear_intro(delta)
+		chaser_distance = _energy_chaser.get_visual_gap()
 	if pre_run_phase == "loading":
 		intro_title.text = "Preparing Route..."
 		intro_body.text = "正在规划运输路线…"
@@ -6592,6 +6901,8 @@ func _update_pre_run(delta: float) -> void:
 
 	if pre_run_phase == "countdown":
 		countdown_timer += delta
+		if _chaser_enabled and not _pressure_chaser_enabled:
+			_chaser_intro_look = maxf(_chaser_intro_look - delta * 0.22, 0.35)
 		intro_title.text = str(countdown_step)
 		intro_body.text = _pre_run_briefing_text()
 		if countdown_timer >= PRE_RUN_COUNTDOWN_STEP:
@@ -6601,8 +6912,10 @@ func _update_pre_run(delta: float) -> void:
 				is_intro = false
 				gameplay_active = true
 				intro_panel.visible = false
+				_chaser_intro_look = 0.0
 				_set_player_intro_facing(false)
 				_schedule_sky_cheer_danmaku()
+				_finish_chaser_rear_intro()
 				if _chaser_enabled:
 					call_deferred("_show_chaser_intro")
 				_overweight_intro_pending = _is_overweight_cargo()
@@ -6612,7 +6925,227 @@ func _update_pre_run(delta: float) -> void:
 					_show_gate_toast("防御包 · 防护罩 +%d" % int(DEFENSE_CARGO_START_SHIELD))
 				_overweight_run_tip_shown = false
 				call_deferred("_try_show_overweight_intro_tip")
+				if _is_rain_weather():
+					call_deferred("_show_rain_intro")
 		return
+
+
+func _chaser_rear_intro_blend() -> float:
+	## 0–0.6 正后 · 0.6–1.8 后侧反打 · 1.8–2.1 平滑回切 · 之后 0
+	if not _pressure_chaser_enabled:
+		return 0.0
+	var t := _chaser_rear_intro_t
+	if t < 0.6:
+		return 0.0
+	if t < 0.85:
+		return _ease_out_cubic(clampf((t - 0.6) / 0.25, 0.0, 1.0))
+	if t < 1.8:
+		return 1.0
+	if t < 1.8 + CHASER_REAR_RETURN_SEC:
+		return 1.0 - _ease_out_cubic(clampf((t - 1.8) / CHASER_REAR_RETURN_SEC, 0.0, 1.0))
+	return 0.0
+
+
+func _update_chaser_rear_intro(delta: float) -> void:
+	if _chaser_rear_intro_played or not _pressure_chaser_enabled:
+		return
+	# 仅在 countdown 阶段推进（loading 时保持正后预览）
+	# 幽影脉冲 / 闪烁由 EnergyChaserController._process 驱动，此处不重复累加
+	if pre_run_phase != "countdown":
+		_chaser_intro_look = 0.0
+		return
+	_chaser_rear_intro_t = minf(_chaser_rear_intro_t + delta, CHASER_REAR_INTRO_TIME)
+	_chaser_intro_look = _chaser_rear_intro_blend()
+	# 1.8s 裂隙脉动闪一次
+	if not _chaser_rear_flash_done and _chaser_rear_intro_t >= 1.8 and _energy_chaser != null:
+		_chaser_rear_flash_done = true
+		_energy_chaser.pulse_flash(0.4)
+		camera_shake = maxf(camera_shake, 0.12)
+
+
+func _finish_chaser_rear_intro() -> void:
+	if not _pressure_chaser_enabled or _energy_chaser == null:
+		return
+	_chaser_rear_intro_played = true
+	_chaser_rear_intro_t = CHASER_REAR_INTRO_TIME
+	_chaser_intro_look = 0.0
+	var start_p := float(mission.get("chaser_initial_pressure", 18.0))
+	_energy_chaser.start_chase(start_p)
+	_energy_chaser.set_physics_process(true)
+	chaser_distance = _energy_chaser.get_visual_gap()
+
+
+func _spawn_tide_wells_for_relay() -> void:
+	## 分叉两路中间空中：紫色大叹号 + Nullfeed；路过缩短间距 25%
+	for well in _tide_wells:
+		var n: Node = well.get("node") as Node
+		if n != null and is_instance_valid(n):
+			n.queue_free()
+	_tide_wells.clear()
+	if not _pressure_chaser_enabled or track_root == null:
+		return
+	var candidates: Array[Dictionary] = []
+	var path_len := maxf(_path_length, _track_length)
+	var mid0 := path_len * 0.22
+	var mid1 := path_len * 0.82
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("distance", 0.0))
+		var length := float(zone.get("length", 70.0))
+		# 两路最开处：分叉中段中线空中
+		var mid_d := start + length * 0.5
+		if mid_d < mid0 or mid_d > mid1:
+			continue
+		candidates.append({"d": mid_d, "spread": float(zone.get("spread", 18.0))})
+	for region in _y_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		var d0 := float(region.get("d_start", -1.0))
+		var d1 := float(region.get("d_end", -1.0))
+		if d0 < 0.0 or d1 < 0.0:
+			continue
+		var mid_d2 := (d0 + d1) * 0.5
+		if mid_d2 < mid0 or mid_d2 > mid1:
+			continue
+		candidates.append({"d": mid_d2, "spread": 14.0})
+	# 个别：最多 2 个
+	var placed: Array[float] = []
+	for c in candidates:
+		if placed.size() >= 2:
+			break
+		var d := float(c.get("d", 0.0))
+		var ok := true
+		for pd in placed:
+			if absf(d - pd) < 100.0:
+				ok = false
+				break
+		if not ok:
+			continue
+		placed.append(d)
+		_tide_wells.append(_make_tide_well(d, float(c.get("spread", 16.0))))
+
+
+func _make_tide_well(distance: float, spread: float = 16.0) -> Dictionary:
+	var root := Node3D.new()
+	root.name = "NullfeedMark_%.0f" % distance
+	track_root.add_child(root)
+
+	# 大紫色叹号（空中 billboard）
+	var bang := Label3D.new()
+	bang.name = "Bang"
+	bang.text = "!"
+	bang.font_size = 220
+	bang.modulate = Color(0.78, 0.42, 1.0, 1.0)
+	bang.outline_size = 28
+	bang.outline_modulate = Color(0.18, 0.04, 0.35, 0.95)
+	bang.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	bang.no_depth_test = true
+	bang.position = Vector3(0.0, 0.0, 0.0)
+	root.add_child(bang)
+
+	var title := Label3D.new()
+	title.name = "NullfeedLabel"
+	title.text = "Nullfeed"
+	title.font_size = 72
+	title.modulate = Color(0.86, 0.62, 1.0, 1.0)
+	title.outline_size = 16
+	title.outline_modulate = Color(0.12, 0.03, 0.28, 0.92)
+	title.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	title.no_depth_test = true
+	title.position = Vector3(0.0, -1.15, 0.0)
+	root.add_child(title)
+
+	# 淡紫光柱：提示空中位置
+	var beam := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.08
+	cyl.bottom_radius = 0.35
+	cyl.height = 3.2
+	cyl.radial_segments = 12
+	var bmat := _make_material(Color(0.45, 0.18, 0.85, 0.22), Color(0.7, 0.35, 1.0), 2.2)
+	bmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cyl.material = bmat
+	beam.mesh = cyl
+	beam.position = Vector3(0.0, -2.2, 0.0)
+	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(beam)
+
+	var light := OmniLight3D.new()
+	light.light_color = Color(0.72, 0.4, 1.0)
+	light.light_energy = 1.6
+	light.omni_range = 8.0
+	light.shadow_enabled = false
+	light.position = Vector3(0.0, 0.2, 0.0)
+	root.add_child(light)
+
+	root.visible = false
+	var placed := _world_on_path(distance, 0.0, GROUND_Y + 4.6)
+	root.global_position = placed["pos"]
+	return {
+		"distance": distance,
+		"spread": spread,
+		"node": root,
+		"collected": false,
+		"shown": false,
+	}
+
+
+func _update_tide_wells(delta: float) -> void:
+	if not _pressure_chaser_enabled or _tide_wells.is_empty():
+		return
+	for well in _tide_wells:
+		if bool(well.get("collected", false)):
+			continue
+		var node := well.get("node") as Node3D
+		if node == null or not is_instance_valid(node):
+			continue
+		var d := float(well.get("distance", 0.0))
+		var placed := _world_on_path(d, 0.0, GROUND_Y + 4.6)
+		node.global_position = placed["pos"]
+		# 接近分叉就显示（两路中间空中）
+		var approach := track_distance > d - 48.0 and track_distance < d + 10.0
+		var show := approach and gameplay_active and not is_intro and not is_failed
+		well["shown"] = show
+		node.visible = show
+		if show:
+			var bob := 1.0 + sin(elapsed * 3.2) * 0.05
+			node.scale = Vector3.ONE * bob
+			var bang := node.get_node_or_null("Bang") as Label3D
+			if bang != null:
+				bang.modulate.a = lerpf(0.75, 1.0, 0.5 + 0.5 * sin(elapsed * 5.0))
+		if not show:
+			continue
+		# 左右岔都会经过中线空中标记：大横向容差
+		var along := absf(track_distance - d)
+		var lat := absf(current_lateral)
+		var half_spread := float(well.get("spread", 16.0)) * 0.55
+		if along <= 3.5 and lat <= maxf(half_spread, 5.5):
+			_collect_tide_well(well)
+
+
+func _collect_tide_well(well: Dictionary) -> void:
+	if bool(well.get("collected", false)):
+		return
+	well["collected"] = true
+	var node := well.get("node") as Node3D
+	if node != null and is_instance_valid(node):
+		node.visible = false
+	if _energy_chaser == null:
+		return
+	var before := _energy_chaser.get_visual_gap()
+	var after := _energy_chaser.shrink_visual_gap(TIDE_WELL_GAP_SHRINK)
+	chaser_distance = after
+	camera_shake = maxf(camera_shake, 0.28)
+	_show_gate_toast("Nullfeed · Nulltide closes in %0.0f→%0.0f m" % [before, after])
+	if strike_toast_label:
+		strike_toast_label.modulate = Color(0.85, 0.45, 1.0, 1.0)
+		strike_toast_timer = 2.4
+
+
+func _ease_out_cubic(t: float) -> float:
+	return 1.0 - pow(1.0 - t, 3.0)
+
 
 func _try_show_overweight_intro_tip() -> void:
 	if not _overweight_intro_pending:
@@ -6632,13 +7165,19 @@ func _try_show_overweight_intro_tip() -> void:
 	else:
 		_show_gate_toast("建设包：单击短跳 · 快速双击满跳")
 
-func _ease_out_cubic(t: float) -> float:
-	return 1.0 - pow(1.0 - t, 3.0)
-
 func _show_chaser_intro() -> void:
 	if not _chaser_enabled or not gameplay_active or is_failed or is_finished:
 		return
-	_show_gate_toast("零潮追猎 · 别让它追上你")
+	if _pressure_chaser_enabled:
+		if _energy_chaser != null and not _energy_chaser.is_active:
+			var start_p := float(mission.get("chaser_initial_pressure", 18.0))
+			_energy_chaser.start_chase(start_p)
+		_show_gate_toast("Nulltide on your trail · pads ease the pressure")
+		strike_toast_label.modulate = Color(0.78, 0.62, 1.0, 1.0)
+		strike_toast_timer = 2.8
+		return
+	var intro_dist := CHASER_RELAY_INTRO_START if _is_relay_mission() else CHASER_INTRO_START
+	_show_gate_toast("%s on your trail · stay %0.0f m ahead" % [LevelConfig.CHASER_NAME, intro_dist])
 	strike_toast_label.modulate = Color(0.78, 0.62, 1.0, 1.0)
 	strike_toast_timer = 2.6
 
@@ -6646,23 +7185,41 @@ func _show_chaser_intro() -> void:
 func _sync_chaser_from_track() -> void:
 	if not chaser:
 		return
-	if not _chaser_enabled or not gameplay_active or is_finished or is_failed:
+	var intro_show := is_intro and _chaser_enabled and _world_ready and not is_finished
+	var run_show := _chaser_enabled and gameplay_active and not is_finished and not is_failed
+	var capture_show := _capture_cinematic_active
+	if not (intro_show or run_show or capture_show):
 		chaser.visible = false
 		if _chaser_trail:
 			_chaser_trail.emitting = false
 		return
 	var chase_dist := maxf(chaser_distance, 1.2)
+	if intro_show and _pressure_chaser_enabled:
+		# 反打时略拉近潮体，保证入画可读
+		chase_dist = lerpf(CHASER_REAR_PREVIEW_GAP, 8.2, _chaser_intro_look)
+		if _energy_chaser != null:
+			_energy_chaser.preview_gap = chase_dist
+			_energy_chaser.preview_boost = lerpf(0.75, 1.0, _chaser_intro_look)
+	elif capture_show:
+		chase_dist = lerpf(chase_dist, 0.8, clampf(_capture_cinematic_t / CAPTURE_CINEMATIC_TIME, 0.0, 1.0))
 	var back_d := track_distance - chase_dist
 	var sample := _sample_path(back_d)
 	var base_y := float((sample.get("pos") as Vector3).y) if sample.has("pos") else GROUND_Y
 	var placed := _world_on_path(back_d, CHASER_LATERAL_OFFSET, base_y + CHASER_FLOAT_HEIGHT)
-	chaser.global_position = placed["pos"]
 	var player_ahead := _world_on_path(track_distance + 2.0, current_lateral, player.position.y if player else base_y)
-	var to_player: Vector3 = (player_ahead["pos"] as Vector3) - chaser.global_position
+	var to_player: Vector3 = (player_ahead["pos"] as Vector3) - (placed["pos"] as Vector3)
 	to_player.y = 0.0
+	var face_yaw := 0.0
 	if to_player.length_squared() > 0.04:
-		var face_yaw := atan2(to_player.x, to_player.z)
-		chaser.rotation = Vector3(deg_to_rad(10.0), face_yaw, 0.0)
+		face_yaw = atan2(to_player.x, to_player.z)
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		# 自然追击：只设锚点，由 Wraith 指数平滑 + 悬浮/下摆完成动态
+		_energy_chaser.set_chase_target(placed["pos"] as Vector3, face_yaw)
+		chaser.scale = Vector3.ONE
+		chaser.visible = true
+		return
+	chaser.global_position = placed["pos"]
+	chaser.rotation = Vector3(deg_to_rad(4.0), face_yaw, 0.0)
 	var danger := 1.0 - clampf(chaser_distance / CHASER_MAX_DISTANCE, 0.0, 1.0)
 	var vis_scale := lerpf(0.52, CHASER_VISUAL_SCALE, 0.35 + danger * 0.65)
 	chaser.scale = Vector3.ONE * vis_scale
@@ -7293,7 +7850,8 @@ func _build_world() -> void:
 	var environment := Environment.new()
 	_configure_runner_sky(environment, theme)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.fog_enabled = not _uses_reservoir_sky_dome()
+	# 水源一关雾；中继站默认关雾（雨天试验除外）
+	environment.fog_enabled = not (_uses_reservoir_sky_dome() or _relay_disables_fog())
 	environment.glow_enabled = false
 	world.environment = environment
 	_world_environment = world
@@ -7318,11 +7876,15 @@ func _build_world() -> void:
 	_apply_background_environment()
 	_apply_road_style_environment()
 	_apply_mission_environment()
+	_setup_rain_weather()
 	if _world_environment and _world_environment.environment:
 		var env := _world_environment.environment
-		if _uses_reservoir_sky_dome():
+		if _uses_reservoir_sky_dome() or _relay_disables_fog():
 			env.fog_enabled = false
 			env.fog_aerial_perspective = 0.0
+		elif _is_rain_weather():
+			env.fog_enabled = true
+			env.fog_aerial_perspective = maxf(env.fog_aerial_perspective, 0.08)
 		_base_fog_density = env.fog_density
 		_base_fog_light_color = env.fog_light_color
 		_base_ambient_light_color = env.ambient_light_color
@@ -7409,19 +7971,21 @@ func _configure_runner_sun(sun: DirectionalLight3D, theme: Dictionary) -> void:
 		sun.light_color = Color(0.62, 0.82, 1.0)
 		sun.light_energy = 0.55
 	elif _is_relay_mission():
+		# 近白方向光：靠明暗分面，不把本色染成天空色
 		match _mission_id_str():
 			"mission_relay_e2":
-				sun.light_color = Color(0.32, 0.72, 1.00)
-				sun.light_energy = 0.90
+				sun.light_color = Color(0.94, 0.82, 0.80)
+				sun.light_energy = 1.70
 			"mission_relay_e3":
-				sun.light_color = Color(0.72, 0.42, 0.82)
-				sun.light_energy = 0.88
+				sun.light_color = Color(0.82, 0.92, 0.88)
+				sun.light_energy = 1.72
 			"mission_relay_e4":
-				sun.light_color = Color(0.48, 0.78, 1.00)
-				sun.light_energy = 0.96
+				sun.light_color = Color(0.82, 0.88, 0.98)
+				sun.light_energy = 1.74
 			_:
-				sun.light_color = Color(0.38, 0.58, 0.96)
-				sun.light_energy = 0.82
+				sun.light_color = Color(0.86, 0.84, 0.94)
+				sun.light_energy = 1.68
+		sun.rotation_degrees = Vector3(-52, 35, 0)
 	else:
 		sun.light_color = theme.get("sun_color", Color(0.96, 0.82, 0.62))
 		sun.light_energy = float(theme.get("sun_energy", 1.85 if _background_style_id == "desert_crystal" else 2.4))
@@ -7490,7 +8054,8 @@ func _configure_relay_panorama_sky(sky: Sky) -> void:
 	panorama.energy_multiplier = _relay_panorama_energy()
 	sky.sky_material = panorama
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
-	sky.radiance_size = Sky.RADIANCE_SIZE_2048
+	# 跟水源一一样用较低辐照度分辨率，避免天空色洗到地面和建筑
+	sky.radiance_size = Sky.RADIANCE_SIZE_256
 
 
 func _relay_mission_sky_pano() -> Texture2D:
@@ -7684,11 +8249,11 @@ func _bake_relay_mission_sky() -> Texture2D:
 func _relay_night_haze_color() -> Color:
 	match _mission_id_str():
 		"mission_relay_e2":
-			return Color(0.28, 0.32, 0.52)
+			return Color(0.48, 0.18, 0.22)
 		"mission_relay_e3":
-			return Color(0.38, 0.26, 0.46)
+			return Color(0.14, 0.36, 0.34)
 		"mission_relay_e4":
-			return Color(0.30, 0.34, 0.54)
+			return Color(0.16, 0.28, 0.50)
 	return Color(0.26, 0.28, 0.44)
 
 
@@ -7696,17 +8261,9 @@ func _apply_relay_nightscape_look(root: Node3D, depth_tier: int = 1) -> void:
 	if not _is_relay_mission() or root == null:
 		return
 	depth_tier = clampi(depth_tier, 0, 2)
-	var haze := _relay_night_haze_color()
-	var met_caps: Array[float] = [0.03, 0.06, 0.10]
-	var rough_mins: Array[float] = [0.68, 0.56, 0.46]
-	var rough_maxs: Array[float] = [0.90, 0.80, 0.72]
-	var albedo_keep: Array[float] = [0.68, 0.78, 0.88]
-	var rim_strength: Array[float] = [0.22, 0.28, 0.34]
-	var haze_mixes: Array[float] = [0.34, 0.42, 0.50]
-	var met_cap := met_caps[depth_tier]
-	var rough_min := rough_mins[depth_tier]
-	var rough_max := rough_maxs[depth_tier]
-	var haze_mix := haze_mixes[depth_tier]
+	# 水源一式：关雾染色、保留贴图本色；仅轻微压暗 + 方向光吃到明暗
+	var albedo_keep: Array[float] = [0.88, 0.94, 0.98]
+	var keep := albedo_keep[depth_tier]
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := node as MeshInstance3D
 		if mesh_instance.mesh == null:
@@ -7718,36 +8275,15 @@ func _apply_relay_nightscape_look(root: Node3D, depth_tier: int = 1) -> void:
 			if not mat is StandardMaterial3D:
 				continue
 			var dup := (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
-			dup.metallic_texture = null
-			dup.roughness_texture = null
-			dup.orm_texture = null
-			dup.metallic = minf(dup.metallic, met_cap)
-			dup.roughness = clampf(maxf(dup.roughness, rough_min), rough_min, rough_max)
-			dup.metallic_specular = 0.32
+			dup.disable_fog = true
+			dup.metallic = minf(dup.metallic, 0.22)
+			dup.roughness = clampf(dup.roughness, 0.28, 0.82)
+			dup.metallic_specular = 0.45
 			dup.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
 			dup.clearcoat_enabled = false
+			dup.rim_enabled = false
 			var base := dup.albedo_color
-			var faded := Color(
-				lerpf(base.r, haze.r, haze_mix),
-				lerpf(base.g, haze.g, haze_mix),
-				lerpf(base.b, haze.b, haze_mix),
-				base.a
-			)
-			dup.albedo_color = Color(
-				faded.r * albedo_keep[depth_tier],
-				faded.g * albedo_keep[depth_tier],
-				faded.b * albedo_keep[depth_tier],
-				base.a
-			)
-			dup.rim_enabled = true
-			dup.rim = rim_strength[depth_tier]
-			dup.rim_tint = 0.58
-			if dup.emission_enabled:
-				dup.emission_energy_multiplier = clampf(
-					dup.emission_energy_multiplier * lerpf(0.62, 0.88, float(depth_tier) / 2.0),
-					0.10,
-					1.35
-				)
+			dup.albedo_color = Color(base.r * keep, base.g * keep, base.b * keep, base.a)
 			mesh_instance.set_surface_override_material(surface_i, dup)
 
 
@@ -8076,18 +8612,30 @@ func _apply_background_environment() -> void:
 			_boost_runner_lights(Color(1.0, 0.82, 0.52), 2.5, 0.6)
 		"desert_crystal":
 			if _is_relay_mission():
-				# 星火中继站：分层雾 + 略亮环境，让全景光带和远景都能融进大气
-				env.ambient_light_color = Color(0.22, 0.24, 0.38)
-				env.ambient_light_energy = 0.48
-				env.fog_light_color = Color(0.20, 0.26, 0.44)
-				env.fog_density = 0.00066
-				env.fog_aerial_perspective = 0.15
-				env.glow_enabled = true
-				env.glow_intensity = 0.16
-				env.glow_strength = 0.34
-				env.glow_bloom = 0.06
-				env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-				env.tonemap_exposure = 0.92
+				if _is_rain_weather():
+					# 轻微湿冷压暗；几乎不染绿，避免角色/障碍发绿
+					env.ambient_light_color = Color(0.42, 0.44, 0.46)
+					env.ambient_light_energy = 0.64
+					env.fog_enabled = true
+					env.fog_light_color = Color(0.30, 0.33, 0.36)
+					env.fog_density = 0.00072
+					env.fog_aerial_perspective = 0.07
+					env.glow_enabled = false
+					env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+					env.tonemap_exposure = 0.98
+					_boost_runner_lights(Color(0.80, 0.82, 0.86), 1.05, 0.42)
+				else:
+					# 对齐水源一：中性环境光 + 关雾染色 + 强方向光吃明暗
+					env.ambient_light_color = Color(0.48, 0.46, 0.54)
+					env.ambient_light_energy = 0.72
+					env.fog_enabled = false
+					env.fog_light_color = Color(0.32, 0.30, 0.40)
+					env.fog_density = 0.00028
+					env.fog_aerial_perspective = 0.0
+					env.glow_enabled = false
+					env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+					env.tonemap_exposure = 1.06
+					_boost_runner_lights(Color(0.88, 0.86, 0.94), 1.68, 0.52)
 			else:
 				# 晶砂荒原：琥珀夕照 + 紫灰薄雾，避免纯黄洗屏
 				env.ambient_light_color = Color(0.48, 0.44, 0.56)
@@ -8132,6 +8680,8 @@ func _apply_mission_environment_overrides(env: Environment) -> void:
 		env.fog_density = float(overrides["fog_density"])
 	if overrides.has("fog_aerial_perspective"):
 		env.fog_aerial_perspective = float(overrides["fog_aerial_perspective"])
+	if overrides.has("fog_enabled"):
+		env.fog_enabled = bool(overrides["fog_enabled"])
 	if overrides.has("ambient"):
 		env.ambient_light_color = overrides["ambient"]
 	if overrides.has("ambient_energy"):
@@ -8167,31 +8717,12 @@ func _make_desert_surroundings_material() -> Material:
 	if ResourceLoader.exists(tex_path):
 		mat.set_shader_parameter("ground_tex", load(tex_path) as Texture2D)
 	if String(Global.runner_location_id) == "relay":
-		match _mission_id_str():
-			"mission_relay_e2":
-				mat.set_shader_parameter("sand_tint", Color(0.08, 0.12, 0.22))
-				mat.set_shader_parameter("warm_tint", Color(0.16, 0.32, 0.52))
-				mat.set_shader_parameter("cool_shadow", Color(0.04, 0.06, 0.14))
-				mat.set_shader_parameter("dust_veil", Color(0.10, 0.16, 0.28))
-				mat.set_shader_parameter("tone_warmth", 0.04)
-			"mission_relay_e3":
-				mat.set_shader_parameter("sand_tint", Color(0.12, 0.06, 0.16))
-				mat.set_shader_parameter("warm_tint", Color(0.36, 0.12, 0.32))
-				mat.set_shader_parameter("cool_shadow", Color(0.06, 0.03, 0.10))
-				mat.set_shader_parameter("dust_veil", Color(0.18, 0.08, 0.22))
-				mat.set_shader_parameter("tone_warmth", 0.08)
-			"mission_relay_e4":
-				mat.set_shader_parameter("sand_tint", Color(0.08, 0.14, 0.24))
-				mat.set_shader_parameter("warm_tint", Color(0.22, 0.38, 0.58))
-				mat.set_shader_parameter("cool_shadow", Color(0.04, 0.08, 0.16))
-				mat.set_shader_parameter("dust_veil", Color(0.12, 0.20, 0.32))
-				mat.set_shader_parameter("tone_warmth", 0.05)
-			_:
-				mat.set_shader_parameter("sand_tint", Color(0.06, 0.08, 0.16))
-				mat.set_shader_parameter("warm_tint", Color(0.12, 0.18, 0.36))
-				mat.set_shader_parameter("cool_shadow", Color(0.03, 0.04, 0.10))
-				mat.set_shader_parameter("dust_veil", Color(0.08, 0.10, 0.20))
-				mat.set_shader_parameter("tone_warmth", 0.03)
+		# 据点同款暖沙贴图，整体压暗；保持 W1 暖色色相，不随天空变色
+		mat.set_shader_parameter("sand_tint", Color(0.52, 0.40, 0.28))
+		mat.set_shader_parameter("warm_tint", Color(0.50, 0.32, 0.20))
+		mat.set_shader_parameter("cool_shadow", Color(0.26, 0.16, 0.11))
+		mat.set_shader_parameter("dust_veil", Color(0.44, 0.32, 0.22))
+		mat.set_shader_parameter("tone_warmth", 0.40)
 	elif _is_dome_h1_mission() or bool(_mission_visual_scene().get("dark_ground", false)):
 		# 居民穹顶 H1：湿暗废墟地面，近处偏褐、远处偏紫灰
 		mat.set_shader_parameter("sand_tint", Color(0.18, 0.14, 0.13))
@@ -8529,6 +9060,787 @@ func _make_sandstorm_grit_particles() -> GPUParticles3D:
 	particles.draw_pass_1 = draw
 	return particles
 
+
+func _setup_rain_weather() -> void:
+	_cached_rain_zones.clear()
+	ObstacleLayout.clear_root_cache(_runner_layout_id())
+	_rain_full_track = false
+	_rain_intro_shown = false
+	_rain_enter_toast_cd = 0.0
+	_clear_rain_corrosive_puddles()
+	_rain_puddle_spawn_accum = 0.0
+	_rain_puddle_next_d = -1.0
+	_rain_puddle_hit_cd = 0.0
+	_rain_puddle_rng.seed = hash(_mission_id_str() + "_toxic_puddle_v2")
+	_rain_intensity = clampf(float(mission.get("rain_intensity", 1.0)), 0.35, 1.6)
+
+	var zones: Array = _rain_zones()
+	var enable := false
+	if _is_full_track_rain():
+		enable = true
+		# 全图雨：无分段则整段生效；有分段则只在分段内
+		_rain_full_track = zones.is_empty()
+	elif not zones.is_empty():
+		enable = true
+		_rain_full_track = false
+	else:
+		# 其他关卡可随机出现毒雨段（mission.rain_chance，默认 0.12；显式 0 关闭）
+		var chance := float(mission.get("rain_chance", -1.0))
+		if chance < 0.0:
+			chance = 0.0 if _is_relay_mission() else 0.12
+		if chance > 0.0 and _rain_puddle_rng.randf() < clampf(chance, 0.0, 1.0):
+			var n := 1 if _rain_puddle_rng.randf() < 0.65 else 2
+			_cached_rain_zones = _generate_random_rain_zones(n)
+			enable = not _cached_rain_zones.is_empty()
+			_rain_full_track = false
+			if enable:
+				mission["rain_kind"] = String(mission.get("rain_kind", "toxic"))
+				mission["rain_cargo_hit_mult"] = float(mission.get("rain_cargo_hit_mult", 1.1))
+
+	_rain_active = enable
+	if not _rain_active:
+		return
+	_rain_particles = _make_rain_streak_particles()
+	add_child(_rain_particles)
+	_rain_soft_particles = _make_rain_soft_droplet_particles()
+	add_child(_rain_soft_particles)
+	_rain_splash_particles = _make_rain_splash_particles()
+	add_child(_rain_splash_particles)
+	_rain_particles.emitting = false
+	_rain_soft_particles.emitting = false
+	_rain_splash_particles.emitting = false
+	# 若开局已在雨段内，预铺少量水洼
+	if _is_in_rain_hazard_at(track_distance + 18.0):
+		for i in 2:
+			var at_d := track_distance + 18.0 + float(i) * 22.0
+			if _is_in_rain_hazard_at(at_d):
+				_spawn_rain_corrosive_puddle(at_d)
+
+
+func _show_rain_intro() -> void:
+	if not _rain_active or not gameplay_active or _rain_intro_shown:
+		return
+	if not _rain_full_track and not _is_in_rain_hazard_at(track_distance):
+		return
+	_rain_intro_shown = true
+	_show_gate_toast("Toxic rain · dodge acid puddles")
+	strike_toast_label.text = "→ Toxic rain segment · jump / change lane"
+	strike_toast_label.modulate = Color(0.62, 0.88, 0.48, 1.0)
+	strike_toast_timer = 3.0
+
+
+func _clear_rain_corrosive_puddles() -> void:
+	for entry in _rain_puddles:
+		var node: Node = entry.get("node") as Node
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_rain_puddles.clear()
+
+
+func _update_rain_corrosive_puddles(delta: float) -> void:
+	if not _rain_active:
+		return
+	if is_finished or is_failed:
+		for entry in _rain_puddles:
+			var n: Node3D = entry.get("node") as Node3D
+			if n != null and is_instance_valid(n):
+				n.visible = false
+		return
+	# 按路程预铺：仅在毒雨段前方落下酸性积液（熔岩区 / 侧墙不生成）
+	_rain_enter_toast_cd = maxf(0.0, _rain_enter_toast_cd - delta)
+	if gameplay_active and not is_intro and _is_in_rain_hazard_at(track_distance):
+		if not _rain_intro_shown and _rain_enter_toast_cd <= 0.0:
+			_show_rain_intro()
+		if _rain_puddle_next_d < 0.0:
+			_rain_puddle_next_d = track_distance + 10.0
+		while track_distance + 42.0 >= _rain_puddle_next_d:
+			if not _is_in_rain_hazard_at(_rain_puddle_next_d):
+				_rain_puddle_next_d += _rain_puddle_rng.randf_range(4.0, 8.0)
+				continue
+			var spawned := _spawn_rain_corrosive_puddle(_rain_puddle_next_d)
+			if spawned:
+				_rain_puddle_next_d += _rain_puddle_rng.randf_range(18.0, 28.0)
+			else:
+				_rain_puddle_next_d += _rain_puddle_rng.randf_range(6.0, 10.0)
+
+	_rain_puddle_hit_cd = maxf(_rain_puddle_hit_cd - delta, 0.0)
+	var standing_in := false
+	var contact_node: Node3D = null
+	var i := 0
+	while i < _rain_puddles.size():
+		var entry: Dictionary = _rain_puddles[i]
+		var node: Node3D = entry.get("node") as Node3D
+		if node == null or not is_instance_valid(node):
+			_rain_puddles.remove_at(i)
+			continue
+		var puddle_d := float(entry.get("distance", 0.0))
+		var life := float(entry.get("life", 0.0)) - delta
+		entry["life"] = life
+		if puddle_d < track_distance - 8.0 or life <= 0.0:
+			node.queue_free()
+			_rain_puddles.remove_at(i)
+			continue
+		var lateral := float(entry.get("lateral", 0.0))
+		var radius := float(entry.get("radius", 1.15))
+		var hit_r := float(entry.get("hit_radius", radius * 0.9))
+		var placed := _world_on_path(puddle_d, lateral, GROUND_Y + 0.02)
+		node.global_position = placed["pos"] as Vector3
+		# 保留生成时的 yaw 抖动，只叠路径朝向
+		node.rotation = Vector3(0.0, float(placed.get("yaw", 0.0)) + float(entry.get("yaw_jitter", 0.0)), 0.0)
+		var age := float(entry.get("max_life", life)) - life
+		var appear := clampf((age - 0.08) / 0.45, 0.0, 1.0)
+		_set_acid_puddle_appear(node, appear)
+		var near := absf(track_distance - puddle_d) <= 5.5 and absf(current_lateral - lateral) <= LANE_WIDTH * 0.85
+		_pulse_acid_puddle_reaction(entry, age, near)
+
+		var along := absf(track_distance - puddle_d)
+		var lat_gap := absf(current_lateral - lateral)
+		var in_zone := along <= hit_r and lat_gap <= hit_r * 0.92
+		var airborne_safe := (not _is_on_ground()) and player != null and player.position.y > _ground_y_at(track_distance) + 0.55
+		if (
+			in_zone
+			and not airborne_safe
+			and not _is_wall_running()
+			and track_layer == 0
+			and gameplay_active
+			and not is_intro
+		):
+			standing_in = true
+			contact_node = node
+		_rain_puddles[i] = entry
+		i += 1
+
+	if standing_in and _rain_puddle_hit_cd <= 0.0 and gameplay_active and not is_intro:
+		_rain_puddle_hit_cd = float(mission.get("rain_puddle_tick", 0.38))
+		var dmg := float(mission.get("rain_puddle_damage", 4.5))
+		dmg *= Global.get_cargo_damage_multiplier() * _cargo_fragility_mult() * _toxic_rain_cargo_hit_mult()
+		_apply_cargo_loss(dmg)
+		if contact_node != null:
+			_burst_acid_puddle_contact(contact_node)
+		if is_failed:
+			return
+		camera_shake = maxf(camera_shake, 0.08)
+		if _hit_feedback != null and player != null:
+			_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.6, 0.0), dmg, "毒雨腐蚀")
+		_show_strike_warning("毒雨腐蚀 · 换道或跳起躲开")
+		strike_toast_label.modulate = Color(0.72, 0.62, 0.42, 1.0)
+
+
+func _rain_puddle_allowed_at(at_distance: float, lateral: float) -> bool:
+	# 熔岩坑 / 熔岩平台排除带：不生成积液
+	if _is_in_main_block_pit(at_distance):
+		return false
+	if _is_distance_in_lava_platform_exclusion(at_distance):
+		return false
+	if _is_distance_in_lava_crossing_clear_zone(at_distance):
+		return false
+	if _is_in_any_open_pit(at_distance):
+		return false
+	# 侧墙 / 侧跑道段：不在墙侧与坑侧生成
+	var wall_z: Dictionary = _side_runway_wall_zone_at(at_distance)
+	if not wall_z.is_empty():
+		return false
+	var side_z: Dictionary = _side_runway_zone_at(at_distance)
+	if not side_z.is_empty():
+		return false
+	# 限制在主路三道内，避免贴到路肩/侧坡
+	if absf(lateral) > LANE_WIDTH * 1.05:
+		return false
+	return true
+
+
+func _set_acid_puddle_appear(root: Node3D, appear: float) -> void:
+	if root == null:
+		return
+	var fade_out := 1.0 - clampf(appear, 0.0, 1.0)
+	for child in root.get_children():
+		if child is GeometryInstance3D:
+			(child as GeometryInstance3D).transparency = fade_out
+
+
+func _make_acid_puddle_mat(color: Color, rough: float = 0.82, metallic: float = 0.04, emit_energy: float = 0.0) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.albedo_color = color
+	mat.roughness = rough
+	mat.metallic = metallic
+	mat.disable_fog = true
+	if emit_energy > 0.0:
+		mat.emission_enabled = true
+		mat.emission = Color(color.r * 0.55, color.g * 0.62, color.b * 0.4, 1.0)
+		mat.emission_energy_multiplier = emit_energy
+	return mat
+
+
+func _add_acid_disc(parent: Node3D, radius: float, y: float, mat: Material, disc_name: String) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = disc_name
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = 0.014
+	mesh.radial_segments = 28
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.position = Vector3(0.0, y, 0.0)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mi
+
+
+func _build_irregular_acid_blob_mesh(radius: float, segments: int = 26, jagged: float = 0.34) -> ArrayMesh:
+	# 顶视不规则积液轮廓：低频瓣形 + 高频毛边，避免完美圆贴画
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var phase_a := _rain_puddle_rng.randf() * TAU
+	var phase_b := _rain_puddle_rng.randf() * TAU
+	var phase_c := _rain_puddle_rng.randf() * TAU
+	var amp_a := jagged * _rain_puddle_rng.randf_range(0.45, 0.85)
+	var amp_b := jagged * _rain_puddle_rng.randf_range(0.25, 0.55)
+	var amp_c := jagged * _rain_puddle_rng.randf_range(0.12, 0.32)
+	var pts: Array[Vector3] = []
+	for i in segments:
+		var t := (float(i) / float(segments)) * TAU
+		var wobble := 1.0 \
+			+ amp_a * sin(t * 2.0 + phase_a) \
+			+ amp_b * sin(t * 3.0 + phase_b) \
+			+ amp_c * sin(t * 5.0 + phase_c) \
+			+ _rain_puddle_rng.randf_range(-jagged * 0.18, jagged * 0.18)
+		wobble = clampf(wobble, 0.52, 1.48)
+		pts.append(Vector3(cos(t) * radius * wobble, 0.0, sin(t) * radius * wobble))
+	var nrm := Vector3.UP
+	for i in segments:
+		var a: Vector3 = pts[i]
+		var b: Vector3 = pts[(i + 1) % segments]
+		st.set_normal(nrm)
+		st.add_vertex(Vector3.ZERO)
+		st.set_normal(nrm)
+		st.add_vertex(a)
+		st.set_normal(nrm)
+		st.add_vertex(b)
+	return st.commit()
+
+
+func _add_acid_blob(parent: Node3D, radius: float, y: float, mat: Material, blob_name: String, jagged: float = 0.34) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = blob_name
+	mi.mesh = _build_irregular_acid_blob_mesh(radius, 24 + _rain_puddle_rng.randi_range(0, 8), jagged)
+	mi.material_override = mat
+	mi.position = Vector3(0.0, y, 0.0)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mi
+
+
+func _pulse_acid_puddle_reaction(entry: Dictionary, age: float, near: bool) -> void:
+	var pulse: float = 0.55 + 0.45 * sin(age * 2.2)
+	var wave_pulse: float = 0.5 + 0.5 * sin(age * 3.1 + 0.8)
+	var near_boost: float = 1.4 if near else 1.0
+	var patches: Array = entry.get("reaction_patches", []) as Array
+	for p in patches:
+		if not (p is MeshInstance3D):
+			continue
+		var mi := p as MeshInstance3D
+		if not is_instance_valid(mi):
+			continue
+		var mat := mi.material_override as StandardMaterial3D
+		if mat == null:
+			continue
+		mat.emission_enabled = true
+		mat.emission_energy_multiplier = (0.1 + 0.18 * pulse) * near_boost
+	var waves: Array = entry.get("wave_patches", []) as Array
+	for w in waves:
+		if not (w is MeshInstance3D):
+			continue
+		var wmi := w as MeshInstance3D
+		if not is_instance_valid(wmi):
+			continue
+		var wmat := wmi.material_override as StandardMaterial3D
+		if wmat == null:
+			continue
+		wmat.emission_enabled = true
+		wmat.emission_energy_multiplier = (0.35 + 0.55 * wave_pulse) * near_boost
+		var c := wmat.albedo_color
+		c.a = clampf(0.28 + 0.22 * wave_pulse, 0.22, 0.55)
+		wmat.albedo_color = c
+
+
+func _burst_acid_puddle_contact(root: Node3D) -> void:
+	if root == null or not is_instance_valid(root):
+		return
+	var burst := GPUParticles3D.new()
+	burst.emitting = true
+	burst.one_shot = true
+	burst.amount = 12
+	burst.lifetime = 0.5
+	burst.explosiveness = 0.88
+	burst.visibility_aabb = AABB(Vector3(-2, -0.5, -2), Vector3(4, 2, 4))
+	var mat := ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	mat.emission_sphere_radius = 0.48
+	mat.direction = Vector3(0, 1, 0)
+	mat.spread = 48.0
+	mat.initial_velocity_min = 0.25
+	mat.initial_velocity_max = 0.95
+	mat.gravity = Vector3(0, -1.4, 0)
+	mat.scale_min = 0.035
+	mat.scale_max = 0.09
+	mat.color = Color(0.71, 0.83, 0.43, 0.45)
+	burst.process_material = mat
+	var dm := SphereMesh.new()
+	dm.radius = 0.03
+	dm.height = 0.06
+	var dmat := StandardMaterial3D.new()
+	dmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dmat.albedo_color = Color(0.62, 0.76, 0.4, 0.48)
+	dmat.emission_enabled = true
+	dmat.emission = Color(0.48, 0.62, 0.28, 1.0)
+	dmat.emission_energy_multiplier = 0.4
+	dm.material = dmat
+	burst.draw_pass_1 = dm
+	burst.position = Vector3(0.0, 0.06, 0.0)
+	root.add_child(burst)
+	get_tree().create_timer(0.7).timeout.connect(func() -> void:
+		if is_instance_valid(burst):
+			burst.queue_free()
+	)
+
+
+func _spawn_rain_corrosive_puddle(at_distance: float) -> bool:
+	if track_root == null:
+		return false
+	for entry in _rain_puddles:
+		if absf(float(entry.get("distance", -999.0)) - at_distance) < 9.0:
+			return false
+	var lane := int(LANES[_rain_puddle_rng.randi() % LANES.size()])
+	var lateral := float(lane) * LANE_WIDTH
+	if _rain_puddle_rng.randf() < 0.28:
+		lateral += _rain_puddle_rng.randf_range(-0.35, 0.35)
+	lateral = clampf(lateral, -LANE_WIDTH * 1.0, LANE_WIDTH * 1.0)
+	if not _rain_puddle_allowed_at(at_distance, lateral):
+		return false
+
+	# 大小拉开：小 / 中 / 大，避免同一贴画尺寸
+	var size_roll := _rain_puddle_rng.randf()
+	var radius: float
+	if size_roll < 0.34:
+		radius = _rain_puddle_rng.randf_range(0.62, 0.95)
+	elif size_roll < 0.78:
+		radius = _rain_puddle_rng.randf_range(1.05, 1.55)
+	else:
+		radius = _rain_puddle_rng.randf_range(1.7, 2.25)
+	var hit_radius := radius * _rain_puddle_rng.randf_range(0.86, 0.92)
+	var life := _rain_puddle_rng.randf_range(7.5, 11.0)
+	var root := Node3D.new()
+	root.name = "ToxicAcidPuddle"
+	track_root.add_child(root)
+
+	var yaw_jitter := _rain_puddle_rng.randf_range(-0.9, 0.9)
+	# 更强椭圆拉伸，轮廓彼此不像
+	var squash_x := _rain_puddle_rng.randf_range(0.62, 1.38)
+	var squash_z := _rain_puddle_rng.randf_range(0.58, 1.42)
+
+	# Layer A: 不规则浊酸底液（略提亮）
+	var base_col := Color(0.24, 0.36, 0.26, 0.68)
+	_add_acid_blob(root, radius, 0.016, _make_acid_puddle_mat(base_col, 0.88, 0.03), "BaseLiquid", _rain_puddle_rng.randf_range(0.28, 0.42))
+
+	# 1～3 个偏移小瓣，进一步打碎圆形
+	var lobe_n := _rain_puddle_rng.randi_range(1, 3)
+	for _li in range(lobe_n):
+		var lang := _rain_puddle_rng.randf() * TAU
+		var ldist := radius * _rain_puddle_rng.randf_range(0.28, 0.72)
+		var lr := radius * _rain_puddle_rng.randf_range(0.22, 0.52)
+		var lobe_col := Color(0.3, 0.42, 0.3, 0.58)
+		var lobe := _add_acid_blob(root, lr, 0.015, _make_acid_puddle_mat(lobe_col, 0.9, 0.03), "BaseLobe", _rain_puddle_rng.randf_range(0.3, 0.48))
+		lobe.position = Vector3(cos(lang) * ldist, lobe.position.y, sin(lang) * ldist)
+		lobe.rotation.y = _rain_puddle_rng.randf() * TAU
+		lobe.scale = Vector3(_rain_puddle_rng.randf_range(0.55, 1.35), 1.0, _rain_puddle_rng.randf_range(0.5, 1.3))
+
+	# Layer B: 浑浊覆盖（另一套不规则）
+	var murk_col := Color(0.42, 0.6, 0.42, 0.36)
+	var murk := _add_acid_blob(
+		root,
+		radius * _rain_puddle_rng.randf_range(0.72, 0.92),
+		0.024,
+		_make_acid_puddle_mat(murk_col, 0.8, 0.03),
+		"MurkyOverlay",
+		_rain_puddle_rng.randf_range(0.26, 0.4)
+	)
+	murk.rotation.y = _rain_puddle_rng.randf_range(0.0, TAU)
+	murk.scale = Vector3(_rain_puddle_rng.randf_range(0.75, 1.2), 1.0, _rain_puddle_rng.randf_range(0.7, 1.25))
+
+	# Layer C: 稀疏反应斑
+	var reaction_patches: Array = []
+	var patch_n := _rain_puddle_rng.randi_range(2, 4)
+	for _pi in range(patch_n):
+		var ang := _rain_puddle_rng.randf() * TAU
+		var dist := radius * _rain_puddle_rng.randf_range(0.18, 0.8)
+		var pr := radius * _rain_puddle_rng.randf_range(0.06, 0.15)
+		var use_violet := _rain_puddle_rng.randf() < 0.3
+		var pc: Color
+		if use_violet:
+			pc = Color(0.45, 0.34, 0.52, 0.3)
+		else:
+			pc = Color(0.78, 0.9, 0.5, 0.34)
+		var pmat := _make_acid_puddle_mat(pc, 0.55, 0.06, 0.32)
+		var pmi := _add_acid_blob(root, pr, 0.032 + _rain_puddle_rng.randf_range(0.0, 0.008), pmat, "ReactionPatch", 0.38)
+		pmi.position = Vector3(cos(ang) * dist, pmi.position.y, sin(ang) * dist)
+		pmi.rotation.y = _rain_puddle_rng.randf() * TAU
+		pmi.scale = Vector3(_rain_puddle_rng.randf_range(0.55, 1.4), 1.0, _rain_puddle_rng.randf_range(0.45, 1.25))
+		reaction_patches.append(pmi)
+
+	# 局部亮水波：细长亮纹，轻轻呼吸，不要整滩均匀发亮
+	var wave_patches: Array = []
+	var wave_n := _rain_puddle_rng.randi_range(2, 4)
+	for _wi in range(wave_n):
+		var wang := _rain_puddle_rng.randf() * TAU
+		var wdist := radius * _rain_puddle_rng.randf_range(0.12, 0.7)
+		var wr := radius * _rain_puddle_rng.randf_range(0.14, 0.28)
+		var wave_col := Color(0.82, 0.96, 0.58, 0.4)
+		if _rain_puddle_rng.randf() < 0.22:
+			wave_col = Color(0.72, 0.88, 0.62, 0.36)
+		var wmat := _make_acid_puddle_mat(wave_col, 0.35, 0.12, 0.55)
+		var wave := _add_acid_blob(root, wr, 0.036 + _rain_puddle_rng.randf_range(0.0, 0.01), wmat, "BrightWave", 0.22)
+		wave.position = Vector3(cos(wang) * wdist, wave.position.y, sin(wang) * wdist)
+		wave.rotation.y = wang + _rain_puddle_rng.randf_range(-0.4, 0.4) + PI * 0.5
+		# 拉成长条水波纹
+		wave.scale = Vector3(
+			_rain_puddle_rng.randf_range(1.35, 2.2),
+			1.0,
+			_rain_puddle_rng.randf_range(0.22, 0.42)
+		)
+		wave_patches.append(wave)
+
+	# 湿边薄晕：同样不规则，不要圆描边
+	var rim_col := Color(0.34, 0.48, 0.34, 0.2)
+	var rim := _add_acid_blob(root, radius * 1.08, 0.012, _make_acid_puddle_mat(rim_col, 0.92, 0.02), "SoftRim", 0.36)
+	rim.rotation.y = _rain_puddle_rng.randf() * TAU
+
+	# 贴地边缘溅射光粒：雨滴打在水圈四周，向外微溅（不是高飘）
+	var rim_splash := GPUParticles3D.new()
+	rim_splash.name = "RimGroundSplash"
+	rim_splash.emitting = true
+	rim_splash.amount = clampi(int(8.0 + radius * 3.0), 8, 14)
+	rim_splash.lifetime = 0.38
+	rim_splash.explosiveness = 0.05
+	rim_splash.randomness = 0.7
+	rim_splash.visibility_aabb = AABB(Vector3(-3.5, -0.4, -3.5), Vector3(7, 2.2, 7))
+	var splash_mat := ParticleProcessMaterial.new()
+	splash_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	splash_mat.emission_ring_axis = Vector3(0, 1, 0)
+	splash_mat.emission_ring_height = 0.04
+	splash_mat.emission_ring_radius = radius * 1.02
+	splash_mat.emission_ring_inner_radius = radius * 0.88
+	splash_mat.direction = Vector3(0, 1, 0)
+	splash_mat.spread = 62.0
+	splash_mat.initial_velocity_min = 0.35
+	splash_mat.initial_velocity_max = 1.05
+	splash_mat.gravity = Vector3(0, -3.2, 0)
+	splash_mat.damping_min = 1.2
+	splash_mat.damping_max = 2.4
+	splash_mat.scale_min = 0.03
+	splash_mat.scale_max = 0.08
+	splash_mat.color = Color(0.86, 0.96, 0.5, 0.78)
+	rim_splash.process_material = splash_mat
+	var splash_mesh := SphereMesh.new()
+	splash_mesh.radius = 0.028
+	splash_mesh.height = 0.056
+	var splash_draw := StandardMaterial3D.new()
+	splash_draw.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	splash_draw.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	splash_draw.albedo_color = Color(0.88, 0.97, 0.52, 0.8)
+	splash_draw.emission_enabled = true
+	splash_draw.emission = Color(0.78, 0.94, 0.38, 1.0)
+	splash_draw.emission_energy_multiplier = 1.55
+	splash_draw.disable_fog = true
+	splash_mesh.material = splash_draw
+	rim_splash.draw_pass_1 = splash_mesh
+	rim_splash.position = Vector3(0.0, 0.03, 0.0)
+	root.add_child(rim_splash)
+
+	# 水面上稀疏雨滴落点（很淡）
+	var rain_impact := GPUParticles3D.new()
+	rain_impact.name = "RainImpactParticles"
+	rain_impact.emitting = true
+	rain_impact.amount = clampi(int(6.0 + radius * 2.0), 6, 10)
+	rain_impact.lifetime = 0.45
+	rain_impact.visibility_aabb = AABB(Vector3(-2.5, -0.3, -2.5), Vector3(5, 2, 5))
+	var impact_mat := ParticleProcessMaterial.new()
+	impact_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	impact_mat.emission_sphere_radius = radius * 0.55
+	impact_mat.direction = Vector3(0, -1, 0)
+	impact_mat.spread = 6.0
+	impact_mat.initial_velocity_min = 0.35
+	impact_mat.initial_velocity_max = 0.9
+	impact_mat.gravity = Vector3(0, -2.2, 0)
+	impact_mat.scale_min = 0.018
+	impact_mat.scale_max = 0.045
+	impact_mat.color = Color(0.75, 0.88, 0.45, 0.4)
+	rain_impact.process_material = impact_mat
+	var rmesh := SphereMesh.new()
+	rmesh.radius = 0.02
+	rmesh.height = 0.04
+	var rdraw := StandardMaterial3D.new()
+	rdraw.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rdraw.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	rdraw.albedo_color = Color(0.75, 0.88, 0.45, 0.38)
+	rdraw.emission_enabled = true
+	rdraw.emission = Color(0.58, 0.74, 0.32, 1.0)
+	rdraw.emission_energy_multiplier = 0.35
+	rmesh.material = rdraw
+	rain_impact.draw_pass_1 = rmesh
+	rain_impact.position = Vector3(0.0, 0.28, 0.0)
+	root.add_child(rain_impact)
+
+	# 稀疏气泡（大水坑略多）
+	var bubbles := GPUParticles3D.new()
+	bubbles.name = "BubbleParticles"
+	bubbles.emitting = true
+	bubbles.amount = 4 if radius < 1.1 else (6 if radius < 1.7 else 8)
+	bubbles.lifetime = 1.0
+	bubbles.visibility_aabb = AABB(Vector3(-2.5, -0.2, -2.5), Vector3(5, 2, 5))
+	var bmat := ParticleProcessMaterial.new()
+	bmat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	bmat.emission_sphere_radius = radius * 0.45
+	bmat.direction = Vector3(0, 1, 0)
+	bmat.spread = 10.0
+	bmat.initial_velocity_min = 0.04
+	bmat.initial_velocity_max = 0.14
+	bmat.gravity = Vector3(0, 0.04, 0)
+	bmat.scale_min = 0.025
+	bmat.scale_max = 0.06
+	bmat.color = Color(0.5, 0.68, 0.36, 0.4)
+	bubbles.process_material = bmat
+	var bmesh := SphereMesh.new()
+	bmesh.radius = 0.028
+	bmesh.height = 0.056
+	var bdraw := StandardMaterial3D.new()
+	bdraw.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	bdraw.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bdraw.albedo_color = Color(0.52, 0.68, 0.36, 0.42)
+	bdraw.emission_enabled = true
+	bdraw.emission = Color(0.42, 0.58, 0.26, 1.0)
+	bdraw.emission_energy_multiplier = 0.35
+	bmesh.material = bdraw
+	bubbles.draw_pass_1 = bmesh
+	bubbles.position = Vector3(0.0, 0.04, 0.0)
+	root.add_child(bubbles)
+
+	root.scale = Vector3(squash_x, 1.0, squash_z)
+	var placed := _world_on_path(at_distance, lateral, GROUND_Y + 0.02)
+	root.global_position = placed["pos"] as Vector3
+	root.rotation = Vector3(0.0, float(placed.get("yaw", 0.0)) + yaw_jitter, 0.0)
+	_set_acid_puddle_appear(root, 0.0)
+
+	_rain_puddles.append({
+		"node": root,
+		"distance": at_distance,
+		"lateral": lateral,
+		"radius": radius,
+		"hit_radius": hit_radius,
+		"life": life,
+		"max_life": life,
+		"yaw_jitter": yaw_jitter,
+		"base_scale": root.scale,
+		"reaction_patches": reaction_patches,
+		"wave_patches": wave_patches,
+	})
+	return true
+
+
+func _update_rain_weather(_delta: float) -> void:
+	if not _rain_active:
+		return
+	var anchor: Node3D = player
+	if camera != null and is_instance_valid(camera):
+		anchor = camera
+	if anchor == null:
+		return
+	var pos: Vector3 = anchor.global_position
+	var in_rain := _is_in_rain_hazard_at(track_distance) and not is_finished and not is_failed
+	var dens := clampf(_current_rain_intensity(), 0.0, 1.0)
+	if dens <= 0.01:
+		in_rain = false
+	if _rain_particles != null:
+		_rain_particles.emitting = in_rain
+		_rain_particles.global_position = pos + Vector3(0.0, 8.2, -1.2)
+		_rain_particles.amount_ratio = dens
+	if _rain_soft_particles != null:
+		_rain_soft_particles.emitting = in_rain
+		_rain_soft_particles.global_position = pos + Vector3(0.0, 6.5, -0.6)
+		_rain_soft_particles.amount_ratio = dens * 0.9
+	if _rain_splash_particles != null:
+		_rain_splash_particles.emitting = in_rain
+		var ground_y := pos.y
+		if player != null:
+			ground_y = player.global_position.y
+		_rain_splash_particles.global_position = Vector3(pos.x, ground_y + 0.06, pos.z - 0.8)
+		_rain_splash_particles.amount_ratio = dens * 0.9
+
+
+func _make_rain_draw_mat(albedo: Color, emission: Color, energy: float) -> StandardMaterial3D:
+	var draw_mat := StandardMaterial3D.new()
+	draw_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	draw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	draw_mat.albedo_color = albedo
+	draw_mat.emission_enabled = true
+	draw_mat.emission = emission
+	draw_mat.emission_energy_multiplier = energy
+	draw_mat.disable_fog = true
+	draw_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	draw_mat.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	return draw_mat
+
+
+func _make_rain_streak_particles() -> GPUParticles3D:
+	# 主雨层：胶囊沿速度对齐，像真实雨滴拖影，而非硬细线
+	var particles := GPUParticles3D.new()
+	particles.name = "RainStreaks"
+	particles.amount = int(lerpf(220.0, 360.0, clampf(_rain_intensity, 0.0, 1.0)))
+	particles.lifetime = 0.62
+	particles.preprocess = 0.6
+	particles.randomness = 0.55
+	particles.visibility_aabb = AABB(Vector3(-20, -12, -20), Vector3(40, 32, 40))
+	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mat := ParticleProcessMaterial.new()
+	mat.particle_flag_align_y = true
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mat.emission_box_extents = Vector3(10.0, 0.6, 11.0)
+	mat.direction = Vector3(0.18, -1.0, 0.06)
+	mat.spread = 7.0
+	mat.initial_velocity_min = 16.0
+	mat.initial_velocity_max = 26.0
+	mat.gravity = Vector3(0.8, -36.0, 0.2)
+	mat.damping_min = 0.0
+	mat.damping_max = 0.15
+	mat.scale_min = 0.55
+	mat.scale_max = 1.15
+	mat.color = Color(1, 1, 1, 1)
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.12, 0.7, 1.0])
+	# 雾青橄榄毒雨：半透明，不刺眼荧光绿
+	grad.colors = PackedColorArray([
+		Color(0.52, 0.68, 0.42, 0.0),
+		Color(0.48, 0.70, 0.40, 0.55),
+		Color(0.42, 0.62, 0.36, 0.38),
+		Color(0.36, 0.52, 0.32, 0.0),
+	])
+	var ramp := GradientTexture1D.new()
+	ramp.gradient = grad
+	mat.color_ramp = ramp
+	particles.process_material = mat
+	var draw := CapsuleMesh.new()
+	draw.radius = 0.028
+	draw.height = 0.42
+	draw.radial_segments = 6
+	draw.rings = 2
+	draw.material = _make_rain_draw_mat(
+		Color(0.55, 0.72, 0.45, 0.42),
+		Color(0.40, 0.62, 0.32),
+		0.45
+	)
+	particles.draw_pass_1 = draw
+	return particles
+
+
+func _make_rain_soft_droplet_particles() -> GPUParticles3D:
+	# 近景柔点水珠：补体积感，避免只有线
+	var particles := GPUParticles3D.new()
+	particles.name = "RainSoftDroplets"
+	particles.amount = int(lerpf(70.0, 120.0, clampf(_rain_intensity, 0.0, 1.0)))
+	particles.lifetime = 0.7
+	particles.preprocess = 0.55
+	particles.randomness = 0.7
+	particles.visibility_aabb = AABB(Vector3(-14, -8, -14), Vector3(28, 22, 28))
+	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mat := ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mat.emission_box_extents = Vector3(7.0, 1.2, 7.5)
+	mat.direction = Vector3(0.14, -1.0, 0.05)
+	mat.spread = 10.0
+	mat.initial_velocity_min = 10.0
+	mat.initial_velocity_max = 18.0
+	mat.gravity = Vector3(0.5, -22.0, 0.15)
+	mat.scale_min = 0.35
+	mat.scale_max = 0.85
+	mat.color = Color(1, 1, 1, 1)
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.2, 0.75, 1.0])
+	grad.colors = PackedColorArray([
+		Color(0.58, 0.72, 0.48, 0.0),
+		Color(0.52, 0.68, 0.44, 0.32),
+		Color(0.46, 0.60, 0.40, 0.22),
+		Color(0.40, 0.52, 0.36, 0.0),
+	])
+	var ramp := GradientTexture1D.new()
+	ramp.gradient = grad
+	mat.color_ramp = ramp
+	particles.process_material = mat
+	var draw := SphereMesh.new()
+	draw.radius = 0.045
+	draw.height = 0.1
+	draw.radial_segments = 8
+	draw.rings = 4
+	draw.material = _make_rain_draw_mat(
+		Color(0.58, 0.74, 0.48, 0.28),
+		Color(0.42, 0.58, 0.34),
+		0.28
+	)
+	particles.draw_pass_1 = draw
+	return particles
+
+
+func _make_rain_splash_particles() -> GPUParticles3D:
+	# 落地溅花：短促扁环，比小球更像雨点砸地
+	var particles := GPUParticles3D.new()
+	particles.name = "RainSplashes"
+	particles.amount = int(lerpf(55.0, 110.0, clampf(_rain_intensity, 0.0, 1.0)))
+	particles.lifetime = 0.28
+	particles.preprocess = 0.22
+	particles.randomness = 0.8
+	particles.visibility_aabb = AABB(Vector3(-12, -1, -12), Vector3(24, 5, 24))
+	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mat := ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mat.emission_box_extents = Vector3(6.0, 0.04, 7.0)
+	mat.direction = Vector3(0.0, 1.0, 0.0)
+	mat.spread = 70.0
+	mat.initial_velocity_min = 0.35
+	mat.initial_velocity_max = 1.4
+	mat.gravity = Vector3(0.0, -5.5, 0.0)
+	mat.scale_min = 0.45
+	mat.scale_max = 1.25
+	mat.color = Color(1, 1, 1, 1)
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.18, 0.55, 1.0])
+	grad.colors = PackedColorArray([
+		Color(0.62, 0.78, 0.48, 0.0),
+		Color(0.55, 0.74, 0.42, 0.45),
+		Color(0.48, 0.64, 0.38, 0.2),
+		Color(0.40, 0.52, 0.34, 0.0),
+	])
+	var ramp := GradientTexture1D.new()
+	ramp.gradient = grad
+	mat.color_ramp = ramp
+	particles.process_material = mat
+	var draw := TorusMesh.new()
+	draw.inner_radius = 0.02
+	draw.outer_radius = 0.09
+	draw.rings = 6
+	draw.ring_segments = 10
+	draw.material = _make_rain_draw_mat(
+		Color(0.58, 0.76, 0.46, 0.35),
+		Color(0.44, 0.62, 0.34),
+		0.35
+	)
+	particles.draw_pass_1 = draw
+	return particles
+
+
 func _side_runway_pit_range(zone: Dictionary) -> Vector2:
 	var start := float(zone["start"])
 	var length := float(zone.get("length", 70.0))
@@ -8731,9 +10043,9 @@ func _lava_crossing_clear_zones() -> Array:
 	for pad in _launch_pads:
 		if typeof(pad) != TYPE_DICTIONARY:
 			continue
-		# 仅「过熔岩」弹射（带空中锁）需要大清空；纯加速垫缩小
+		# 过熔岩弹射：大清空；纯加速垫：小清空
 		var at := float(pad.get("distance", 0.0))
-		if bool(pad.get("lock_air_lane", true)) and not bool(pad.get("speed_boost", false)):
+		if bool(pad.get("launch_cross", false)) or (bool(pad.get("lock_air_lane", true)) and not bool(pad.get("speed_boost", false))):
 			zones.append(Vector2(at - 26.0, at + 6.0))
 		else:
 			zones.append(Vector2(at - 8.0, at + 4.0))
@@ -8761,6 +10073,40 @@ func _is_distance_in_lava_crossing_clear_zone(distance: float) -> bool:
 		if distance >= z.x and distance <= z.y:
 			return true
 	return false
+
+
+func _filter_orphan_platform_ramps(items: Array) -> Array:
+	# 侧墙熔岩段不再保留仅供平台跳用的 ramp
+	var side_centers: Array[float] = []
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "main_block":
+			continue
+		if _main_block_cross_mode(item) != "side_wall":
+			continue
+		side_centers.append(float(item.get("distance", 0.0)))
+	if side_centers.is_empty():
+		return items
+	var out: Array = []
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			out.append(raw)
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "ramp":
+			out.append(item)
+			continue
+		var dist := float(item.get("distance", 0.0))
+		var drop := false
+		for center in side_centers:
+			if dist >= center - 36.0 and dist <= center + 2.0:
+				drop = true
+				break
+		if not drop:
+			out.append(item)
+	return out
 
 
 func _filter_obstacles_near_lava_crossings(items: Array) -> Array:
@@ -9087,14 +10433,37 @@ func _try_trigger_launch_pads() -> void:
 		if player.position.y > ground_y + 0.55:
 			continue
 		_triggered_launch_ids[pid] = true
+		var launch_cross := bool(pad.get("launch_cross", false))
+		var speed_only := _pad_is_speed_only(pad)
+		if speed_only:
+			var burst_dist := PAD_BURST_DIST_RELAY if _is_relay_mission() else PAD_BURST_DIST
+			var linger := PAD_LINGER_BOOST_TIME_RELAY if _is_relay_mission() else PAD_LINGER_BOOST_TIME
+			_pad_burst_until_d = track_distance + burst_dist
+			# 爆发后接一段加速靴余韵，体感更明显
+			_speed_boost_timer = maxf(_speed_boost_timer, linger)
+			_chaser_repulse(CHASER_BOOST_REPULSE * 0.85)
+			_refresh_buff_hud()
+			camera_shake = maxf(camera_shake, 0.24)
+			_speed_feel_punch = maxf(_speed_feel_punch, 1.35)
+			_hit_fov_punch = maxf(_hit_fov_punch, 0.48)
+			if trail_particles:
+				trail_particles.amount_ratio = 1.0
+				trail_particles.speed_scale = 3.2
+			_set_trail_color(Color(1.0, 0.82, 0.22, 1.0))
+			var boost_hint := String(pad.get("hint", "")).strip_edges()
+			if boost_hint == "":
+				boost_hint = "Speed Pad · Burst"
+			_show_gate_toast(boost_hint)
+			continue
 		vertical_velocity = maxf(vertical_velocity, float(pad.get("impulse", JUMP_SPEED * 1.45)))
-		_pit_fall_grace = maxf(_pit_fall_grace, 2.2)
+		_pit_fall_grace = maxf(_pit_fall_grace, 1.35)
 		_set_lane(pad_lane + 1)
 		current_lateral = lerpf(current_lateral, pad_lat, 0.55)
 		if bool(pad.get("lock_air_lane", true)):
 			_launch_air_lock_until_d = track_distance + float(pad.get("lock_distance", 28.0))
 		if bool(pad.get("speed_boost", false)):
 			_speed_boost_timer = maxf(_speed_boost_timer, float(pad.get("boost_time", 2.4)))
+			_chaser_repulse(CHASER_BOOST_REPULSE * 0.7)
 			_refresh_buff_hud()
 		camera_shake = maxf(camera_shake, 0.16)
 		var hint := String(pad.get("hint", "")).strip_edges()
@@ -9195,9 +10564,9 @@ func _launch_pad_surface_text(pad: Dictionary) -> String:
 	var custom := String(pad.get("pad_text", "")).strip_edges()
 	if custom != "":
 		return custom
-	if bool(pad.get("speed_boost", false)):
-		return "踩上加速"
-	return "踩上弹射"
+	if _pad_is_speed_only(pad):
+		return "SPEEDUP"
+	return "LAUNCH"
 
 
 func _make_launch_pad_material(albedo: Color, emission: Color, energy: float, metallic: float = 0.42, roughness: float = 0.28) -> StandardMaterial3D:
@@ -9223,7 +10592,7 @@ func _attach_launch_pad_box(parent: Node3D, size: Vector3, pos: Vector3, mat: Ma
 
 
 func _attach_launch_pad_visual(root: Node3D, pad: Dictionary) -> void:
-	# 青白能量板，避免和金币/黄球糊成一块；字贴在板面上
+	# 过熔岩弹射：青白；纯加速：琥珀金，避免误认成弹射
 	var dist := float(pad.get("distance", 0.0))
 	var hd := float(pad.get("half_depth", 1.6))
 	var pad_lane := clampi(int(pad.get("lane", 0)), -1, 1)
@@ -9235,10 +10604,23 @@ func _attach_launch_pad_visual(root: Node3D, pad: Dictionary) -> void:
 	holder.position = placed["pos"]
 	holder.rotation.y = float(placed["yaw"])
 	root.add_child(holder)
-	var base_mat := _make_launch_pad_material(Color(0.05, 0.10, 0.16), Color(0.08, 0.42, 0.55), 0.55, 0.55, 0.38)
-	var glow_mat := _make_launch_pad_material(Color(0.18, 0.82, 0.95), Color(0.22, 0.92, 1.0), 2.15, 0.12, 0.18)
-	var rim_mat := _make_launch_pad_material(Color(0.95, 0.98, 1.0), Color(0.75, 0.95, 1.0), 1.8, 0.08, 0.22)
-	var arrow_mat := _make_launch_pad_material(Color(1.0, 0.96, 0.72), Color(1.0, 0.82, 0.28), 1.65, 0.05, 0.2)
+	var speed_only := _pad_is_speed_only(pad)
+	var base_mat: StandardMaterial3D
+	var glow_mat: StandardMaterial3D
+	var rim_mat: StandardMaterial3D
+	var arrow_mat: StandardMaterial3D
+	if speed_only:
+		base_mat = _make_launch_pad_material(Color(0.14, 0.08, 0.02), Color(0.7, 0.38, 0.06), 0.85, 0.4, 0.42)
+		glow_mat = _make_launch_pad_material(Color(1.0, 0.62, 0.12), Color(1.0, 0.72, 0.18), 2.6, 0.1, 0.18)
+		rim_mat = _make_launch_pad_material(Color(1.0, 0.9, 0.55), Color(1.0, 0.8, 0.3), 1.9, 0.08, 0.2)
+		arrow_mat = _make_launch_pad_material(Color(1.0, 0.95, 0.55), Color(1.0, 0.78, 0.15), 2.0, 0.05, 0.18)
+		hw = LANE_WIDTH * 0.72
+	else:
+		base_mat = _make_launch_pad_material(Color(0.05, 0.10, 0.16), Color(0.08, 0.42, 0.55), 0.55, 0.55, 0.38)
+		glow_mat = _make_launch_pad_material(Color(0.18, 0.82, 0.95), Color(0.22, 0.92, 1.0), 2.15, 0.12, 0.18)
+		rim_mat = _make_launch_pad_material(Color(0.95, 0.98, 1.0), Color(0.75, 0.95, 1.0), 1.8, 0.08, 0.22)
+		arrow_mat = _make_launch_pad_material(Color(1.0, 0.96, 0.72), Color(1.0, 0.82, 0.28), 1.65, 0.05, 0.2)
+		hw = LANE_WIDTH * 0.92
 	_attach_launch_pad_box(holder, Vector3(hw * 2.0, 0.20, hd * 2.0), Vector3(0.0, 0.02, 0.0), base_mat)
 	_attach_launch_pad_box(holder, Vector3(hw * 1.62, 0.05, hd * 1.58), Vector3(0.0, 0.13, 0.0), glow_mat)
 	_attach_launch_pad_box(holder, Vector3(0.08, 0.10, hd * 2.02), Vector3(-hw + 0.05, 0.10, 0.0), rim_mat)
@@ -9248,26 +10630,56 @@ func _attach_launch_pad_visual(root: Node3D, pad: Dictionary) -> void:
 	for i in 3:
 		var z := -hd * 0.42 + float(i) * (hd * 0.38)
 		_attach_launch_pad_box(holder, Vector3(0.42 - float(i) * 0.06, 0.05, 0.22), Vector3(0.0, 0.17, z), arrow_mat)
+	var en := _launch_pad_surface_text(pad)
+	if en in ["", "SPEEDUP", "LAUNCH"]:
+		en = "SPEEDUP" if speed_only else "LAUNCH"
+	# 全据点规则：仅加速垫/弹射垫保留世界字标；上方与垫面只用英文名
+	var face_bg := MeshInstance3D.new()
+	var face_bg_mesh := BoxMesh.new()
+	face_bg_mesh.size = Vector3(hw * 1.35, 0.04, 0.72)
+	var face_bg_mat := StandardMaterial3D.new()
+	face_bg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	face_bg_mat.albedo_color = Color(0.02, 0.03, 0.06, 0.82) if not speed_only else Color(0.12, 0.05, 0.01, 0.85)
+	face_bg_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	face_bg.mesh = face_bg_mesh
+	face_bg.material_override = face_bg_mat
+	face_bg.position = Vector3(0.0, 0.19, hd * 0.12)
+	face_bg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	holder.add_child(face_bg)
 	var face := Label3D.new()
-	face.text = _launch_pad_surface_text(pad)
-	face.font_size = 36
-	face.pixel_size = 0.012
-	face.modulate = Color(1.0, 0.98, 0.88)
-	face.outline_modulate = Color(0.03, 0.08, 0.12)
-	face.outline_size = 10
-	face.position = Vector3(0.0, 0.20, hd * 0.28)
+	face.text = en
+	face.font_size = 64
+	face.pixel_size = 0.016
+	face.modulate = Color(1.0, 0.92, 0.35) if speed_only else Color(0.75, 0.98, 1.0)
+	face.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
+	face.outline_size = 18
+	face.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	face.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	face.position = Vector3(0.0, 0.24, hd * 0.12)
 	face.rotation_degrees = Vector3(-90.0, 180.0, 0.0)
 	face.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	holder.add_child(face)
+	# 悬浮标牌：始终朝向镜头
 	var hover := Label3D.new()
-	hover.text = "左道弹射" if pad_lane < 0 else ("右道弹射" if pad_lane > 0 else "弹射")
-	hover.font_size = 34
-	hover.modulate = Color(0.72, 0.96, 1.0)
-	hover.outline_modulate = Color(0.04, 0.10, 0.16)
-	hover.outline_size = 8
-	hover.position = Vector3(0.0, 1.05, 0.0)
+	hover.text = en
+	hover.modulate = Color(1.0, 0.9, 0.28) if speed_only else Color(0.55, 0.96, 1.0)
+	hover.font_size = 72
+	hover.pixel_size = 0.012
+	hover.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
+	hover.outline_size = 22
+	hover.position = Vector3(0.0, 1.75, 0.0)
 	hover.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	holder.add_child(hover)
+	var hover_sub := Label3D.new()
+	hover_sub.text = "Step to boost" if speed_only else "Step to launch"
+	hover_sub.modulate = Color(1.0, 0.95, 0.75) if speed_only else Color(0.85, 0.95, 1.0)
+	hover_sub.font_size = 36
+	hover_sub.pixel_size = 0.011
+	hover_sub.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
+	hover_sub.outline_size = 14
+	hover_sub.position = Vector3(0.0, 1.35, 0.0)
+	hover_sub.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	holder.add_child(hover_sub)
 
 
 func _attach_launch_gap_broken_edges(pit: Vector2) -> void:
@@ -9411,23 +10823,8 @@ func _attach_path_pit_visual(pit: Vector2, kit: Dictionary, node_name: String) -
 		_attach_path_strip_segment(pit.x + 0.2, pit.y - 0.2, 7.1, lane_y + 0.04, glow_mat, 2.0, 0.0)
 	_attach_pit_lava_embers(pit)
 	var mid := (pit.x + pit.y) * 0.5
-	var sample := _sample_path(mid)
-	var label := Label3D.new()
-	label.name = node_name + "Label"
 	if _open_gap_kind_at(mid) == "launch":
-		label.text = "断裂熔岩\n必须踩垫弹射"
 		_attach_launch_gap_broken_edges(pit)
-	elif _open_gap_kind_at(mid) == "beam":
-		label.text = "窄梁\n走中间道"
-	elif _main_block_pit_uses_platforms(pit):
-		label.text = "熔岩区\n平台跳跃通过"
-	else:
-		label.text = "主路熔岩坍塌\n上侧墙绕过"
-	label.font_size = 56
-	label.modulate = Color(1.0, 0.45, 0.18)
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = (sample["pos"] as Vector3) + Vector3(0.0, lane_y + 2.6, 0.0)
-	track_root.add_child(label)
 
 func _attach_pit_lava_embers(pit: Vector2) -> void:
 	var mid := (pit.x + pit.y) * 0.5
@@ -11147,8 +12544,7 @@ func _build_planet_surroundings(theme: Dictionary) -> void:
 		_:
 			_build_desert_surroundings(theme)
 	_build_path_side_dressing(theme)
-	if not _is_relay_mission():
-		_build_near_sky_layers()
+	_build_near_sky_layers()
 	if not _distant_tower_paths.is_empty() or not _distant_spaceship_paths.is_empty() or not _distant_hearth_paths.is_empty():
 		_build_distant_background(theme)
 	# 医疗第二关不再挂假极光帘，天空走真实全景光影
@@ -11852,6 +13248,16 @@ func _midground_density_scale() -> float:
 			base = 1.0
 	if _uses_ruin_dressing():
 		base *= 1.10
+	if _is_relay_mission():
+		match _mission_id_str():
+			"mission_relay_e1":
+				base *= 0.92
+			"mission_relay_e2":
+				base *= 1.08
+			"mission_relay_e3":
+				base *= 1.00
+			"mission_relay_e4":
+				base *= 1.14
 	return base
 
 func _build_near_runway_dressing(_theme: Dictionary) -> void:
@@ -13189,6 +14595,7 @@ func _distant_safe_footprint(lateral: float, preferred: float) -> float:
 
 
 func _build_near_sky_layers() -> void:
+	# 中继站用全景天空；近空板会像贴在远处的物体，上一版已禁用
 	if _is_relay_mission():
 		return
 	var layers: Array = mission.get("near_sky_textures", [])
@@ -13545,9 +14952,10 @@ func _update_distant_depth_cues() -> void:
 		elif _is_relay_mission():
 			if delta_d > 50.0:
 				var far_t := clampf((delta_d - 50.0) / 340.0, 0.0, 1.0)
-				shade *= lerpf(1.0, 0.52, far_t)
+				# 远景只轻压暗，避免叠 albedo_keep 后变成黑块
+				shade *= lerpf(1.0, 0.74, far_t)
 			elif delta_d >= 0.0 and delta_d < 48.0:
-				shade *= lerpf(0.78, 1.0, delta_d / 48.0)
+				shade *= lerpf(0.88, 1.0, delta_d / 48.0)
 		var last_shade := float(node.get_meta("distant_last_shade", -1.0))
 		if absf(last_shade - shade) < 0.01:
 			continue
@@ -13587,27 +14995,15 @@ func _apply_distant_depth_material(
 		gi.set_meta(meta_key, (src as StandardMaterial3D).albedo_color)
 	var base: Color = gi.get_meta(meta_key)
 	var mat := (src as StandardMaterial3D).duplicate() as StandardMaterial3D
-	mat.disable_fog = not _is_relay_mission()
+	mat.disable_fog = true
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	mat.albedo_color = Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
 	if _is_relay_mission():
-		mat.metallic_texture = null
-		mat.roughness_texture = null
-		mat.orm_texture = null
-		mat.metallic = minf(mat.metallic, 0.04)
-		mat.roughness = clampf(maxf(mat.roughness, 0.68), 0.68, 0.92)
-		mat.metallic_specular = 0.22
-		mat.rim_enabled = true
-		mat.rim = 0.16 + (1.0 - shade) * 0.10
-		mat.rim_tint = 0.62
-		var haze := _relay_night_haze_color()
-		var haze_mix := lerpf(0.28, 0.52, clampf(1.0 - shade, 0.0, 1.0))
-		mat.albedo_color = Color(
-			lerpf(mat.albedo_color.r, haze.r, haze_mix),
-			lerpf(mat.albedo_color.g, haze.g, haze_mix),
-			lerpf(mat.albedo_color.b, haze.b, haze_mix),
-			1.0
-		)
+		# 远景也关雾、保留本色；轻微压暗即可
+		mat.metallic = minf(mat.metallic, 0.18)
+		mat.roughness = clampf(mat.roughness, 0.32, 0.80)
+		mat.metallic_specular = 0.42
+		mat.rim_enabled = false
 	return mat
 
 func _make_distant_fallback_silhouette(height: float, base: Color) -> Node3D:
@@ -13618,7 +15014,7 @@ func _make_distant_fallback_silhouette(height: float, base: Color) -> Node3D:
 	mesh.size = Vector3(height * 0.16, height, height * 0.16)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = base
-	mat.disable_fog = not _is_relay_mission()
+	mat.disable_fog = true
 	mesh.material = mat
 	mesh_inst.mesh = mesh
 	mesh_inst.position = Vector3(0.0, height * 0.5, 0.0)
@@ -13629,15 +15025,15 @@ func _make_distant_fallback_silhouette(height: float, base: Color) -> Node3D:
 func _make_distant_material_from(src: Material) -> Material:
 	if src is StandardMaterial3D:
 		var mat := (src as StandardMaterial3D).duplicate() as StandardMaterial3D
-		mat.disable_fog = not _is_relay_mission()
-		# 保留 GLB 原贴图、自发光与 PBR 参数；中继站远景参与雾化以融进天幕
+		mat.disable_fog = true
+		# 保留 GLB 原贴图；中继站也关雾，避免天空色洗进远景
 		return mat
 	if src is BaseMaterial3D:
 		var dup := src.duplicate()
 		if dup is StandardMaterial3D:
 			return _make_distant_material_from(dup)
 		if dup is BaseMaterial3D:
-			(dup as BaseMaterial3D).disable_fog = not _is_relay_mission()
+			(dup as BaseMaterial3D).disable_fog = true
 		return dup
 	return src
 
@@ -15068,35 +16464,10 @@ func _build_meteorite_gate(root: Node3D, item: Dictionary) -> void:
 	hazard.position = Vector3(0.0, 0.03, 0.0)
 	hazard.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(hazard)
-	var tip := Label3D.new()
-	tip.name = "MeteorGateHint"
-	tip.text = "陨石门\nMETEOR GATE"
-	tip.font_size = 46
-	tip.modulate = Color(1.0, 0.62, 0.28, 0.95)
-	tip.outline_size = 12
-	tip.outline_modulate = Color(0.18, 0.06, 0.02, 0.95)
-	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tip.position = Vector3(0.0, pillar_h + 0.85, 0.35)
-	root.add_child(tip)
 
-func _add_train_gate_pass_hint(root: Node3D) -> void:
-	# JSON 关卡列车门不挡路；提示玩家直接跑过或等光刀抬起
-	if root.get_node_or_null("TrainPassHint") != null:
-		return
-	var hint := Label3D.new()
-	hint.name = "TrainPassHint"
-	hint.text = "RUN THROUGH\n直接穿过"
-	if _runner_layout_id() == "":
-		hint.text = "SLIDE\n滑铲通过"
-	hint.font_size = 64
-	hint.modulate = Color(0.82, 0.96, 1.0, 0.88)
-	hint.outline_size = 14
-	hint.outline_modulate = Color(0.08, 0.16, 0.32, 0.95)
-	hint.position = Vector3(0.0, TRAIN_GATE_TOP + 0.55, 0.35)
-	hint.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	hint.no_depth_test = true
-	hint.render_priority = 6
-	root.add_child(hint)
+func _add_train_gate_pass_hint(_root: Node3D) -> void:
+	# 全据点：障碍物不显示动作字标（仅加速垫/弹射垫保留字标）
+	return
 
 func _ensure_train_gate_buff_visual(root: Node3D) -> Node3D:
 	var existing := root.get_node_or_null("GateShieldCrystal") as Node3D
@@ -15459,6 +16830,9 @@ func _aabb_corners(box: AABB) -> Array:
 	]
 
 func _build_chaser() -> void:
+	if _pressure_chaser_enabled:
+		_build_energy_pressure_chaser()
+		return
 	chaser = Node3D.new()
 	chaser.name = "NullTideChaser"
 	add_child(chaser)
@@ -15538,6 +16912,165 @@ func _build_chaser() -> void:
 	chaser.visible = false
 
 
+func _build_energy_pressure_chaser() -> void:
+	_energy_chaser = EnergyChaserController.new()
+	_energy_chaser.name = "EnergyChaser"
+	_energy_chaser.initial_pressure = float(mission.get("chaser_initial_pressure", 18.0))
+	_energy_chaser.max_gap = 28.0
+	_energy_chaser.min_gap = 1.6
+	_energy_chaser.visual_height = 0.55
+	_energy_chaser.follow_smoothing = 5.5
+	_energy_chaser.hover_amplitude = 0.08
+	_energy_chaser.tail_drag_deg = 8.0
+	add_child(_energy_chaser)
+	chaser = _energy_chaser
+	chaser_body = null
+	_chaser_cloak_root = null
+	_chaser_cloak_layers.clear()
+	_chaser_void_face = null
+	_chaser_trail = null
+	if not _energy_chaser.player_captured.is_connected(_on_energy_chaser_captured):
+		_energy_chaser.player_captured.connect(_on_energy_chaser_captured)
+	_ensure_chase_overlay()
+	_energy_chaser.screen_shader = _chase_overlay_mat
+	chaser.visible = false
+
+
+func _ensure_chase_overlay() -> void:
+	if _chase_overlay != null and is_instance_valid(_chase_overlay):
+		return
+	var shader := load("res://assets/maps/route_levels/runner_60s/shaders/energy_chase_overlay.gdshader") as Shader
+	_chase_overlay_mat = ShaderMaterial.new()
+	if shader != null:
+		_chase_overlay_mat.shader = shader
+	_chase_overlay_mat.set_shader_parameter("chase_strength", 0.0)
+	_chase_overlay_mat.set_shader_parameter("chase_state", 0.0)
+	_chase_overlay = ColorRect.new()
+	_chase_overlay.name = "EnergyChaseOverlay"
+	_chase_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_chase_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chase_overlay.material = _chase_overlay_mat
+	_chase_overlay.color = Color(1, 1, 1, 1)
+	_chase_overlay.visible = false
+	_chase_overlay.z_index = 40
+	if hud_root != null:
+		hud_root.add_child(_chase_overlay)
+	else:
+		add_child(_chase_overlay)
+
+
+func _on_energy_chaser_captured() -> void:
+	if is_failed or is_finished or _capture_cinematic_active:
+		return
+	_fail_run("%s 吞没了你" % LevelConfig.CHASER_NAME)
+
+
+func _is_chaser_capture_reason(reason: String) -> bool:
+	var t := reason.strip_edges()
+	if not _chaser_enabled:
+		return false
+	return t.contains("追上") or t.contains("吞没") or t.contains("零潮") or t.contains("异能") or t.contains("Nulltide")
+
+
+func _begin_capture_cinematic(reason: String) -> void:
+	if _capture_cinematic_active or is_finished:
+		return
+	is_failed = true
+	gameplay_active = false
+	_capture_cinematic_active = true
+	_capture_cinematic_t = 0.0
+	_capture_fail_reason = reason
+	_capture_settlement_ready = false
+	_close_settlement_pause()
+	get_tree().paused = false
+	_clear_sky_cheer_danmaku()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if intro_panel:
+		intro_panel.visible = false
+	if chaser_hint_wrap:
+		chaser_hint_wrap.visible = false
+	_ensure_capture_swallow()
+	if _capture_swallow != null:
+		_capture_swallow.visible = true
+		if _capture_swallow_mat != null:
+			_capture_swallow_mat.set_shader_parameter("swallow", 0.0)
+	if _energy_chaser != null:
+		_energy_chaser.is_active = true
+		_energy_chaser.pressure = _energy_chaser.max_pressure
+		_energy_chaser.state = EnergyChaserController.ChaseState.CAPTURED
+		_energy_chaser.visible = true
+	if player_body:
+		_play_player_animation("idle")
+	camera_shake = maxf(camera_shake, 0.55)
+
+
+func _ensure_capture_swallow() -> void:
+	if _capture_swallow != null and is_instance_valid(_capture_swallow):
+		return
+	var shader := load("res://assets/maps/route_levels/runner_60s/shaders/energy_capture_swallow.gdshader") as Shader
+	_capture_swallow_mat = ShaderMaterial.new()
+	if shader != null:
+		_capture_swallow_mat.shader = shader
+	_capture_swallow_mat.set_shader_parameter("swallow", 0.0)
+	_capture_swallow = ColorRect.new()
+	_capture_swallow.name = "EnergyCaptureSwallow"
+	_capture_swallow.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_capture_swallow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_capture_swallow.material = _capture_swallow_mat
+	_capture_swallow.color = Color(1, 1, 1, 1)
+	_capture_swallow.visible = false
+	_capture_swallow.z_index = 90
+	if hud_root != null:
+		hud_root.add_child(_capture_swallow)
+	else:
+		add_child(_capture_swallow)
+
+
+func _update_capture_cinematic(delta: float) -> void:
+	_capture_cinematic_t += delta
+	var u := clampf(_capture_cinematic_t / CAPTURE_CINEMATIC_TIME, 0.0, 1.0)
+	var ease_u := 1.0 - pow(1.0 - u, 2.2)
+	if _capture_swallow_mat != null:
+		_capture_swallow_mat.set_shader_parameter("swallow", ease_u)
+	if _chase_overlay_mat != null:
+		_chase_overlay_mat.set_shader_parameter("chase_strength", lerpf(0.7, 1.0, ease_u))
+	if _chase_overlay != null:
+		_chase_overlay.visible = true
+	# Runner 倒下 / 消散
+	if player_body != null and is_instance_valid(player_body):
+		player_body.rotation_degrees.x = lerpf(player_body.rotation_degrees.x, 78.0, 1.0 - exp(-3.2 * delta))
+		player_body.scale = Vector3.ONE * lerpf(1.0, 0.42, ease_u)
+		_set_runner_capture_fade(lerpf(1.0, 0.08, ease_u))
+	if player != null and is_instance_valid(player):
+		var ground_y := _ground_y_at(track_distance)
+		player.position.y = lerpf(player.position.y, ground_y - 0.35 * ease_u, 0.2)
+	if chaser != null and is_instance_valid(chaser):
+		chaser.scale = Vector3.ONE * lerpf(1.2, 2.6, ease_u)
+	_sync_chaser_from_track()
+	camera_shake = maxf(camera_shake, 0.2 + ease_u * 0.35)
+	_update_camera()
+	if u >= 1.0:
+		_capture_cinematic_active = false
+		_capture_settlement_ready = true
+		if player_body != null and is_instance_valid(player_body):
+			player_body.scale = Vector3.ONE
+			player_body.rotation_degrees.x = 0.0
+			_set_runner_capture_fade(1.0)
+		var reason := _capture_fail_reason if _capture_fail_reason != "" else ("%s 吞没了你" % LevelConfig.CHASER_NAME)
+		_fail_run(reason)
+
+
+func _set_runner_capture_fade(alpha: float) -> void:
+	if player_body == null or not is_instance_valid(player_body):
+		return
+	var a := clampf(alpha, 0.0, 1.0)
+	for node in player_body.find_children("*", "GeometryInstance3D", true, false):
+		var gi := node as GeometryInstance3D
+		if gi == null:
+			continue
+		gi.transparency = 1.0 - a
+
+
 func _make_chaser_cloak_material() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.04, 0.02, 0.06, 0.92)
@@ -15593,6 +17126,8 @@ func _make_chaser_trail_particles() -> GPUParticles3D:
 
 func _update_chaser_visuals(delta: float) -> void:
 	if not chaser or not chaser.visible:
+		return
+	if _pressure_chaser_enabled:
 		return
 	chaser_pulse = maxf(chaser_pulse - delta * 1.8, 0.0)
 	var danger := 1.0 - clampf(chaser_distance / CHASER_MAX_DISTANCE, 0.0, 1.0)
@@ -15792,6 +17327,7 @@ func _build_content() -> void:
 	obstacle_items = _filter_adapted_obstacles_from_wall_corridors(obstacle_items)
 	obstacle_items = _filter_obstacles_near_lava_platform_pits(obstacle_items)
 	obstacle_items = _filter_obstacles_near_lava_crossings(obstacle_items)
+	obstacle_items = _filter_orphan_platform_ramps(obstacle_items)
 	# 关卡 JSON / 自定义关：保留编辑器摆放的全类型障碍；仅 procedural 回落才裁成跳铲球
 	if _runner_layout_id() == "" and not CustomLevels.has_level(Global.runner_location_id):
 		obstacle_items = _filter_core_obstacle_types(obstacle_items)
@@ -15801,6 +17337,8 @@ func _build_content() -> void:
 	_inject_gate_tension_obstacles()
 	_inject_finish_sprint_orb_gauntlet()
 	_inject_side_runway_wave_arc_obstacles()
+	_inject_side_runway_speed_boosts()
+	_purge_side_wall_collision_obstacles()
 	_inject_junction_fork_branch_obstacles()
 	_inject_y_fork_branch_obstacles()
 	_purge_obstacles_in_lava_platform_zones()
@@ -15919,7 +17457,10 @@ func _speed_boosts_enabled() -> bool:
 	if bool(_mission_profile.get("timed_fail", false)):
 		return true
 	var mt := String(_mission_profile.get("id", mission.get("mission_type", "")))
-	return mt == "emergency"
+	if mt == "emergency":
+		return true
+	# 星火中继站追击关：JSON 未单独配置时仍投放默认加速靴
+	return bool(_mission_profile.get("enable_chaser", false)) and _is_relay_mission()
 
 
 func _default_speed_boosts() -> Array:
@@ -15943,10 +17484,16 @@ func _speed_boost_duration() -> float:
 
 
 func _register_speed_boost_pickup() -> void:
-	_speed_boost_timer = _speed_boost_duration()
+	var dur := _speed_boost_duration()
+	if _is_relay_mission():
+		dur *= 1.18
+	_speed_boost_timer = dur
 	_speed_boost_cycle += 1
-	camera_shake = maxf(camera_shake, 0.08)
-	_show_gate_toast("加速靴 · 冲刺!")
+	_chaser_repulse(CHASER_BOOST_REPULSE)
+	camera_shake = maxf(camera_shake, 0.14 if _is_relay_mission() else 0.08)
+	_speed_feel_punch = maxf(_speed_feel_punch, 0.95 if _is_relay_mission() else 0.55)
+	_hit_fov_punch = maxf(_hit_fov_punch, 0.28 if _is_relay_mission() else 0.12)
+	_show_gate_toast("Speed Pad · shake Nulltide" if _chaser_enabled else "Speed Boost")
 	_refresh_buff_hud()
 
 
@@ -16541,15 +18088,6 @@ func _build_wall_face_obstacle(root: Node3D, item: Dictionary, obstacle_type: St
 	stripe.material_override = stripe_mat
 	stripe.position = bar.position + Vector3(0.02, (0.62 if is_slide else -0.28), 0.0)
 	root.add_child(stripe)
-	var tip := Label3D.new()
-	tip.text = "滑铲" if is_slide else "跳跃"
-	tip.font_size = 96
-	tip.outline_size = 18
-	tip.modulate = Color(0.55, 0.96, 1.0) if is_slide else Color(1.0, 0.72, 0.22)
-	tip.outline_modulate = Color(0.02, 0.04, 0.08, 0.9)
-	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tip.position = bar.position + Vector3(0.4, box.size.y * 0.62, 0.0)
-	root.add_child(tip)
 
 
 func _build_jump_bar(root: Node3D, item: Dictionary = {}) -> void:
@@ -17110,16 +18648,6 @@ func _build_low_slide_barrier(root: Node3D, item: Dictionary = {}) -> void:
 	else:
 		root.set_meta("obstacle_asset_path", "low_slide_beam")
 		_add_low_slide_beam_visual(root, span, LOW_SLIDE_OPEN_BOTTOM, LOW_SLIDE_BEAM_TOP)
-	var tip := Label3D.new()
-	tip.name = "SlideHint"
-	tip.text = "SLIDE\n必须滑铲"
-	tip.font_size = 48
-	tip.modulate = Color(0.92, 0.96, 1.0, 0.95)
-	tip.outline_size = 10
-	tip.outline_modulate = Color(0.06, 0.12, 0.22, 0.95)
-	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tip.position = Vector3(0.0, LOW_SLIDE_BEAM_TOP + 0.42, 0.0)
-	root.add_child(tip)
 	_add_ground_contact_shadow(root, span * 0.96, 0.55)
 
 
@@ -17289,15 +18817,6 @@ func _build_wave_arc_slide(root: Node3D, item: Dictionary) -> void:
 	else:
 		_add_slide_gate_visual(root, span, WAVE_ARC_APEX_Y, WAVE_ARC_OPEN_BOTTOM)
 	_add_wave_arc_energy_arch(root, span, WAVE_ARC_OPEN_BOTTOM, WAVE_ARC_APEX_Y)
-	var tip := Label3D.new()
-	tip.text = "SLIDE\n滑铲穿拱"
-	tip.font_size = 52
-	tip.modulate = Color(0.92, 0.88, 1.0, 0.94)
-	tip.outline_size = 12
-	tip.outline_modulate = Color(0.08, 0.12, 0.22, 0.95)
-	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tip.position = Vector3(0.0, WAVE_ARC_APEX_Y + 0.52, 0.0)
-	root.add_child(tip)
 	_add_ground_contact_shadow(root, span * 0.94, 0.95)
 
 
@@ -17311,13 +18830,6 @@ func _build_wall_wave_arc_slide(root: Node3D, item: Dictionary) -> void:
 	var apex_y := 1.72
 	root.set_meta("open_bottom", open_y)
 	_add_wave_arc_bridge_visual(root, span, open_y, apex_y, "z")
-	var tip := Label3D.new()
-	tip.text = "滑铲穿拱"
-	tip.font_size = 40
-	tip.modulate = Color(0.78, 0.92, 1.0)
-	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tip.position = Vector3(0.0, apex_y + 0.35, 0.0)
-	root.add_child(tip)
 
 
 func _resolve_energy_ring_scene() -> PackedScene:
@@ -17391,15 +18903,6 @@ func _build_energy_ring(root: Node3D, item: Dictionary) -> void:
 			bolt.rotation_degrees = Vector3(0.0, rad_to_deg(ang), 28.0 if i % 2 == 0 else -22.0)
 			bolt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			model.add_child(bolt)
-	var tip := Label3D.new()
-	tip.text = "精准穿心\n跳跃通过"
-	tip.font_size = 44
-	tip.modulate = Color(0.98, 0.88, 0.62, 0.92)
-	tip.outline_size = 10
-	tip.outline_modulate = Color(0.12, 0.08, 0.04, 0.95)
-	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tip.position = Vector3(0.0, ENERGY_RING_CENTER_Y + outer_r + 0.55, 0.0)
-	root.add_child(tip)
 	_add_ground_contact_shadow(root, outer_r * 1.8, 1.05)
 	_add_ground_contact_shadow(root, outer_r * 2.1, 0.82)
 
@@ -17774,13 +19277,6 @@ func _add_procedural_ramp_visual(root: Node3D, _target_layer: int) -> void:
 	body.position = Vector3(0.0, 0.32, 0.0)
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(body)
-	var label := Label3D.new()
-	label.text = "上侧墙"
-	label.font_size = 34
-	label.modulate = Color(0.72, 0.96, 1.0)
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = Vector3(0.0, 1.15, 0.0)
-	root.add_child(label)
 
 func _build_main_block(root: Node3D, item: Dictionary) -> void:
 	var half_depth := float(item.get("half_depth", 8.0))
@@ -17800,13 +19296,6 @@ func _build_main_block(root: Node3D, item: Dictionary) -> void:
 		sign.position = Vector3(0.0, 0.06, half_depth - 1.4)
 		sign.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(sign)
-		var label := Label3D.new()
-		label.text = "平台跳跃"
-		label.font_size = 48
-		label.modulate = Color(0.55, 0.95, 1.0, 0.95)
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.position = Vector3(0.0, 1.25, 0.0)
-		sign.add_child(label)
 		return
 	var _hd := half_depth
 	var gate := MeshInstance3D.new()
@@ -17842,14 +19331,6 @@ func _build_main_block(root: Node3D, item: Dictionary) -> void:
 	beam.mesh = bm
 	beam.position = Vector3(0.0, 2.35, 0.0)
 	root.add_child(beam)
-
-	var label := Label3D.new()
-	label.text = "主路坍塌"
-	label.font_size = 56
-	label.modulate = Color(1.0, 0.55, 0.25)
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = Vector3(0.0, 3.0, 0.0)
-	root.add_child(label)
 	_add_ground_contact_shadow(root, LANE_WIDTH * 3.0, 1.2)
 
 func _build_turn_sign(root: Node3D, turn_type: String) -> void:
@@ -18220,34 +19701,68 @@ func _build_ui() -> void:
 	_build_sky_cheer_root()
 
 	var chaser_hint_wrap := MarginContainer.new()
-	chaser_hint_wrap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	chaser_hint_wrap.offset_left = -156.0
-	chaser_hint_wrap.offset_top = 204.0
-	chaser_hint_wrap.offset_right = -28.0
-	chaser_hint_wrap.offset_bottom = 320.0
+	chaser_hint_wrap.name = "ChaserHintWrap"
+	chaser_hint_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chaser_hint_wrap.z_index = 28
+	# 左上、顶栏下方：避免被右上货物/按钮遮住
+	chaser_hint_wrap.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	chaser_hint_wrap.offset_left = 14.0
+	chaser_hint_wrap.offset_top = 96.0
+	chaser_hint_wrap.offset_right = 214.0
+	chaser_hint_wrap.offset_bottom = 230.0
 	chaser_hint_wrap.visible = false
 	shell.add_child(chaser_hint_wrap)
 	self.chaser_hint_wrap = chaser_hint_wrap
 
 	chaser_hint_panel = PanelContainer.new()
-	chaser_hint_panel.custom_minimum_size = Vector2(112, 88)
+	chaser_hint_panel.custom_minimum_size = Vector2(190, 118)
+	var chaser_hint_style := StyleBoxFlat.new()
+	chaser_hint_style.bg_color = Color(0.04, 0.05, 0.12, 0.94)
+	chaser_hint_style.border_color = Color(0.78, 0.42, 1.0, 0.95)
+	chaser_hint_style.set_border_width_all(2)
+	chaser_hint_style.set_corner_radius_all(12)
+	chaser_hint_style.content_margin_left = 12
+	chaser_hint_style.content_margin_right = 12
+	chaser_hint_style.content_margin_top = 10
+	chaser_hint_style.content_margin_bottom = 10
+	chaser_hint_panel.add_theme_stylebox_override("panel", chaser_hint_style)
 	chaser_hint_wrap.add_child(chaser_hint_panel)
 
 	var hint_box := VBoxContainer.new()
 	hint_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	hint_box.add_theme_constant_override("separation", 4)
 	chaser_hint_panel.add_child(hint_box)
 
 	chaser_hint_label = Label.new()
-	chaser_hint_label.text = LevelConfig.CHASER_NAME
+	chaser_hint_label.text = "身后追击"
 	chaser_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	chaser_hint_label.add_theme_font_size_override("font_size", 20)
+	chaser_hint_label.add_theme_font_size_override("font_size", 16)
+	chaser_hint_label.add_theme_color_override("font_color", Color(0.92, 0.94, 0.98))
 	hint_box.add_child(chaser_hint_label)
 
 	var hint_dist := Label.new()
 	hint_dist.name = "ChaserHintDistance"
 	hint_dist.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_dist.add_theme_font_size_override("font_size", 16)
+	hint_dist.add_theme_font_size_override("font_size", 30)
+	hint_dist.add_theme_color_override("font_color", Color(1.0, 0.88, 0.55))
 	hint_box.add_child(hint_dist)
+
+	_chaser_hint_bar = ProgressBar.new()
+	_chaser_hint_bar.name = "ChaserHintBar"
+	_chaser_hint_bar.custom_minimum_size = Vector2(0, 12)
+	_chaser_hint_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_chaser_hint_bar.max_value = 100.0
+	_chaser_hint_bar.value = 0.0
+	_chaser_hint_bar.show_percentage = false
+	hint_box.add_child(_chaser_hint_bar)
+
+	var hint_sub := Label.new()
+	hint_sub.name = "ChaserHintSub"
+	hint_sub.text = LevelConfig.CHASER_NAME
+	hint_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_sub.add_theme_font_size_override("font_size", 13)
+	hint_sub.add_theme_color_override("font_color", Color(0.78, 0.82, 0.92))
+	hint_box.add_child(hint_sub)
 
 	state_panel = PanelContainer.new()
 	state_panel.visible = true
@@ -18904,30 +20419,92 @@ func _update_hud() -> void:
 
 	var danger_ratio := 1.0 - clampf(chaser_distance / CHASER_MAX_DISTANCE, 0.0, 1.0)
 	var chase_status := "安全"
-	if danger_ratio > 0.72:
-		chase_status = "极危"
-	elif danger_ratio > 0.45:
-		chase_status = "危险"
-	elif danger_ratio > 0.22:
-		chase_status = "逼近"
-	chase_label.text = "%s %0.1fm [%s]" % [LevelConfig.CHASER_NAME, chaser_distance, chase_status]
-	chase_bar.value = chaser_distance
-	if danger_ratio > 0.72:
-		chase_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.2))
-	elif danger_ratio > 0.45:
-		chase_label.add_theme_color_override("font_color", Color(1.0, 0.65, 0.15))
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		var gap_m := _energy_chaser.get_visual_gap()
+		danger_ratio = 1.0 - clampf(gap_m / 28.0, 0.0, 1.0)
+		chase_status = _energy_chaser.get_state_label()
+		chase_label.text = "身后 %0.0f 米 · %s" % [gap_m, chase_status]
+		if chase_bar:
+			chase_bar.max_value = 28.0
+			chase_bar.value = gap_m
+		if _chase_overlay != null:
+			var ov_on := _chaser_enabled and gameplay_active and not is_failed and not is_finished and not is_intro
+			if _energy_chaser != null:
+				ov_on = ov_on and _energy_chaser.get_normalized_pressure() >= 0.5
+			_chase_overlay.visible = ov_on
+		# 与追击面板同一套米数色：<10 红 · 10–20 紫 · >20 绿
+		if gap_m < 10.0:
+			chase_label.add_theme_color_override("font_color", Color(1.0, 0.28, 0.28))
+		elif gap_m <= 20.0:
+			chase_label.add_theme_color_override("font_color", Color(0.78, 0.42, 1.0))
+		else:
+			chase_label.add_theme_color_override("font_color", Color(0.55, 0.98, 0.72))
 	else:
-		chase_label.add_theme_color_override("font_color", Color(0.55, 0.95, 0.75))
+		if danger_ratio > 0.72:
+			chase_status = "极危"
+		elif danger_ratio > 0.45:
+			chase_status = "危险"
+		elif danger_ratio > 0.22:
+			chase_status = "逼近"
+		chase_label.text = "身后 %0.1f 米 · %s" % [chaser_distance, chase_status]
+		chase_bar.value = chaser_distance
+		if danger_ratio > 0.72:
+			chase_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.2))
+		elif danger_ratio > 0.45:
+			chase_label.add_theme_color_override("font_color", Color(1.0, 0.65, 0.15))
+		else:
+			chase_label.add_theme_color_override("font_color", Color(0.55, 0.95, 0.75))
 
 	if chaser_hint_wrap:
-		var show_hint := _chaser_enabled and danger_ratio > 0.15
+		var show_hint := _chaser_enabled and not is_finished and not _capture_cinematic_active
+		if _settlement_celebration_active:
+			show_hint = false
 		chaser_hint_wrap.visible = show_hint
+		chaser_hint_wrap.z_index = 28
 		if show_hint and chaser_hint_panel:
-			var hint_alpha := clampf(danger_ratio * 0.85 + 0.15, 0.15, 1.0)
-			chaser_hint_panel.modulate = Color(1.0, 0.55 + danger_ratio * 0.25, 0.25, hint_alpha)
-			chaser_hint_label.text = "%s\n%0.0fm" % [LevelConfig.CHASER_NAME, chaser_distance]
+			var show_m := chaser_distance
+			if _pressure_chaser_enabled and _energy_chaser != null:
+				show_m = _energy_chaser.get_visual_gap()
+			# <10 红 · 10–20 紫 · >20 绿
+			var dist_color := Color(0.55, 0.98, 0.72)
+			var border := Color(0.45, 0.9, 0.65, 0.95)
+			if show_m < 10.0:
+				dist_color = Color(1.0, 0.28, 0.28)
+				border = Color(1.0, 0.32, 0.38, 1.0)
+			elif show_m <= 20.0:
+				dist_color = Color(0.78, 0.42, 1.0)
+				border = Color(0.72, 0.4, 1.0, 1.0)
+			chaser_hint_panel.modulate = Color(1.0, 1.0, 1.0, 1.0)
+			var style := chaser_hint_panel.get_theme_stylebox("panel") as StyleBoxFlat
+			if style != null:
+				style = style.duplicate() as StyleBoxFlat
+				style.border_color = border
+				style.bg_color = Color(0.04, 0.05, 0.12, 0.96)
+				chaser_hint_panel.add_theme_stylebox_override("panel", style)
+			chaser_hint_label.text = "压迫追击" if _pressure_chaser_enabled else "身后追击"
+			var dist_lbl := chaser_hint_panel.find_child("ChaserHintDistance", true, false) as Label
+			if dist_lbl:
+				dist_lbl.text = "%0.0f 米" % show_m
+				dist_lbl.add_theme_color_override("font_color", dist_color)
+			if _chaser_hint_bar != null:
+				_chaser_hint_bar.max_value = 28.0
+				# 距离越近条越满
+				_chaser_hint_bar.value = clampf(28.0 - show_m, 0.0, 28.0)
+				_chaser_hint_bar.visible = true
+			var sub_lbl := chaser_hint_panel.find_child("ChaserHintSub", true, false) as Label
+			if sub_lbl:
+				if _pressure_chaser_enabled and _energy_chaser != null:
+					sub_lbl.text = LevelConfig.CHASER_NAME
+				else:
+					sub_lbl.text = LevelConfig.CHASER_NAME
 	if danger_vignette:
-		danger_vignette.color = Color(0.55, 0.12, 0.04, danger_ratio * 0.1)
+		if is_intro or not gameplay_active:
+			danger_vignette.color = Color(0.42, 0.08, 0.55, 0.0)
+		elif _pressure_chaser_enabled:
+			var vg := 0.0 if danger_ratio < 0.5 else danger_ratio * 0.1
+			danger_vignette.color = Color(0.42, 0.08, 0.55, vg)
+		else:
+			danger_vignette.color = Color(0.55, 0.12, 0.04, danger_ratio * 0.1)
 
 	if strike_toast_timer > 0.0:
 		strike_toast_timer = maxf(strike_toast_timer - get_process_delta_time(), 0.0)
@@ -18978,6 +20555,10 @@ func _set_settlement_presentation(active: bool, outpost_title: String = "", fail
 		shield_button.z_index = 0
 	if danger_vignette != null:
 		danger_vignette.visible = (not active) and _chaser_enabled
+	if chaser_hint_wrap != null:
+		chaser_hint_wrap.visible = (not active) and _chaser_enabled and not _capture_cinematic_active
+	if _chase_overlay != null and active:
+		_chase_overlay.visible = false
 	if intro_panel != null:
 		intro_panel.visible = intro_panel.visible and not active
 	if player != null and is_instance_valid(player):
@@ -19195,8 +20776,17 @@ func _update_camera() -> void:
 		)
 
 	var cam_behind := CAMERA_BEHIND
+	var cam_side := 0.0
+	var rear_blend := _chaser_intro_look if (_pressure_chaser_enabled and is_intro) else 0.0
 	if is_intro:
-		cam_behind = lerpf(CAMERA_BEHIND + 1.2, CAMERA_BEHIND, clampf(intro_elapsed / INTRO_DURATION, 0.0, 1.0))
+		if _pressure_chaser_enabled:
+			# 后侧反打：站到 Runner 右后侧外撇，越过肩背看潮体（避免正后被身子挡住）
+			cam_behind = lerpf(CAMERA_BEHIND + 0.4, CAMERA_BEHIND - 0.35, rear_blend)
+			cam_side = lerpf(0.0, 2.45, rear_blend)
+		elif _chaser_enabled:
+			cam_behind = lerpf(CAMERA_BEHIND + 3.2, CAMERA_BEHIND + 1.4, 1.0 - _chaser_intro_look)
+		else:
+			cam_behind = lerpf(CAMERA_BEHIND + 1.2, CAMERA_BEHIND, clampf(intro_elapsed / INTRO_DURATION, 0.0, 1.0))
 	else:
 		cam_behind = lerpf(CAMERA_BEHIND, CAMERA_BEHIND + 0.55, speed_feel)
 
@@ -19222,9 +20812,14 @@ func _update_camera() -> void:
 		camera.fov = lerpf(camera.fov, clampf(CAMERA_FOV + danger_ratio * 2.0, CAMERA_FOV, 68.0), 0.1)
 		return
 
+	var intro_lift := 0.0
+	if is_intro and _pressure_chaser_enabled:
+		intro_lift = lerpf(0.15, 0.85, rear_blend)
+	elif is_intro and _chaser_enabled:
+		intro_lift = 0.45 * _chaser_intro_look
 	camera_pivot.position = Vector3(
-		shake_offset.x,
-		CAMERA_HEIGHT + slide_offset,
+		shake_offset.x + cam_side,
+		CAMERA_HEIGHT + slide_offset + intro_lift,
 		cam_behind + slide_pullback
 	) + shake_offset * 0.35
 	camera.position = Vector3(0, 0.45, 0.0)
@@ -19234,7 +20829,7 @@ func _update_camera() -> void:
 	if not _fork_zone_at(track_distance).is_empty():
 		look_ahead = minf(CAMERA_LOOK_AHEAD, 12.0)
 	if is_intro:
-		look_ahead *= 0.35
+		look_ahead *= lerpf(0.35, 0.05, rear_blend)
 	if _finish_sprint_timer > 0.0:
 		look_ahead += 5.0
 		cam_behind += 0.35
@@ -19242,6 +20837,20 @@ func _update_camera() -> void:
 	var mid := _world_on_path(track_distance + look_ahead * 0.45, current_lateral, GROUND_Y)
 	# 近点 + 远点混合，岔路弯道更跟路面
 	var look_target: Vector3 = (ahead["pos"] as Vector3).lerp(mid["pos"] as Vector3, 0.35) + Vector3(0.0, 1.25, 0.0)
+	if is_intro and _pressure_chaser_enabled and chaser != null and is_instance_valid(chaser) and chaser.visible:
+		# 后侧反打：镜头对准潮体中心，Runner 只占肩背前景
+		var chase_focus: Vector3 = chaser.global_position + Vector3(0.0, 0.85, 0.0)
+		var runner_focus: Vector3 = player.global_position + Vector3(0.0, 1.15, 0.0) if player else look_target
+		var blend := lerpf(0.18, 0.88, rear_blend)
+		look_target = runner_focus.lerp(chase_focus, blend)
+		if rear_blend > 0.55 and camera != null:
+			camera.fov = lerpf(camera.fov, 58.0, 0.2)
+	elif is_intro and _chaser_enabled and chaser != null and is_instance_valid(chaser) and chaser.visible:
+		var chase_focus2: Vector3 = chaser.global_position + Vector3(0.0, 1.1, 0.0)
+		var runner_focus2: Vector3 = player.global_position + Vector3(0.0, 1.35, 0.0) if player else look_target
+		look_target = runner_focus2.lerp(chase_focus2, 0.28 * _chaser_intro_look)
+	if _capture_cinematic_active and chaser != null and is_instance_valid(chaser):
+		look_target = chaser.global_position.lerp(player.global_position if player else chaser.global_position, 0.35) + Vector3(0.0, 1.2, 0.0)
 	if camera.global_position.distance_squared_to(look_target) > 0.04:
 		camera.look_at(look_target, Vector3.UP)
 
@@ -19350,7 +20959,7 @@ func _update_runner_feedback(delta: float) -> void:
 		if fx != null and is_instance_valid(fx):
 			fx.emitting = edge_on
 
-	var boosting := _speed_boost_timer > 0.0 or _is_fork_rushing() or _finish_sprint_timer > 0.0 or _emergency_dash_timer > 0.0
+	var boosting := _speed_boost_timer > 0.0 or _pad_burst_until_d > track_distance or _is_fork_rushing() or _finish_sprint_timer > 0.0 or _emergency_dash_timer > 0.0
 	if _ember_fx_root:
 		# 脚下火环 + 周身蝴蝶光晕：全程保持，避免中后段角色“裸奔”
 		var ember_on := not is_finished and not is_failed and (gameplay_active or is_intro)
@@ -19803,6 +21412,8 @@ func _apply_mission_environment() -> void:
 		env.fog_density = float(overlay["fog_density"])
 	if overlay.has("fog_aerial_perspective"):
 		env.fog_aerial_perspective = float(overlay["fog_aerial_perspective"])
+	if overlay.has("fog_enabled"):
+		env.fog_enabled = bool(overlay["fog_enabled"])
 	if overlay.has("panorama_energy") and env.sky != null:
 		var sky_mat := env.sky.sky_material
 		if sky_mat is PanoramaSkyMaterial:
@@ -20145,7 +21756,7 @@ func _spawn_meteor_gate_drop(gate: Dictionary, lane: int, rng: RandomNumberGener
 		"meteor_state": "falling",
 		"meteor_air_y": air_y,
 		"y_offset": air_y,
-		"meteor_fall_speed": rng.randf_range(19.0, 28.0),
+		"meteor_fall_speed": rng.randf_range(12.0, 32.0),
 		"fall_trigger_ahead": 999.0,
 	}
 	_register_obstacle(drop_item)

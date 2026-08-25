@@ -8,7 +8,13 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent
 OUT_DIR = ROOT.parent / "assets" / "maps" / "route_levels" / "runner_60s" / "backgrounds" / "panoramas"
-SRC_PATH = ROOT / "relay_sky_master.png"
+# e1 keeps the purple aurora master; e2–e4 use distinct portrait skies.
+SRC_BY_LEVEL = {
+    "e1": ROOT / "relay_sky_master.png",
+    "e2": ROOT / "relay_sky_e2_crimson.png",
+    "e3": ROOT / "relay_sky_e3_emerald.png",
+    "e4": ROOT / "relay_sky_e4_cyan.png",
+}
 W, H = 4096, 2048
 SEAM_BLEND = 128
 CAM_TOP = 0.10
@@ -100,11 +106,37 @@ def horizontal_smooth(arr: np.ndarray, radius: int = 2) -> np.ndarray:
     return out
 
 
-def make_wide_sky(portrait: np.ndarray) -> np.ndarray:
+def vertical_soften(arr: np.ndarray, radius: int = 2) -> np.ndarray:
+    """Soften horizontal banding before equirect mapping."""
+    if radius <= 0:
+        return arr
+    k = np.ones(radius * 2 + 1, dtype=np.float32) / float(radius * 2 + 1)
+    out = arr.copy()
+    h = arr.shape[0]
+    c = 0
+    while c < 3:
+        channel = arr[:, :, c]
+        sm = np.zeros_like(channel)
+        y = 0
+        while y < h:
+            y0 = max(0, y - radius)
+            y1 = min(h, y + radius + 1)
+            sm[y] = channel[y0:y1].mean()
+            y += 1
+        out[:, :, c] = sm
+        c += 1
+    return out
+
+
+def make_wide_sky(portrait: np.ndarray, h_radius: int = 2, v_radius: int = 0) -> np.ndarray:
     ph = portrait.shape[0]
     unified = unify_portrait_wrap(portrait)
     wide = to_np(from_np(unified).resize((W, ph), Image.Resampling.LANCZOS))
-    return horizontal_smooth(wide, 2)
+    wide = horizontal_smooth(wide, h_radius)
+    if v_radius > 0:
+        softened = vertical_soften(wide, v_radius)
+        wide = wide * 0.55 + softened * 0.45
+    return wide
 
 
 def center_equirect_seam(arr: np.ndarray) -> np.ndarray:
@@ -130,10 +162,10 @@ def lock_equirect_seam(arr: np.ndarray, width: int = 16) -> np.ndarray:
     return out
 
 
-def portrait_to_equirect(portrait: np.ndarray) -> np.ndarray:
+def portrait_to_equirect(portrait: np.ndarray, row_blend: int = 1, h_radius: int = 2, v_radius: int = 0) -> np.ndarray:
     """Compress the full portrait vertically onto the sky dome so bands + horizon show together."""
     ph = portrait.shape[0]
-    wide = make_wide_sky(portrait)
+    wide = make_wide_sky(portrait, h_radius=h_radius, v_radius=v_radius)
 
     y_top = int(H * 0.03)
     y_bottom = int(H * 0.78)
@@ -144,9 +176,21 @@ def portrait_to_equirect(portrait: np.ndarray) -> np.ndarray:
     y_out = y_top
     while y_out < y_bottom:
         v = (y_out - y_top) / float(max(span - 1, 1))
-        src_y = v * float(ph - 1)
-        ys = np.full(W, src_y, dtype=np.float32)
-        out[y_out] = sample_bilinear(wide, ys, xs)
+        src_y_center = v * float(ph - 1)
+        if row_blend <= 1:
+            ys = np.full(W, src_y_center, dtype=np.float32)
+            out[y_out] = sample_bilinear(wide, ys, xs)
+        else:
+            acc = np.zeros((W, 3), dtype=np.float32)
+            wsum = 0.0
+            ky = -row_blend
+            while ky <= row_blend:
+                sy = float(np.clip(src_y_center + ky * 1.35, 0.0, ph - 1.001))
+                ys = np.full(W, sy, dtype=np.float32)
+                acc += sample_bilinear(wide, ys, xs)
+                wsum += 1.0
+                ky += 1
+            out[y_out] = acc / max(wsum, 1.0)
         y_out += 1
 
     zenith = out[y_top].mean(axis=0) * 0.55 + np.array([0.008, 0.010, 0.028], dtype=np.float32)
@@ -165,10 +209,38 @@ def portrait_to_equirect(portrait: np.ndarray) -> np.ndarray:
     return out
 
 
+def soften_equirect_bands(arr: np.ndarray, y0_frac: float = 0.06, y1_frac: float = 0.58, radius: int = 3, mix: float = 0.40) -> np.ndarray:
+    """Blend adjacent equirect rows to break unnatural horizontal banding."""
+    out = arr.copy()
+    h, w, _ = out.shape
+    y0 = int(h * y0_frac)
+    y1 = int(h * y1_frac)
+    y = y0
+    while y < y1:
+        acc = out[y].copy()
+        weight = 1.0
+        dy = 1
+        while dy <= radius:
+            t = mix / float(dy + 0.35)
+            if y - dy >= 0:
+                acc += out[y - dy] * t
+                weight += t
+            if y + dy < h:
+                acc += out[y + dy] * t
+                weight += t
+            dy += 1
+        out[y] = acc / weight
+        y += 1
+    return out
+
+
 def light_grade(src: np.ndarray, cfg: dict) -> np.ndarray:
     tint = np.array(cfg["tint"], dtype=np.float32)
     keep = float(cfg["source_keep"])
     out = src * keep + np.clip(src * tint, 0.0, 1.0) * (1.0 - keep)
+    lift = float(cfg.get("lift", 0.0))
+    if lift > 0.0:
+        out = np.clip(out * (1.0 - lift * 0.28) + lift, 0.0, 1.0)
     return np.clip(out * float(cfg.get("exposure", 1.0)), 0.0, 1.0)
 
 
@@ -180,36 +252,79 @@ def camera_preview(arr: np.ndarray, name: str) -> None:
 
 LEVELS = {
     "e1": {"u_shift": 0.00, "exposure": 1.02, "tint": (1.0, 1.0, 1.0), "source_keep": 0.97},
-    "e2": {"u_shift": 0.03, "exposure": 1.04, "tint": (0.99, 1.0, 1.04), "source_keep": 0.96},
-    "e3": {"u_shift": 0.06, "exposure": 1.04, "tint": (1.02, 0.99, 1.03), "source_keep": 0.96},
-    "e4": {"u_shift": 0.015, "exposure": 1.05, "tint": (0.99, 1.0, 1.03), "source_keep": 0.97},
+    # e3 绿色自然；e2/e4 加纵向混合与柔化，消除横纹
+    "e2": {
+        "u_shift": 0.02,
+        "exposure": 1.04,
+        "tint": (1.01, 0.99, 0.99),
+        "source_keep": 0.97,
+        "lift": 0.05,
+        "row_blend": 4,
+        "h_smooth": 5,
+        "v_soften": 2,
+        "band_soften": 0.46,
+    },
+    "e3": {
+        "u_shift": 0.04,
+        "exposure": 1.04,
+        "tint": (0.97, 1.03, 1.02),
+        "source_keep": 0.96,
+        "row_blend": 1,
+        "h_smooth": 2,
+    },
+    "e4": {
+        "u_shift": 0.01,
+        "exposure": 1.04,
+        "tint": (0.99, 1.00, 1.01),
+        "source_keep": 0.97,
+        "lift": 0.04,
+        "row_blend": 4,
+        "h_smooth": 5,
+        "v_soften": 2,
+        "band_soften": 0.44,
+    },
 }
 
 
-def main() -> None:
-    portrait = to_np(Image.open(SRC_PATH).convert("RGB"))
-    base = portrait_to_equirect(portrait)
+def bake_level(key: str, cfg: dict) -> None:
+    src = SRC_BY_LEVEL[key]
+    if not src.exists():
+        raise FileNotFoundError(f"missing sky source for {key}: {src}")
+    portrait = to_np(Image.open(src).convert("RGB"))
+    base = portrait_to_equirect(
+        portrait,
+        row_blend=int(cfg.get("row_blend", 1)),
+        h_radius=int(cfg.get("h_smooth", 2)),
+        v_radius=int(cfg.get("v_soften", 0)),
+    )
     base = center_equirect_seam(base)
     base = lock_equirect_seam(base, 12)
+    arr = wrap_shift(base, float(cfg["u_shift"]))
+    arr = light_grade(arr, cfg)
+    band_soften = float(cfg.get("band_soften", 0.0))
+    if band_soften > 0.0:
+        arr = soften_equirect_bands(arr, mix=band_soften)
+    arr = lock_equirect_seam(arr, 8)
+    arr = np.clip(arr, 0.0, 1.0)
+    name = f"relay_{key}_scene_sky.png"
+    from_np(arr).save(OUT_DIR / name, compress_level=1)
+    from_np(arr).save(ROOT / f"relay_{key}_pano.png", compress_level=1)
+    camera_preview(arr, f"relay_{key}_cam.png")
+    a = np.asarray(from_np(arr))
+    h = a.shape[0]
+    print(f"--- {key} ({src.name}) ---")
+    for frac in (0.18, 0.26, 0.34, 0.42):
+        row = a[int(h * frac)]
+        y = 0.299 * row[:, 0] + 0.587 * row[:, 1] + 0.114 * row[:, 2]
+        std = float(y.std())
+        edge = float(np.mean(np.abs(row[0].astype(float) - row[-1].astype(float))))
+        print(f"  v={frac:.2f} luma={y.mean():.1f} std={std:.1f} edge={edge:.2f}")
+
+
+def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for key, cfg in LEVELS.items():
-        arr = wrap_shift(base, float(cfg["u_shift"]))
-        arr = light_grade(arr, cfg)
-        arr = lock_equirect_seam(arr, 8)
-        arr = np.clip(arr, 0.0, 1.0)
-        name = f"relay_{key}_scene_sky.png"
-        from_np(arr).save(OUT_DIR / name, compress_level=1)
-        from_np(arr).save(ROOT / f"relay_{key}_pano.png", compress_level=1)
-        camera_preview(arr, f"relay_{key}_cam.png")
-        a = np.asarray(from_np(arr))
-        h = a.shape[0]
-        print(f"--- {key} ---")
-        for frac in (0.18, 0.26, 0.34, 0.42):
-            row = a[int(h * frac)]
-            y = 0.299 * row[:, 0] + 0.587 * row[:, 1] + 0.114 * row[:, 2]
-            std = float(y.std())
-            edge = float(np.mean(np.abs(row[0].astype(float) - row[-1].astype(float))))
-            print(f"  v={frac:.2f} luma={y.mean():.1f} std={std:.1f} edge={edge:.2f}")
+        bake_level(key, cfg)
 
 
 if __name__ == "__main__":

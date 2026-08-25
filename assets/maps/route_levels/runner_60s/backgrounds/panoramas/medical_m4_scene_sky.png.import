@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bp0jxse44ls1o"
-valid=false
+uid="uid://buddw6tbdhvih"
+path="res://.godot/imported/medical_m4_scene_sky.png-d117224b432495e8cbbf95d996f21975.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/maps/route_levels/models/track/textures/energy_neon_runway.png"
+source_file="res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_m4_scene_sky.png"
+dest_files=["res://.godot/imported/medical_m4_scene_sky.png-d117224b432495e8cbbf95d996f21975.ctex"]
 
 [params]
 
@@ -17,7 +21,7 @@ compress/lossy_quality=0.7
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

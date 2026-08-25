@@ -1188,8 +1188,10 @@ func _on_detail_view_runner_pressed(character_id: String) -> void:
 
 
 func _start_runner_with_transition() -> void:
+	# 正式流程：仅已揭开据点可进。开发预览：PREVIEW_LOCATIONS（含星火中继站）允许试玩。
 	if not _is_revealed(_selected_location_id):
-		return
+		if not MissionDispatch.can_preview_trial_run(Global.exploration_planet_id, _selected_location_id):
+			return
 	if _ui_shell and _ui_shell.get_node_or_null("RunnerTransitionOverlay") == null:
 		var overlay := ColorRect.new()
 		overlay.name = "RunnerTransitionOverlay"

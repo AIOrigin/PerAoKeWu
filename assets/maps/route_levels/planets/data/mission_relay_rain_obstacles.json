@@ -1,0 +1,255 @@
+{
+	"note": "星火中继站 · 雨天跑酷试验：湿冷薄雾 + 连续跳铲节奏",
+	"layout_id": "mission_relay_rain",
+	"planet_id": "glass_desert",
+	"road_style": "holographic",
+	"version": 2,
+	"lava_cross_mode": "platform",
+	"track_segments": [
+		{
+			"length": 420.0,
+			"turn": 0.0
+		},
+		{
+			"length": 40.0,
+			"turn": 0.55
+		},
+		{
+			"length": 280.0,
+			"turn": 0.0
+		},
+		{
+			"length": 40.0,
+			"turn": -0.55
+		},
+		{
+			"length": 360.0,
+			"turn": 0.0
+		}
+	],
+	"junction_zones": [],
+	"side_runway_zones": [],
+	"sandstorm_zones": [],
+	"obstacles": [
+		{
+			"distance": 28.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 48.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 78.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 110.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 132.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 158.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 188.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 220.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 248.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 276.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 310.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 348.0,
+			"lane": 0,
+			"type": "main_block",
+			"layer": 0,
+			"half_depth": 14.0,
+			"cross": "platform"
+		},
+		{
+			"distance": 390.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "medium"
+		},
+		{
+			"distance": 420.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 452.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 488.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 520.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 556.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 590.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 628.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 668.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 710.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 748.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 786.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 820.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 858.0,
+			"lane": 0,
+			"type": "main_block",
+			"layer": 0,
+			"half_depth": 12.0,
+			"cross": "platform"
+		},
+		{
+			"distance": 900.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 934.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 968.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 1004.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 1040.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "medium"
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 96.0,
+			"lane": 0,
+			"layer": 0,
+			"hint": "稳定器 · 压迫下降"
+		},
+		{
+			"distance": 260.0,
+			"lane": 1,
+			"layer": 0,
+			"hint": "稳定器 · 压迫下降"
+		},
+		{
+			"distance": 404.0,
+			"lane": 0,
+			"layer": 0,
+			"hint": "稳定器 · 压迫下降"
+		},
+		{
+			"distance": 540.0,
+			"lane": -1,
+			"layer": 0,
+			"hint": "稳定器 · 压迫下降"
+		},
+		{
+			"distance": 700.0,
+			"lane": 0,
+			"layer": 0,
+			"hint": "稳定器 · 压迫下降"
+		},
+		{
+			"distance": 840.0,
+			"lane": 1,
+			"layer": 0,
+			"hint": "稳定器 · 压迫下降"
+		},
+		{
+			"distance": 980.0,
+			"lane": 0,
+			"layer": 0,
+			"hint": "稳定器 · 压迫下降"
+		}
+	],
+	"launch_pads": [],
+	"lift_pads": []
+}

@@ -1,5 +1,5 @@
 {
-	"note": "E4 黎明线 · 长直+三连弯+晚段分叉",
+	"note": "E4 黎明线 · 终局混战：平台/侧墙熔岩交替、变速落石、多分段加速与弹射",
 	"layout_id": "mission_relay_e4",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
@@ -49,10 +49,20 @@
 	],
 	"side_runway_zones": [
 		{
-			"start": 880,
-			"length": 58,
+			"start": 718,
+			"length": 34,
 			"side": "outer",
 			"fallback_side": -1,
+			"lateral_offset": 7.0,
+			"layer": 1,
+			"entry_window": 10,
+			"blocker_profile": "light"
+		},
+		{
+			"start": 1088,
+			"length": 32,
+			"side": "outer",
+			"fallback_side": 1,
 			"lateral_offset": 7.0,
 			"layer": 1,
 			"entry_window": 10,
@@ -101,6 +111,80 @@
 			"lane_count": 3
 		}
 	],
+	"open_gaps": [
+		{
+			"start": 270.0,
+			"end": 286.0,
+			"kind": "launch"
+		}
+	],
+	"launch_pads": [
+		{
+			"id": "e4_lava_right",
+			"distance": 266.0,
+			"lane": 1,
+			"impulse": 18.8,
+			"half_depth": 1.8,
+			"lock_air_lane": true,
+			"lock_distance": 24.0,
+			"launch_cross": true,
+			"speed_boost": false,
+			"pad_text": "LAUNCH",
+			"hint": "弹射垫 · 踩上去飞跃熔岩"
+		},
+		{
+			"id": "e4_mid_boost",
+			"distance": 400.0,
+			"lane": 0,
+			"impulse": 8.0,
+			"half_depth": 1.9,
+			"lock_air_lane": false,
+			"lock_distance": 0.0,
+			"speed_boost": true,
+			"boost_time": 0.5,
+			"pad_text": "SPEEDUP",
+			"hint": "加速垫 · 踩上去爆发加速"
+		},
+		{
+			"id": "e4_storm_escape",
+			"distance": 640.0,
+			"lane": 1,
+			"impulse": 8.0,
+			"half_depth": 2.1,
+			"lock_air_lane": false,
+			"lock_distance": 0.0,
+			"speed_boost": true,
+			"boost_time": 0.5,
+			"pad_text": "SPEEDUP",
+			"hint": "加速垫 · 踩上去爆发加速"
+		},
+		{
+			"id": "e4_mid_late_boost",
+			"distance": 1020.0,
+			"lane": -1,
+			"impulse": 8.0,
+			"half_depth": 1.9,
+			"lock_air_lane": false,
+			"lock_distance": 0.0,
+			"speed_boost": true,
+			"boost_time": 0.5,
+			"pad_text": "SPEEDUP",
+			"hint": "加速垫 · 踩上去爆发加速"
+		},
+		{
+			"id": "e4_final_boost",
+			"distance": 1340.0,
+			"lane": 0,
+			"impulse": 8.0,
+			"half_depth": 2.2,
+			"lock_air_lane": false,
+			"lock_distance": 0.0,
+			"speed_boost": true,
+			"boost_time": 0.5,
+			"pad_text": "SPEEDUP",
+			"hint": "加速垫 · 踩上去爆发加速"
+		}
+	],
 	"obstacles": [
 		{
 			"distance": 36.0,
@@ -136,18 +220,9 @@
 			"low_slide": true
 		},
 		{
-			"distance": 248,
-			"lane": 0,
-			"layer": 0,
-			"target_layer": 1,
-			"type": "ramp"
-		},
-		{
-			"distance": 278,
-			"half_depth": 22,
-			"lane": 0,
-			"layer": 0,
-			"type": "main_block"
+			"distance": 300.0,
+			"lane": -1,
+			"type": "jump"
 		},
 		{
 			"distance": 340.0,
@@ -161,27 +236,41 @@
 			"low_slide": true
 		},
 		{
-			"distance": 416.0,
+			"distance": 430,
+			"lane": 0,
+			"layer": 0,
+			"target_layer": 1,
+			"type": "ramp"
+		},
+		{
+			"distance": 458,
+			"half_depth": 18,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block",
+			"cross": "platform"
+		},
+		{
+			"distance": 500.0,
 			"lane": 0,
 			"type": "jump"
-		},
-		{
-			"distance": 454.0,
-			"lane": -1,
-			"type": "slide",
-			"low_slide": true
-		},
-		{
-			"distance": 492.0,
-			"lane": 1,
-			"type": "train"
 		},
 		{
 			"distance": 530.0,
 			"lane": 0,
 			"type": "meteorite_gate",
-			"drop_count": 7,
-			"drop_interval": 0.88
+			"drop_count": 8,
+			"drop_interval": 0.82
+		},
+		{
+			"distance": 548.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 2.0,
+			"fall_roll": true,
+			"fall_height": 12.0,
+			"meteor_fall_speed": 13.5,
+			"roll_speed": -4.2
 		},
 		{
 			"distance": 560.0,
@@ -190,6 +279,7 @@
 			"span": 2.8,
 			"fall_roll": true,
 			"fall_height": 16.0,
+			"meteor_fall_speed": 27.0,
 			"roll_speed": -5.6
 		},
 		{
@@ -199,6 +289,7 @@
 			"span": 2.4,
 			"fall_roll": true,
 			"fall_height": 15.0,
+			"meteor_fall_speed": 19.0,
 			"roll_speed": -5.0
 		},
 		{
@@ -229,6 +320,13 @@
 			"type": "jump"
 		},
 		{
+			"distance": 788.0,
+			"lane": 0,
+			"type": "meteorite_gate",
+			"drop_count": 6,
+			"drop_interval": 0.76
+		},
+		{
 			"distance": 806.0,
 			"lane": -1,
 			"type": "slide",
@@ -240,23 +338,23 @@
 			"type": "train"
 		},
 		{
-			"distance": 892,
-			"lane": 0,
-			"layer": 0,
-			"target_layer": 1,
-			"type": "ramp"
-		},
-		{
 			"distance": 922,
 			"half_depth": 20,
 			"lane": 0,
 			"layer": 0,
-			"type": "main_block"
+			"type": "main_block",
+			"cross": "side_wall"
 		},
 		{
 			"distance": 980.0,
 			"lane": -1,
 			"type": "jump"
+		},
+		{
+			"distance": 998.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "medium"
 		},
 		{
 			"distance": 1018.0,
@@ -271,7 +369,18 @@
 			"span": 2.6,
 			"fall_roll": true,
 			"fall_height": 17.0,
-			"roll_speed": -5.8
+			"meteor_fall_speed": 14.5,
+			"roll_speed": -4.8
+		},
+		{
+			"distance": 1072.0,
+			"lane": 1,
+			"type": "meteorite",
+			"span": 2.2,
+			"fall_roll": true,
+			"fall_height": 18.5,
+			"meteor_fall_speed": 31.0,
+			"roll_speed": -6.2
 		},
 		{
 			"distance": 1084.0,
@@ -301,13 +410,41 @@
 			"type": "train"
 		},
 		{
+			"distance": 1256.0,
+			"lane": 0,
+			"type": "meteorite_gate",
+			"drop_count": 7,
+			"drop_interval": 0.8
+		},
+		{
+			"distance": 1272.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 1.9,
+			"fall_roll": true,
+			"fall_height": 11.5,
+			"meteor_fall_speed": 12.0,
+			"roll_speed": -4.0
+		},
+		{
 			"distance": 1284.0,
 			"lane": 0,
 			"type": "meteorite",
 			"span": 3.0,
 			"fall_roll": true,
 			"fall_height": 18.0,
+			"meteor_fall_speed": 22.0,
 			"roll_speed": -6.0
+		},
+		{
+			"distance": 1298.0,
+			"lane": 1,
+			"type": "meteorite",
+			"span": 2.4,
+			"fall_roll": true,
+			"fall_height": 16.0,
+			"meteor_fall_speed": 29.0,
+			"roll_speed": -5.8
 		},
 		{
 			"distance": 1312.0,
@@ -335,6 +472,113 @@
 			"distance": 1464.0,
 			"lane": 1,
 			"type": "jump"
+		},
+		{
+			"distance": 120.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "medium"
+		},
+		{
+			"distance": 180.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 240.0,
+			"lane": -1,
+			"type": "train"
+		},
+		{
+			"distance": 400.0,
+			"lane": 0,
+			"type": "main_block",
+			"layer": 0,
+			"half_depth": 13.0,
+			"cross": "platform"
+		},
+		{
+			"distance": 520.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "medium"
+		},
+		{
+			"distance": 580.0,
+			"lane": -1,
+			"type": "train"
+		},
+		{
+			"distance": 700.0,
+			"lane": 0,
+			"type": "main_block",
+			"layer": 0,
+			"half_depth": 10.0,
+			"cross": "side_wall"
+		},
+		{
+			"distance": 820.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 840.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 860.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 920.0,
+			"lane": 1,
+			"type": "meteorite",
+			"fall_roll": true,
+			"meteor_fall_speed": 18.0
+		},
+		{
+			"distance": 950.0,
+			"lane": -1,
+			"type": "meteorite",
+			"fall_roll": true,
+			"meteor_fall_speed": 28.0
+		},
+		{
+			"distance": 1020.0,
+			"lane": 0,
+			"type": "train"
+		}
+	],
+	"speed_boosts": [
+		{
+			"distance": 400.0,
+			"lane": 1,
+			"width_ratio": 0.42
+		},
+		{
+			"distance": 700.0,
+			"lane": -1,
+			"width_ratio": 0.4
+		},
+		{
+			"distance": 960.0,
+			"lane": 0,
+			"width_ratio": 0.44
+		},
+		{
+			"distance": 1180.0,
+			"lane": 1,
+			"width_ratio": 0.38
+		},
+		{
+			"distance": 1380.0,
+			"lane": -1,
+			"width_ratio": 0.4
 		}
 	],
 	"finish_sprints": [
@@ -342,6 +586,26 @@
 			"distance": 1508.0,
 			"lane": 0,
 			"width_ratio": 0.58
+		}
+	],
+	"rain_zones": [
+		{
+			"start": 180,
+			"length": 85,
+			"intensity": 1.0,
+			"label": "毒雨入口"
+		},
+		{
+			"start": 600,
+			"length": 80,
+			"intensity": 1.05,
+			"label": "中段毒雨"
+		},
+		{
+			"start": 1400,
+			"length": 100,
+			"intensity": 1.1,
+			"label": "尾段酸雨"
 		}
 	]
 }
