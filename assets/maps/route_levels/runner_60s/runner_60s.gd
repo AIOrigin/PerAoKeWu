@@ -4327,6 +4327,11 @@ func _is_full_track_rain() -> bool:
 	return _mission_id_str() == "mission_relay_rain"
 
 
+func _is_relay_run_task() -> bool:
+	# 各据点运输任务类型「Relay Run / 中继」，不是星火中继站 location
+	return String(mission.get("task_type", "")).strip_edges() == "Relay Run"
+
+
 func _is_rain_weather() -> bool:
 	# 全图雨、分段毒雨、或本局已启用雨效
 	if _rain_active:
@@ -9083,11 +9088,19 @@ func _setup_rain_weather() -> void:
 	elif not zones.is_empty():
 		enable = true
 		_rain_full_track = false
+	elif _is_relay_run_task():
+		# 各据点 Relay Run 运输关：默认铺 2 段毒雨（可在 JSON rain_zones 里手写覆盖）
+		_cached_rain_zones = _generate_random_rain_zones(2)
+		enable = not _cached_rain_zones.is_empty()
+		_rain_full_track = false
+		if enable:
+			mission["rain_kind"] = String(mission.get("rain_kind", "toxic"))
+			mission["rain_cargo_hit_mult"] = float(mission.get("rain_cargo_hit_mult", 1.1))
 	else:
 		# 其他关卡可随机出现毒雨段（mission.rain_chance，默认 0.12；显式 0 关闭）
 		var chance := float(mission.get("rain_chance", -1.0))
 		if chance < 0.0:
-			chance = 0.0 if _is_relay_mission() else 0.12
+			chance = 0.12
 		if chance > 0.0 and _rain_puddle_rng.randf() < clampf(chance, 0.0, 1.0):
 			var n := 1 if _rain_puddle_rng.randf() < 0.65 else 2
 			_cached_rain_zones = _generate_random_rain_zones(n)
