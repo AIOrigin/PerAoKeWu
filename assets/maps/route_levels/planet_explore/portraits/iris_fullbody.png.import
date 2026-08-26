@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://feac1ymgcj7c"
-path="res://.godot/imported/owen_fullbody.png-7f96e7a1d379daf2eec805321cdb3c44.ctex"
+uid="uid://671pmaqlb23"
+path="res://.godot/imported/iris_fullbody.png-a3c489fc730ca766be5744d95635a106.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/maps/route_levels/planet_explore/portraits/owen_fullbody.png"
-dest_files=["res://.godot/imported/owen_fullbody.png-7f96e7a1d379daf2eec805321cdb3c44.ctex"]
+source_file="res://assets/maps/route_levels/planet_explore/portraits/iris_fullbody.png"
+dest_files=["res://.godot/imported/iris_fullbody.png-a3c489fc730ca766be5744d95635a106.ctex"]
 
 [params]
 

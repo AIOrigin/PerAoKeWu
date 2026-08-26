@@ -38,6 +38,7 @@ const FAIL_RIM := Color("#8AD8FF")
 
 var outpost_title := "Water Station"
 var horizon_ratio := 0.42
+var _location_id := ""
 
 var _is_failure := false
 var _ring_center := Vector2.ZERO
@@ -192,13 +193,15 @@ func _make_figure_glow_rect(node_name: String, tint: Color, z: int) -> TextureRe
 
 func configure(outpost_name: String, location_id: String, _hearth_scene_path: String, failed: bool = false) -> void:
 	outpost_title = outpost_name if outpost_name != "" else "Destination"
+	_location_id = location_id
 	_is_failure = failed
 	var silhouette_path := _resolve_silhouette_path(location_id)
 	if _building != null:
 		if failed:
 			_building.texture = _load_building_tex_failure(silhouette_path)
 		else:
-			_building.texture = _load_station_silhouette_tex(silhouette_path)
+			# 中继专用剪影走直读路径，避免再处理裁边
+			_building.texture = _load_building_tex(silhouette_path)
 		_building.modulate = Color(0.72, 0.76, 0.82, 0.78) if failed else Color(0.94, 0.98, 1.0, 1.0)
 	if _figure != null:
 		var figure_path := FIGURE_FAILURE_SILHOUETTE_PATH if failed else FIGURE_SILHOUETTE_PATH
@@ -209,6 +212,15 @@ func configure(outpost_name: String, location_id: String, _hearth_scene_path: St
 		if _figure_glow_inner != null:
 			_figure_glow_inner.visible = not failed
 	call_deferred("_sync_layout")
+
+
+func _normalized_location_id() -> String:
+	var loc := _location_id
+	if loc == "medbay":
+		return "medical"
+	if loc == "outpost":
+		return "gate"
+	return loc
 
 
 func _load_tex(path: String) -> Texture2D:
@@ -241,6 +253,9 @@ func _resolve_silhouette_path(location_id: String) -> String:
 	elif loc == "outpost":
 		loc = "gate"
 	var candidates: Array[String] = []
+	# 中继结算：用地平线对齐剪影（由 spark_relay_cutout 烘焙）
+	if loc == "relay":
+		candidates.append("res://assets/maps/route_levels/runner_60s/settlement/relay_settlement_silhouette.png")
 	if SETTLEMENT_SILHOUETTE.has(loc):
 		candidates.append(String(SETTLEMENT_SILHOUETTE[loc]))
 	match loc:
@@ -255,11 +270,34 @@ func _resolve_silhouette_path(location_id: String) -> String:
 			return path
 	return BUILDING_SILHOUETTE_PATH
 
-
 func _load_building_tex(path: String, failed: bool = false) -> Texture2D:
 	if failed:
 		return _load_building_tex_failure(path)
+	var lower := path.to_lower()
+	# 中继结算剪影：彩色插画，扣黑底后直接用
+	if "relay_settlement_silhouette" in lower:
+		var tex := _load_tex(path)
+		if tex != null:
+			return _punch_black_background_tex(tex)
 	return _load_station_silhouette_tex(path)
+
+
+func _punch_black_background_tex(source: Texture2D) -> Texture2D:
+	var img := source.get_image()
+	if img == null or img.is_empty():
+		return source
+	img = img.duplicate()
+	img.convert(Image.FORMAT_RGBA8)
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			var luma := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+			if luma < 0.07 and c.a > 0.01:
+				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			elif luma < 0.12:
+				c.a *= clampf((luma - 0.04) / 0.08, 0.0, 1.0)
+				img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
 
 
 func _load_building_tex_failure(path: String) -> Texture2D:
@@ -441,11 +479,22 @@ func _sync_layout() -> void:
 
 		var tex := _building.texture.get_size()
 		var target := _building_clip.size
-		var fit := maxf((target.x * 1.38) / maxf(tex.x, 1.0), (target.y * 1.02) / maxf(tex.y, 1.0))
+		var loc := _normalized_location_id()
+		var fit: float
+		if loc == "relay":
+			# 新彩色中继插画偏宽：略放大并完整入画
+			var fit_w := (target.x * 1.12) / maxf(tex.x, 1.0)
+			var fit_h := (target.y * 0.98) / maxf(tex.y, 1.0)
+			fit = minf(fit_w, fit_h)
+		else:
+			# 其他据点：略放大宽度，底边贴齐地平线
+			fit = maxf((target.x * 1.28) / maxf(tex.x, 1.0), (target.y * 0.92) / maxf(tex.y, 1.0))
 		var b_w := tex.x * fit
 		var b_h := tex.y * fit
 		_building.size = Vector2(b_w, b_h)
-		_building.position = Vector2((target.x - b_w) * 0.5, horizon_y - b_h * 0.98)
+		_building.rotation = 0.0
+		_building.pivot_offset = Vector2(b_w * 0.5, b_h)
+		_building.position = Vector2((target.x - b_w) * 0.5, horizon_y - b_h)
 
 	if _fx != null:
 		_fx.set_anchors_preset(Control.PRESET_FULL_RECT)

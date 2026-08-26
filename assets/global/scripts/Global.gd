@@ -56,6 +56,8 @@ var opening_comic_seen: bool = false
 var home_guide_seen: bool = false
 ## 跑酷新手引导总开关（设置里可关）
 var runner_tutorial_enabled: bool = true
+## 开发测试：全解锁模式（解锁全部据点批次，详情页展示全部负责人立绘）
+var dev_full_unlock: bool = false
 ## 分项：jump / slide / lane / shield / fork / sandstorm / wall_run
 var runner_tutorial_seen: Dictionary = {}
 ## 兼容旧字段
@@ -1360,13 +1362,62 @@ func sync_mission_dispatch(planet_id: String, rotate_completed_mission_id: Strin
 func ensure_mission_dispatch_ready(planet_id: String = "glass_desert") -> void:
 	if planet_id == "":
 		planet_id = "glass_desert"
-	sync_mission_dispatch(planet_id)
+	if dev_full_unlock:
+		apply_dev_full_unlock(planet_id)
+	else:
+		sync_mission_dispatch(planet_id)
+
+
+func is_dev_full_unlock() -> bool:
+	return dev_full_unlock
+
+
+func set_dev_full_unlock(enabled: bool, planet_id: String = "glass_desert") -> void:
+	dev_full_unlock = enabled
+	if planet_id == "":
+		planet_id = "glass_desert"
+	if enabled:
+		apply_dev_full_unlock(planet_id)
+	else:
+		sync_mission_dispatch(planet_id)
+	save_mobile_progress()
+
+
+func apply_dev_full_unlock(planet_id: String = "glass_desert") -> void:
+	if planet_id == "":
+		planet_id = "glass_desert"
+	var batches := MissionDispatch.get_batches(planet_id)
+	var max_batch := 1
+	for entry in batches:
+		max_batch = maxi(max_batch, int(entry.get("id", 1)))
+	unlocked_mission_batch_by_planet[planet_id] = max_batch
+	var all_ids: Array[String] = []
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id) if planet_id != "" else null
+	if cfg != null and cfg.has_method("get_explore_locations"):
+		for loc in cfg.get_explore_locations():
+			if typeof(loc) != TYPE_DICTIONARY:
+				continue
+			var location_id := String((loc as Dictionary).get("id", ""))
+			if location_id != "" and not all_ids.has(location_id):
+				all_ids.append(location_id)
+	if all_ids.is_empty():
+		all_ids = MissionDispatch.get_batch_location_ids(planet_id, max_batch)
+	exploration_revealed_locations_by_planet[planet_id] = all_ids
+	mission_board_slots_by_planet[planet_id] = MissionDispatch.fill_mission_board_slots(
+		planet_id,
+		get_mission_board_slots(planet_id),
+		max_batch,
+		""
+	)
+	_sync_messenger_story_unlocks()
+	save_mobile_progress()
 
 
 ## 重置单星球运输任务进度（保留等级、货币等），用于从批次 1 重新测试
 func reset_planet_mission_progress(planet_id: String = "glass_desert") -> void:
 	if planet_id == "":
 		planet_id = "glass_desert"
+	dev_full_unlock = false
 	if completed_runner_locations_by_planet.has(planet_id):
 		completed_runner_locations_by_planet.erase(planet_id)
 	if runner_outpost_progress_by_planet.has(planet_id):
@@ -1763,6 +1814,7 @@ func save_mobile_progress() -> void:
 		"opening_comic_seen": opening_comic_seen,
 		"home_guide_seen": home_guide_seen,
 		"runner_tutorial_enabled": runner_tutorial_enabled,
+		"dev_full_unlock": dev_full_unlock,
 		"runner_tutorial_seen": runner_tutorial_seen.duplicate(true),
 		"runner_wall_run_tutorial_seen": runner_wall_run_tutorial_seen or bool(runner_tutorial_seen.get("wall_run", false)),
 		"bgm_enabled": bgm_enabled,
@@ -1825,6 +1877,7 @@ func load_mobile_progress() -> void:
 	opening_comic_seen = bool(data.get("opening_comic_seen", opening_comic_seen))
 	home_guide_seen = bool(data.get("home_guide_seen", home_guide_seen))
 	runner_tutorial_enabled = bool(data.get("runner_tutorial_enabled", true))
+	dev_full_unlock = bool(data.get("dev_full_unlock", false))
 	bgm_enabled = bool(data.get("bgm_enabled", true))
 	bgm_volume = clampf(float(data.get("bgm_volume", bgm_volume)), 0.0, 1.0)
 	sfx_volume = clampf(float(data.get("sfx_volume", sfx_volume)), 0.0, 1.0)
@@ -1942,6 +1995,7 @@ func _sync_mission_reward_claim_state() -> void:
 
 
 func reset_mobile_progress() -> void:
+	dev_full_unlock = false
 	first_launch_story_seen = false
 	opening_comic_seen = false
 	home_guide_seen = false

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://feac1ymgcj7c"
-path="res://.godot/imported/owen_fullbody.png-7f96e7a1d379daf2eec805321cdb3c44.ctex"
+uid="uid://3vw1houe33jp"
+path="res://.godot/imported/kane_fullbody.png-0adc7e797de89264588b1115b537aad2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/maps/route_levels/planet_explore/portraits/owen_fullbody.png"
-dest_files=["res://.godot/imported/owen_fullbody.png-7f96e7a1d379daf2eec805321cdb3c44.ctex"]
+source_file="res://assets/maps/route_levels/planet_explore/portraits/kane_fullbody.png"
+dest_files=["res://.godot/imported/kane_fullbody.png-0adc7e797de89264588b1115b537aad2.ctex"]
 
 [params]
 

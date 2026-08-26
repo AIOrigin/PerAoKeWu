@@ -405,24 +405,66 @@
 	],
 	"speed_boosts": [
 		{
-			"distance": 120.0,
+			"distance": 70.0,
 			"lane": 0,
 			"width_ratio": 0.48
 		},
 		{
-			"distance": 260.0,
+			"distance": 120.0,
+			"lane": 1,
+			"width_ratio": 0.46
+		},
+		{
+			"distance": 190.0,
 			"lane": -1,
 			"width_ratio": 0.44
 		},
 		{
-			"distance": 420.0,
+			"distance": 260.0,
 			"lane": 0,
 			"width_ratio": 0.48
 		},
 		{
-			"distance": 500.0,
+			"distance": 330.0,
+			"lane": 1,
+			"width_ratio": 0.44
+		},
+		{
+			"distance": 400.0,
+			"lane": -1,
+			"width_ratio": 0.46
+		},
+		{
+			"distance": 460.0,
+			"lane": 0,
+			"width_ratio": 0.48
+		},
+		{
+			"distance": 510.0,
 			"lane": 1,
 			"width_ratio": 0.42
+		}
+	],
+	"shield_crystals": [
+		{
+			"distance": 188.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 205.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 362.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 378.0,
+			"lane": 0,
+			"layer": 0
 		}
 	],
 	"finish_sprints": [

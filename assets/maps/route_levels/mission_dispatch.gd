@@ -63,6 +63,12 @@ static func get_batch1_location_ids(planet_id: String) -> Array[String]:
 ## 当前应解锁到第几批：
 ## 1 初始开放居民穹顶+水源据点任务；2=批次1任一据点点亮后开放医疗+防御哨站；3=批次1+2平均进度≥85%
 static func compute_unlocked_batch(planet_id: String) -> int:
+	if Global.is_dev_full_unlock():
+		var batches := get_batches(planet_id)
+		var max_batch := 1
+		for entry in batches:
+			max_batch = maxi(max_batch, int(entry.get("id", 1)))
+		return max_batch
 	var batches := get_batches(planet_id)
 	if batches.is_empty():
 		return 1
@@ -92,6 +98,8 @@ static func compute_unlocked_batch(planet_id: String) -> int:
 
 
 static func is_location_batch_unlocked(planet_id: String, location_id: String, unlocked_batch: int = -1) -> bool:
+	if Global.is_dev_full_unlock():
+		return get_location_batch_id(planet_id, location_id) > 0
 	var batch_id := get_location_batch_id(planet_id, location_id)
 	if batch_id <= 0:
 		return false
@@ -100,6 +108,8 @@ static func is_location_batch_unlocked(planet_id: String, location_id: String, u
 
 
 static func is_preview_location(planet_id: String, location_id: String) -> bool:
+	if Global.is_dev_full_unlock():
+		return false
 	var ids: Array = PREVIEW_LOCATIONS.get(planet_id, [])
 	if not ids.has(location_id):
 		return false

@@ -1,14 +1,19 @@
 class_name EnergyChaserController
 extends Node3D
 
-## Nulltide Wraith：暗色密集星火光点聚合成的摄魂怪状幽影（非实体块）。
-## 动态靠分层延迟运动（平滑跟随 / 悬浮 / 下摆拖曳）。
+## Nulltide Wraith：使用桌面导入的异能怪 GLB（开场 angry / 跑步 / 抓到比心）。
 
 enum ChaseState { DORMANT, WARNING, CHASE, CRITICAL, CAPTURED }
+enum VisualPose { INTRO, RUN, CAPTURE }
 
 signal pressure_changed(pressure: float, normalized_pressure: float)
 signal chase_state_changed(new_state: ChaseState)
 signal player_captured
+
+const WRAITH_BASE_PATH := "res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_base.glb"
+const WRAITH_INTRO_PATH := "res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_intro_angry.glb"
+const WRAITH_RUN_PATH := "res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_run.glb"
+const WRAITH_CAPTURE_PATH := "res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_capture_heart.glb"
 
 @export_group("References")
 @export var runner: Node3D
@@ -21,23 +26,21 @@ signal player_captured
 @export_group("Distance")
 @export var max_gap: float = 28.0
 @export var min_gap: float = 1.6
-@export var visual_height: float = 0.55
+@export var visual_height: float = 0.05
 @export var follow_smoothing: float = 5.5
-## >=0 时强制视觉间距（开局后侧展示用）
 @export var preview_gap: float = -1.0
-## 开局预览时抬高可见度（反打镜头要能看清幽影）
 @export var preview_boost: float = 0.0
+## 开场反打：锁定站位，禁止平滑飘入
+var intro_position_locked: bool = false
 
-@export_group("Hover")
-@export var hover_amplitude: float = 0.08
-@export var hover_speed: float = 1.15
-@export var yaw_amplitude_deg: float = 2.5
-@export var yaw_speed: float = 0.55
-
-@export_group("Tails")
-@export var tail_sway_deg: float = 6.0
-@export var tail_sway_speed: float = 1.2
-@export var tail_drag_deg: float = 8.0
+@export_group("Model")
+@export var model_height: float = 2.2
+## GLB 多为 +Z 朝前；节点用 -Z 对准 runner，故补 180°
+@export var model_yaw_deg: float = 180.0
+## 捕获演出时由 runner 驱动：比心阶段放大，镜头需仍能框住全身
+@export var capture_display_boost: float = 1.0
+@export var hover_amplitude: float = 0.03
+@export var hover_speed: float = 1.05
 
 @export_group("Pressure")
 @export var max_pressure: float = 100.0
@@ -54,15 +57,7 @@ signal player_captured
 @export var clean_play_relief_per_second: float = 1.5
 
 @export_group("Quality")
-## 低配：减粒子量、关灯，仍保留光点轮廓
 @export var low_fx: bool = false
-
-## 色锚：近黑 / 靛紫 / 裂隙紫 / 浅雾紫 / 青星火花
-const COL_NEAR_BLACK := Color(0.043, 0.027, 0.078, 1.0)
-const COL_INDIGO := Color(0.149, 0.075, 0.263, 1.0)
-const COL_RIFT := Color(0.537, 0.341, 0.824, 1.0)
-const COL_MIST := Color(0.776, 0.718, 1.0, 1.0)
-const COL_CYAN := Color(0.45, 0.85, 1.0, 1.0)
 
 var pressure: float = 0.0
 var state: ChaseState = ChaseState.DORMANT
@@ -82,17 +77,14 @@ var _bank_roll: float = 0.0
 
 var _wraith_root: Node3D
 var _hover_root: Node3D
-var _ghost_shell: Node3D
-var _body_cloud: GPUParticles3D
-var _hood_cloud: GPUParticles3D
-var _void_maw: GPUParticles3D
-var _rift_sparks: GPUParticles3D
-var _cyan_specks: GPUParticles3D
-var _tail_streams: Array[GPUParticles3D] = []
-var _tail_pivots: Array[Node3D] = []
-var _spark_layers: Array[GPUParticles3D] = []
-var _ghost_mats: Array[StandardMaterial3D] = []
+var _pose_models: Dictionary = {} # VisualPose -> Node3D
+var _pose_players: Dictionary = {} # VisualPose -> AnimationPlayer
+var _current_pose: VisualPose = VisualPose.INTRO
 var _chase_light: OmniLight3D
+## 兼容旧字段（runner 可能仍引用）
+var tail_drag_deg: float = 8.0
+var yaw_amplitude_deg: float = 1.5
+var yaw_speed: float = 0.45
 
 
 func _ready() -> void:
@@ -104,7 +96,6 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# 视觉动态始终跑：即使 intro 关掉了 physics_process
 	if not visible and preview_gap < 0.0 and state != ChaseState.CAPTURED:
 		return
 	_elapsed += delta
@@ -113,8 +104,8 @@ func _process(delta: float) -> void:
 		_flash_t = maxf(_flash_t - delta, 0.0)
 	_update_follow_motion(delta)
 	_animate_hover(delta)
-	_animate_tails(delta)
 	_apply_visuals()
+	_keep_pose_anim_alive()
 
 
 func _physics_process(delta: float) -> void:
@@ -127,7 +118,6 @@ func _physics_process(delta: float) -> void:
 	if preview_gap < 0.0:
 		pressure = maxf(0.0, pressure - relief * delta)
 	_update_state()
-	# 视觉已在 _process 里刷新
 
 
 func set_chase_target(world_pos: Vector3, yaw: float) -> void:
@@ -140,6 +130,15 @@ func set_chase_target(world_pos: Vector3, yaw: float) -> void:
 		_has_chase_target = true
 
 
+func snap_chase_target(world_pos: Vector3, yaw: float) -> void:
+	_chase_target = world_pos
+	_chase_yaw = yaw
+	global_position = world_pos
+	rotation = Vector3(0.0, yaw, 0.0)
+	_last_root_pos = world_pos
+	_has_chase_target = true
+
+
 func start_chase(start_pressure: float = -1.0) -> void:
 	is_active = true
 	_captured_emitted = false
@@ -149,6 +148,7 @@ func start_chase(start_pressure: float = -1.0) -> void:
 	var p := initial_pressure if start_pressure < 0.0 else start_pressure
 	pressure = clampf(p, 0.0, max_pressure)
 	_update_state()
+	play_pose(VisualPose.RUN, true)
 	_apply_visuals()
 
 
@@ -162,6 +162,7 @@ func stop_chase() -> void:
 	preview_boost = 0.0
 	_flash_t = 0.0
 	_has_chase_target = false
+	play_pose(VisualPose.INTRO, false)
 	_apply_visuals()
 
 
@@ -174,11 +175,42 @@ func begin_visual_preview(gap_m: float = 14.0) -> void:
 	preview_gap = gap_m
 	preview_boost = 1.0
 	_update_state()
+	play_pose(VisualPose.INTRO, true)
 	_apply_visuals()
 
 
 func pulse_flash(duration: float = 0.4) -> void:
 	_flash_t = maxf(_flash_t, duration)
+
+
+func play_capture_anim() -> void:
+	play_pose(VisualPose.CAPTURE, true)
+
+
+func set_capture_display_boost(boost: float) -> void:
+	capture_display_boost = maxf(boost, 0.01)
+	_apply_visuals()
+
+
+func play_pose(pose: VisualPose, restart: bool = false) -> void:
+	_current_pose = pose
+	for key in _pose_models.keys():
+		var node: Node3D = _pose_models[key] as Node3D
+		if node != null and is_instance_valid(node):
+			node.visible = int(key) == int(pose)
+	var player: AnimationPlayer = _pose_players.get(pose) as AnimationPlayer
+	if player == null:
+		return
+	var anim_name := _first_anim_name(player)
+	if anim_name == "":
+		return
+	var loop := pose == VisualPose.RUN or pose == VisualPose.INTRO
+	var anim := player.get_animation(anim_name)
+	if anim != null:
+		anim.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
+	if restart or player.current_animation != anim_name or not player.is_playing():
+		player.play(anim_name)
+		player.seek(0.0, true)
 
 
 func shrink_visual_gap(ratio: float = 0.25) -> float:
@@ -276,6 +308,7 @@ func _update_state() -> void:
 	if state == ChaseState.CAPTURED and not _captured_emitted:
 		_captured_emitted = true
 		is_active = false
+		play_pose(VisualPose.CAPTURE, true)
 		player_captured.emit()
 
 	pressure_changed.emit(pressure, get_normalized_pressure())
@@ -284,7 +317,11 @@ func _update_state() -> void:
 func _update_follow_motion(delta: float) -> void:
 	if not _has_chase_target:
 		return
-	# 指数平滑：慢半拍追向锚点，制造惯性追击感
+	if intro_position_locked:
+		global_position = _chase_target
+		rotation.y = _chase_yaw
+		_yaw_rate = 0.0
+		return
 	var weight := 1.0 - exp(-follow_smoothing * delta)
 	global_position = global_position.lerp(_chase_target, weight)
 	var cur_yaw := rotation.y
@@ -297,45 +334,39 @@ func _update_follow_motion(delta: float) -> void:
 func _animate_hover(delta: float) -> void:
 	if _hover_root == null:
 		return
-	_hover_root.position.y = sin(_elapsed * hover_speed) * hover_amplitude
-	_hover_root.rotation.y = deg_to_rad(sin(_elapsed * yaw_speed) * yaw_amplitude_deg)
+	if intro_position_locked:
+		_hover_root.position.y = visual_height
+		_hover_root.rotation = Vector3.ZERO
+		_bank_roll = 0.0
+		return
+	_hover_root.position.y = visual_height + sin(_elapsed * hover_speed) * hover_amplitude
+	# 朝向由节点 yaw 对准 runner，这里不再左右晃头把脸甩开
+	_hover_root.rotation.y = 0.0
 	var near_t := clampf((10.0 - get_visual_gap()) / 10.0, 0.0, 1.0)
-	_hover_root.rotation.x = deg_to_rad(lerpf(2.0, 8.0, near_t) + sin(_elapsed * 0.9) * 1.2)
-	var bank_target := clampf(-_yaw_rate * 0.35, -0.28, 0.28)
+	_hover_root.rotation.x = deg_to_rad(lerpf(0.0, 2.5, near_t))
+	var bank_target := clampf(-_yaw_rate * 0.18, -0.12, 0.12)
 	_bank_roll = lerpf(_bank_roll, bank_target, clampf(delta * 6.0, 0.0, 1.0))
 	_hover_root.rotation.z = _bank_roll
 
 
-func _animate_tails(delta: float) -> void:
-	if _wraith_root == null:
+func _keep_pose_anim_alive() -> void:
+	var player: AnimationPlayer = _pose_players.get(_current_pose) as AnimationPlayer
+	if player == null:
 		return
-	var dt := maxf(delta, 0.001)
-	var velocity := (global_position - _last_root_pos) / dt
-	_last_root_pos = global_position
-	var speed := velocity.length()
-	var drag := clampf(speed * 0.12, 0.0, 1.0) * tail_drag_deg
-	var p := get_normalized_pressure()
-	var boost := clampf(preview_boost, 0.0, 1.0)
-	drag *= lerpf(1.0, 1.55, p) * lerpf(1.0, 1.25, boost)
-	var phases := [0.0, 1.7, 3.1]
-	var drag_muls := [1.0, 0.8, 0.9]
-	for i in _tail_pivots.size():
-		var pivot := _tail_pivots[i]
-		if pivot == null:
-			continue
-		var phase: float = phases[i] if i < phases.size() else float(i) * 1.4
-		var dmul: float = drag_muls[i] if i < drag_muls.size() else 0.85
-		var wave := sin(_elapsed * tail_sway_speed + phase) * tail_sway_deg
-		pivot.rotation.x = deg_to_rad(wave + drag * dmul)
-		pivot.rotation.z = deg_to_rad(sin(_elapsed * 0.7 + phase) * 2.0)
-		var stretch := lerpf(1.0, 1.45, clampf(speed * 0.08, 0.0, 1.0)) * lerpf(1.0, 1.25, p)
-		pivot.scale = Vector3(1.0, stretch, 1.0)
+	if _current_pose == VisualPose.CAPTURE:
+		return
+	if not player.is_playing():
+		var anim_name := _first_anim_name(player)
+		if anim_name != "":
+			player.play(anim_name)
 
 
 func _apply_visuals() -> void:
 	var gap := get_visual_gap()
 	var p := get_normalized_pressure()
 	var boost := clampf(preview_boost, 0.0, 1.0)
+	if intro_position_locked:
+		boost = 0.0
 	if boost > 0.01:
 		p = maxf(p, lerpf(0.45, 0.65, boost))
 		gap = minf(gap, lerpf(14.0, 9.0, boost))
@@ -345,60 +376,28 @@ func _apply_visuals() -> void:
 		return
 	visual_root.visible = visible
 
-	var body_scale := 0.95
+	var body_scale := 1.0
 	if gap > 20.0:
-		body_scale = lerpf(1.0, 0.88, clampf((gap - 20.0) / 8.0, 0.0, 1.0))
+		body_scale = lerpf(1.0, 0.92, clampf((gap - 20.0) / 8.0, 0.0, 1.0))
 	elif gap > 10.0:
-		body_scale = lerpf(1.12, 1.0, (gap - 10.0) / 10.0)
+		body_scale = lerpf(1.06, 1.0, (gap - 10.0) / 10.0)
 	else:
-		body_scale = lerpf(1.28, 1.12, gap / 10.0)
+		body_scale = lerpf(1.14, 1.06, gap / 10.0)
 	if state == ChaseState.CAPTURED:
-		body_scale = 1.35
-	body_scale *= lerpf(1.0, 1.12, boost) * (1.0 + flash * 0.08)
+		body_scale = maxf(1.0, capture_display_boost)
+	body_scale *= lerpf(1.0, 1.06, boost) * (1.0 + flash * 0.04)
 	if _wraith_root != null:
 		_wraith_root.scale = Vector3.ONE * body_scale
 
-	# 始终保持较高密度，远距也不能“空掉”
-	var dens := clampf(lerpf(0.75, 1.0, 1.0 - gap / 28.0) + boost * 0.15 + flash * 0.12, 0.72, 1.0)
-	if low_fx:
-		dens = maxf(dens * 0.7, 0.55)
-	var on := visible
-	for layer in _spark_layers:
-		if layer == null:
-			continue
-		layer.emitting = on
-		layer.amount_ratio = dens
-	if _rift_sparks != null:
-		_rift_sparks.amount_ratio = dens
-	if _cyan_specks != null:
-		_cyan_specks.emitting = on
-		_cyan_specks.amount_ratio = dens * lerpf(0.6, 1.0, p)
-	for stream in _tail_streams:
-		if stream == null:
-			continue
-		stream.emitting = on
-		stream.amount_ratio = dens
-
-	# 半透明幽影壳：保证远距轮廓可读
-	var shell_a := clampf(lerpf(0.14, 0.32, p) + boost * 0.12 + flash * 0.15, 0.12, 0.4)
-	var shell_e := lerpf(0.8, 2.2, p) + flash * 1.5 + boost * 0.6
-	for mat in _ghost_mats:
-		if mat == null:
-			continue
-		mat.albedo_color.a = shell_a
-		mat.emission_energy_multiplier = shell_e
-
 	if edge_particles != null:
-		edge_particles.emitting = on
-		edge_particles.amount_ratio = dens
-	if spark_particles != null and spark_particles != _cyan_specks:
-		spark_particles.emitting = on
-		spark_particles.amount_ratio = dens
+		edge_particles.emitting = false
+	if spark_particles != null:
+		spark_particles.emitting = false
 
 	if _chase_light != null:
-		_chase_light.visible = not low_fx and on
-		_chase_light.light_energy = lerpf(0.55, 1.8, p) + flash * 1.4 + boost * 0.8
-		_chase_light.omni_range = lerpf(5.5, 10.0, boost)
+		_chase_light.visible = not low_fx and visible
+		_chase_light.light_energy = lerpf(0.35, 1.05, p) + flash * 0.7 + boost * 0.35
+		_chase_light.omni_range = lerpf(5.0, 8.5, boost)
 	if chase_audio != null:
 		chase_audio.volume_db = lerpf(-32.0, -6.0, p)
 	if screen_shader != null:
@@ -418,11 +417,6 @@ func _build_default_visuals() -> void:
 	visual_root.name = "NulltideWraithVisual"
 	add_child(visual_root)
 
-	_spark_layers.clear()
-	_tail_pivots.clear()
-	_tail_streams.clear()
-	_ghost_mats.clear()
-
 	_wraith_root = Node3D.new()
 	_wraith_root.name = "WraithRoot"
 	visual_root.add_child(_wraith_root)
@@ -431,115 +425,17 @@ func _build_default_visuals() -> void:
 	_hover_root.name = "HoverRoot"
 	_wraith_root.add_child(_hover_root)
 
-	# 半透明幽影壳：解决“纯暗粒子看不见”
-	_ghost_shell = Node3D.new()
-	_ghost_shell.name = "GhostShell"
-	_hover_root.add_child(_ghost_shell)
-	_add_ghost_volume("GhostMantle", Vector3(1.35, 2.1, 0.85), Vector3(0.0, 1.2, 0.0), Color(0.08, 0.04, 0.16, 0.22))
-	_add_ghost_volume("GhostHood", Vector3(1.15, 1.25, 1.0), Vector3(0.0, 2.55, 0.05), Color(0.06, 0.03, 0.14, 0.26))
-	_add_ghost_volume("GhostCollarL", Vector3(0.35, 1.0, 0.45), Vector3(-0.55, 2.6, 0.1), Color(0.1, 0.05, 0.2, 0.2), Vector3(8.0, 0.0, 18.0))
-	_add_ghost_volume("GhostCollarR", Vector3(0.35, 1.0, 0.45), Vector3(0.55, 2.6, 0.1), Color(0.1, 0.05, 0.2, 0.2), Vector3(8.0, 0.0, -18.0))
-	_add_ghost_volume("GhostVoid", Vector3(0.75, 0.9, 0.12), Vector3(0.0, 2.45, 0.48), Color(0.02, 0.0, 0.05, 0.45))
-	_add_ghost_volume("GhostRift", Vector3(0.14, 1.7, 0.1), Vector3(0.0, 1.35, 0.42), Color(0.45, 0.25, 0.9, 0.35))
-
-	# —— 密集星火光点（更大、更亮，才能在赛道里读出来） —— #
-	_body_cloud = _make_spark_volume(
-		"BodySparkCloud",
-		Vector3(0.0, 1.15, 0.0),
-		180 if not low_fx else 80,
-		Vector3(0.78, 1.1, 0.52),
-		Color(0.22, 0.1, 0.42, 0.85),
-		COL_RIFT,
-		2.2,
-		0.06,
-		0.14,
-		0.9
-	)
-	_hover_root.add_child(_body_cloud)
-
-	_hood_cloud = _make_spark_volume(
-		"HoodSparkCloud",
-		Vector3(0.0, 2.5, 0.05),
-		120 if not low_fx else 56,
-		Vector3(0.68, 0.75, 0.58),
-		Color(0.18, 0.08, 0.38, 0.9),
-		COL_MIST,
-		2.6,
-		0.05,
-		0.12,
-		1.0
-	)
-	_hover_root.add_child(_hood_cloud)
-
-	_void_maw = _make_spark_volume(
-		"VoidMawSparks",
-		Vector3(0.0, 2.4, 0.45),
-		56 if not low_fx else 28,
-		Vector3(0.4, 0.5, 0.14),
-		Color(0.08, 0.03, 0.16, 0.95),
-		COL_INDIGO,
-		1.2,
-		0.05,
-		0.11,
-		0.7
-	)
-	_hover_root.add_child(_void_maw)
-
-	_rift_sparks = _make_spark_volume(
-		"RiftSparkLine",
-		Vector3(0.0, 1.4, 0.42),
-		48 if not low_fx else 22,
-		Vector3(0.1, 1.0, 0.08),
-		Color(0.65, 0.4, 1.0, 0.95),
-		COL_RIFT,
-		4.0,
-		0.04,
-		0.09,
-		0.7
-	)
-	_hover_root.add_child(_rift_sparks)
-
-	_cyan_specks = _make_spark_volume(
-		"CyanSpeckCloud",
-		Vector3(0.0, 2.75, 0.15),
-		36 if not low_fx else 16,
-		Vector3(0.6, 0.4, 0.45),
-		Color(COL_CYAN.r, COL_CYAN.g, COL_CYAN.b, 0.9),
-		COL_CYAN,
-		4.5,
-		0.03,
-		0.07,
-		1.0
-	)
-	_hover_root.add_child(_cyan_specks)
-
-	_add_tail_stream("TailCenter", Vector3(0.0, 0.15, -0.1), 0.0)
-	_add_tail_stream("TailLeft", Vector3(-0.5, 0.2, 0.0), -16.0)
-	_add_tail_stream("TailRight", Vector3(0.5, 0.2, 0.0), 16.0)
-
-	edge_particles = _make_spark_volume(
-		"EdgeMistSparks",
-		Vector3(0.0, 1.0, -0.15),
-		70 if not low_fx else 28,
-		Vector3(1.0, 1.25, 0.75),
-		Color(0.35, 0.2, 0.7, 0.55),
-		COL_MIST,
-		1.8,
-		0.08,
-		0.18,
-		1.2
-	)
-	_hover_root.add_child(edge_particles)
-
-	spark_particles = _cyan_specks
+	_add_pose_model(VisualPose.INTRO, WRAITH_INTRO_PATH, WRAITH_BASE_PATH)
+	_add_pose_model(VisualPose.RUN, WRAITH_RUN_PATH, WRAITH_BASE_PATH)
+	_add_pose_model(VisualPose.CAPTURE, WRAITH_CAPTURE_PATH, WRAITH_BASE_PATH)
 
 	_chase_light = OmniLight3D.new()
 	_chase_light.name = "VoidLight"
-	_chase_light.light_color = COL_RIFT
-	_chase_light.light_energy = 0.9
-	_chase_light.omni_range = 7.5
+	_chase_light.light_color = Color(0.42, 0.22, 0.72)
+	_chase_light.light_energy = 0.55
+	_chase_light.omni_range = 6.5
 	_chase_light.shadow_enabled = false
-	_chase_light.position = Vector3(0.0, 1.8, 0.35)
+	_chase_light.position = Vector3(0.0, 1.4, 0.35)
 	_hover_root.add_child(_chase_light)
 
 	chase_audio = AudioStreamPlayer3D.new()
@@ -550,165 +446,149 @@ func _build_default_visuals() -> void:
 	if low_fx and _chase_light != null:
 		_chase_light.visible = false
 
-
-func _add_ghost_volume(
-	part_name: String,
-	size: Vector3,
-	pos: Vector3,
-	col: Color,
-	rot_deg: Vector3 = Vector3.ZERO
-) -> void:
-	var mi := MeshInstance3D.new()
-	mi.name = part_name
-	var box := BoxMesh.new()
-	box.size = size
-	var mat := StandardMaterial3D.new()
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = col
-	mat.emission_enabled = true
-	mat.emission = Color(COL_RIFT.r, COL_RIFT.g, COL_RIFT.b)
-	mat.emission_energy_multiplier = 1.2
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.disable_fog = true
-	mat.no_depth_test = false
-	box.material = mat
-	mi.mesh = box
-	mi.position = pos
-	mi.rotation_degrees = rot_deg
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_ghost_shell.add_child(mi)
-	_ghost_mats.append(mat)
+	play_pose(VisualPose.INTRO, true)
 
 
-func _add_tail_stream(part_name: String, pos: Vector3, yaw_deg: float) -> void:
-	var pivot := Node3D.new()
-	pivot.name = part_name + "Pivot"
-	pivot.position = pos
-	pivot.rotation_degrees = Vector3(12.0, yaw_deg, 0.0)
-	_hover_root.add_child(pivot)
-	_tail_pivots.append(pivot)
-
-	var stream := _make_tail_spark_stream(part_name + "Stream", 70 if not low_fx else 32)
-	pivot.add_child(stream)
-	_tail_streams.append(stream)
-	_spark_layers.append(stream)
-
-
-func _make_spark_volume(
-	part_name: String,
-	pos: Vector3,
-	amount: int,
-	box_extents: Vector3,
-	albedo: Color,
-	emission: Color,
-	emit_energy: float,
-	scale_min: float,
-	scale_max: float,
-	lifetime: float
-) -> GPUParticles3D:
-	var p := GPUParticles3D.new()
-	p.name = part_name
-	p.position = pos
-	p.amount = amount
-	p.lifetime = lifetime
-	p.preprocess = lifetime
-	p.explosiveness = 0.0
-	p.randomness = 0.65
-	p.emitting = true
-	p.local_coords = true
-	p.visibility_aabb = AABB(-box_extents * 3.0 - Vector3(1, 1, 1), box_extents * 6.0 + Vector3(2, 2, 2))
-	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-	var mat := ParticleProcessMaterial.new()
-	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	mat.emission_box_extents = box_extents
-	mat.direction = Vector3(0.0, 0.2, -0.15)
-	mat.spread = 180.0
-	mat.initial_velocity_min = 0.04
-	mat.initial_velocity_max = 0.28
-	mat.angular_velocity_min = -30.0
-	mat.angular_velocity_max = 30.0
-	mat.gravity = Vector3(0.0, 0.06, 0.0)
-	mat.damping_min = 0.2
-	mat.damping_max = 0.8
-	mat.scale_min = scale_min
-	mat.scale_max = scale_max
-	mat.color = Color(1, 1, 1, 1)
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.08, 0.55, 1.0])
-	grad.colors = PackedColorArray([
-		Color(albedo.r, albedo.g, albedo.b, 0.0),
-		Color(albedo.r, albedo.g, albedo.b, albedo.a),
-		Color(emission.r, emission.g, emission.b, albedo.a),
-		Color(emission.r, emission.g, emission.b, 0.0),
-	])
-	var ramp := GradientTexture1D.new()
-	ramp.gradient = grad
-	mat.color_ramp = ramp
-	p.process_material = mat
-	p.draw_pass_1 = _make_spark_draw_mesh(albedo, emission, emit_energy, scale_max)
-	_spark_layers.append(p)
-	return p
+func _add_pose_model(pose: VisualPose, path: String, fallback_path: String = "") -> void:
+	var node := _instantiate_glb(path)
+	if node == null and fallback_path != "":
+		node = _instantiate_glb(fallback_path)
+	if node == null:
+		push_warning("Nulltide wraith model missing: %s" % path)
+		return
+	node.name = "Pose_%d" % int(pose)
+	_hover_root.add_child(node)
+	_fit_model_height(node, model_height)
+	node.rotation_degrees.y = model_yaw_deg
+	node.visible = false
+	_disable_shadows(node)
+	_sanitize_root_motion(node)
+	_pose_models[pose] = node
+	var ap := _find_animation_player(node)
+	if ap != null:
+		_pose_players[pose] = ap
 
 
-func _make_tail_spark_stream(part_name: String, amount: int) -> GPUParticles3D:
-	var p := GPUParticles3D.new()
-	p.name = part_name
-	p.amount = amount
-	p.lifetime = 1.25
-	p.preprocess = 1.2
-	p.emitting = true
-	p.local_coords = true
-	p.visibility_aabb = AABB(Vector3(-2.0, -4.0, -3.0), Vector3(4.0, 5.5, 5.0))
-	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-	var mat := ParticleProcessMaterial.new()
-	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	mat.emission_box_extents = Vector3(0.22, 0.1, 0.14)
-	mat.direction = Vector3(0.0, -1.0, -0.4)
-	mat.spread = 22.0
-	mat.initial_velocity_min = 0.9
-	mat.initial_velocity_max = 2.2
-	mat.gravity = Vector3(0.0, -0.4, 0.0)
-	mat.damping_min = 0.15
-	mat.damping_max = 0.5
-	mat.scale_min = 0.05
-	mat.scale_max = 0.12
-	mat.color = Color(1, 1, 1, 1)
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.12, 0.65, 1.0])
-	grad.colors = PackedColorArray([
-		Color(COL_RIFT.r, COL_RIFT.g, COL_RIFT.b, 0.0),
-		Color(0.55, 0.32, 0.95, 0.9),
-		Color(0.2, 0.1, 0.4, 0.55),
-		Color(0.05, 0.02, 0.12, 0.0),
-	])
-	var ramp := GradientTexture1D.new()
-	ramp.gradient = grad
-	mat.color_ramp = ramp
-	p.process_material = mat
-	p.draw_pass_1 = _make_spark_draw_mesh(
-		Color(0.35, 0.18, 0.7, 0.85), COL_RIFT, 2.8, 0.12
-	)
-	return p
+func _instantiate_glb(path: String) -> Node3D:
+	if path == "":
+		return null
+	if ResourceLoader.exists(path):
+		var packed := load(path) as PackedScene
+		if packed != null:
+			return packed.instantiate() as Node3D
+	var abs_path := ProjectSettings.globalize_path(path)
+	if not FileAccess.file_exists(abs_path):
+		return null
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	var err := doc.append_from_file(abs_path, state)
+	if err != OK:
+		push_warning("GLTF load failed (%s): %s" % [str(err), path])
+		return null
+	var generated := doc.generate_scene(state)
+	return generated as Node3D
 
 
-func _make_spark_draw_mesh(albedo: Color, emission: Color, energy: float, radius: float) -> QuadMesh:
-	# 广告牌光点：远距比小球更易识别
-	var draw := QuadMesh.new()
-	var s := maxf(radius * 1.6, 0.06)
-	draw.size = Vector2(s, s)
-	var dmat := StandardMaterial3D.new()
-	dmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	dmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dmat.albedo_color = Color(albedo.r, albedo.g, albedo.b, 1.0)
-	dmat.emission_enabled = true
-	dmat.emission = emission
-	dmat.emission_energy_multiplier = energy
-	dmat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	dmat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	dmat.disable_fog = true
-	dmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	draw.material = dmat
-	return draw
+func _fit_model_height(root: Node3D, target_h: float) -> void:
+	if root == null:
+		return
+	root.scale = Vector3.ONE
+	root.position = Vector3.ZERO
+	var aabb := _collect_local_aabb(root)
+	var h := maxf(aabb.size.y, 0.05)
+	var s := target_h / h
+	root.scale = Vector3.ONE * s
+	# 贴地：缩放后把原 AABB 底边放到原点
+	root.position.y = -aabb.position.y * s
+
+
+func _collect_local_aabb(root: Node3D) -> AABB:
+	var merged := AABB()
+	var has := false
+	for node in root.find_children("*", "VisualInstance3D", true, false):
+		var vi := node as VisualInstance3D
+		if vi == null:
+			continue
+		var local := vi.get_aabb()
+		var rel := Transform3D.IDENTITY
+		var cur: Node = vi
+		while cur != null and cur != root:
+			if cur is Node3D:
+				rel = (cur as Node3D).transform * rel
+			cur = cur.get_parent()
+		var world_aabb := _xform_aabb(local, rel)
+		if not has:
+			merged = world_aabb
+			has = true
+		else:
+			merged = merged.merge(world_aabb)
+	if not has:
+		return AABB(Vector3(-0.5, 0.0, -0.5), Vector3(1.0, 1.8, 1.0))
+	return merged
+
+
+func _collect_aabb(root: Node3D) -> AABB:
+	return _collect_local_aabb(root)
+
+
+func _xform_aabb(aabb: AABB, xf: Transform3D) -> AABB:
+	var pts: Array[Vector3] = [
+		aabb.position,
+		aabb.position + Vector3(aabb.size.x, 0, 0),
+		aabb.position + Vector3(0, aabb.size.y, 0),
+		aabb.position + Vector3(0, 0, aabb.size.z),
+		aabb.position + Vector3(aabb.size.x, aabb.size.y, 0),
+		aabb.position + Vector3(aabb.size.x, 0, aabb.size.z),
+		aabb.position + Vector3(0, aabb.size.y, aabb.size.z),
+		aabb.position + aabb.size,
+	]
+	var out := AABB(xf * pts[0], Vector3.ZERO)
+	for i in range(1, pts.size()):
+		out = out.expand(xf * pts[i])
+	return out
+
+
+func _disable_shadows(root: Node) -> void:
+	for node in root.find_children("*", "GeometryInstance3D", true, false):
+		var gi := node as GeometryInstance3D
+		if gi != null:
+			gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _find_animation_player(root: Node) -> AnimationPlayer:
+	if root is AnimationPlayer:
+		return root as AnimationPlayer
+	for child in root.find_children("*", "AnimationPlayer", true, false):
+		return child as AnimationPlayer
+	return null
+
+
+func _first_anim_name(player: AnimationPlayer) -> String:
+	if player == null:
+		return ""
+	var names := player.get_animation_list()
+	if names.is_empty():
+		return ""
+	for n in names:
+		if String(n) != "RESET":
+			return String(n)
+	return String(names[0])
+
+
+func _sanitize_root_motion(root: Node) -> void:
+	var player := _find_animation_player(root)
+	if player == null:
+		return
+	for anim_name in player.get_animation_list():
+		var anim := player.get_animation(anim_name)
+		if anim == null:
+			continue
+		for i in range(anim.get_track_count()):
+			if anim.track_get_type(i) != Animation.TYPE_POSITION_3D:
+				continue
+			var path := String(anim.track_get_path(i))
+			var lower := path.to_lower()
+			if "hips" in lower or "root" in lower or path.ends_with(":position"):
+				# 保留相对骨骼，关掉明显根位移轨
+				if "hips" in lower or lower.ends_with("/root") or lower.ends_with(":root"):
+					anim.track_set_enabled(i, false)

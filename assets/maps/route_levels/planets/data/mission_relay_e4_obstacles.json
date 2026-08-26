@@ -30,7 +30,7 @@
 			"turn": 0.785
 		},
 		{
-			"length": 280.0,
+			"length": 380.0,
 			"turn": 0.0
 		}
 	],
@@ -49,23 +49,33 @@
 	],
 	"side_runway_zones": [
 		{
-			"start": 718,
-			"length": 34,
-			"side": "outer",
+			"start": 692,
+			"length": 48,
+			"side": "left",
 			"fallback_side": -1,
 			"lateral_offset": 7.0,
 			"layer": 1,
-			"entry_window": 10,
+			"entry_window": 18,
 			"blocker_profile": "light"
 		},
 		{
-			"start": 1088,
-			"length": 32,
-			"side": "outer",
+			"start": 900,
+			"length": 52,
+			"side": "right",
 			"fallback_side": 1,
 			"lateral_offset": 7.0,
 			"layer": 1,
-			"entry_window": 10,
+			"entry_window": 22,
+			"blocker_profile": "light"
+		},
+		{
+			"start": 1080,
+			"length": 40,
+			"side": "right",
+			"fallback_side": 1,
+			"lateral_offset": 7.0,
+			"layer": 1,
+			"entry_window": 22,
 			"blocker_profile": "light"
 		}
 	],
@@ -164,19 +174,6 @@
 			"lane": -1,
 			"impulse": 8.0,
 			"half_depth": 1.9,
-			"lock_air_lane": false,
-			"lock_distance": 0.0,
-			"speed_boost": true,
-			"boost_time": 0.5,
-			"pad_text": "SPEEDUP",
-			"hint": "加速垫 · 踩上去爆发加速"
-		},
-		{
-			"id": "e4_final_boost",
-			"distance": 1340.0,
-			"lane": 0,
-			"impulse": 8.0,
-			"half_depth": 2.2,
 			"lock_air_lane": false,
 			"lock_distance": 0.0,
 			"speed_boost": true,
@@ -304,17 +301,6 @@
 			"low_slide": true
 		},
 		{
-			"distance": 692.0,
-			"lane": -1,
-			"type": "jump"
-		},
-		{
-			"distance": 730.0,
-			"lane": 1,
-			"type": "slide",
-			"low_slide": true
-		},
-		{
 			"distance": 768.0,
 			"lane": 0,
 			"type": "jump"
@@ -381,11 +367,6 @@
 			"fall_height": 18.5,
 			"meteor_fall_speed": 31.0,
 			"roll_speed": -6.2
-		},
-		{
-			"distance": 1084.0,
-			"lane": -1,
-			"type": "jump"
 		},
 		{
 			"distance": 1122.0,
@@ -583,7 +564,7 @@
 	],
 	"finish_sprints": [
 		{
-			"distance": 1508.0,
+			"distance": 1610.0,
 			"lane": 0,
 			"width_ratio": 0.58
 		}

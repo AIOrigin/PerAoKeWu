@@ -189,6 +189,7 @@ var _settings_tutorial_check: CheckButton
 var _settings_bgm_check: CheckButton
 var _settings_bgm_slider: HSlider
 var _settings_sfx_slider: HSlider
+var _settings_full_unlock_check: CheckButton
 var _energy_tick := 0.0
 var _task_detail: Control
 var _tasks_sub_tab := "missions"
@@ -4370,6 +4371,26 @@ func _build_settings_overlay() -> void:
 	_settings_sfx_slider.value_changed.connect(_on_settings_sfx_volume_changed)
 	sfx_vol_row.add_child(_settings_sfx_slider)
 
+	var dev_sep := Label.new()
+	dev_sep.text = "开发测试"
+	dev_sep.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dev_sep.add_theme_font_size_override("font_size", _settings_spec_fs(18))
+	dev_sep.add_theme_color_override("font_color", UI_MUTED)
+	box.add_child(dev_sep)
+
+	_settings_full_unlock_check = CheckButton.new()
+	_settings_full_unlock_check.text = "全解锁模式（解锁全部据点与任务批次）"
+	_settings_full_unlock_check.focus_mode = Control.FOCUS_NONE
+	_settings_full_unlock_check.custom_minimum_size = Vector2(0, _settings_spec_h(52))
+	_settings_full_unlock_check.add_theme_font_size_override("font_size", _settings_spec_fs(18))
+	_settings_full_unlock_check.add_theme_color_override("font_color", UI_TEXT)
+	_settings_full_unlock_check.toggled.connect(_on_settings_full_unlock_toggled)
+	box.add_child(_settings_full_unlock_check)
+
+	var reset_all_btn := _make_settings_flat_button("重置全部进度（回到初始状态）")
+	reset_all_btn.pressed.connect(_on_settings_reset_all_progress)
+	box.add_child(reset_all_btn)
+
 	var reset_mission_btn := _make_settings_flat_button("重置运输任务进度（从批次1开始）")
 	reset_mission_btn.pressed.connect(_on_settings_reset_mission_progress)
 	box.add_child(reset_mission_btn)
@@ -4412,6 +4433,8 @@ func _refresh_settings_ui() -> void:
 		_settings_bgm_slider.editable = true
 	if _settings_sfx_slider != null:
 		_settings_sfx_slider.set_value_no_signal(Global.sfx_volume)
+	if _settings_full_unlock_check != null:
+		_settings_full_unlock_check.set_pressed_no_signal(Global.is_dev_full_unlock())
 
 
 func _on_settings_tutorial_toggled(pressed: bool) -> void:
@@ -4437,6 +4460,23 @@ func _on_settings_bgm_volume_changed(value: float) -> void:
 
 func _on_settings_sfx_volume_changed(value: float) -> void:
 	Global.set_sfx_volume(value)
+
+
+func _on_settings_full_unlock_toggled(pressed: bool) -> void:
+	Global.set_dev_full_unlock(pressed, "glass_desert")
+	_show_toast("全解锁模式已开启 · 全部据点与负责人立绘可见" if pressed else "全解锁模式已关闭 · 恢复常规解锁规则")
+	if _selected_tab == TAB_TASKS:
+		_show_tab(TAB_TASKS, true)
+
+
+func _on_settings_reset_all_progress() -> void:
+	Global.reset_mobile_progress()
+	_refresh_settings_ui()
+	_close_settings()
+	_show_toast("全部进度已重置")
+	if _selected_tab == TAB_TASKS:
+		_show_tab(TAB_TASKS, true)
+
 
 func _on_settings_reset_mission_progress() -> void:
 	Global.reset_planet_mission_progress("glass_desert")
