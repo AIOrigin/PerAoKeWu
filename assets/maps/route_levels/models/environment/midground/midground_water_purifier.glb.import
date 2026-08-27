@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dmtc17s1ocsvg"
-path="res://.godot/imported/midground_water_purifier.glb-e57aed1a65f36569e7af02ff9e776fc9.scn"
+path="res://.godot/imported/midground_water_purifier.glb-13f25de6a1319e66243735dee0ca1d10.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier.glb"
-dest_files=["res://.godot/imported/midground_water_purifier.glb-e57aed1a65f36569e7af02ff9e776fc9.scn"]
+source_file="res://assets/maps/route_levels/models/environment/midground/midground_water_purifier.glb"
+dest_files=["res://.godot/imported/midground_water_purifier.glb-13f25de6a1319e66243735dee0ca1d10.scn"]
 
 [params]
 

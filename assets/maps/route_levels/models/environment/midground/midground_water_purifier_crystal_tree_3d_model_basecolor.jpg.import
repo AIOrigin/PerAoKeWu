@@ -3,20 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://x61ubpn0m6tv"
-path.s3tc="res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-85f27a6f975588158d9134bcefb8de0e.s3tc.ctex"
-path.etc2="res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-85f27a6f975588158d9134bcefb8de0e.etc2.ctex"
+path.s3tc="res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-aeafe18bbdf35174c2aa95c0e3794984.s3tc.ctex"
+path.etc2="res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-aeafe18bbdf35174c2aa95c0e3794984.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "bdfb4e1a56a25c2a6e5119c5c7cc507c"
+"md5": "59cbe55071965ece127b6602c95d8e36"
 }
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-85f27a6f975588158d9134bcefb8de0e.s3tc.ctex", "res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-85f27a6f975588158d9134bcefb8de0e.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-aeafe18bbdf35174c2aa95c0e3794984.s3tc.ctex", "res://.godot/imported/midground_water_purifier_crystal_tree_3d_model_basecolor.jpg-aeafe18bbdf35174c2aa95c0e3794984.etc2.ctex"]
 
 [params]
 

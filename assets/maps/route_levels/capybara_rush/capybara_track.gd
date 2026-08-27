@@ -480,7 +480,3 @@ func _model_path_available(p: String) -> bool:
 	if CapybaraWebConfig.cdn_enabled():
 		return FileAccess.file_exists(CapybaraWebConfig.cache_path_for_res_model(p))
 	return false
-
-
-
-

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bma2weduljrga"
-path="res://.godot/imported/midground_medical_crate.glb-a1d9d9632a8715418515546f4acb2d82.scn"
+path="res://.godot/imported/midground_medical_crate.glb-26dfa55e13f1eb7cad5804d41eeae9c6.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate.glb"
-dest_files=["res://.godot/imported/midground_medical_crate.glb-a1d9d9632a8715418515546f4acb2d82.scn"]
+source_file="res://assets/maps/route_levels/models/environment/midground/midground_medical_crate.glb"
+dest_files=["res://.godot/imported/midground_medical_crate.glb-26dfa55e13f1eb7cad5804d41eeae9c6.scn"]
 
 [params]
 

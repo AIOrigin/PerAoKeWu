@@ -3,20 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cv2srluptr15u"
-path.s3tc="res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-d170040bde7ca80fceb614c1309879a2.s3tc.ctex"
-path.etc2="res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-d170040bde7ca80fceb614c1309879a2.etc2.ctex"
+path.s3tc="res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-33e28907cc5df234a5c86ede03931ebd.s3tc.ctex"
+path.etc2="res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-33e28907cc5df234a5c86ede03931ebd.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "441c06d0b8efb94e591c018ef051aea2"
+"md5": "8b9e26b089080dc3e5de1b5e87ede9c9"
 }
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-d170040bde7ca80fceb614c1309879a2.s3tc.ctex", "res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-d170040bde7ca80fceb614c1309879a2.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-33e28907cc5df234a5c86ede03931ebd.s3tc.ctex", "res://.godot/imported/midground_excavator_robot_cracked_sphere_robot_3d_model_normal.jpg-33e28907cc5df234a5c86ede03931ebd.etc2.ctex"]
 
 [params]
 

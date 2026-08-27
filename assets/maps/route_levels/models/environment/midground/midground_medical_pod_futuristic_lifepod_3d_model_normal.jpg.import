@@ -3,20 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwo2gydlkh485"
-path.s3tc="res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-d8058c97ea2744ed22b02a83a4f0f28b.s3tc.ctex"
-path.etc2="res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-d8058c97ea2744ed22b02a83a4f0f28b.etc2.ctex"
+path.s3tc="res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-7e6a023d76cd6d8f1ae5f6be4c0b338d.s3tc.ctex"
+path.etc2="res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-7e6a023d76cd6d8f1ae5f6be4c0b338d.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "2a62844ca1922e14ded433febe38ec0c"
+"md5": "fe69f7553f33eebcef73be07caa538a6"
 }
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-d8058c97ea2744ed22b02a83a4f0f28b.s3tc.ctex", "res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-d8058c97ea2744ed22b02a83a4f0f28b.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-7e6a023d76cd6d8f1ae5f6be4c0b338d.s3tc.ctex", "res://.godot/imported/midground_medical_pod_futuristic_lifepod_3d_model_normal.jpg-7e6a023d76cd6d8f1ae5f6be4c0b338d.etc2.ctex"]
 
 [params]
 

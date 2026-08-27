@@ -3,20 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c366872cgg4m2"
-path.s3tc="res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-600b3d6c8a52634ce0694e096d59f522.s3tc.ctex"
-path.etc2="res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-600b3d6c8a52634ce0694e096d59f522.etc2.ctex"
+path.s3tc="res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-88699bc7bd16b81bd3854e75557e60bf.s3tc.ctex"
+path.etc2="res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-88699bc7bd16b81bd3854e75557e60bf.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "f6bc475f67aaec531ff0b476a132a2b8"
+"md5": "07a1ccd9c1b0a1126726070e53c228a0"
 }
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_crate_medical_kit_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-600b3d6c8a52634ce0694e096d59f522.s3tc.ctex", "res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-600b3d6c8a52634ce0694e096d59f522.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/midground/midground_medical_crate_medical_kit_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-88699bc7bd16b81bd3854e75557e60bf.s3tc.ctex", "res://.godot/imported/midground_medical_crate_medical_kit_3d_model_normal.jpg-88699bc7bd16b81bd3854e75557e60bf.etc2.ctex"]
 
 [params]
 

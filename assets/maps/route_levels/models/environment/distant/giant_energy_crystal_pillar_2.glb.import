@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bdofkkslkrrbk"
-path="res://.godot/imported/giant_energy_crystal_pillar_2.glb-44f5c97f4166322a49b9784b27e6fe63.scn"
+path="res://.godot/imported/giant_energy_crystal_pillar_2.glb-26612da2922a992f77d334bf007ce008.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/giant_energy_crystal_pillar_2.glb"
-dest_files=["res://.godot/imported/giant_energy_crystal_pillar_2.glb-44f5c97f4166322a49b9784b27e6fe63.scn"]
+source_file="res://assets/maps/route_levels/models/environment/distant/giant_energy_crystal_pillar_2.glb"
+dest_files=["res://.godot/imported/giant_energy_crystal_pillar_2.glb-26612da2922a992f77d334bf007ce008.scn"]
 
 [params]
 

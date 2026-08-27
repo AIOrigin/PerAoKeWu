@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bqe3jf2gcsyu6"
-path.s3tc="res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-d3b0a1dc0976a25c7b76055b88742022.s3tc.ctex"
-path.etc2="res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-d3b0a1dc0976a25c7b76055b88742022.etc2.ctex"
+path.s3tc="res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-2b31be27d56325d57aa0a926a9854b5f.s3tc.ctex"
+path.etc2="res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-2b31be27d56325d57aa0a926a9854b5f.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png"
-dest_files=["res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-d3b0a1dc0976a25c7b76055b88742022.s3tc.ctex", "res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-d3b0a1dc0976a25c7b76055b88742022.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/distant/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png"
+dest_files=["res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-2b31be27d56325d57aa0a926a9854b5f.s3tc.ctex", "res://.godot/imported/giant_energy_crystal_pillar_2_futuristic_crystal_spire_3d_model_normal.png-2b31be27d56325d57aa0a926a9854b5f.etc2.ctex"]
 
 [params]
 

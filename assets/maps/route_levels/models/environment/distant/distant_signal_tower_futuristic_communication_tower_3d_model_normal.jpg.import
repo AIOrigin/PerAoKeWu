@@ -3,20 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://blmrqhf5u2ajb"
-path.s3tc="res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-ab1ede7e7285c25e698aae181fbfaf6a.s3tc.ctex"
-path.etc2="res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-ab1ede7e7285c25e698aae181fbfaf6a.etc2.ctex"
+path.s3tc="res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-5fa2b6fcfa950f88f33e315b6ac1a4cb.s3tc.ctex"
+path.etc2="res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-5fa2b6fcfa950f88f33e315b6ac1a4cb.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "df27a669eaa63e7744b579ace56a3561"
+"md5": "21f6a924455da1887bfee9d9c00cd8cb"
 }
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg"
-dest_files=["res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-ab1ede7e7285c25e698aae181fbfaf6a.s3tc.ctex", "res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-ab1ede7e7285c25e698aae181fbfaf6a.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/distant/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-5fa2b6fcfa950f88f33e315b6ac1a4cb.s3tc.ctex", "res://.godot/imported/distant_signal_tower_futuristic_communication_tower_3d_model_normal.jpg-5fa2b6fcfa950f88f33e315b6ac1a4cb.etc2.ctex"]
 
 [params]
 
