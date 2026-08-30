@@ -1,0 +1,65 @@
+---
+description: 防御哨站（Gate D1–D4）跑道与障碍摆放优化原则
+globs: assets/maps/route_levels/planets/data/mission_gate_d*_obstacles.json,assets/maps/route_levels/runner_60s/runner_60s.gd
+alwaysApply: false
+---
+
+# 防御哨站 Supply Run 布局原则
+
+编辑 `mission_gate_d1`–`d4` 或 gate 相关 runner 逻辑时遵循以下约定。
+
+## 关卡差异化（保留身份）
+
+| 关 | 身份 | 必留特色 |
+|---|---|---|
+| D1 | 补给直线教学 | 无分叉；右道弹射过熔岩；前半盾后半加速贴光波门 |
+| D2 | 超重建设包 | 超重教学标记；左道弹射熔岩 + 侧墙上墙熔岩分段；可有稳妥/突击分叉 |
+| D3 | 长途巡航 | 多弯；修复/速通分叉；毒雨 + 热浪；右弹射熔岩与侧墙分段 |
+| D4 | 紧急限时 | 短距离高压；毒雾；分叉双加速垫；末段加速密 |
+
+四关都要有完整障碍类型覆盖，但节奏、密度、特色机关不同，禁止四关抄同一套坐标。
+
+## 类型要全（每关尽量覆盖）
+
+跑道障碍/机关应覆盖：
+
+- `jump` / `slide`（含 `low_slide`）
+- `train`（光波门）
+- `orb`（紫球，可 tiny/small/medium）
+- `meteorite` / `meteorite_gate`
+- `main_block`（`platform` 和/或 `side_wall`，按关卡身份）
+- `ramp`（上墙入口，有侧墙的关必有）
+- `launch_pads`（弹射在跑道内，半宽夹进路肩）
+- 环境：`sandstorm_zones`（或毒雾）
+- buff：`shield_crystals` / `speed_boosts` / `finish_sprints`
+- 末段异能怪由代码注入（静态、面向 runner、angry/比心、近距侵蚀）
+- 异能怪可出现在全关任意路段（含开局），不限于终点 gauntlet
+- 空 `junction_zones: []` 表示**真正无分叉**，不要回落默认分叉。
+
+## 光波门与 buff
+
+- 光波门紧邻前后（或门内）放 buff，门才有意义。
+- **前半程**（约路程 52% 前）：防护罩；**后半程**：加速。
+- JSON 建议放在 train 后约 +4～6m；代码也会门内挂接 + 门后补位。
+- 不要再「清空光波门附近 buff」。
+
+## 环境危害（热浪/沙暴/毒雾）
+
+- 防御哨站 **体积型**（`emit_style: volume`）遮罩必须 **铺满整幅全息路**（代码强制全宽）。
+- JSON 里 `lane_count` 建议写 **3**；侧向喷涌（`side_cave`）才用局部车道。
+- 进区伤害与遮罩一致：全路幅生效，避免「右道没罩子却左道有」。
+
+## 终点与熔岩
+
+- `finish_sprints` 至少在终点门前 **95m**（代码会夹紧）。
+- 弹射垫侧向收进跑道，避免半板出界。
+- 连续短熔岩平台可合并为单块，避免重叠跳板。
+- 末段异能区：静态路障；靠近掉完整度；开防护罩抵御并耗能。
+
+## 改关检查清单
+
+1. 本关身份特色还在吗？
+2. 上表类型是否齐全？
+3. 每扇 train 附近是否有对应前半盾/后半加速？
+4. finish sprint 是否够早？
+5. 分叉是刻意设计还是误留空数组回落？

@@ -995,6 +995,16 @@ const LOCATION_MISSIONS := [
 			"res://assets/maps/route_levels/models/environment/midground/midground_medical_pod.glb",
 			"res://assets/maps/route_levels/models/environment/midground/midground_medical_crate.glb",
 		],
+		"near_runway_props": [
+			"res://assets/maps/route_levels/models/environment/midground/midground_medical_pod.glb",
+			"res://assets/maps/route_levels/models/environment/midground/midground_medical_crate.glb",
+			"res://assets/maps/route_levels/models/environment/midground/midground_water_purifier.glb",
+			"res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral.glb",
+		],
+		"distant_accent_props": [
+			"res://assets/maps/route_levels/models/environment/midground/midground_water_purifier.glb",
+			"res://assets/maps/route_levels/models/environment/midground/midground_medical_pod.glb",
+		],
 		"environment": MEDICAL_M3_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "净水包",

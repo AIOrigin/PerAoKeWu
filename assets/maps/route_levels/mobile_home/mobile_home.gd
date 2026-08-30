@@ -70,6 +70,13 @@ const HOME_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_home/"
 const HOME_BG_PATH := HOME_UI_ROOT + "background_dawnline.webp"
 const HOME_AVATAR_PATH := HOME_UI_ROOT + "avatar_default.png"
 const HOME_MISSION_THUMB_PATH := HOME_UI_ROOT + "mission_thumb_water_station.webp"
+const HOME_MISSION_THUMB_BY_LOCATION := {
+	"dome": HOME_UI_ROOT + "mission_thumb_dome.png",
+	"reservoir": HOME_UI_ROOT + "mission_thumb_water_station.webp",
+	"medical": HOME_UI_ROOT + "mission_thumb_medical.png",
+	"gate": HOME_UI_ROOT + "mission_thumb_gate.png",
+	"relay": HOME_UI_ROOT + "mission_thumb_relay.png",
+}
 const HOME_CIRCULAR_AVATAR_SHADER := HOME_UI_ROOT + "circular_avatar.gdshader"
 const FINAL_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_final/"
 const FINAL_TOPBAR := FINAL_UI_ROOT + "ui_topbar_container.png"
@@ -1282,8 +1289,10 @@ func _home_repair_progress(planet_id: String, location_id: String) -> Dictionary
 
 
 func _home_mission_thumb(location_id: String) -> Texture2D:
-	if location_id in ["dome", "reservoir", "medical", "relay", "gate"]:
-		return _load_header_texture(HOME_MISSION_THUMB_PATH)
+	var path := String(HOME_MISSION_THUMB_BY_LOCATION.get(location_id, HOME_MISSION_THUMB_PATH))
+	var tex := _load_header_texture(path)
+	if tex != null:
+		return tex
 	return _load_header_texture(HOME_MISSION_THUMB_PATH)
 
 
@@ -2730,8 +2739,9 @@ func _on_tasks_mission_action(planet_id: String, mission: Dictionary, action_but
 
 func _start_runner_for_mission(planet_id: String, mission: Dictionary, trial_run: bool = false) -> void:
 	var location_id := String(mission.get("location_id", "dome"))
+	var is_trial := trial_run and MissionDispatch.can_preview_trial_run(planet_id, location_id)
 	if MissionDispatch.is_preview_location(planet_id, location_id):
-		if trial_run and MissionDispatch.can_preview_trial_run(planet_id, location_id):
+		if is_trial:
 			_show_toast("调优试玩 · 进度暂不计入任务板")
 		else:
 			_show_toast("该批次任务尚未解锁")
@@ -2739,7 +2749,9 @@ func _start_runner_for_mission(planet_id: String, mission: Dictionary, trial_run
 	var mission_id := Global.mission_key(mission)
 	_sync_selected_character_from_global()
 	_selected_planet_id = planet_id
-	Global.set_active_mission(planet_id, location_id, mission_id)
+	Global.runner_trial_run = is_trial
+	if not is_trial:
+		Global.set_active_mission(planet_id, location_id, mission_id)
 	Global.mobile_home_tab = TAB_HOME
 	Global.exploration_planet_id = planet_id
 	Global.runner_planet_id = planet_id

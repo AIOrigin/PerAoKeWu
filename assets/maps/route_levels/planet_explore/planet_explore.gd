@@ -1505,15 +1505,19 @@ func _setup_pause_overlay() -> void:
 
 
 func _start_runner() -> void:
+	var is_trial := false
 	if not MissionDispatch.is_location_batch_unlocked(Global.exploration_planet_id, _selected_location_id):
 		if not MissionDispatch.can_preview_trial_run(Global.exploration_planet_id, _selected_location_id):
 			return
+		is_trial = true
 	Global.runner_planet_id = Global.exploration_planet_id
 	Global.runner_location_id = _selected_location_id
 	var mission_id := _pending_detail_mission_id
 	_pending_detail_mission_id = ""
 	Global.runner_mission_id = mission_id
-	Global.set_active_mission(Global.exploration_planet_id, _selected_location_id, mission_id)
+	Global.runner_trial_run = is_trial
+	if not is_trial:
+		Global.set_active_mission(Global.exploration_planet_id, _selected_location_id, mission_id)
 	Global.mobile_home_tab = "home"
 	Global.change_game_scene(PlanetDatabase.RUNNER_SCENE)
 
@@ -1631,7 +1635,7 @@ func _show_location_showcase(location_id: String) -> void:
 	close.add_theme_font_size_override("font_size", 20)
 	close.modulate.a = 0.0
 	_style_action_button(close, Color(0.86, 0.59, 0.27), Color(0.98, 0.82, 0.42))
-	close.pressed.connect(root.queue_free)
+	close.pressed.connect(_on_showcase_closed.bind(root, location_id))
 	box.add_child(close)
 
 	var intro := create_tween()
@@ -1648,6 +1652,15 @@ func _show_location_showcase(location_id: String) -> void:
 	intro.tween_property(close, "modulate:a", 1.0, 0.28).set_delay(0.88)
 
 	_select_location(location_id)
+
+
+func _on_showcase_closed(root: Control, location_id: String) -> void:
+	if root != null and is_instance_valid(root):
+		root.queue_free()
+	# 展示页关掉后接上点亮仪式引导（闪烁 + 提示）
+	if Global.is_map_light_ceremony_pending(Global.exploration_planet_id, location_id):
+		Global.pending_map_light_focus = location_id
+		_maybe_start_pending_light_focus()
 
 
 func _show_story_overlay(title_text: String, body_text: String) -> void:

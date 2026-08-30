@@ -118,9 +118,9 @@ const COIN_AIR_MIN_JUMP_Y := 0.72
 const BUFF_AIR_Y_OFFSET := 1.38
 const BUFF_GROUND_Y_OFFSET := 0.72
 const SPEED_BOOST_DURATION := 5.0
-const SPEED_BOOST_DURATION_EMERGENCY := 6.8
+const SPEED_BOOST_DURATION_EMERGENCY := 7.6
 const SPEED_BOOST_MULT := 1.42
-const SPEED_BOOST_MULT_EMERGENCY := 1.55
+const SPEED_BOOST_MULT_EMERGENCY := 1.62
 const SPEED_BOOST_SKILL_THRESHOLD := 5
 ## 路面加速垫：短距爆发 + 短暂余韵（全据点统一中继站手感）
 const PAD_BURST_DIST := 10.5
@@ -140,6 +140,64 @@ const BONUS_FORK_LINGER := 3.6
 const WRAITH_BLOCK_HEIGHT := 3.05
 const WRAITH_BLOCK_GLB := "res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_intro_angry.glb"
 const WRAITH_BLOCK_GLB_FALLBACK := "res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_run.glb"
+const WRAITH_HEART_GLB := "res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_capture_heart.glb"
+## 异能怪近距侵蚀：靠近掉完整度，开罩抵御并耗能
+const WRAITH_AURA_ALONG := 6.2
+const WRAITH_AURA_LATERAL := 2.85
+const WRAITH_AURA_DPS := 5.2
+const WRAITH_AURA_TICK := 0.40
+const WRAITH_AURA_SHIELD_DRAIN_MULT := 0.55
+## 医疗据点 · 左/右抉择异能怪：接近强制减速，撞碎一侧；随机哪侧高能(-50%) / 枯竭(无碍)
+const WRAITH_CHOICE_APPROACH_LEAD := 28.0
+const WRAITH_CHOICE_PASS_TAIL := 12.0
+const WRAITH_CHOICE_SLOW_ZONE := 26.0
+# 决策线：线外略减速供判断，线内强制冲刺（绕开 stretch/惩罚）
+const WRAITH_CHOICE_DECISION_LINE := 14.0
+const WRAITH_CHOICE_SLOW_RAMP := 5.0
+const WRAITH_CHOICE_SLOW_MULT := 0.72
+const WRAITH_CHOICE_CENTER_BLOCK_HALF := 2.05
+const WRAITH_CHOICE_CENTER_PUSH := 44.0
+const WRAITH_CHOICE_CENTER_SLOW_MULT := 0.72
+const WRAITH_CHOICE_CENTER_WALL_GAP := 1.35
+# 过线后绝对冲刺倍率（覆盖其它减速源）
+const WRAITH_CHOICE_COMMIT_RUN_MULT := 1.85
+const WRAITH_CHOICE_LETHAL_CARGO := 50.0
+const WRAITH_CHOICE_MIN_SPACING := 88.0
+const WRAITH_CHOICE_PAIR_HALF_SPAN := 1.22
+const WRAITH_CHOICE_HEIGHT_MULT := 2.50
+# 中道水晶树：对齐抉择异能怪比例（高≈3.05×2.5）
+# 树干到肩部 → 再向上长顶冠；顶冠落在「怪顶再高约两头」的空间并横向微展
+const WRAITH_CHOICE_CRYSTAL_SHOULDER_FRAC := 0.72
+const WRAITH_CHOICE_CRYSTAL_HEAD_FRAC := 0.14
+const WRAITH_CHOICE_CRYSTAL_TRUNK_FOOTPRINT := 1.20
+const WRAITH_CHOICE_CRYSTAL_CANOPY_FOOTPRINT := 4.35
+const WRAITH_CHOICE_HIT_HALF := 1.08
+const WRAITH_CHOICE_OVERLAP_HALF := 0.52
+const WRAITH_CHOICE_CLEAR_AHEAD := 32.0
+# 身后只清一小段，别把撞后加速带/障碍整段挖空
+const WRAITH_CHOICE_CLEAR_ALONG := 14.0
+# 撞碎：猛然冲顶 → 长段渐慢（仍快于正常）→ 回落到 1
+const WRAITH_CHOICE_SMASH_BOOST := 4.2
+const WRAITH_CHOICE_SMASH_INSTANT_MULT := 7.2
+const WRAITH_CHOICE_SMASH_INSTANT_TIME := 0.85
+const WRAITH_CHOICE_SMASH_BURST_MULT := 4.0
+const WRAITH_CHOICE_SMASH_DECAY_FLOOR := 1.55
+const WRAITH_CHOICE_SMASH_BURST_DIST := 88.0
+const WRAITH_CHOICE_SMASH_PEAK_HOLD := 0.12
+# 弹射垫：撞后先空冲，再在远处渐慢空直道左右错开（米，相对异能怪）
+const WRAITH_CHOICE_PAD_OFFSETS := [32.0, 54.0, 76.0]
+const WRAITH_CHOICE_HIT_LEAD := 0.95
+const WRAITH_CHOICE_DEEP_RED := Color(0.78, 0.05, 0.07, 1.0)
+const WRAITH_CHOICE_DEEP_RED_DIM := Color(0.62, 0.04, 0.06, 0.92)
+const WRAITH_CHOICE_SAFE_GREEN := Color(0.22, 0.96, 0.58, 1.0)
+const WRAITH_CHOICE_SHATTER_DUST := Color(0.22, 0.08, 0.32)
+const WRAITH_CHOICE_SHATTER_SPARK := Color(0.58, 0.22, 0.92)
+const WRAITH_CHOICE_SHATTER_CHUNK := Color(0.12, 0.04, 0.18)
+const WRAITH_CHOICE_SHATTER_EMIT := Color(0.72, 0.28, 1.0)
+## 轻量优化：仅近处播动画/呼吸；远处冻帧关灯
+const WRAITH_LIFE_NEAR := 36.0
+const WRAITH_LIFE_FAR := 52.0
+const WRAITH_FACE_INTERVAL := 0.22
 const EMERGENCY_DASH_MULT := 1.55
 const EMERGENCY_DASH_DURATION := 2.6
 const EMERGENCY_DASH_HOLD := 0.35
@@ -311,6 +369,7 @@ const OBSTACLE_HALF_DEPTH := {
 	"train": 0.55,
 	"train_moving": 0.58,
 	"wraith_block": 0.62,
+	"wraith_lunge": 0.62,
 	"dressing_block": 3.8,
 	"meteorite_gate": 1.1,
 	"block_left": 0.75,
@@ -332,6 +391,7 @@ const STRIKE_DAMAGE_TIER := {
 	"train": 0.55,
 	"train_moving": 0.62,
 	"wraith_block": 0.72,
+	"wraith_lunge": 0.72,
 	"dressing_block": 0.78,
 	"meteorite_gate": 0.0,
 }
@@ -787,6 +847,9 @@ var passed_junctions: Array[int] = []
 var _path_samples: Array[Dictionary] = []
 var _path_length := 0.0
 var _fork_side := 0
+var _junction_peak_side := 0
+var _committed_path_fork_side := 0
+var _committed_path_fork_until := -1.0
 var _active_fork_index := -1
 var _path_yaw := 0.0
 var _fork_approach_warned: Array[int] = []
@@ -797,6 +860,8 @@ var _active_y_fork_index := -1
 var _y_fork_approach_warned: Array[int] = []
 var _cached_junction_zones: Array = []
 var _cached_sandstorm_zones: Array = []
+var _runtime_sandstorm_zones: Array = []
+var _defense_opening_rain_zones: Array = []
 var _cached_side_runway_zones: Array = []
 var _layout_zones_ready := false
 
@@ -851,6 +916,13 @@ var _sky_cheer_rng := RandomNumberGenerator.new()
 var _hit_feedback: HitFeedback
 var _cargo_hud_panel: PanelContainer
 var _heat_tick_accum := 0.0
+var _wraith_aura_tick_accum := 0.0
+var _wraith_aura_tip_shown := false
+var _wraith_choice_encounters: Array = []
+var _wraith_choice_boost_timer := 0.0
+var _wraith_choice_instant_burst_timer := 0.0
+var _wraith_choice_boost_start_d := -1.0
+var _wraith_choice_boost_end_d := -1.0
 var _side_runway_penalty_accum := 0.0
 var _lava_platforms: Array = []
 var _lava_platform_hint_timer := 0.0
@@ -862,6 +934,11 @@ var _mechanic_layout_ready := false
 const SPEED_PAD_MIN_SPACING := 78.0
 const SPEED_PAD_MAX_COUNT := 4
 const SPEED_PAD_OBSTACLE_GAP := 18.0
+const WRAITH_CHOICE_RECOVERY_PAD_GAP := 9.0
+const WRAITH_CHOICE_RECOVERY_PAD_COUNT := 7
+const WRAITH_CHOICE_RECOVERY_PAD_START := 6.0
+const MECHANIC_PAD_DRESSING_CLEAR := 26.0
+const GATE_TURN_DRESSING_PAD := 24.0
 var _launch_air_lock_until_d := -1.0
 var _triggered_launch_ids: Dictionary = {}
 var _mechanic_hint_warned: Dictionary = {}
@@ -1010,6 +1087,17 @@ func _ready() -> void:
 	shield_energy = DEFENSE_CARGO_START_SHIELD if _is_defense_cargo() else SHIELD_START_ENERGY
 	shield_active = false
 	_shield_warned_empty = false
+	_wraith_aura_tick_accum = 0.0
+	_wraith_aura_tip_shown = false
+	_wraith_choice_encounters.clear()
+	_wraith_choice_boost_timer = 0.0
+	_wraith_choice_instant_burst_timer = 0.0
+	_wraith_choice_boost_start_d = -1.0
+	_wraith_choice_boost_end_d = -1.0
+	_junction_peak_side = 0
+	_fork_side = 0
+	_committed_path_fork_side = 0
+	_committed_path_fork_until = -1.0
 	crystal_collected_count = 0
 	track_root = Node3D.new()
 	track_root.name = "TrackRoot"
@@ -1085,7 +1173,9 @@ func _apply_mission_type_profile() -> void:
 	mission["task_type"] = String(_mission_profile.get("task_type", "Supply Run"))
 	mission["task_type_zh"] = String(_mission_profile.get("name_zh", "补给"))
 	mission["task_hint"] = String(_mission_profile.get("hint", ""))
-	mission["base_reward"] = int(_mission_profile.get("base_reward", 0))
+	# 保留关卡表里的 base_reward；类型模板只在未配置时兜底（避免结算文案与 Tasks 领取额不一致）
+	if int(mission.get("base_reward", 0)) <= 0:
+		mission["base_reward"] = int(_mission_profile.get("base_reward", 0))
 	_is_emergency_run = bool(_mission_profile.get("timed_fail", false))
 	current_speed = _base_run_speed()
 
@@ -1362,7 +1452,7 @@ func _try_jump() -> void:
 		return
 	if not _is_on_ground():
 		return
-	# 侧墙入口：贴外车道直接满跳上墙（能源包等非超重货物）
+	# 侧墙入口：贴外车道满跳上墙（能源包等非超重货物）
 	if _wall_entry_jump_ready():
 		if not _wall_mount_armed:
 			_wall_mount_armed = true
@@ -1370,6 +1460,9 @@ func _try_jump() -> void:
 		_overweight_jump_armed = false
 		_overweight_short_jump_timer = 0.0
 		_execute_jump(JUMP_SPEED)
+		# 医疗：不瞬间吸附上墙，留给空中判定，手感更像自己跳上去
+		if _is_medical_location():
+			return
 		# 入口窗内起跳直接上墙，避免空中高度窗口过窄导致总失败
 		var entry_zone := _side_runway_entry_zone(track_distance)
 		if not entry_zone.is_empty() and _is_wall_mount_ready(entry_zone):
@@ -1537,6 +1630,10 @@ func _physics_process(delta: float) -> void:
 		_fork_rush_elapsed = 0.0
 	if _speed_boost_timer > 0.0:
 		_speed_boost_timer = maxf(_speed_boost_timer - delta, 0.0)
+	if _wraith_choice_boost_timer > 0.0:
+		_wraith_choice_boost_timer = maxf(_wraith_choice_boost_timer - delta, 0.0)
+	if _wraith_choice_instant_burst_timer > 0.0:
+		_wraith_choice_instant_burst_timer = maxf(_wraith_choice_instant_burst_timer - delta, 0.0)
 	if _finish_sprint_timer > 0.0:
 		_finish_sprint_timer = maxf(_finish_sprint_timer - delta, 0.0)
 	if _coin_streak_timer > 0.0:
@@ -1548,16 +1645,45 @@ func _physics_process(delta: float) -> void:
 	if _speed_feel_punch > 0.0:
 		_speed_feel_punch = maxf(_speed_feel_punch - delta * 2.4, 0.0)
 
-	var effective_speed := current_speed * speed_penalty_mult * _effective_speed_boost_mult()
+	var wraith_approach := _wraith_choice_approach_speed_mult()
+	var speed_boost := _effective_speed_boost_mult()
+	var past_choice_line := _wraith_choice_past_decision_line()
+	var choice_smash_rush := _wraith_choice_smash_speed_mult() > 1.001
+	var choice_free_run := past_choice_line or choice_smash_rush
+	# 线内：绝对冲刺，绕开惩罚/stretch/空中减速；线外：关 buff 方便思考
+	# 撞碎冲刺优先，绝不用 COMMIT 盖掉「一飞冲天」曲线
+	if choice_free_run:
+		speed_penalty_mult = 1.0
+		speed_penalty_timer = 0.0
+		_hit_stun_timer = 0.0
+		_hitstop_timer = 0.0
+		_hit_recoil_timer = 0.0
+		wraith_approach = 1.0
+		if not choice_smash_rush:
+			speed_boost = maxf(speed_boost, WRAITH_CHOICE_COMMIT_RUN_MULT)
+	elif wraith_approach < 0.995:
+		speed_boost = 1.0
+	var effective_speed := (
+		current_speed
+		* speed_penalty_mult
+		* wraith_approach
+		* speed_boost
+	)
 	if not _is_on_ground() and not _is_wall_running() and not _is_sliding() and not _is_safe_launch_flight():
-		effective_speed *= AIR_FORWARD_SPEED_MULT
-	# 岔路横向外撇会拉长实际路程；平滑弧长补偿，避免忽快忽慢
-	var path_stretch := _path_world_stretch(track_distance, current_lateral)
-	_path_stretch_smooth = lerpf(_path_stretch_smooth, path_stretch, 1.0 - exp(-7.5 * delta))
+		# 过黄线后也不吃空中减速，否则跳一下又像被挡住
+		if not choice_free_run:
+			effective_speed *= AIR_FORWARD_SPEED_MULT
+	# 岔路横向外撇会拉长实际路程；线内/撞后冲刺忽略 stretch，否则侧道会拖成「整段都慢」
+	var path_stretch := 1.0 if choice_free_run else _path_world_stretch(track_distance, current_lateral)
+	_path_stretch_smooth = (
+		1.0 if choice_free_run
+		else lerpf(_path_stretch_smooth, path_stretch, 1.0 - exp(-7.5 * delta))
+	)
 	var dist_from := track_distance
-	track_distance += (effective_speed / _path_stretch_smooth) * delta
+	track_distance += (effective_speed / maxf(_path_stretch_smooth, 0.001)) * delta
 	_update_chaser(delta)
 	_check_fork_approach()
+	_update_junction_approach_intent()
 	_check_junctions()
 	_apply_fork_branch_lateral_snap()
 	_check_y_fork_approach()
@@ -1570,7 +1696,21 @@ func _physics_process(delta: float) -> void:
 				lane_ease *= 0.02
 			else:
 				lane_ease *= AIR_LANE_CHANGE_RUSH_MULT if _is_fork_rushing() else AIR_LANE_CHANGE_MULT
+		if _path_turn_sharpness_on_main(track_distance) > 0.06:
+			lane_ease *= 1.28
+		# 过黄线后换道更快，立刻贴边撞怪，减少「顶着货垛挪」的阻滞感
+		if past_choice_line:
+			lane_ease *= 1.85
 		current_lateral = lerpf(current_lateral, target_lane_x, 1.0 - exp(-lane_ease * delta))
+		var turn_pull := _path_turn_sharpness_on_main(track_distance)
+		if turn_pull > 0.04 and _is_on_ground() and not _is_wall_running():
+			current_lateral = lerpf(current_lateral, target_lane_x, clampf(turn_pull * 2.4, 0.0, 0.42) * delta * 14.0)
+	_apply_wraith_choice_center_barrier(delta)
+	_clamp_wraith_choice_center_wall()
+	_clamp_runner_lateral()
+	# 过黄线即强制离开中道（不再等到贴怪前 4.5m）
+	_force_wraith_choice_side_if_needed()
+	_try_wraith_choice_smash(dist_from, track_distance)
 
 	if _is_wall_running():
 		var target_wy: float = float(WALL_LANE_HEIGHTS[clampi(lane_index, 0, WALL_LANE_HEIGHTS.size() - 1)])
@@ -1644,7 +1784,7 @@ func _physics_process(delta: float) -> void:
 				player.position.y = ground_y
 			vertical_velocity = 0.0
 
-	_try_trigger_launch_pads()
+	_try_trigger_launch_pads(dist_from, track_distance)
 	_update_lift_pad_visuals()
 	_update_launch_pad_approach_hints()
 	_check_ramps()
@@ -1655,6 +1795,7 @@ func _physics_process(delta: float) -> void:
 	_sync_chaser_from_track()
 	_update_moving_obstacles(delta)
 	_update_float_orbs(delta)
+	_update_wraith_lunge_obstacles(delta)
 	_update_meteor_fall_roll(delta)
 	_update_meteorite_gate_drops(delta)
 	_update_train_blade_gates()
@@ -1667,6 +1808,8 @@ func _physics_process(delta: float) -> void:
 	_update_wall_run_tutorial(delta)
 	_update_runner_coach_tips(delta)
 	_update_sandstorm_hazard(delta)
+	_update_wraith_choice_encounters(delta)
+	_update_wraith_aura_damage(delta)
 	_update_rain_weather(delta)
 	_update_rain_corrosive_puddles(delta)
 	_update_shield_energy_drain(delta)
@@ -1734,8 +1877,8 @@ func _process(delta: float) -> void:
 	for collectible in collectibles:
 		if collectible["collected"]:
 			continue
-		var node := collectible["node"] as Node3D
-		if node == null or not is_instance_valid(node):
+		var node := _collectible_node_from_entry(collectible)
+		if node == null:
 			continue
 		node.rotate_y(delta * 6.0)
 		node.rotate_z(delta * 1.7)
@@ -2068,10 +2211,16 @@ func _is_distance_on_track_turn(distance: float, pad: float = 14.0) -> bool:
 		if typeof(raw) != TYPE_DICTIONARY:
 			continue
 		var seg: Dictionary = raw
+		if String(seg.get("type", "")) == "y_fork":
+			var branch := float(seg.get("branch_length", 50.0))
+			var fork_len := branch * 2.0
+			if distance >= cursor - pad and distance <= cursor + fork_len + pad:
+				return true
+			cursor += fork_len
+			continue
 		var length := float(seg.get("length", 0.0))
 		var is_turn := absf(float(seg.get("turn", 0.0))) > 0.08
-		var is_fork := String(seg.get("type", "")) == "y_fork"
-		if (is_turn or is_fork) and distance >= cursor - pad and distance <= cursor + length + pad:
+		if is_turn and distance >= cursor - pad and distance <= cursor + length + pad:
 			return true
 		cursor += length
 	return false
@@ -2081,11 +2230,12 @@ func _junction_zones() -> Array:
 		return CustomLevels.get_junction_zones(Global.runner_location_id)
 	var layout_id := _runner_layout_id()
 	if layout_id != "":
-		var out_layout: Array = []
-		for raw in ObstacleLayout.load_junction_zones(layout_id):
-			if typeof(raw) == TYPE_DICTIONARY:
-				out_layout.append(ObstacleLayout.normalize_junction_zone(raw))
-		if not out_layout.is_empty():
+		var root := ObstacleLayout.load_root(layout_id)
+		if root.has("junction_zones"):
+			var out_layout: Array = []
+			for raw in root.get("junction_zones", []):
+				if typeof(raw) == TYPE_DICTIONARY:
+					out_layout.append(ObstacleLayout.normalize_junction_zone(raw))
 			return out_layout
 	if LevelConfig == null:
 		return []
@@ -2100,13 +2250,14 @@ func _junction_zones() -> Array:
 
 func _bake_track_path() -> void:
 	var segments: Array = _active_track_segments()
-	var baked: Dictionary = ObstacleLayout.bake_path_from_segments(segments, 2.0)
+	var baked: Dictionary = ObstacleLayout.bake_path_from_segments(segments, 1.0)
 	_path_samples.clear()
 	for s in baked.get("samples", []):
 		if typeof(s) == TYPE_DICTIONARY:
 			_path_samples.append(s)
 	_path_length = float(baked.get("length", 0.0))
 	_y_fork_regions = ObstacleLayout.bake_y_fork_regions(segments, 2.0)
+	_retarget_fork_branch_sample_yaws(_y_fork_regions)
 	if _path_length < _track_length:
 		# 不足时直线补齐到终点
 		var pos: Vector3 = baked.get("end_pos", Vector3.ZERO)
@@ -2122,40 +2273,97 @@ func _bake_track_path() -> void:
 			dist += ds2
 			_path_samples.append({"d": dist, "pos": pos, "yaw": yaw})
 		_path_length = dist
+	_retarget_path_sample_yaws(_path_samples)
 	_bake_junction_fork_regions()
+
+
+func _junction_fork_lead() -> float:
+	return 14.0
+
+
+func _junction_branch_span(zone: Dictionary) -> Dictionary:
+	# 与 _attach_fork_branch_strip 同一套起止：start-lead … start+length+lead
+	var start := float(zone.get("distance", 0.0))
+	var length := float(zone.get("length", 70.0))
+	var spread := float(zone.get("spread", 18.0))
+	var lead := _junction_fork_lead()
+	return {
+		"start": start,
+		"length": length,
+		"spread": spread,
+		"lead": lead,
+		"d_start": start - lead,
+		"d_end": start + length + lead,
+		"fork_start": start,
+	}
+
+
+func _junction_branch_offset(distance: float, zone: Dictionary, side: float) -> float:
+	# 与可见岔路面同一 envelope：t=(d-start)/length，禁止 bake 另用 merge_length
+	if zone.is_empty() or absf(side) < 0.001:
+		return 0.0
+	var start := float(zone.get("distance", 0.0))
+	var length := float(zone.get("length", 70.0))
+	var spread := float(zone.get("spread", 18.0))
+	var t := clampf((distance - start) / maxf(length, 0.001), 0.0, 1.0)
+	return side * spread * _fork_envelope(t)
+
 
 func _bake_junction_fork_regions() -> void:
 	_junction_fork_regions.clear()
 	var step := 2.0
-	var lead := 14.0
 	for zone in _junction_zones():
 		if typeof(zone) != TYPE_DICTIONARY:
 			continue
-		var start := float(zone.get("distance", 0.0))
-		var length := float(zone.get("length", 70.0))
-		var spread := float(zone.get("spread", 18.0))
+		var span := _junction_branch_span(zone)
+		var start := float(span["start"])
+		var d_start := float(span["d_start"])
+		var end_d := float(span["d_end"])
 		var left_samples: Array = []
 		var right_samples: Array = []
-		var d := start - lead
-		var end_d := start + length + lead
+		var d := d_start
 		while d <= end_d + 0.001:
 			var main := _sample_path_samples(_path_samples, d)
-			var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
-			var envelope := _fork_envelope(t)
-			var pos_l: Vector3 = main["pos"] + (main["right"] as Vector3) * (-spread * envelope)
-			var pos_r: Vector3 = main["pos"] + (main["right"] as Vector3) * (spread * envelope)
+			var right: Vector3 = main["right"]
+			var pos_l: Vector3 = main["pos"] + right * _junction_branch_offset(d, zone, -1.0)
+			var pos_r: Vector3 = main["pos"] + right * _junction_branch_offset(d, zone, 1.0)
 			var yaw := float(main["yaw"])
 			left_samples.append({"d": d, "pos": pos_l, "yaw": yaw})
 			right_samples.append({"d": d, "pos": pos_r, "yaw": yaw})
 			d += step
 		_junction_fork_regions.append({
-			"d_start": start - lead,
-			"d_end": start + length + lead,
+			"d_start": d_start,
+			"d_end": end_d,
+			"fork_start": start,
 			"left": left_samples,
 			"right": right_samples,
 		})
+	_retarget_fork_branch_sample_yaws(_junction_fork_regions)
+
+
+func _retarget_path_sample_yaws(samples: Array) -> void:
+	if samples.size() < 2:
+		return
+	for i in range(samples.size()):
+		var prev_i := maxi(i - 1, 0)
+		var next_i := mini(i + 1, samples.size() - 1)
+		var prev_pos: Vector3 = (samples[prev_i] as Dictionary)["pos"]
+		var next_pos: Vector3 = (samples[next_i] as Dictionary)["pos"]
+		var delta: Vector3 = next_pos - prev_pos
+		delta.y = 0.0
+		if delta.length_squared() > 0.0004:
+			(samples[i] as Dictionary)["yaw"] = atan2(-delta.x, -delta.z)
+
+
+func _retarget_fork_branch_sample_yaws(regions: Array) -> void:
+	for region in regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		for branch_key in ["left", "right"]:
+			_retarget_path_sample_yaws(region.get(branch_key, []))
 
 func _junction_fork_region_at(distance: float) -> Dictionary:
+	# 严格落在 bake/mesh 共用的 [d_start, d_end]；不再把 committed 拖过合路点
 	for region in _junction_fork_regions:
 		if typeof(region) != TYPE_DICTIONARY:
 			continue
@@ -2169,7 +2377,7 @@ func _side_runway_path_locks_main_road(distance: float) -> bool:
 	# 墙跑 mesh 只在主路径上；但已选岔路且仍在 junction 分支区时，地面应沿岔路走
 	if _is_wall_running():
 		return true
-	if _fork_side != 0 and not _junction_fork_region_at(distance).is_empty():
+	if _path_fork_side_for_sample(distance) != 0 and _should_use_junction_branch_geometry(distance):
 		return false
 	if not _side_runway_wall_zone_at(distance).is_empty():
 		return true
@@ -2178,7 +2386,53 @@ func _side_runway_path_locks_main_road(distance: float) -> bool:
 	return false
 
 func _skip_side_runway_while_on_fork_branch() -> bool:
-	return _fork_side != 0 and not _junction_fork_region_at(track_distance).is_empty()
+	return _path_fork_side_for_sample(track_distance) != 0
+
+func _remember_fork_path_commit(side: int, until_distance: float) -> void:
+	if side == 0:
+		return
+	_committed_path_fork_side = side
+	_committed_path_fork_until = maxf(until_distance, _committed_path_fork_until)
+
+
+func _effective_path_fork_side(distance: float) -> int:
+	if _fork_side != 0:
+		return _fork_side
+	if _committed_path_fork_side != 0 and distance <= _committed_path_fork_until + 0.001:
+		return _committed_path_fork_side
+	return 0
+
+
+func _should_use_junction_branch_geometry(distance: float) -> bool:
+	# 仅在岔口决策点～与可见岔路相同的 d_end 之间采支路
+	if _junction_fork_regions.is_empty():
+		return false
+	for region in _junction_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		var fork_start := float(region.get("fork_start", 0.0))
+		var d_end := float(region.get("d_end", 0.0))
+		if distance < fork_start - 0.001 or distance > d_end + 0.001:
+			continue
+		if _fork_side != 0:
+			return true
+		if (
+			_committed_path_fork_side != 0
+			and distance <= minf(_committed_path_fork_until, d_end) + 0.001
+		):
+			return true
+	return false
+
+
+func _path_fork_side_for_sample(distance: float) -> int:
+	if not _should_use_junction_branch_geometry(distance):
+		return 0
+	if _fork_side != 0:
+		return _fork_side
+	if _committed_path_fork_side != 0 and distance <= _committed_path_fork_until + 0.001:
+		return _committed_path_fork_side
+	return 0
+
 
 func _sample_path(distance: float) -> Dictionary:
 	if _path_samples.is_empty():
@@ -2186,45 +2440,81 @@ func _sample_path(distance: float) -> Dictionary:
 	var d := clampf(distance, 0.0, maxf(_path_length, 0.0))
 	if _side_runway_path_locks_main_road(d):
 		return _sample_path_samples(_path_samples, d)
+	var path_side := _path_fork_side_for_sample(d)
+	# 仅分叉决策窗内预览 branch，避免 lead 段（主路可见）与 branch 几何脱节
+	if path_side == 0:
+		var intent := _fork_side_from_intent()
+		if intent != 0 and _should_preview_junction_branch(d):
+			path_side = intent
 	# Y 分叉选右岔时，改采右支几何（左支已烘焙进主路径）
-	if _y_fork_side_at(d) > 0:
+	if path_side > 0 and not _y_fork_region_at(d).is_empty():
 		var region := _y_fork_region_at(d)
 		var right_samples: Array = region.get("right", [])
 		if right_samples.size() >= 2:
 			return _sample_path_samples(right_samples, d)
 	# 横向 junction 岔：沿烘焙岔路 polyline 采样，避免直线侧偏冲出路面
-	if _fork_side != 0:
+	if path_side != 0 and _should_use_junction_branch_geometry(d):
 		var j_region := _junction_fork_region_at(d)
 		if not j_region.is_empty():
-			var branch_key := "right" if _fork_side > 0 else "left"
+			var branch_key := "right" if path_side > 0 else "left"
 			var branch_samples: Array = j_region.get(branch_key, [])
 			if branch_samples.size() >= 2:
 				return _sample_path_samples(branch_samples, d)
 	return _sample_path_samples(_path_samples, d)
 
 func _sample_path_for_obstacle(distance: float, fork_branch: int = 0) -> Dictionary:
-	# 障碍锚定在关卡几何上，不随玩家当前 _fork_side / 车道预览漂移
+	# 障碍锚定在关卡几何上；fork_branch 在 region 内始终采支路，不依赖运行时 _fork_side
 	if _path_samples.is_empty():
 		_bake_track_path()
 	var d := clampf(distance, 0.0, maxf(_path_length, 0.0))
+	var branch := fork_branch
+	if branch == 0 and not _junction_fork_region_at(d).is_empty():
+		branch = _path_fork_side_for_sample(d)
+	var y_region := _y_fork_region_at(d)
+	if branch != 0 and not y_region.is_empty():
+		if branch > 0:
+			var y_right: Array = y_region.get("right", [])
+			if y_right.size() >= 2:
+				return _sample_path_samples(y_right, d)
+		return _sample_path_samples(_path_samples, d)
+	# 显式 fork_branch：只要落在该 junction region（含 lead/尾），就采支路 polyline
 	if fork_branch != 0:
-		var y_region := _y_fork_region_at(d)
-		if not y_region.is_empty():
-			if fork_branch > 0:
-				var y_right: Array = y_region.get("right", [])
-				if y_right.size() >= 2:
-					return _sample_path_samples(y_right, d)
-			return _sample_path_samples(_path_samples, d)
+		var j_for_tagged := _junction_fork_region_covering(d)
+		if not j_for_tagged.is_empty():
+			var tagged_key := "right" if fork_branch > 0 else "left"
+			var tagged_samples: Array = j_for_tagged.get(tagged_key, [])
+			if tagged_samples.size() >= 2:
+				return _sample_path_samples(tagged_samples, d)
+	if branch != 0 and _should_use_junction_branch_geometry(d):
 		var j_region := _junction_fork_region_at(d)
 		if not j_region.is_empty():
-			var branch_key := "right" if fork_branch > 0 else "left"
+			var branch_key := "right" if branch > 0 else "left"
 			var branch_samples: Array = j_region.get(branch_key, [])
 			if branch_samples.size() >= 2:
 				return _sample_path_samples(branch_samples, d)
 	return _sample_path_samples(_path_samples, d)
 
+
+func _junction_fork_region_covering(distance: float) -> Dictionary:
+	# 仅按烘焙区间覆盖，不依赖运行时选边（给 fork_branch 障碍摆放用）
+	for region in _junction_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		var d0 := float(region.get("d_start", 0.0))
+		var d1 := float(region.get("d_end", 0.0))
+		if distance >= d0 - 0.001 and distance <= d1 + 0.001:
+			return region
+	return {}
+
+
 func _fork_adjusted_lateral_for_obstacle(distance: float, lateral: float, fork_branch: int) -> float:
-	if fork_branch != 0:
+	var branch := fork_branch
+	if branch == 0 and not _junction_fork_region_at(distance).is_empty():
+		branch = _path_fork_side_for_sample(distance)
+	# 支路几何已含 spread；fork_branch 在 region 内也不再叠侧偏
+	if fork_branch != 0 and not _junction_fork_region_covering(distance).is_empty():
+		return lateral
+	if branch != 0 and _should_use_junction_branch_geometry(distance):
 		return lateral
 	if not _y_fork_region_at(distance).is_empty():
 		return lateral
@@ -2247,8 +2537,22 @@ func _fork_adjusted_lateral_for_obstacle(distance: float, lateral: float, fork_b
 	return branch_center + lateral
 
 func _world_on_path_for_obstacle(distance: float, lateral: float, y: float, content_layer: int, fork_branch: int = 0) -> Dictionary:
-	var sample := _sample_path_for_obstacle(distance, fork_branch)
-	var x := _fork_adjusted_lateral_for_obstacle(distance, lateral, fork_branch)
+	var d := clampf(distance, 0.0, maxf(_path_length, 0.0))
+	var branch := fork_branch
+	if branch == 0:
+		branch = _path_fork_side_for_sample(d)
+	var sample: Dictionary
+	if branch != 0 or (_y_fork_side_at(d) > 0 and not _y_fork_region_at(d).is_empty()):
+		sample = _sample_path_for_obstacle(d, fork_branch if fork_branch != 0 else branch)
+	else:
+		if _path_samples.is_empty():
+			_bake_track_path()
+		sample = _sample_path_samples(_path_samples, d)
+	var x := lateral
+	if branch == 0 and fork_branch == 0 and _y_fork_side_at(d) <= 0:
+		x = lateral
+	else:
+		x = _fork_adjusted_lateral_for_obstacle(d, lateral, fork_branch if fork_branch != 0 else branch)
 	if content_layer == WALL_RUN_LAYER:
 		var zone := _side_runway_zone_at(distance)
 		if not zone.is_empty():
@@ -2295,17 +2599,53 @@ func _pack_path_sample(pos: Vector3, yaw: float) -> Dictionary:
 	return {"pos": pos, "yaw": yaw, "forward": forward, "right": right}
 
 func _path_world_stretch(distance: float, lateral: float) -> float:
-	# |d世界位置 / d track_distance|：平路≈1，岔路外扩/收回时 >1
-	if _fork_zone_at(distance).is_empty():
-		return 1.0
-	# 速通岔：完全不吃弧长补偿，过 SPEEDUP 立刻有加速感
+	# |d世界位置 / d track_distance|：平路≈1，岔路外扩/弯道弧长补偿时 >1
 	if _is_fork_rushing():
+		return 1.0
+	var in_fork := not _fork_zone_at(distance).is_empty()
+	var turn_sharp := _path_turn_sharpness_on_main(distance)
+	if not in_fork and turn_sharp <= 0.025:
 		return 1.0
 	var eps := 0.75
 	var a: Vector3 = _world_on_path(distance, lateral, GROUND_Y)["pos"]
 	var b: Vector3 = _world_on_path(distance + eps, lateral, GROUND_Y)["pos"]
 	var world_step := a.distance_to(b)
-	return clampf(world_step / eps, 0.55, 2.4)
+	return clampf(world_step / eps, 0.62, 2.85)
+
+func _should_preview_junction_branch(distance: float) -> bool:
+	# 与可见主路一致：只在分叉决策窗内预览 branch，不在 lead 段提前切几何
+	if _fork_side != 0:
+		return _should_use_junction_branch_geometry(distance)
+	var zone := _fork_zone_at(distance)
+	if zone.is_empty():
+		return false
+	var start := float(zone["distance"])
+	var length := float(zone.get("length", 70.0))
+	return distance >= start and distance <= start + length
+
+
+func _clamp_runner_lateral() -> void:
+	if not gameplay_active or _is_wall_running():
+		return
+	var hw := _runway_half_width()
+	var limit := minf(LANE_WIDTH * 1.02, hw - 0.62)
+	var turn := _path_turn_sharpness_on_main(track_distance)
+	if turn > 0.05:
+		limit = minf(limit, LANE_WIDTH * lerpf(1.0, 0.82, clampf((turn - 0.05) / 0.28, 0.0, 1.0)))
+	current_lateral = clampf(current_lateral, -limit, limit)
+	target_lane_x = clampf(target_lane_x, -limit, limit)
+
+
+func _path_turn_sharpness_on_main(distance: float) -> float:
+	if _path_samples.is_empty():
+		return 0.0
+	var d0 := clampf(distance, 0.0, maxf(_path_length, 0.0))
+	var d1 := clampf(distance + 10.0, 0.0, maxf(_path_length, 0.0))
+	var a := _sample_path_samples(_path_samples, d0)
+	var b := _sample_path_samples(_path_samples, d1)
+	var dyaw := absf(angle_difference(float(a["yaw"]), float(b["yaw"])))
+	return clampf(dyaw / 1.2, 0.0, 1.0)
+
 
 func _fork_zone_at(distance: float) -> Dictionary:
 	for zone in _junction_zones():
@@ -2322,7 +2662,10 @@ func _fork_adjusted_lateral(distance: float, lateral: float) -> float:
 	# Y 岔 / junction 岔路几何已烘焙进 branch samples，只保留车道偏移
 	if _y_fork_side_at(distance) > 0:
 		return lateral
-	if _fork_side != 0 and not _junction_fork_region_at(distance).is_empty():
+	if _path_fork_side_for_sample(distance) != 0 and _should_use_junction_branch_geometry(distance):
+		return lateral
+	# 横向 junction 区（含 lead/弯道）：只跟主路或 branch polyline，禁止叠 spread 切到路外
+	if not _junction_fork_region_at(distance).is_empty():
 		return lateral
 	# 岔路仍保留三道：branch_center + (-4/0/+4)；中间空隙禁跑
 	var zone := _fork_zone_at(distance)
@@ -2336,7 +2679,9 @@ func _fork_adjusted_lateral(distance: float, lateral: float) -> float:
 		return lateral
 	var spread := float(zone.get("spread", 10.0))
 	var side := _resolve_fork_side(lateral)
-	if side == 0 and _fork_side != 0:
+	if side == 0 and _effective_path_fork_side(distance) != 0:
+		side = _effective_path_fork_side(distance)
+	elif side == 0 and _fork_side != 0:
 		side = _fork_side
 	var branch_center := float(side) * spread * envelope
 	# 主路挖空段 / 已锁岔：抬高最小 envelope，保证落岔中心
@@ -2399,7 +2744,7 @@ func _full_width_obstacle_lateral(distance: float) -> float:
 	# 与 _place_obstacle_node 全宽分支一致：岔路已烘焙进 path 时不再叠 spread
 	if _fork_zone_at(distance).is_empty():
 		return 0.0
-	if _fork_side != 0 and not _junction_fork_region_at(distance).is_empty():
+	if _fork_side != 0 and _should_use_junction_branch_geometry(distance):
 		return 0.0
 	if _y_fork_side_at(distance) > 0:
 		return 0.0
@@ -2435,6 +2780,11 @@ func _resolve_fork_side(lateral: float) -> int:
 	return -1 if lateral <= 0.0 else 1
 
 func _fork_yaw_nudge(distance: float, lateral: float) -> float:
+	# 已沿 junction 岔路 polyline 采样时，不再叠主路 spread 偏航
+	if _path_fork_side_for_sample(distance) != 0:
+		return 0.0
+	if not _junction_fork_region_at(distance).is_empty():
+		return 0.0
 	# 岔路朝向跟所在分支，与当前三道中的哪一条无关
 	var zone := _fork_zone_at(distance)
 	if zone.is_empty():
@@ -2584,6 +2934,33 @@ func _is_distance_in_side_runway_entry_window(distance: float) -> bool:
 		if distance >= start - entry - 3.0 and distance <= start + 4.0:
 			return true
 	return false
+
+
+func _is_distance_in_side_runway_pad_ban(distance: float) -> bool:
+	# 侧墙入口前～墙尾后：禁放弹射/加速垫（含程序化恢复垫）
+	# 入口前加宽到 28m，避免上墙前踩垫造成「被弹上墙」
+	for zone in _side_runway_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 70.0))
+		var entry := float(zone.get("entry_window", 10.0))
+		if distance >= start - entry - 28.0 and distance <= start + length + 6.0:
+			return true
+	return false
+
+
+func _purge_launch_pads_in_side_runway_corridor() -> void:
+	for i in range(_launch_pads.size() - 1, -1, -1):
+		var pad: Dictionary = _launch_pads[i]
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		# 异能怪身后设计好的 LAUNCH 恢复垫：不进侧墙禁放清扫
+		if bool(pad.get("wraith_choice_launch", false)) or bool(pad.get("wraith_choice_recovery", false)):
+			continue
+		if _is_distance_in_side_runway_pad_ban(float(pad.get("distance", 0.0))):
+			_launch_pads.remove_at(i)
+
 
 func _obstacle_blocks_side_runway_entry(otype: String, item: Dictionary) -> bool:
 	if otype in ["ramp", "turn_left", "turn_right", "main_block"]:
@@ -2799,8 +3176,19 @@ func _apply_wall_run_body_orientation(side: float) -> void:
 		player_body.rotation = Vector3(pitch, yaw_lean, _wall_roll + body_tilt * 0.28)
 
 func _world_on_path(distance: float, lateral: float, y: float, content_layer: int = -1) -> Dictionary:
-	var sample := _sample_path(distance)
-	var x := _fork_adjusted_lateral(distance, lateral)
+	var d := clampf(distance, 0.0, maxf(_path_length, 0.0))
+	var sample: Dictionary
+	if _path_fork_side_for_sample(d) != 0 or (_y_fork_side_at(d) > 0 and not _y_fork_region_at(d).is_empty()):
+		sample = _sample_path(d)
+	else:
+		if _path_samples.is_empty():
+			_bake_track_path()
+		sample = _sample_path_samples(_path_samples, d)
+	var x := lateral
+	if _path_fork_side_for_sample(d) == 0 and _y_fork_side_at(d) <= 0:
+		x = lateral
+	else:
+		x = _fork_adjusted_lateral(d, lateral)
 	# 墙跑内容改走 _world_on_wall；此处仅主路
 	if content_layer == WALL_RUN_LAYER:
 		var zone := _side_runway_zone_at(distance)
@@ -2840,24 +3228,35 @@ func _sync_player_position() -> void:
 		return
 
 	var keep_y := player.position.y if player else GROUND_Y
+	if _is_on_ground() and not _is_sliding() and not _is_wall_running() and absf(vertical_velocity) < 0.35:
+		keep_y = _ground_y_at(track_distance)
 	var placed := _world_on_path(track_distance, current_lateral, keep_y)
 	player.position = placed["pos"]
 	_path_yaw = float(placed["yaw"]) + _fork_yaw_nudge(track_distance, current_lateral)
-	# 岔路上用前方真实落点推朝向，平滑跟随路面
-	if not _fork_zone_at(track_distance).is_empty() or not _y_fork_region_at(track_distance).is_empty():
-		var ahead := _world_on_path(track_distance + 8.0, current_lateral, keep_y)
+	# 岔路 / 主路急弯：用前方真实落点推朝向，平滑跟随路面
+	var turn_sharp := _path_turn_sharpness_on_main(track_distance)
+	var on_curve := turn_sharp > 0.05
+	var on_junction_branch := _path_fork_side_for_sample(track_distance) != 0
+	if not _fork_zone_at(track_distance).is_empty() or not _y_fork_region_at(track_distance).is_empty() or on_junction_branch or on_curve:
+		var look_ahead := 8.0 if on_junction_branch else lerpf(7.0, 11.0, clampf(turn_sharp / 0.35, 0.0, 1.0))
+		var ahead_lat := current_lateral
+		if on_curve:
+			# 弯道用同横向的前方落点推朝向，避免切弦「走直线」
+			ahead_lat = lerpf(current_lateral, target_lane_x, clampf(turn_sharp * 1.35, 0.0, 0.72))
+		var ahead := _world_on_path(track_distance + look_ahead, ahead_lat, keep_y)
 		var delta: Vector3 = (ahead["pos"] as Vector3) - (placed["pos"] as Vector3)
 		delta.y = 0.0
 		if delta.length_squared() > 0.04:
 			var face_yaw := atan2(-delta.x, -delta.z)
-			_path_yaw = lerp_angle(_path_yaw, face_yaw, 0.32)
+			var face_blend := 0.62 if on_junction_branch else lerpf(0.55, 0.88, clampf(turn_sharp / 0.35, 0.0, 1.0))
+			_path_yaw = lerp_angle(_path_yaw, face_yaw, face_blend)
 	# 离开侧墙后恢复直立朝向；急弯/岔路略加快朝向跟随，减少「车头甩、镜头慢」的眩晕
-	var on_fork_now := not _fork_zone_at(track_distance).is_empty()
+	var on_fork_now := not _fork_zone_at(track_distance).is_empty() or on_junction_branch
 	var yaw_blend := 0.38
 	if on_fork_now:
-		yaw_blend = 0.48
-	elif _path_turn_sharpness(track_distance) > 0.15:
-		yaw_blend = 0.45
+		yaw_blend = 0.58 if on_junction_branch else 0.50
+	elif on_curve:
+		yaw_blend = lerpf(0.78, 0.94, clampf((turn_sharp - 0.05) / 0.22, 0.0, 1.0))
 	player.rotation.y = lerp_angle(player.rotation.y, _path_yaw, yaw_blend)
 	player.rotation.x = 0.0
 	player.rotation.z = 0.0
@@ -2886,15 +3285,31 @@ func _check_junctions() -> void:
 		# 速通一帧可能跳过 22m 决策窗：仍在分叉段内则补锁，避免主路挖空段落沙
 		if track_distance > at_distance + 22.0:
 			if track_distance <= zone_end + 2.0:
+				# 刚下侧墙且尚未明确选边：再等等，避免默认锁左岔
+				if (
+					_recently_on_side_runway(40.0)
+					and _fork_side == 0
+					and _junction_peak_side == 0
+					and _fork_side_from_intent() == 0
+					and track_distance < zone_end - 8.0
+				):
+					continue
 				_lock_junction_choice(junction_index, zone)
 			continue
 		var intent := _fork_side_from_intent()
 		var chosen_side := 0
 		if intent != 0:
 			chosen_side = intent
+		elif _fork_side != 0:
+			chosen_side = _fork_side
+		elif _junction_peak_side != 0:
+			chosen_side = _junction_peak_side
 		elif track_distance < at_distance + 18.0:
 			continue
 		else:
+			# 刚下侧墙时禁止「中道/偏左 → 默认左岔」
+			if _recently_on_side_runway(40.0) and track_distance < at_distance + 28.0:
+				continue
 			if target_lane_x > 0.0 or lane_index >= 1:
 				chosen_side = 1
 				_show_gate_toast("中道犹豫 · 已按右道转入速通岔")
@@ -2912,14 +3327,33 @@ func _check_junctions() -> void:
 	if _active_fork_index >= 0 and _active_fork_index < _junction_zones().size():
 		var active: Dictionary = _junction_zones()[_active_fork_index]
 		var end_d := float(active["distance"]) + float(active.get("length", 70.0))
-		if track_distance > end_d + 1.0:
+		var junction_d := float(active.get("distance", 0.0))
+		var branch_end := end_d
+		for region in _junction_fork_regions:
+			if typeof(region) != TYPE_DICTIONARY:
+				continue
+			var region_start := float(region.get("d_start", region.get("fork_start", -999.0)))
+			if absf(region_start - junction_d) > 2.0 and absf(float(region.get("fork_start", -999.0)) - junction_d) > 2.0:
+				continue
+			branch_end = float(region.get("d_end", branch_end))
+			break
+		# 整段岔路（含合路尾）保持锁定；勿在 zone length 结束时过早清边
+		if track_distance > branch_end + 1.0:
 			_active_fork_index = -1
 			if _y_fork_region_at(track_distance).is_empty():
 				_fork_side = 0
+				_committed_path_fork_side = 0
+				_committed_path_fork_until = -1.0
 
 func _lock_junction_choice(junction_index: int, zone: Dictionary) -> void:
-	var intent := _fork_side_from_intent()
-	var chosen_side := intent if intent != 0 else _resolve_fork_side(current_lateral)
+	var chosen_side := 0
+	if _fork_side != 0:
+		chosen_side = _fork_side
+	elif _junction_peak_side != 0:
+		chosen_side = _junction_peak_side
+	else:
+		var intent := _fork_side_from_intent()
+		chosen_side = intent if intent != 0 else _resolve_fork_side(current_lateral)
 	_commit_junction_choice(junction_index, zone, chosen_side)
 
 func _commit_junction_choice(junction_index: int, zone: Dictionary, chosen_side: int) -> void:
@@ -2933,12 +3367,68 @@ func _commit_junction_choice(junction_index: int, zone: Dictionary, chosen_side:
 	else:
 		_fork_side = 1
 		_apply_gate_effect(String(zone.get("effect_b", "fast")))
+	var span := _junction_branch_span(zone)
+	var j_region := _junction_fork_region_covering(float(zone.get("distance", 0.0)))
+	var until_d := float(j_region.get("d_end", span.get("d_end", float(span["start"]) + float(span["length"]) + float(span["lead"]))))
+	_remember_fork_path_commit(_fork_side, until_d)
+	_realign_fork_zone_obstacles(zone)
+	_junction_peak_side = 0
+
+func _update_junction_approach_intent() -> void:
+	# 侧墙上不记分叉意图：下墙常在左/外侧，会把 peak 锁成左岔
+	if _is_wall_running():
+		return
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("distance", 0.0))
+		var end_d := start + float(zone.get("length", 70.0)) + 2.0
+		if track_distance < start - 45.0 or track_distance > end_d:
+			continue
+		var intent := _fork_side_from_intent()
+		if intent != 0:
+			_junction_peak_side = intent
+
+
+func _recently_on_side_runway(lookback: float = 36.0) -> bool:
+	# 刚离开侧墙：锁岔时不要用「偏左横向」默认进左岔
+	var d0 := track_distance - lookback
+	var d1 := track_distance + 2.0
+	var cursor := d0
+	while cursor <= d1:
+		if not _side_runway_entry_zone(cursor).is_empty() or not _side_runway_wall_zone_at(cursor).is_empty():
+			return true
+		cursor += 6.0
+	return false
+
+
+func _realign_fork_zone_obstacles(zone: Dictionary) -> void:
+	var start := float(zone.get("distance", 0.0))
+	var region := _junction_fork_region_at(start)
+	if region.is_empty():
+		region = _junction_fork_region_covering(start)
+	var d_end := float(region.get("d_end", start + float(zone.get("length", 70.0)) + _junction_fork_lead()))
+	var committed := _fork_side
+	if committed == 0:
+		committed = _committed_path_fork_side
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		var dist := float(obstacle.get("distance", 0.0))
+		if dist < start - _junction_fork_lead() or dist > d_end:
+			continue
+		var tagged := int(obstacle.get("fork_branch", 0))
+		if tagged != 0:
+			# 只重贴当前所选支路上的障碍；对侧保持隐藏/不跟跑
+			if committed != 0 and tagged != committed:
+				continue
+		_place_obstacle_node(obstacle, true)
 
 func _apply_fork_branch_lateral_snap() -> void:
 	# Y 岔 / junction 岔路几何已烘焙进 branch，换道由 target_lane_x 驱动，不锁道
 	if _y_fork_side_at(track_distance) > 0:
 		return
-	if _fork_side != 0 and not _junction_fork_region_at(track_distance).is_empty():
+	if _path_fork_side_for_sample(track_distance) != 0:
 		return
 	var zone := _fork_zone_at(track_distance)
 	if zone.is_empty():
@@ -3012,6 +3502,9 @@ func _enforce_active_fork_side() -> void:
 		_fork_side = -1
 	else:
 		_fork_side = 1
+	var j_region := _junction_fork_region_at(track_distance)
+	if not j_region.is_empty() and _fork_side != 0:
+		_remember_fork_path_commit(_fork_side, float(j_region.get("d_end", track_distance + 24.0)))
 	if _active_fork_index < 0:
 		for i in _junction_zones().size():
 			var z: Dictionary = _junction_zones()[i]
@@ -3050,13 +3543,22 @@ func _y_fork_region_at(distance: float) -> Dictionary:
 		var d1 := float(region.get("d_end", 0.0))
 		if distance >= d0 and distance <= d1:
 			return region
+		# 已选右岔：合流尾段仍采 Y 右支几何，避免闪回左侧主路径
+		if (
+			_effective_path_fork_side(distance) > 0
+			and distance > d1
+			and distance <= _committed_path_fork_until + 0.001
+			and d1 <= _committed_path_fork_until + 0.001
+		):
+			return region
 	return {}
 
 func _y_fork_side_at(distance: float) -> int:
 	if _y_fork_region_at(distance).is_empty():
 		return 0
-	if _fork_side != 0:
-		return _fork_side
+	var path_side := _effective_path_fork_side(distance)
+	if path_side != 0:
+		return path_side
 	# 尚未锁定时按当前车道预览（铺路/摆障碍时 _fork_side=0 → 走左岔主路径）
 	if not gameplay_active:
 		return 0
@@ -3096,9 +3598,10 @@ func _check_y_forks() -> void:
 			_active_y_fork_index = -1
 			# 若仍在旧横向分叉区内，保留其 _fork_side
 			if _fork_zone_at(track_distance).is_empty():
-				_fork_side = 0
+				if track_distance > _committed_path_fork_until + 1.0:
+					_fork_side = 0
 
-func _lock_y_fork_choice(fork_index: int, _region: Dictionary) -> void:
+func _lock_y_fork_choice(fork_index: int, region: Dictionary) -> void:
 	if passed_y_forks.has(fork_index):
 		return
 	passed_y_forks.append(fork_index)
@@ -3110,8 +3613,10 @@ func _lock_y_fork_choice(fork_index: int, _region: Dictionary) -> void:
 		_fork_side = _resolve_fork_side(current_lateral)
 		if _fork_side == 0:
 			_fork_side = -1 if current_lateral <= 0.0 else 1
+	var merge_d := float(region.get("d_end", float(region.get("d_start", 0.0)) + 80.0))
+	_remember_fork_path_commit(_fork_side, merge_d + 18.0)
 
-func _commit_y_fork_choice(fork_index: int, _region: Dictionary) -> void:
+func _commit_y_fork_choice(fork_index: int, region: Dictionary) -> void:
 	if passed_y_forks.has(fork_index):
 		return
 	passed_y_forks.append(fork_index)
@@ -3134,6 +3639,8 @@ func _commit_y_fork_choice(fork_index: int, _region: Dictionary) -> void:
 					HitFeedback.Intensity.LIGHT,
 					fork_penalty,
 				)
+	var merge_d := float(region.get("d_end", float(region.get("d_start", 0.0)) + 80.0))
+	_remember_fork_path_commit(_fork_side, merge_d + 18.0)
 
 func _enforce_active_y_fork_side() -> void:
 	var region := _y_fork_region_at(track_distance)
@@ -3144,6 +3651,8 @@ func _enforce_active_y_fork_side() -> void:
 		if intent == 0:
 			return
 		_fork_side = intent
+	if _fork_side != 0:
+		_remember_fork_path_commit(_fork_side, float(region.get("d_end", track_distance + 24.0)) + 18.0)
 	if _active_y_fork_index < 0:
 		var d0 := float(region.get("d_start", -999.0))
 		for i in _y_fork_regions.size():
@@ -3205,8 +3714,15 @@ func _update_env_hazards(delta: float) -> void:
 		_show_strike_warning("热量侵蚀")
 
 func _sandstorm_zones() -> Array:
+	var merged: Array = []
+	for raw in _runtime_sandstorm_zones:
+		if typeof(raw) == TYPE_DICTIONARY:
+			merged.append(raw)
 	if CustomLevels.has_level(Global.runner_location_id):
-		return CustomLevels.get_sandstorm_zones(Global.runner_location_id)
+		for raw in CustomLevels.get_sandstorm_zones(Global.runner_location_id):
+			if typeof(raw) == TYPE_DICTIONARY:
+				merged.append(ObstacleLayout.normalize_sandstorm_zone(raw))
+		return merged
 	var layout_id := _runner_layout_id()
 	if layout_id != "":
 		var out_layout: Array = []
@@ -3214,17 +3730,17 @@ func _sandstorm_zones() -> Array:
 			if typeof(raw) == TYPE_DICTIONARY:
 				out_layout.append(ObstacleLayout.normalize_sandstorm_zone(raw))
 		if not out_layout.is_empty() or ObstacleLayout.layout_has_section(layout_id, "sandstorm_zones"):
-			return out_layout
+			for raw in out_layout:
+				merged.append(raw)
+			return merged
 	if LevelConfig == null:
-		return []
+		return merged
 	var constants: Dictionary = LevelConfig.get_script_constant_map()
 	if constants.has("SANDSTORM_ZONES"):
-		var out: Array = []
 		for raw in constants["SANDSTORM_ZONES"]:
 			if typeof(raw) == TYPE_DICTIONARY:
-				out.append(ObstacleLayout.normalize_sandstorm_zone(raw))
-		return out
-	return []
+				merged.append(ObstacleLayout.normalize_sandstorm_zone(raw))
+	return merged
 
 func _sandstorm_region_at(distance: float) -> Dictionary:
 	for zone in _sandstorm_zones():
@@ -3250,6 +3766,9 @@ func _sandstorm_zone_at(distance: float) -> Dictionary:
 		if not _sandstorm_covers_lane(effective, player_lane):
 			return {}
 		return effective
+	# 防御哨站体积沙暴/热浪：进区即全路幅生效（与全宽遮罩一致）
+	if _is_gate_location():
+		return region
 	if not _sandstorm_covers_lane(region, player_lane):
 		return {}
 	return region
@@ -3262,6 +3781,13 @@ func _sandstorm_covers_lane(zone: Dictionary, lane_value: int) -> bool:
 	return false
 
 func _sandstorm_volume_layout(zone: Dictionary) -> Dictionary:
+	# 防御哨站：体积型热浪/沙暴遮罩铺满整幅全息路，避免只盖 2/3 车道
+	if _is_gate_location() and String(zone.get("emit_style", "volume")) != "side_cave":
+		var half := _holographic_road_half() + 1.15
+		return {
+			"lateral_bias": 0.0,
+			"half_width": half,
+		}
 	var covered: Array = zone.get("covered_lanes", [-1, 0, 1])
 	if covered.is_empty():
 		covered = [-1, 0, 1]
@@ -3337,6 +3863,64 @@ func _update_sandstorm_hazard(delta: float) -> void:
 
 func _is_shield_protecting() -> bool:
 	return shield_active and shield_energy >= SHIELD_MIN_ACTIVATE - 0.001
+
+
+func _player_near_wraith_aura() -> bool:
+	if not _is_gate_location() or not gameplay_active or is_failed or is_finished or is_intro:
+		return false
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if String(obstacle.get("type", "")) not in ["wraith_block", "wraith_lunge"]:
+			continue
+		if bool(obstacle.get("wraith_choice", false)):
+			continue
+		if int(obstacle.get("layer", 0)) != track_layer:
+			continue
+		if bool(obstacle.get("hit", false)):
+			continue
+		var obs_dist := float(obstacle.get("distance", 0.0)) + float(obstacle.get("move_offset", 0.0))
+		if absf(track_distance - obs_dist) > WRAITH_AURA_ALONG:
+			continue
+		var wraith_lat := float(obstacle.get("lane", 0)) * LANE_WIDTH
+		if String(obstacle.get("type", "")) == "wraith_lunge":
+			wraith_lat = float(obstacle.get("lunge_lateral", wraith_lat))
+		if absf(current_lateral - wraith_lat) > WRAITH_AURA_LATERAL:
+			continue
+		return true
+	return false
+
+
+func _update_wraith_aura_damage(delta: float) -> void:
+	if not _player_near_wraith_aura():
+		_wraith_aura_tick_accum = 0.0
+		return
+	if not _wraith_aura_tip_shown:
+		_wraith_aura_tip_shown = true
+		_show_gate_toast("异能侵蚀区 · 开防护罩抵御货物损伤")
+	_wraith_aura_tick_accum += delta
+	if _wraith_aura_tick_accum < WRAITH_AURA_TICK:
+		return
+	_wraith_aura_tick_accum = 0.0
+	var dmg := WRAITH_AURA_DPS * WRAITH_AURA_TICK * Global.get_cargo_damage_multiplier() * _cargo_fragility_mult()
+	if _is_shield_protecting():
+		var drain := dmg * WRAITH_AURA_SHIELD_DRAIN_MULT
+		shield_energy = maxf(shield_energy - drain, 0.0)
+		if shield_energy <= 0.001:
+			shield_active = false
+			_show_strike_warning("防护罩能量耗尽 · 异能直击货物")
+		elif _hit_feedback != null and player != null and _shield_drain_fx_cd <= 0.0:
+			_shield_drain_fx_cd = 1.15
+			_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), drain * 0.4, "防护罩")
+		return
+	_apply_cargo_loss(dmg)
+	if is_failed:
+		return
+	if _hit_feedback != null and player != null:
+		_hit_feedback.apply_env_tick_at(player.global_position + Vector3(0.0, 1.7, 0.0), dmg, "异能侵蚀")
+	else:
+		_show_strike_warning("异能侵蚀货物")
+
 
 func _toggle_shield() -> void:
 	if is_finished or is_failed or is_intro or not gameplay_active:
@@ -3574,17 +4158,22 @@ func _is_fork_rushing() -> bool:
 func _effective_speed_boost_mult() -> float:
 	if _finish_sprint_timer > 0.0:
 		return FINISH_SPRINT_MULT
+	# 抉择撞碎：路程衰减曲线 —— 先顶峰，再慢慢回落到 1
+	var choice_rush := _wraith_choice_smash_speed_mult()
+	if choice_rush > 1.001:
+		return choice_rush
+	var pad := PAD_BURST_MULT if _pad_burst_until_d > track_distance else 1.0
 	if _is_on_bonus_fork():
 		var bt := clampf(_fork_rush_elapsed / BONUS_FORK_RAMP, 0.0, 1.0)
 		var bease := bt * bt * (3.0 - 2.0 * bt)
 		var bonus_mult := lerpf(BONUS_FORK_START_MULT, BONUS_FORK_MULT, bease)
-		var boot := 1.0
+		var bonus_boot := 1.0
 		if _speed_boost_timer > 0.0:
-			boot = BONUS_FORK_SPEED_BOOT_MULT
-		var pad := 1.0
+			bonus_boot = BONUS_FORK_SPEED_BOOT_MULT
+		var fork_pad := 1.0
 		if _pad_burst_until_d > track_distance:
-			pad = BONUS_FORK_BURST_MULT
-		return maxf(bonus_mult, maxf(boot, pad))
+			fork_pad = BONUS_FORK_BURST_MULT
+		return maxf(bonus_mult, maxf(bonus_boot, fork_pad))
 	if _is_fork_rushing():
 		# 过加速门后 1~2s 平滑提速到可操作峰值，避免瞬拉过高
 		var t := clampf(_fork_rush_elapsed / FORK_RUSH_RAMP, 0.0, 1.0)
@@ -3595,10 +4184,49 @@ func _effective_speed_boost_mult() -> float:
 	var boot := 1.0
 	if _speed_boost_timer > 0.0:
 		boot = SPEED_BOOST_MULT_EMERGENCY if _is_emergency_run else SPEED_BOOST_MULT
-	var pad := 1.0
+	var tail_pad := 1.0
 	if _pad_burst_until_d > track_distance:
-		pad = PAD_BURST_MULT
-	return maxf(boot, pad)
+		tail_pad = PAD_BURST_MULT
+	return maxf(boot, maxf(tail_pad, pad))
+
+
+func _wraith_choice_smash_speed_mult() -> float:
+	if _wraith_choice_boost_end_d <= _wraith_choice_boost_start_d:
+		return 1.0
+	if track_distance < _wraith_choice_boost_start_d:
+		return 1.0
+	if track_distance >= _wraith_choice_boost_end_d:
+		_wraith_choice_boost_start_d = -1.0
+		_wraith_choice_boost_end_d = -1.0
+		_wraith_choice_boost_timer = 0.0
+		_wraith_choice_instant_burst_timer = 0.0
+		return 1.0
+	var span := maxf(_wraith_choice_boost_end_d - _wraith_choice_boost_start_d, 0.001)
+	var t := clampf((track_distance - _wraith_choice_boost_start_d) / span, 0.0, 1.0)
+	var hold := WRAITH_CHOICE_SMASH_PEAK_HOLD
+	# 1) 猛然冲顶
+	if t <= hold:
+		var peak_blend := 1.0
+		if _wraith_choice_instant_burst_timer > 0.0:
+			peak_blend = clampf(
+				_wraith_choice_instant_burst_timer / maxf(WRAITH_CHOICE_SMASH_INSTANT_TIME, 0.001),
+				0.0,
+				1.0
+			)
+		return lerpf(WRAITH_CHOICE_SMASH_BURST_MULT, WRAITH_CHOICE_SMASH_INSTANT_MULT, 0.6 + peak_blend * 0.4)
+	# 2) 渐渐变慢，但大部分时间仍明显高于正常速
+	var u := (t - hold) / maxf(1.0 - hold, 0.001)
+	u = clampf(u, 0.0, 1.0)
+	if u < 0.72:
+		var a := u / 0.72
+		# 前段降得慢：长时间停在「比正常快」
+		a = a * a
+		return lerpf(WRAITH_CHOICE_SMASH_BURST_MULT, WRAITH_CHOICE_SMASH_DECAY_FLOOR, a)
+	# 3) 末段才回到正常
+	var b := (u - 0.72) / 0.28
+	b = b * b * (3.0 - 2.0 * b)
+	return lerpf(WRAITH_CHOICE_SMASH_DECAY_FLOOR, 1.0, b)
+
 
 func _wall_run_speed_mult() -> float:
 	if not _is_wall_running():
@@ -3879,8 +4507,15 @@ func _obstacle_world_near_player(obstacle: Dictionary) -> bool:
 			return false
 		if not _obstacle_has_meaningful_visual(obstacle):
 			return false
+		var node := obstacle.get("node") as Node3D
+		if node == null or not is_instance_valid(node) or player == null:
+			return false
 		var along := absf(track_distance - float(obstacle.get("distance", 0.0)))
-		return along <= float(obstacle.get("half_depth", 3.8)) + 2.8
+		if along > float(obstacle.get("half_depth", 3.8)) + 2.8:
+			return false
+		var delta: Vector3 = node.global_position - player.global_position
+		delta.y = 0.0
+		return delta.length() <= maxf(float(obstacle.get("half_depth", 3.8)), 3.6) + 2.4
 	# 路程对上但模型在另一条岔路上：不能撞碎「看不见」的东西
 	var node := obstacle.get("node") as Node3D
 	if node == null or not is_instance_valid(node) or player == null:
@@ -3910,6 +4545,18 @@ func _obstacle_collision_active(obstacle: Dictionary) -> bool:
 		if air_y > 1.15:
 			return false
 	if otype == "main_block" and _main_block_obstacle_uses_platform(obstacle):
+		return false
+	if otype == "dressing_block" and (_is_gate_location() or _is_medical_location()):
+		if bool(obstacle.get("wraith_choice_center", false)):
+			# 过决策线后货垛只作视觉，不再挡前进
+			if _wraith_choice_past_decision_line():
+				return false
+			return not bool(obstacle.get("wraith_choice_disabled", false))
+		# 终点直道医疗箱占位：要可撞/可躲
+		if bool(obstacle.get("lane_placeholder", false)):
+			return not bool(obstacle.get("hit", false))
+		return false
+	if bool(obstacle.get("wraith_choice_disabled", false)):
 		return false
 	if _is_distance_in_lava_platform_exclusion(
 		float(obstacle.get("distance", 0.0)) + float(obstacle.get("move_offset", 0.0))
@@ -3967,6 +4614,55 @@ func _obstacle_has_meaningful_visual(obstacle: Dictionary) -> bool:
 	var footprint := maxf(bounds.size.x, bounds.size.z)
 	return footprint >= 0.35
 
+func _try_wraith_choice_smash(dist_from: float, dist_to: float) -> void:
+	if _hit_iframe_timer > 0.0 or not gameplay_active or is_failed:
+		return
+	if _is_on_safe_fork():
+		return
+	var span_min := minf(dist_from, dist_to)
+	var span_max := maxf(dist_from, dist_to)
+	var speed_pad := maxf(absf(dist_to - dist_from) * 0.38, 0.12)
+	var scan_ahead := span_max + WRAITH_CHOICE_HIT_LEAD + 8.0
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if not bool(obstacle.get("wraith_choice", false)):
+			continue
+		if bool(obstacle.get("hit", false)):
+			continue
+		if String(obstacle.get("type", "")) != "wraith_block":
+			continue
+		if int(obstacle.get("layer", 0)) != track_layer:
+			continue
+		if int(obstacle.get("fork_branch", 0)) != 0 and _fork_side != int(obstacle.get("fork_branch", 0)):
+			continue
+		if not _obstacle_collision_active(obstacle):
+			continue
+		if not _obstacle_world_near_player(obstacle):
+			continue
+		var obs_dist := float(obstacle["distance"]) + float(obstacle.get("move_offset", 0.0))
+		var half := float(obstacle.get("half_depth", _obstacle_half_depth("wraith_block")))
+		half += speed_pad + WRAITH_CHOICE_HIT_LEAD
+		if obs_dist + half < span_min - 1.25:
+			continue
+		if obs_dist - half > scan_ahead:
+			continue
+		if span_max < obs_dist - half or span_min > obs_dist + half:
+			continue
+		if not _player_in_obstacle_lateral(obstacle):
+			continue
+		if not _obstacle_has_meaningful_visual(obstacle):
+			continue
+		if not _hits_obstacle(obstacle):
+			continue
+		_on_wraith_choice_smash(obstacle)
+		if _is_fork_rushing():
+			_hit_iframe_timer = FORK_RUSH_HIT_IFRAME
+		else:
+			_hit_iframe_timer = HIT_IFRAME_TIME
+		return
+
+
 func _check_obstacles(dist_from: float, dist_to: float) -> void:
 	if _hit_iframe_timer > 0.0:
 		return
@@ -4014,6 +4710,8 @@ func _check_obstacles(dist_from: float, dist_to: float) -> void:
 			half += speed_pad * 0.1
 		else:
 			half += speed_pad
+		if bool(obstacle.get("wraith_choice", false)):
+			half += WRAITH_CHOICE_HIT_LEAD
 		var moving := bool(obstacle.get("moving", false))
 		# 已远抛在身后：静态障碍推进扫描游标；移动障碍仍可能回头
 		if obs_dist + half < span_min - 1.25:
@@ -4031,10 +4729,33 @@ func _check_obstacles(dist_from: float, dist_to: float) -> void:
 		if not _player_in_obstacle_lateral(obstacle):
 			i += 1
 			continue
+		if bool(obstacle.get("wraith_choice_center", false)):
+			# 线内：中道货垛不再参与碰撞（避免每帧挤墙像强减速）
+			if _wraith_choice_past_decision_line():
+				i += 1
+				continue
+			var push_sign := _wraith_choice_center_push_sign()
+			current_lateral += push_sign * 0.55
+			target_lane_x = push_sign * WRAITH_CHOICE_PAIR_HALF_SPAN * LANE_WIDTH
+			if lane_index == 1:
+				lane_index = 0 if push_sign < 0.0 else 2
+			_clamp_wraith_choice_center_wall()
+			i += 1
+			continue
 		if not _obstacle_has_meaningful_visual(obstacle):
 			i += 1
 			continue
 		if _hits_obstacle(obstacle):
+			if bool(obstacle.get("wraith_choice", false)):
+				if bool(obstacle.get("hit", false)):
+					i += 1
+					continue
+				_on_wraith_choice_smash(obstacle)
+				if _is_fork_rushing():
+					_hit_iframe_timer = FORK_RUSH_HIT_IFRAME
+				else:
+					_hit_iframe_timer = HIT_IFRAME_TIME
+				return
 			obstacle["hit"] = true
 			if _is_fork_rushing():
 				_hit_iframe_timer = FORK_RUSH_HIT_IFRAME
@@ -4073,6 +4794,21 @@ func _player_in_obstacle_lateral(obstacle: Dictionary) -> bool:
 			current_lateral >= float(obstacle.get("lat_min", -999.0)) - pad
 			and current_lateral <= float(obstacle.get("lat_max", 999.0)) + pad
 		)
+	if obstacle_type == "wraith_lunge":
+		var lunge_x := float(obstacle.get("lunge_lateral", float(obstacle.get("lane", 0)) * LANE_WIDTH))
+		var lunge_hw := float(obstacle.get("hit_half_width", LANE_HIT_HALF_WIDTH_JUMP * 1.02))
+		return absf(current_lateral - lunge_x) <= lunge_hw
+	if obstacle_type == "wraith_block" and bool(obstacle.get("wraith_choice", false)):
+		if absf(current_lateral) < WRAITH_CHOICE_CENTER_BLOCK_HALF:
+			return false
+		var choice_lane_x := float(
+			obstacle.get("wraith_choice_lateral", float(obstacle.get("lane", 0)) * LANE_WIDTH)
+		)
+		var choice_side := signf(choice_lane_x)
+		if signf(current_lateral) != choice_side:
+			return false
+		var choice_hw := float(obstacle.get("hit_half_width", LANE_WIDTH * WRAITH_CHOICE_HIT_HALF))
+		return absf(current_lateral - choice_lane_x) <= choice_hw
 	var lane_x := float(obstacle.get("lane", 0)) * LANE_WIDTH
 	if bool(obstacle.get("float_orb", false)):
 		lane_x += float(obstacle.get("lateral_offset", 0.0))
@@ -4085,7 +4821,7 @@ func _player_in_obstacle_lateral(obstacle: Dictionary) -> bool:
 	if obstacle_type == "energy_ring":
 		var outer := float(obstacle.get("ring_outer_half", ENERGY_RING_OUTER_HALF))
 		return absf(current_lateral - lane_x) <= outer + 0.14
-	var half_w := LANE_HIT_HALF_WIDTH_JUMP if obstacle_type in ["jump", "low_barrier", "orb", "train", "train_moving", "wraith_block"] else LANE_HIT_HALF_WIDTH
+	var half_w := LANE_HIT_HALF_WIDTH_JUMP if obstacle_type in ["jump", "low_barrier", "orb", "train", "train_moving", "wraith_block", "wraith_lunge"] else LANE_HIT_HALF_WIDTH
 	if obstacle_type == "meteorite":
 		half_w = float(obstacle.get("hit_half_width", LANE_WIDTH * 0.62))
 	if obstacle_type == "meteorite":
@@ -4098,18 +4834,27 @@ func _collectible_in_pickup_range(node: Node3D, collectible: Dictionary) -> bool
 	var kind := String(collectible.get("kind", "coin"))
 	var pickup_radius := 2.35 if kind == "shield_crystal" else 1.65
 	if collectible.has("gate_train_dist"):
-		pickup_radius = 3.35
+		pickup_radius = 3.55
 	if kind == "coin":
 		pickup_radius = 1.85
 	var delta_pos := node.global_position - player.global_position
 	var horiz := Vector2(delta_pos.x, delta_pos.z).length()
 	var vert := absf(delta_pos.y)
+	# 光波门内挂接的 buff：用路程+横向双保险，避免只靠局部坐标漏捡
+	if collectible.has("gate_train_dist"):
+		var along := absf(track_distance - float(collectible.get("distance", 0.0)))
+		var lateral_gap := absf(current_lateral - float(collectible.get("lane", 0)) * LANE_WIDTH)
+		if along <= 4.8 and lateral_gap <= LANE_WIDTH * 1.4 and vert <= 2.8:
+			return true
+		if horiz <= pickup_radius and vert <= 2.4:
+			return true
+		return false
 	if kind == "shield_crystal":
 		if horiz <= pickup_radius and vert <= 2.1:
 			return true
-		var along := absf(track_distance - float(collectible.get("distance", 0.0)))
-		var lateral_gap := absf(current_lateral - float(collectible.get("lane", 0)) * LANE_WIDTH)
-		return along <= pickup_radius + 1.0 and lateral_gap <= 2.5 and vert <= 2.4
+		var along2 := absf(track_distance - float(collectible.get("distance", 0.0)))
+		var lateral_gap2 := absf(current_lateral - float(collectible.get("lane", 0)) * LANE_WIDTH)
+		return along2 <= pickup_radius + 1.0 and lateral_gap2 <= 2.5 and vert <= 2.4
 	if bool(collectible.get("air", false)):
 		if horiz <= pickup_radius and vert <= 1.55:
 			return true
@@ -4124,8 +4869,8 @@ func _check_collectibles() -> void:
 			continue
 		if int(collectible.get("layer", 0)) != track_layer:
 			continue
-		var node := collectible["node"] as Node3D
-		if node == null or not is_instance_valid(node):
+		var node := _collectible_node_from_entry(collectible)
+		if node == null:
 			continue
 		if not _collectible_in_pickup_range(node, collectible):
 			continue
@@ -4448,8 +5193,24 @@ func _is_medical_location() -> bool:
 	return String(mission.get("location_id", "")) == "medical"
 
 
+func _is_dome_location() -> bool:
+	if String(Global.runner_location_id) == "dome":
+		return true
+	return String(mission.get("location_id", "")) == "dome"
+
+
 func _uses_runway_dressing_collision() -> bool:
 	return _is_gate_location() or _is_medical_location()
+
+
+func _uses_wave_gate_buffs() -> bool:
+	# 全局：黄色光波门内/门后挂防护罩（前半）或加速靴（后半）
+	return (
+		_is_gate_location()
+		or _is_medical_location()
+		or _is_relay_mission()
+		or _is_reservoir_location()
+	)
 
 
 func _reservoir_orb_tint_at(distance: float) -> String:
@@ -4581,6 +5342,53 @@ func _generate_random_rain_zones(count: int = 1) -> Array:
 		}))
 		cursor = start + length + _rain_puddle_rng.randf_range(90.0, 160.0)
 	return out
+
+
+func _opening_hazard_already_at_start() -> bool:
+	for zone in _sandstorm_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		if float(zone.get("start", 999.0)) < 52.0:
+			return true
+	var layout_id := _runner_layout_id()
+	if layout_id != "":
+		for raw in ObstacleLayout.load_rain_zones(layout_id):
+			if typeof(raw) == TYPE_DICTIONARY and float(raw.get("start", 999.0)) < 52.0:
+				return true
+	for zone in _defense_opening_rain_zones:
+		if typeof(zone) == TYPE_DICTIONARY and float(zone.get("start", 999.0)) < 52.0:
+			return true
+	return false
+
+
+func _prepare_defense_cargo_opening_hazard() -> void:
+	_runtime_sandstorm_zones.clear()
+	_defense_opening_rain_zones.clear()
+	if not _is_defense_cargo():
+		return
+	if _opening_hazard_already_at_start():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_defense_open_" + str(int(_track_length)))
+	var storm_mult := clampf(float(mission.get("sandstorm_dps_mult", 1.0)), 0.5, 2.5)
+	if rng.randf() < 0.5:
+		_runtime_sandstorm_zones.append(ObstacleLayout.normalize_sandstorm_zone({
+			"start": 18.0,
+			"length": rng.randf_range(48.0, 74.0),
+			"dps": 10.5 * storm_mult,
+			"label": "Opening sandstorm",
+			"hazard_kind": "sand",
+			"lane_count": 3,
+		}))
+	else:
+		_defense_opening_rain_zones.append(ObstacleLayout.normalize_rain_zone({
+			"start": 22.0,
+			"length": rng.randf_range(50.0, 76.0),
+			"intensity": rng.randf_range(0.82, 1.05),
+			"label": "Opening toxic rain",
+			"rain_kind": "toxic",
+		}))
+		mission["rain_kind"] = "toxic"
 
 
 func _mission_id_str() -> String:
@@ -4939,7 +5747,7 @@ func _try_side_runway_entry() -> void:
 	_mount_side_runway(zone)
 
 func _try_pit_entry_wall_rescue() -> void:
-	# 坑口贴外墙：自动拉上墙，避免「还没跳就进坑」
+	# 坑口贴外墙：仅在已起跳时拉上墙，避免站着走过像被弹射吸附
 	if track_layer != 0 or player == null or is_failed or is_finished:
 		return
 	if _skip_side_runway_while_on_fork_branch():
@@ -4954,7 +5762,14 @@ func _try_pit_entry_wall_rescue() -> void:
 		return
 	if player.position.y > GROUND_Y + 1.85:
 		return
-	_mount_side_runway(zone, "侧墙跑 · 坑口自动上墙")
+	# 必须自己跳起来（或已离地），禁止地面瞬间吸附上墙
+	var jumping := vertical_velocity > 1.2 or player.position.y >= GROUND_Y + 0.62
+	if not jumping:
+		return
+	# 医疗/关口：仍要求贴墙就绪，强化「自己跳上墙」
+	if (_is_medical_location() or _is_gate_location()) and not _is_wall_mount_ready(zone):
+		return
+	_mount_side_runway(zone, "侧墙跑 · 跳跃上墙")
 
 func _is_over_open_pit() -> bool:
 	if track_layer != 0:
@@ -5586,6 +6401,9 @@ func _check_ramps() -> void:
 		var obs_dist: float = float(obstacle["distance"])
 		if abs(track_distance - obs_dist) > 1.5:
 			continue
+		# 侧墙入口走廊：禁止坡道强制弹射（医疗等关会像「看不见垫却被弹上墙」）
+		if _is_distance_in_side_runway_pad_ban(obs_dist) or _is_distance_in_side_runway_entry_window(obs_dist):
+			continue
 		if not _player_in_obstacle_lateral(obstacle):
 			continue
 		if vertical_velocity > 2.0 or _is_on_ground():
@@ -5693,7 +6511,12 @@ func _sparse_obstacle_skip_distance(distance: float) -> bool:
 
 func _inject_sparse_runway_obstacles() -> void:
 	# JSON / 自定义关：长直道补可见障碍（掉落陨石 + 紫色能量球），避免只剩金币
+	# beat-sync JSON 关会直接 return；水源/穹顶改走 _inject_reservoir_dome_coverage_pass
 	if _uses_beat_sync_content():
+		return
+	if _is_gate_location():
+		return
+	if _is_medical_location() or _is_reservoir_location() or _is_dome_location():
 		return
 	var finish_cut := maxf(_track_length - 28.0, _track_length * 0.92)
 	var max_gap := 28.0
@@ -5764,16 +6587,51 @@ func _gate_has_nearby_obstacle(distance: float, gap: float) -> bool:
 	return false
 
 
-func _gate_tension_skip_distance(distance: float) -> bool:
-	if _sparse_obstacle_skip_distance(distance):
+func _is_distance_in_sandstorm_or_heat(distance: float, pad: float = 2.0) -> bool:
+	# 沙暴 / 热浪 / 毒雾体积区：异能怪不站里面
+	for zone in _sandstorm_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 0.0))
+		if distance >= start - pad and distance <= start + length + pad:
+			return true
+	return false
+
+
+func _gate_coverage_skip_distance(distance: float) -> bool:
+	if not _is_distance_on_main_ground_runway(distance, 0):
+		return true
+	if _is_distance_in_lava_platform_exclusion(distance) or _is_in_main_block_pit(distance):
+		return true
+	if _is_distance_in_lava_crossing_clear_zone(distance):
+		return true
+	if _is_distance_in_sandstorm_or_heat(distance):
+		return true
+	if _is_near_mechanic_pad(distance, MECHANIC_PAD_DRESSING_CLEAR):
 		return true
 	_ensure_mechanic_layout()
 	for pad in _launch_pads:
 		if typeof(pad) != TYPE_DICTIONARY:
 			continue
-		# 弹射垫前后留空，避免滑铲/跳跃挡在熔岩前
-		if absf(float(pad.get("distance", 0.0)) - distance) < 18.0:
+		if absf(float(pad.get("distance", 0.0)) - distance) < 14.0:
 			return true
+	if not _junction_fork_region_at(distance).is_empty():
+		var zone := _fork_zone_at(distance)
+		if not zone.is_empty():
+			var t := (distance - float(zone["distance"])) / maxf(float(zone.get("length", 70.0)), 0.001)
+			if t > 0.06 and t < 0.94:
+				return true
+	return false
+
+
+func _gate_tension_skip_distance(distance: float) -> bool:
+	if _gate_coverage_skip_distance(distance):
+		return true
+	if _is_in_gate_finish_wraith_zone(distance):
+		return true
+	if _is_distance_on_track_turn(distance, 14.0):
+		return true
 	return false
 
 
@@ -5785,14 +6643,14 @@ func _inject_gate_tension_obstacles() -> void:
 	var finish_cut := maxf(_track_length - 28.0, _track_length * 0.92)
 	var step := _gate_tension_step()
 	var pattern: Array[String] = [
-		"orb", "meteorite", "orb", "orb", "jump",
-		"meteorite", "orb", "slide", "orb", "meteorite",
-		"orb", "train",
+		"orb", "meteorite", "orb", "orb", "meteorite",
+		"meteorite", "orb", "orb", "meteorite", "orb",
+		"meteorite_gate",
 	]
 	if _mission_id_str() == "mission_gate_d2":
 		pattern = [
-			"orb", "meteorite", "orb", "jump", "orb",
-			"meteorite", "orb", "slide", "orb", "meteorite",
+			"orb", "meteorite", "orb", "orb", "meteorite",
+			"meteorite", "orb", "orb", "meteorite", "meteorite_gate",
 		]
 	var d := START_PAD_LENGTH + 16.0
 	var pi := 0
@@ -5842,6 +6700,1662 @@ func _inject_gate_tension_obstacles() -> void:
 		d += step + float(pi % 3) * 0.8
 
 
+func _gate_finish_wraith_zone() -> Vector2:
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	var start := finish_d - 88.0
+	var end := finish_d - 14.0
+	if end - start < 18.0:
+		return Vector2(-1.0, -1.0)
+	return Vector2(start, end)
+
+
+func _is_in_gate_finish_wraith_zone(distance: float) -> bool:
+	if not _is_gate_location():
+		return false
+	var zone := _gate_finish_wraith_zone()
+	if zone.y <= zone.x:
+		return false
+	return distance >= zone.x and distance <= zone.y
+
+
+func _finalize_gate_finish_wraith_lane() -> void:
+	# 终点前段：清掉陨石/紫球，只留静态异能怪路障
+	if not _is_gate_location():
+		return
+	var zone := _gate_finish_wraith_zone()
+	if zone.y <= zone.x:
+		return
+	var purge_types: Array[String] = ["meteorite", "meteorite_gate", "orb"]
+	var kept: Array = []
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			kept.append(obstacle)
+			continue
+		if int(obstacle.get("fork_branch", 0)) != 0:
+			kept.append(obstacle)
+			continue
+		var dist := float(obstacle.get("distance", 0.0))
+		var otype := String(obstacle.get("type", ""))
+		if dist >= zone.x and dist <= zone.y and otype in purge_types:
+			var node := obstacle.get("node") as Node3D
+			if node != null and is_instance_valid(node):
+				node.queue_free()
+			continue
+		kept.append(obstacle)
+	obstacles.clear()
+	for o in kept:
+		obstacles.append(o)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_finish_wraith_finalize_v1")
+	var lane_seq: Array[int] = [-1, 0, 1, 0, -1, 1, 0]
+	var li := 0
+	var d := zone.x + 6.0
+	while d < zone.y - 4.0:
+		if _is_near_mechanic_pad(d, MECHANIC_PAD_DRESSING_CLEAR):
+			d += 4.0
+			continue
+		var has_wraith := false
+		for obstacle in obstacles:
+			if String(obstacle.get("type", "")) != "wraith_block":
+				continue
+			if absf(float(obstacle.get("distance", 0.0)) - d) < 7.5:
+				has_wraith = true
+				break
+		if not has_wraith:
+			_register_gate_static_wraith(d + rng.randf_range(-1.0, 1.2), lane_seq[li % lane_seq.size()], false)
+			li += 1
+		d += rng.randf_range(11.0, 15.0)
+	_obstacle_scan_index = 0
+
+
+func _register_gate_static_wraith(distance: float, lane: int, on_turn: bool = false, force_pose: String = "", force_anim: bool = false) -> void:
+	var pose := String(force_pose).strip_edges().to_lower()
+	if pose != "angry" and pose != "heart":
+		pose = "angry" if int(floor(distance * 0.11) + lane + 3) % 2 == 0 else "heart"
+	# 弯道影响带上的异能怪必须带 gate_turn，否则 _register_obstacle 会静默丢弃
+	var near_turn := on_turn or _is_distance_on_track_turn(distance, 12.0)
+	var item: Dictionary = {
+		"distance": distance,
+		"lane": lane,
+		"type": "wraith_block",
+		"face": "runner",
+		"wraith_pose": pose,
+		"strike_label": "异能怪",
+		"static_placeholder": true,
+		"wraith_aura": true,
+		"force_anim": force_anim,
+		"layer": 0,
+	}
+	if near_turn:
+		item["gate_turn"] = true
+	_register_obstacle(item)
+
+
+func _inject_gate_turn_obstacles() -> void:
+	# 弯道：紫球/陨石 + 静态异能怪占位（带 gate_turn 世界距离校验）
+	if not _is_gate_location():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_gate_turn_obs_v2")
+	var cursor := 0.0
+	for raw in _active_track_segments():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = raw
+		var length := float(seg.get("length", 0.0))
+		if absf(float(seg.get("turn", 0.0))) <= 0.08:
+			cursor += length
+			continue
+		var start := cursor + 4.0
+		var end := cursor + length - 4.0
+		var d := start
+		while d < end:
+			if _is_near_mechanic_pad(d, MECHANIC_PAD_DRESSING_CLEAR):
+				d += 4.0
+				continue
+			if _gate_has_nearby_obstacle(d, 4.8):
+				d += 3.5
+				continue
+			var roll := rng.randf()
+			if roll < 0.40:
+				var lane: int = int(LANES[rng.randi() % LANES.size()])
+				_register_obstacle({
+					"distance": d,
+					"lane": lane,
+					"type": "orb",
+					"orb_size": ["tiny", "small", "small"][rng.randi() % 3],
+					"orb_tint": "purple",
+					"drift_speed": rng.randf_range(5.4, 7.8),
+					"drift_span": LANE_WIDTH * rng.randf_range(1.05, 1.55),
+					"float_amp": rng.randf_range(0.12, 0.22),
+					"layer": 0,
+					"gate_turn": true,
+				})
+			elif roll < 0.72:
+				var lane: int = int(LANES[rng.randi() % LANES.size()])
+				_register_obstacle({
+					"distance": d,
+					"lane": lane,
+					"type": "meteorite",
+					"span": rng.randf_range(1.45, 2.35),
+					"fall_roll": true,
+					"fall_height": rng.randf_range(10.0, 15.5),
+					"meteor_fall_speed": rng.randf_range(15.0, 23.0),
+					"roll_speed": rng.randf_range(-5.2, -4.0),
+					"layer": 0,
+					"gate_turn": true,
+				})
+			elif roll < 0.86:
+				var block_lane: int = int(LANES[rng.randi() % LANES.size()])
+				_register_gate_static_wraith(d, block_lane, true)
+			else:
+				var lane2: int = int(LANES[rng.randi() % LANES.size()])
+				_register_obstacle({
+					"distance": d,
+					"lane": lane2,
+					"type": "orb",
+					"orb_size": "tiny",
+					"orb_tint": "purple",
+					"drift_speed": rng.randf_range(5.8, 7.2),
+					"drift_span": LANE_WIDTH * rng.randf_range(1.0, 1.35),
+					"layer": 0,
+					"gate_turn": true,
+				})
+			d += rng.randf_range(9.0, 13.5)
+		cursor += length
+
+
+func _inject_gate_fork_approach_obstacles() -> void:
+	if not _is_gate_location():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_gate_fork_approach_v1")
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("distance", 0.0))
+		var length := float(zone.get("length", 70.0))
+		for raw_d in [start - 16.0, start - 8.0, start + length * 0.04]:
+			var d := float(raw_d)
+			if d < START_PAD_LENGTH + 10.0:
+				continue
+			if _gate_coverage_skip_distance(d):
+				continue
+			if _gate_has_nearby_obstacle(d, 6.0):
+				continue
+			var lane: int = int(LANES[rng.randi() % LANES.size()])
+			_register_obstacle({
+				"distance": d,
+				"lane": lane,
+				"type": "orb",
+				"orb_size": ["tiny", "small"][rng.randi() % 2],
+				"orb_tint": "purple",
+				"drift_speed": rng.randf_range(5.6, 7.4),
+				"drift_span": LANE_WIDTH * rng.randf_range(1.0, 1.4),
+				"layer": 0,
+				"gate_turn": _is_distance_on_track_turn(d, 14.0),
+			})
+
+
+func _gate_coverage_max_gap() -> float:
+	match _mission_id_str():
+		"mission_gate_d4":
+			return 18.0
+		"mission_gate_d3":
+			return 21.0
+		"mission_gate_d2":
+			return 20.0
+		_:
+			return 19.0
+
+
+func _register_gate_fill_obstacle(
+	fill_d: float,
+	lane: int,
+	rng: RandomNumberGenerator,
+	pi: int,
+	on_turn: bool
+) -> void:
+	if _is_in_gate_finish_wraith_zone(fill_d):
+		_register_gate_static_wraith(fill_d, lane, on_turn)
+		return
+	var roll := rng.randf()
+	var item: Dictionary
+	if on_turn:
+		if roll < 0.42:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "orb",
+				"orb_size": ["tiny", "small", "small", "medium"][pi % 4],
+				"orb_tint": "purple",
+				"drift_speed": rng.randf_range(5.6, 8.0),
+				"drift_span": LANE_WIDTH * rng.randf_range(1.05, 1.55),
+				"float_amp": rng.randf_range(0.1, 0.2),
+				"layer": 0,
+				"gate_turn": true,
+			}
+		elif roll < 0.74:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "meteorite",
+				"span": rng.randf_range(1.35, 2.25),
+				"fall_roll": true,
+				"fall_height": rng.randf_range(9.5, 15.5),
+				"meteor_fall_speed": rng.randf_range(15.0, 23.0),
+				"roll_speed": rng.randf_range(-5.4, -4.0),
+				"layer": 0,
+				"gate_turn": true,
+			}
+		elif roll < 0.88:
+			_register_gate_static_wraith(fill_d, lane, on_turn)
+			return
+		else:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "meteorite",
+				"span": rng.randf_range(1.35, 2.05),
+				"fall_roll": true,
+				"fall_height": rng.randf_range(9.5, 14.5),
+				"meteor_fall_speed": rng.randf_range(15.0, 22.0),
+				"roll_speed": rng.randf_range(-5.4, -4.0),
+				"layer": 0,
+			}
+			if on_turn:
+				item["gate_turn"] = true
+	else:
+		if roll < 0.38:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "orb",
+				"orb_size": ["tiny", "small", "small", "medium"][pi % 4],
+				"orb_tint": "purple",
+				"drift_speed": rng.randf_range(5.6, 8.0),
+				"drift_span": LANE_WIDTH * rng.randf_range(1.05, 1.55),
+				"float_amp": rng.randf_range(0.1, 0.2),
+				"layer": 0,
+			}
+		elif roll < 0.66:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "meteorite",
+				"span": rng.randf_range(1.35, 2.25),
+				"fall_roll": true,
+				"fall_height": rng.randf_range(9.5, 15.5),
+				"meteor_fall_speed": rng.randf_range(15.0, 23.0),
+				"roll_speed": rng.randf_range(-5.4, -4.0),
+				"layer": 0,
+			}
+		elif roll < 0.78:
+			_register_gate_static_wraith(fill_d, lane, on_turn)
+			return
+		else:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "meteorite_gate",
+				"drop_count": 5 + pi % 3,
+				"drop_interval": rng.randf_range(0.78, 0.92),
+				"layer": 0,
+			}
+	_register_obstacle(item)
+
+
+func _inject_gate_opening_wraiths() -> void:
+	# 开局也可布置异能怪（不限末段 gauntlet）
+	if not _is_gate_location():
+		return
+	# D4 紧急：毒雾(88–116)外可见位置；避开弯道静默丢弃
+	if _mission_id_str() == "mission_gate_d4":
+		# 毒雾结束~116；左道加速垫 118；第一弯 pad 约 128 起 → 优先 124
+		var d4_candidates: Array[float] = [124.0, 122.0, 120.0, 132.0, 178.0]
+		for d4_d in d4_candidates:
+			if _is_distance_in_sandstorm_or_heat(d4_d):
+				continue
+			if _is_in_any_open_pit(d4_d) or not _is_distance_on_main_ground_runway(d4_d, 0):
+				continue
+			var before := obstacles.size()
+			_register_gate_static_wraith(d4_d, 0, false, "angry", true)
+			if obstacles.size() > before:
+				return
+		_register_gate_static_wraith(124.0, 0, false, "angry", true)
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_gate_open_wraith_v3")
+	var candidates: Array[float] = [
+		START_PAD_LENGTH + 28.0,
+		START_PAD_LENGTH + 34.0,
+		START_PAD_LENGTH + 42.0,
+		START_PAD_LENGTH + 48.0,
+		START_PAD_LENGTH + 56.0,
+	]
+	var open_d := -1.0
+	for cand in candidates:
+		if _gate_coverage_skip_distance(cand):
+			continue
+		if _gate_has_nearby_obstacle(cand, 8.0):
+			continue
+		open_d = cand
+		break
+	if open_d < 0.0:
+		return
+	_register_gate_static_wraith(open_d, int(LANES[rng.randi() % LANES.size()]), _is_distance_on_track_turn(open_d, 14.0))
+
+
+func _first_gate_wraith_distance_lane() -> Vector2:
+	var best_d := INF
+	var best_lane := 0
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if String(obstacle.get("type", "")) != "wraith_block":
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		var d := float(obstacle.get("distance", 0.0))
+		if d < best_d:
+			best_d = d
+			best_lane = clampi(int(obstacle.get("lane", 0)), -1, 1)
+	if best_d >= INF:
+		return Vector2(-1.0, 0.0)
+	return Vector2(best_d, float(best_lane))
+
+
+func _inject_shield_near_first_gate_wraith() -> void:
+	# Emergency：第一个异能怪身前放防护罩，留足距离看清 angry 动画
+	if not _is_gate_location() or not _is_emergency_run:
+		return
+	var pair := _first_gate_wraith_distance_lane()
+	var wraith_d := pair.x
+	if wraith_d < 0.0:
+		return
+	var lane := clampi(int(pair.y), -1, 1)
+	# 约 22–24m：拾取后还能看一会儿动作再撞上
+	var shield_d := wraith_d - 24.0
+	if shield_d < 28.0:
+		shield_d = maxf(28.0, wraith_d - 18.0)
+	for collectible in collectibles:
+		if typeof(collectible) != TYPE_DICTIONARY:
+			continue
+		if String(collectible.get("kind", "")) != "shield_crystal":
+			continue
+		if absf(float(collectible.get("distance", 0.0)) - shield_d) < 6.0:
+			return
+	if not _shield_crystal_allowed_at(shield_d):
+		shield_d = wraith_d - 18.0
+		if not _shield_crystal_allowed_at(shield_d):
+			lane = 1 if lane == 0 else 0
+			shield_d = wraith_d - 20.0
+			if not _shield_crystal_allowed_at(shield_d):
+				return
+	var y := _layer_height(0) + 0.85
+	var node := _make_shield_crystal(lane, shield_d, y, 0)
+	collectibles.append({
+		"node": node,
+		"lane": lane,
+		"distance": shield_d,
+		"y": y,
+		"layer": 0,
+		"kind": "shield_crystal",
+		"collected": false,
+	})
+
+
+func _inject_gate_wraith_ambush_zones() -> void:
+	# 全关段静态异能怪占位，不与终点 gauntlet 重叠
+	if not _is_gate_location():
+		return
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	var gauntlet_start := finish_d - 92.0
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_gate_wraith_ambush_v4")
+	var zone_step := 156.0
+	if _mission_id_str() == "mission_gate_d4":
+		zone_step = 120.0
+	elif _mission_id_str() == "mission_gate_d3":
+		zone_step = 168.0
+	elif _mission_id_str() == "mission_gate_d2":
+		zone_step = 148.0
+	var d := START_PAD_LENGTH + 42.0
+	while d < gauntlet_start - 24.0:
+		if _gate_coverage_skip_distance(d) or _is_distance_on_track_turn(d, 16.0):
+			d += 8.0
+			continue
+		if _gate_has_nearby_obstacle(d, 14.0):
+			d += zone_step * 0.35
+			continue
+		# 轻量：每次只放 1 只，避免双连体叠动画/灯光
+		var amb_d := d
+		if not _gate_coverage_skip_distance(amb_d) and not _gate_has_nearby_obstacle(amb_d, 5.0):
+			var on_turn := _is_distance_on_track_turn(amb_d, 14.0)
+			var block_lane: int = int(LANES[rng.randi() % LANES.size()])
+			_register_gate_static_wraith(amb_d, block_lane, on_turn)
+		d += zone_step + rng.randf_range(-12.0, 18.0)
+
+
+func _inject_gate_coverage_pass() -> void:
+	# 全关扫描 >max_gap 的空档，紫球/陨石/异能怪混合补（带世界距离校验）
+	if not _is_gate_location():
+		return
+	var max_gap := _gate_coverage_max_gap()
+	var finish_cut := maxf(_track_length - 28.0, _track_length * 0.92)
+	var dists: Array[float] = [START_PAD_LENGTH + 8.0]
+	for obstacle in obstacles:
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if int(obstacle.get("fork_branch", 0)) != 0:
+			continue
+		var otype := String(obstacle.get("type", ""))
+		if otype in ["ramp", "turn_left", "turn_right", "dressing_block"]:
+			continue
+		dists.append(float(obstacle.get("distance", 0.0)))
+	dists.append(finish_cut)
+	dists.sort()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_gate_coverage_v3")
+	var pi := 0
+	for i in range(dists.size() - 1):
+		var seg_start := dists[i]
+		var seg_end := dists[i + 1]
+		if seg_end - seg_start <= max_gap:
+			continue
+		var fill_d := seg_start + 7.0
+		while seg_end - fill_d > 6.0 and fill_d < finish_cut:
+			if _gate_coverage_skip_distance(fill_d):
+				fill_d += 4.0
+				continue
+			if _gate_has_nearby_obstacle(fill_d, 4.5):
+				fill_d += 3.5
+				continue
+			var on_turn := _is_distance_on_track_turn(fill_d, 14.0)
+			var lane: int = int(LANES[(pi + int(fill_d * 0.23)) % LANES.size()])
+			_register_gate_fill_obstacle(fill_d, lane, rng, pi, on_turn)
+			pi += 1
+			fill_d += rng.randf_range(9.5, 14.5)
+
+
+func _medical_emergency_coverage_max_gap() -> float:
+	if _is_emergency_run:
+		return 20.0
+	return 22.0
+
+
+func _medical_emergency_coverage_skip(distance: float) -> bool:
+	if _is_distance_on_track_turn(distance, 12.0):
+		return true
+	if _is_distance_in_side_runway_entry_window(distance):
+		return true
+	if _is_distance_in_lava_platform_exclusion(distance) or _is_in_main_block_pit(distance):
+		return true
+	if _is_distance_in_lava_crossing_clear_zone(distance):
+		return true
+	if _is_near_mechanic_pad(distance, 14.0):
+		return true
+	return false
+
+
+func _register_medical_emergency_fill_obstacle(
+	fill_d: float,
+	lane: int,
+	rng: RandomNumberGenerator,
+	pi: int
+) -> void:
+	var roll := rng.randf()
+	var item: Dictionary
+	if roll < 0.34:
+		item = {
+			"distance": fill_d,
+			"lane": lane,
+			"type": "orb",
+			"orb_size": ["tiny", "small", "small", "medium"][pi % 4],
+			"orb_tint": "purple",
+			"layer": 0,
+		}
+	elif roll < 0.58:
+		item = {
+			"distance": fill_d,
+			"lane": lane,
+			"type": "meteorite",
+			"span": rng.randf_range(1.75, 2.25),
+			"fall_roll": pi % 3 != 1,
+			"fall_height": rng.randf_range(10.0, 16.0),
+			"meteor_fall_speed": rng.randf_range(13.0, 24.0),
+			"roll_speed": rng.randf_range(-5.8, -4.2),
+			"layer": 0,
+		}
+	elif roll < 0.80:
+		item = {"distance": fill_d, "lane": lane, "type": "jump", "layer": 0}
+	elif roll < 0.90 and not _is_emergency_run:
+		item = {"distance": fill_d, "lane": lane, "type": "train_moving", "layer": 0}
+	elif roll < 0.96:
+		item = {"distance": fill_d, "lane": lane, "type": "train", "layer": 0}
+	else:
+		item = {"distance": fill_d, "lane": lane, "type": "slide", "low_slide": true, "layer": 0}
+	_register_obstacle(item)
+
+
+func _inject_medical_emergency_coverage_pass() -> void:
+	# 医疗 JSON 关不走 sparse 回落：Emergency / Relay 都扫空档补障碍
+	if not _is_medical_location():
+		return
+	var max_gap := _medical_emergency_coverage_max_gap()
+	var finish_cut := maxf(_track_length - 28.0, _track_length * 0.92)
+	var dists: Array[float] = [START_PAD_LENGTH + 8.0]
+	for obstacle in obstacles:
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if int(obstacle.get("fork_branch", 0)) != 0:
+			continue
+		var otype := String(obstacle.get("type", ""))
+		if otype in ["ramp", "turn_left", "turn_right", "dressing_block", "main_block"]:
+			continue
+		dists.append(float(obstacle.get("distance", 0.0)))
+	dists.append(finish_cut)
+	dists.sort()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_medical_emergency_cov_v1")
+	var pi := 0
+	for i in range(dists.size() - 1):
+		var seg_start := dists[i]
+		var seg_end := dists[i + 1]
+		if seg_end - seg_start <= max_gap:
+			continue
+		var fill_d := seg_start + 8.0
+		while seg_end - fill_d > 7.0 and fill_d < finish_cut:
+			if _medical_emergency_coverage_skip(fill_d):
+				fill_d += 4.0
+				continue
+			# 覆盖补障不要贴着已有障碍，否则终点前直道容易叠两种
+			if _gate_has_nearby_obstacle(fill_d, 7.5):
+				fill_d += 4.0
+				continue
+			var lane: int = int(LANES[(pi + int(fill_d * 0.21)) % LANES.size()])
+			_register_medical_emergency_fill_obstacle(fill_d, lane, rng, pi)
+			pi += 1
+			fill_d += rng.randf_range(8.5, 13.5)
+
+
+func _inject_reservoir_dome_coverage_pass() -> void:
+	# 水源 / 居民穹顶：JSON 关不再走 sparse（被 beat-sync 短路），必须扫空档补障
+	# 死线：主路空档 ≤18m；弯道也补轻障碍，禁止大段「只剩金币」
+	if not (_is_reservoir_location() or _is_dome_location()):
+		return
+	if _is_medical_location() or _is_gate_location():
+		return
+	var max_gap := 18.0
+	var finish_cut := maxf(_track_length - 18.0, _track_length * 0.965)
+	var dists: Array[float] = [START_PAD_LENGTH + 10.0]
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if int(obstacle.get("fork_branch", 0)) != 0:
+			continue
+		var otype := String(obstacle.get("type", ""))
+		if otype in ["ramp", "turn_left", "turn_right", "dressing_block", "main_block"]:
+			continue
+		dists.append(float(obstacle.get("distance", 0.0)))
+	dists.append(finish_cut)
+	dists.sort()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_outpost_cov_v3")
+	var pi := 0
+	for i in range(dists.size() - 1):
+		var seg_start := dists[i]
+		var seg_end := dists[i + 1]
+		if seg_end - seg_start <= max_gap:
+			continue
+		var fill_d := seg_start + 7.0
+		while seg_end - fill_d > 6.0 and fill_d < finish_cut:
+			if _outpost_coverage_skip(fill_d):
+				fill_d += 3.5
+				continue
+			if _outpost_fill_blocked_by_nearby(fill_d, -99):
+				fill_d += 3.5
+				continue
+			var lane: int = int(LANES[(pi + int(fill_d * 0.23)) % LANES.size()])
+			# 同道过近则换道，仍近则跳过（防重叠）
+			if _outpost_fill_blocked_by_nearby(fill_d, lane):
+				var placed := false
+				for alt in [0, -1, 1]:
+					if alt == lane:
+						continue
+					if not _outpost_fill_blocked_by_nearby(fill_d, alt):
+						lane = alt
+						placed = true
+						break
+				if not placed:
+					fill_d += 3.5
+					continue
+			var on_turn := _is_distance_on_track_turn(fill_d, 12.0)
+			var near_turn := on_turn or _is_distance_on_track_turn(fill_d, 18.0)
+			var before := obstacles.size()
+			_register_outpost_fill_obstacle(fill_d, lane, rng, pi, on_turn, near_turn)
+			# register 可能因弯道/挖空拒绝：未真正落点则不空步进
+			if obstacles.size() <= before:
+				fill_d += 3.5
+				continue
+			pi += 1
+			fill_d += rng.randf_range(10.0, 14.5) if near_turn else rng.randf_range(9.0, 13.0)
+
+
+func _outpost_fill_blocked_by_nearby(distance: float, lane: int) -> bool:
+	# lane==-99：任意障碍距离门控；否则同道/门类加宽
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		var gap := absf(float(obstacle.get("distance", 0.0)) - distance)
+		var otype := String(obstacle.get("type", ""))
+		var olane := int(obstacle.get("lane", 0))
+		if lane < -1:
+			if gap < 7.5:
+				return true
+			continue
+		if otype in ["train", "train_moving", "meteorite_gate", "energy_ring"]:
+			if gap < 16.0:
+				return true
+		elif otype == "meteorite":
+			if gap < 8.0 and absi(olane - lane) <= 1:
+				return true
+		elif olane == lane and gap < 8.0:
+			return true
+	return false
+
+
+func _outpost_coverage_skip(distance: float) -> bool:
+	if not _is_distance_on_main_ground_runway(distance, 0):
+		return true
+	if _is_distance_in_side_runway_entry_window(distance):
+		return true
+	# 侧墙走廊 / 墙下主路坑：禁补，避免「障碍在坑里 / 逼人下墙」
+	if _is_distance_in_side_wall_corridor(distance):
+		return true
+	if not _side_runway_wall_zone_at(distance).is_empty():
+		return true
+	if _is_distance_in_lava_platform_exclusion(distance) or _is_in_main_block_pit(distance):
+		return true
+	if _is_distance_in_lava_crossing_clear_zone(distance):
+		return true
+	if _is_near_mechanic_pad(distance, 16.0):
+		return true
+	if _is_distance_in_side_runway_pad_ban(distance):
+		return true
+	if not _junction_fork_region_at(distance).is_empty():
+		var zone := _fork_zone_at(distance)
+		if not zone.is_empty():
+			var t := (distance - float(zone["distance"])) / maxf(float(zone.get("length", 70.0)), 0.001)
+			if t > 0.08 and t < 0.92:
+				return true
+	if not _y_fork_region_at(distance).is_empty():
+		return true
+	return false
+
+
+func _register_outpost_fill_obstacle(
+	fill_d: float,
+	lane: int,
+	rng: RandomNumberGenerator,
+	pi: int,
+	on_turn: bool,
+	near_turn: bool = false
+) -> void:
+	var roll := rng.randf()
+	var item: Dictionary
+	var orb_tint := "purple"
+	if _is_reservoir_location():
+		orb_tint = _reservoir_orb_tint_at(fill_d)
+	# 弯道/近弯：只放轻障碍，并打标以便 _register_obstacle 放行
+	if on_turn or near_turn:
+		if roll < 0.50:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "orb",
+				"orb_size": ["tiny", "small", "small", "medium"][pi % 4],
+				"orb_tint": orb_tint,
+				"layer": 0,
+				"outpost_turn": true,
+			}
+		elif roll < 0.80:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "jump",
+				"layer": 0,
+				"outpost_turn": true,
+			}
+		else:
+			item = {
+				"distance": fill_d,
+				"lane": lane,
+				"type": "slide",
+				"low_slide": true,
+				"layer": 0,
+				"outpost_turn": true,
+			}
+	elif roll < 0.32:
+		item = {
+			"distance": fill_d,
+			"lane": lane,
+			"type": "orb",
+			"orb_size": ["tiny", "small", "small", "medium"][pi % 4],
+			"orb_tint": orb_tint,
+			"layer": 0,
+		}
+		if pi % 2 == 0:
+			item["drift_speed"] = rng.randf_range(5.8, 8.2)
+			item["drift_span"] = LANE_WIDTH * rng.randf_range(1.1, 1.55)
+	elif roll < 0.52:
+		item = {
+			"distance": fill_d,
+			"lane": lane,
+			"type": "meteorite",
+			"span": rng.randf_range(1.7, 2.25),
+			"fall_roll": pi % 3 != 1,
+			"fall_height": rng.randf_range(10.0, 16.5),
+			"meteor_fall_speed": rng.randf_range(13.0, 24.0),
+			"roll_speed": rng.randf_range(-5.8, -4.0),
+			"layer": 0,
+		}
+	elif roll < 0.70:
+		item = {"distance": fill_d, "lane": lane, "type": "jump", "layer": 0}
+	elif roll < 0.84:
+		item = {"distance": fill_d, "lane": lane, "type": "slide", "low_slide": true, "layer": 0}
+	elif roll < 0.93:
+		item = {"distance": fill_d, "lane": lane, "type": "train", "layer": 0}
+	else:
+		item = {"distance": fill_d, "lane": lane, "type": "train_moving", "layer": 0}
+	_register_obstacle(item)
+
+
+func _emergency_speed_boost_target_count() -> int:
+	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
+	var step := 46.0 if _track_length < 900.0 else 52.0
+	if _is_medical_location() or _is_reservoir_location():
+		step = 32.0
+	return maxi(10, int(ceil((finish_cut - 16.0) / step)))
+
+
+func _uses_dense_emergency_boosts() -> bool:
+	# 医疗 / 水源紧急限时：必须高密度加速靴才能在时限内到终点
+	return _is_emergency_run and (_is_medical_location() or _is_reservoir_location())
+
+
+func _collectible_speed_boost_distances() -> Array[float]:
+	var out: Array[float] = []
+	for entry in collectibles:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		if String(entry.get("kind", "")) != "speed_boost":
+			continue
+		if int(entry.get("layer", 0)) != 0:
+			continue
+		if int(entry.get("fork_side", 0)) != 0:
+			continue
+		out.append(float(entry.get("distance", 0.0)))
+	out.sort()
+	return out
+
+
+func _speed_boost_lane_clear(distance: float, lane: int, layout_id: String, other_dists: Array[float]) -> bool:
+	if distance < 10.0:
+		return false
+	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
+	if distance > finish_cut:
+		return false
+	if _is_reservoir_location() and _is_emergency_run:
+		# 水源蛇形弯：弯道也可放靴，只避开坑口/侧墙入口/已有垫
+		if _is_distance_in_side_runway_entry_window(distance):
+			return false
+		if _is_distance_in_lava_platform_exclusion(distance) or _is_in_main_block_pit(distance):
+			return false
+		if _is_distance_in_lava_crossing_clear_zone(distance):
+			return false
+		if _is_near_mechanic_pad(distance, 14.0):
+			return false
+	elif _medical_emergency_coverage_skip(distance):
+		return false
+	if _layout_obstacle_blocks_speed_pad(distance, lane, layout_id, 8.0):
+		return false
+	if _has_speed_launch_pad_near(distance, lane, 18.0):
+		return false
+	var min_gap := 16.0 if _uses_dense_emergency_boosts() else 22.0
+	for d in other_dists:
+		if absf(float(d) - distance) < min_gap:
+			return false
+	for obstacle in obstacles:
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if absf(float(obstacle.get("distance", 0.0)) - distance) > 6.0:
+			continue
+		if String(obstacle.get("type", "")) in ["train", "train_moving"] and int(obstacle.get("lane", 0)) == lane:
+			return false
+	return true
+
+
+func _force_place_speed_boost_at(distance: float, lane: int, dists: Array, boost_index: int) -> int:
+	# 强制落点：只挡「几乎同距已有靴」，用于开局中道/末段连串
+	for d in dists:
+		if absf(float(d) - distance) < 3.5:
+			return boost_index
+	_register_collectible_data(lane, distance, _speed_boost_collectible_y(boost_index, 0), 0, "speed_boost")
+	if not collectibles.is_empty():
+		var last: Dictionary = collectibles[collectibles.size() - 1]
+		if String(last.get("kind", "")) == "speed_boost":
+			last["lane_locked"] = true
+	dists.append(distance)
+	return boost_index + 1
+
+
+func _ensure_emergency_speed_boost_coverage() -> void:
+	if not _is_emergency_run:
+		return
+	var layout_id := _mission_layout_id()
+	if layout_id == "":
+		layout_id = _runner_layout_id()
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	var finish_cut := maxf(finish_d - 16.0, _track_length * 0.9)
+	var target := _emergency_speed_boost_target_count()
+	if _uses_dense_emergency_boosts():
+		target = maxi(target, 20)
+	var dists := _collectible_speed_boost_distances()
+	var boost_index := dists.size()
+	# 开局中道必给加速：刚起步就能吃到，缓解限时压力
+	if _uses_dense_emergency_boosts():
+		boost_index = _force_place_speed_boost_at(14.0, 0, dists, boost_index)
+		boost_index = _force_place_speed_boost_at(28.0, 0, dists, boost_index)
+		boost_index = _force_place_speed_boost_at(42.0, 1, dists, boost_index)
+		if _is_reservoir_location():
+			boost_index = _force_place_speed_boost_at(58.0, -1, dists, boost_index)
+			boost_index = _force_place_speed_boost_at(74.0, 0, dists, boost_index)
+	else:
+		var has_opening := false
+		for d in dists:
+			if float(d) >= 12.0 and float(d) <= 40.0:
+				has_opening = true
+				break
+		if not has_opening:
+			boost_index = _force_place_speed_boost_at(18.0, 0, dists, boost_index)
+	# 终点前直道：一串加速靴（更密，换道吃）
+	if _uses_dense_emergency_boosts():
+		var late_lanes: Array[int] = [0, 1, 0, -1, 0, 1, -1, 0]
+		var late_i := 0
+		var late_d := finish_d - 128.0
+		var late_step := 10.5 if _is_reservoir_location() else 11.5
+		while late_d < finish_cut:
+			var lane := late_lanes[late_i % late_lanes.size()]
+			late_i += 1
+			boost_index = _force_place_speed_boost_at(late_d, lane, dists, boost_index)
+			late_d += late_step
+	if boost_index >= target:
+		_level_has_speed_boosts = true
+		_lock_medical_emergency_boost_lanes()
+		_balance_runway_mechanic_lanes()
+		return
+	var step := 40.0 if _uses_dense_emergency_boosts() else (46.0 if _track_length < 900.0 else 52.0)
+	if _is_reservoir_location() and _is_emergency_run:
+		step = 34.0
+	var cursor := 48.0
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_emergency_boost_v5")
+	while cursor < finish_cut and boost_index < target:
+		var nearest := 9999.0
+		for d in dists:
+			nearest = minf(nearest, absf(float(d) - cursor))
+		if nearest >= step * 0.45:
+			var placed := false
+			var lane_order: Array = LANES.duplicate()
+			lane_order.shuffle()
+			for lane_raw2 in lane_order:
+				var lane2 := int(lane_raw2)
+				if not _speed_boost_lane_clear(cursor, lane2, layout_id, dists):
+					continue
+				var y := _speed_boost_collectible_y(boost_index, 0)
+				_register_collectible_data(lane2, cursor, y, 0, "speed_boost")
+				dists.append(cursor)
+				boost_index += 1
+				placed = true
+				break
+			if not placed:
+				cursor += 6.0
+				continue
+		cursor += step * 0.40 + rng.randf_range(-4.0, 4.0)
+	if boost_index > 0:
+		_level_has_speed_boosts = true
+	_lock_medical_emergency_boost_lanes()
+	_balance_runway_mechanic_lanes()
+
+
+func _lock_medical_emergency_boost_lanes() -> void:
+	# 开局中道靴 / 末段加速串不被车道平衡打散
+	if not _uses_dense_emergency_boosts():
+		return
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	for entry in collectibles:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		if String(entry.get("kind", "")) != "speed_boost":
+			continue
+		var d := float(entry.get("distance", 0.0))
+		if d <= 48.0:
+			entry["lane"] = 0 if d <= 32.0 else int(entry.get("lane", 0))
+			entry["lane_locked"] = true
+		elif d >= finish_d - 135.0:
+			entry["lane_locked"] = true
+
+
+func _reshape_medical_emergency_finish_lane() -> void:
+	# Emergency 末段：异能怪 + 医疗箱交错占位（左中右换道躲）+ 加速串
+	if not _is_emergency_run or not _is_medical_location():
+		return
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	var band0 := finish_d - 135.0
+	var band1 := finish_d - 12.0
+	var kept: Array = []
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		var dist := float(obstacle.get("distance", 0.0))
+		var otype := String(obstacle.get("type", ""))
+		if dist < band0 or dist > band1:
+			kept.append(obstacle)
+			continue
+		if bool(obstacle.get("wraith_choice", false)):
+			kept.append(obstacle)
+			continue
+		if int(obstacle.get("layer", 0)) != 0 or int(obstacle.get("fork_branch", 0)) != 0:
+			kept.append(obstacle)
+			continue
+		# 末段清掉跳/铲/陨石/多余列车，改成干净的「躲怪/箱吃加速」节奏
+		if otype in ["jump", "low_barrier", "slide", "high_bar", "meteorite", "orb", "train", "train_moving"]:
+			var node := obstacle.get("node") as Node3D
+			if node != null and is_instance_valid(node):
+				node.queue_free()
+			continue
+		if otype == "wraith_block" or bool(obstacle.get("lane_placeholder", false)):
+			var old := obstacle.get("node") as Node3D
+			if old != null and is_instance_valid(old):
+				old.queue_free()
+			continue
+		kept.append(obstacle)
+	obstacles.clear()
+	for o in kept:
+		obstacles.append(o)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_medical_em_finish_v3")
+	# 左中右交错；异能怪与医疗箱轮换，分散占位
+	var block_lanes: Array[int] = [-1, 0, 1, -1, 0, 1, 1, -1, 0]
+	var bi := 0
+	var fill_d := band0 + 8.0
+	while fill_d < band1 - 6.0:
+		if not _gate_has_nearby_obstacle(fill_d, 7.0):
+			var blane := block_lanes[bi % block_lanes.size()]
+			if bi % 2 == 0:
+				_register_gate_static_wraith(
+					fill_d + rng.randf_range(-0.4, 0.4),
+					blane,
+					false,
+					"angry" if (bi % 4 == 0) else "heart",
+					false
+				)
+			else:
+				_register_finish_lane_medical_crate(
+					fill_d + rng.randf_range(-0.3, 0.3),
+					blane
+				)
+			bi += 1
+		fill_d += rng.randf_range(10.5, 13.0)
+	_obstacle_scan_index = 0
+
+
+func _register_finish_lane_medical_crate(distance: float, lane: int) -> void:
+	if track_root == null:
+		return
+	var root := Node3D.new()
+	root.name = "FinishLaneMedicalCrate"
+	track_root.add_child(root)
+	var crate_h := 2.35
+	var footprint := 1.95
+	var crate_scene := _load_runner_scene(OBSTACLE_PROP_MEDICAL_CRATE, false)
+	if crate_scene != null:
+		var model := crate_scene.instantiate() as Node3D
+		if model != null:
+			model.name = "MedicalCrateModel"
+			root.add_child(model)
+			_fit_runner_glb_height(model, crate_h)
+			_squash_midground_footprint_keep_height(model, footprint)
+			model.force_update_transform()
+			var bounds := _compute_node_aabb(model)
+			model.position = Vector3(
+				-(bounds.position.x + bounds.size.x * 0.5),
+				-bounds.position.y,
+				-(bounds.position.z + bounds.size.z * 0.5)
+			)
+			model.rotation_degrees.y = 12.0 if lane >= 0 else -10.0
+			_preserve_midground_materials(root)
+	else:
+		_build_wraith_choice_medical_fallback(root, crate_h)
+	_disable_mesh_shadows(root)
+	var lane_x := float(lane) * LANE_WIDTH
+	var half_w := LANE_HIT_HALF_WIDTH_JUMP * 0.98
+	var entry := {
+		"type": "dressing_block",
+		"distance": distance,
+		"lane": lane,
+		"half_depth": 1.15,
+		"lat_min": lane_x - half_w,
+		"lat_max": lane_x + half_w,
+		"layer": 0,
+		"node": root,
+		"dressing": true,
+		"lane_placeholder": true,
+		"strike_label": "医疗箱",
+	}
+	obstacles.append(entry)
+	_place_obstacle_node(entry)
+
+
+func _inject_emergency_speed_launch_pads() -> void:
+	if not _is_emergency_run:
+		return
+	_ensure_mechanic_layout()
+	var layout_id := _mission_layout_id()
+	if layout_id == "":
+		layout_id = _runner_layout_id()
+	var speed_count := 0
+	for pad in _launch_pads:
+		if _pad_is_speed_only(pad):
+			speed_count += 1
+	var target := 3 if _track_length < 900.0 else 4
+	if _is_reservoir_location():
+		target = maxi(target, 5)
+	if speed_count >= target:
+		return
+	var finish_cut := maxf(_track_length - 36.0, _track_length * 0.88)
+	var step := _track_length / float(target + 1)
+	if _is_reservoir_location():
+		step = minf(step, 120.0)
+	var cursor := step
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_emergency_pad_v2")
+	while speed_count < target and cursor < finish_cut - 24.0:
+		var lane := int(LANES[int(cursor * 0.13) % LANES.size()])
+		var skip := false
+		if _is_reservoir_location() and _is_emergency_run:
+			skip = (
+				_is_distance_in_side_runway_entry_window(cursor)
+				or _is_in_main_block_pit(cursor)
+				or _is_near_mechanic_pad(cursor, 14.0)
+			)
+		else:
+			skip = _medical_emergency_coverage_skip(cursor)
+		if not skip and not _layout_obstacle_blocks_speed_pad(cursor, lane, layout_id, SPEED_PAD_OBSTACLE_GAP):
+			var crowded := false
+			for pad in _launch_pads:
+				if absf(float(pad.get("distance", 0.0)) - cursor) < SPEED_PAD_MIN_SPACING * 0.72:
+					crowded = true
+					break
+			if not crowded:
+				_launch_pads.append({
+					"id": "emergency_speed_%d" % speed_count,
+					"distance": cursor,
+					"lane": lane,
+					"impulse": JUMP_SPEED * 0.35,
+					"half_depth": 1.45,
+					"lock_air_lane": false,
+					"lock_distance": 0.0,
+					"speed_boost": true,
+					"boost_time": 2.8 if _is_reservoir_location() else 2.6,
+					"launch_cross": false,
+					"hint": "",
+					"pad_text": "",
+				})
+				speed_count += 1
+		cursor += step + rng.randf_range(-10.0, 12.0)
+	_launch_pads.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	_prune_speed_launch_pads(layout_id)
+	_balance_runway_mechanic_lanes()
+
+
+func _inject_wraith_choice_recovery_speed_pads() -> void:
+	# 规则（死线）：
+	# - 刚撞完前 ~30m：只加速、不放垫
+	# - 更远的渐慢空直道：左右错开 3 个（约 +32/+54/+76m）
+	# - 只看运行时障碍；落点先清冲突，避开门
+	# 医疗全关（含 Relay M3）共用撞后恢复垫规则
+	if not _is_medical_location():
+		return
+	if _wraith_choice_encounters.is_empty():
+		return
+	_ensure_mechanic_layout()
+	var layout_id := _mission_layout_id()
+	if layout_id == "":
+		layout_id = _runner_layout_id()
+	var finish_cut := maxf(_track_length - 40.0, _track_length * 0.86)
+	for i in range(_launch_pads.size() - 1, -1, -1):
+		var old_pad: Dictionary = _launch_pads[i]
+		if bool(old_pad.get("wraith_choice_launch", false)) or bool(old_pad.get("wraith_choice_recovery", false)):
+			_launch_pads.remove_at(i)
+	var lanes: Array[int] = [-1, 1, -1]
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		var base_d := float(enc.get("distance", 0.0))
+		var enc_id := int(enc.get("id", 0))
+		for li in range(WRAITH_CHOICE_PAD_OFFSETS.size()):
+			var launch_d := base_d + float(WRAITH_CHOICE_PAD_OFFSETS[li])
+			if launch_d > finish_cut:
+				break
+			_force_place_wraith_choice_launch(enc_id, "empty", li, launch_d, lanes[li % lanes.size()])
+	_launch_pads.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	_prune_speed_launch_pads(layout_id)
+	_purge_launch_pads_in_side_runway_corridor()
+	_balance_runway_mechanic_lanes()
+
+
+func _force_place_wraith_choice_launch(
+	enc_id: int,
+	tag: String,
+	index: int,
+	distance: float,
+	lane: int
+) -> void:
+	var candidates: Array[float] = [distance, distance + 8.0, distance + 16.0, distance + 24.0]
+	for raw_d in candidates:
+		var d := float(raw_d)
+		# 只允许往更远处微调，绝不往回挪到刚撞完
+		if d + 0.01 < distance:
+			continue
+		if d < 8.0:
+			continue
+		if _is_distance_in_lava_platform_exclusion(d) or _is_in_main_block_pit(d):
+			continue
+		if _is_distance_in_lava_crossing_clear_zone(d):
+			continue
+		# 异能怪身后恢复垫允许落在侧墙禁放扫区外缘；真正墙内仍靠 carve / hard block 避让
+		_carve_obstacles_for_wraith_choice_launch(d, 11.0)
+		if _runtime_hard_blocks_wraith_choice_launch(d, 14.0):
+			continue
+		var use_lane := lane
+		if _has_launch_pad_near(d, use_lane, 12.0):
+			use_lane = 0 if lane != 0 else -1
+			if _has_launch_pad_near(d, use_lane, 12.0):
+				use_lane = 1 if use_lane != 1 else -1
+				if _has_launch_pad_near(d, use_lane, 12.0):
+					continue
+		_launch_pads.append({
+			"id": "wraith_choice_%s_launch_%d_%d" % [tag, enc_id, index],
+			"distance": d,
+			"lane": use_lane,
+			"impulse": JUMP_SPEED * 1.58,
+			"half_depth": 2.2,
+			"lock_air_lane": false,
+			"lock_distance": 0.0,
+			"speed_boost": false,
+			"boost_time": 0.0,
+			"launch_cross": false,
+			"wraith_choice_launch": true,
+			"lane_locked": true,
+			"hint": "LAUNCH",
+			"pad_text": "LAUNCH",
+		})
+		return
+
+
+func _carve_obstacles_for_wraith_choice_launch(distance: float, radius: float) -> void:
+	var kept: Array = []
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			kept.append(obstacle)
+			continue
+		if bool(obstacle.get("wraith_choice", false)) or bool(obstacle.get("wraith_choice_center", false)):
+			kept.append(obstacle)
+			continue
+		var od := float(obstacle.get("distance", 0.0))
+		if absf(od - distance) > radius:
+			kept.append(obstacle)
+			continue
+		var otype := String(obstacle.get("type", ""))
+		if otype in ["train", "train_moving", "meteorite_gate"]:
+			kept.append(obstacle)
+			continue
+		var node := obstacle.get("node") as Node3D
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	obstacles.clear()
+	for o in kept:
+		obstacles.append(o)
+
+
+func _runtime_hard_blocks_wraith_choice_launch(distance: float, gate_gap: float) -> bool:
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if bool(obstacle.get("hit", false)) or bool(obstacle.get("smashed", false)):
+			continue
+		var otype := String(obstacle.get("type", ""))
+		if otype not in ["train", "train_moving", "meteorite_gate"]:
+			continue
+		if absf(float(obstacle.get("distance", 0.0)) - distance) < gate_gap:
+			return true
+	return false
+
+
+func _purge_overlapping_wraith_choice_launch_pads(layout_id: String) -> void:
+	for i in range(_launch_pads.size() - 1, -1, -1):
+		var pad: Dictionary = _launch_pads[i]
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		if not bool(pad.get("wraith_choice_launch", false)):
+			continue
+		var dist := float(pad.get("distance", 0.0))
+		var lane := clampi(int(pad.get("lane", 0)), -1, 1)
+		_launch_pads.remove_at(i)
+		if _wraith_choice_launch_slot_blocked(dist, lane, layout_id):
+			continue
+		_launch_pads.insert(i, pad)
+
+
+func _wraith_choice_covering_fork_end(choice_d: float) -> float:
+	_ensure_mechanic_layout()
+	var best_end := -1.0
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var zs := float(zone.get("distance", 0.0))
+		var zl := float(zone.get("length", 70.0))
+		if choice_d < zs - 8.0 or choice_d > zs + zl + 6.0:
+			continue
+		best_end = maxf(best_end, zs + zl)
+	return best_end
+
+
+func _place_wraith_choice_launches_in_gaps(
+	enc_id: int,
+	tag: String,
+	start_d: float,
+	end_d: float,
+	count: int,
+	lanes: Array,
+	layout_id: String
+) -> void:
+	if end_d <= start_d + 10.0 or count <= 0:
+		return
+	var gaps := _collect_wraith_choice_pad_gaps(start_d, end_d)
+	var placed := 0
+	var gap_i := 0
+	while placed < count and gap_i < gaps.size():
+		var mid := float(gaps[gap_i])
+		gap_i += 1
+		var lane := int(lanes[placed % lanes.size()])
+		# 空档中心若仍挡，同空档内微调 ±4/±8
+		var launch_d := -1.0
+		for offset in [0.0, 4.0, -4.0, 8.0, -8.0]:
+			var cand := mid + float(offset)
+			if cand < start_d or cand > end_d:
+				continue
+			if _wraith_choice_launch_slot_blocked(cand, lane, layout_id):
+				continue
+			launch_d = cand
+			break
+		if launch_d < 0.0:
+			# 换邻道再试一次
+			var alt_lane := 1 if lane <= 0 else -1
+			if not _wraith_choice_launch_slot_blocked(mid, alt_lane, layout_id):
+				lane = alt_lane
+				launch_d = mid
+		if launch_d < 0.0:
+			continue
+		_launch_pads.append({
+			"id": "wraith_choice_%s_launch_%d_%d" % [tag, enc_id, placed],
+			"distance": launch_d,
+			"lane": lane,
+			"impulse": JUMP_SPEED * 1.58,
+			"half_depth": 2.2,
+			"lock_air_lane": false,
+			"lock_distance": 0.0,
+			"speed_boost": false,
+			"boost_time": 0.0,
+			"launch_cross": false,
+			"wraith_choice_launch": true,
+			"lane_locked": true,
+			"hint": "LAUNCH",
+			"pad_text": "LAUNCH",
+		})
+		placed += 1
+	# 空档不够时：在区间内按步长硬找空位（车道级互斥，不再一刀切）
+	if placed < count:
+		var cursor := start_d + 6.0
+		var guard := 0
+		while placed < count and cursor < end_d and guard < 60:
+			guard += 1
+			var lane2 := int(lanes[placed % lanes.size()])
+			if _wraith_choice_launch_slot_blocked(cursor, lane2, layout_id):
+				cursor += 3.5
+				continue
+			_launch_pads.append({
+				"id": "wraith_choice_%s_launch_%d_%d" % [tag, enc_id, placed],
+				"distance": cursor,
+				"lane": lane2,
+				"impulse": JUMP_SPEED * 1.58,
+				"half_depth": 2.2,
+				"lock_air_lane": false,
+				"lock_distance": 0.0,
+				"speed_boost": false,
+				"boost_time": 0.0,
+				"launch_cross": false,
+				"wraith_choice_launch": true,
+				"lane_locked": true,
+				"hint": "LAUNCH",
+				"pad_text": "LAUNCH",
+			})
+			placed += 1
+			cursor += 18.0
+
+
+func _collect_wraith_choice_pad_gaps(start_d: float, end_d: float) -> Array:
+	# 返回足够大的空档中点（按空隙从大到小）
+	var marks: Array[float] = [start_d]
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if bool(obstacle.get("hit", false)) or bool(obstacle.get("smashed", false)):
+			continue
+		if bool(obstacle.get("wraith_choice", false)) or bool(obstacle.get("wraith_choice_center", false)):
+			continue
+		var od := float(obstacle.get("distance", 0.0))
+		if od <= start_d or od >= end_d:
+			continue
+		marks.append(od)
+	for pad in _launch_pads:
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		var pd := float(pad.get("distance", 0.0))
+		if pd > start_d and pd < end_d:
+			marks.append(pd)
+	marks.append(end_d)
+	marks.sort()
+	var scored: Array = []
+	for i in range(marks.size() - 1):
+		var a := marks[i]
+		var b := marks[i + 1]
+		var span := b - a
+		# 至少 20m 空档才算「空路段」
+		if span < 20.0:
+			continue
+		scored.append({"mid": (a + b) * 0.5, "span": span})
+	scored.sort_custom(func(x: Dictionary, y: Dictionary) -> bool:
+		return float(x.get("span", 0.0)) > float(y.get("span", 0.0))
+	)
+	var out: Array = []
+	for item in scored:
+		out.append(float(item.get("mid", 0.0)))
+	return out
+
+
+func _wraith_choice_launch_slot_blocked(distance: float, lane: int, layout_id: String) -> bool:
+	# 死线：与门/同道障碍/跳跃重叠才挡；禁止再用「任意障碍 16m」一刀切导致整段放不出垫
+	const SAME_LANE_GAP := 10.0
+	const FULL_GAP := 12.0
+	const GATE_GAP := 20.0
+	const PAD_GAP := 14.0
+	if _is_distance_on_track_turn(distance, 14.0):
+		return true
+	if _is_distance_in_lava_platform_exclusion(distance) or _is_in_main_block_pit(distance):
+		return true
+	if _is_distance_in_lava_crossing_clear_zone(distance):
+		return true
+	if _is_distance_in_side_runway_entry_window(distance):
+		return true
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		if bool(obstacle.get("hit", false)) or bool(obstacle.get("smashed", false)):
+			continue
+		if bool(obstacle.get("wraith_choice", false)) or bool(obstacle.get("wraith_choice_center", false)):
+			continue
+		var od := float(obstacle.get("distance", 0.0))
+		var otype := String(obstacle.get("type", ""))
+		var delta := absf(od - distance)
+		if otype in ["train", "train_moving", "meteorite_gate"]:
+			if delta < GATE_GAP:
+				return true
+			continue
+		if otype in ["jump", "slide", "low_barrier", "high_bar", "ramp"] or _is_full_width_obstacle_type(otype):
+			if delta < FULL_GAP:
+				return true
+			continue
+		var olane := clampi(int(obstacle.get("lane", 0)), -1, 1)
+		if olane == lane and delta < SAME_LANE_GAP:
+			return true
+	if _layout_obstacle_blocks_speed_pad(distance, lane, layout_id, FULL_GAP):
+		return true
+	if _layout_gate_blocks_pad(distance, layout_id, GATE_GAP):
+		return true
+	if _has_launch_pad_near(distance, lane, PAD_GAP):
+		return true
+	# 仅避开分叉黄门入口本身，不禁整段岔路
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var zs := float(zone.get("distance", 0.0))
+		if absf(distance - zs) < 14.0:
+			return true
+	return false
+
+
+func _layout_gate_blocks_pad(pad_dist: float, layout_id: String, gap: float) -> bool:
+	if layout_id == "":
+		return false
+	var root: Dictionary = ObstacleLayout.load_root(layout_id)
+	for raw in root.get("obstacles", []):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var otype := String(raw.get("type", ""))
+		if otype not in ["train", "train_moving", "meteorite_gate", "jump", "slide", "high_bar", "low_barrier"]:
+			continue
+		if absf(float(raw.get("distance", 0.0)) - pad_dist) < gap:
+			return true
+	return false
+
+
+func _inject_wraith_choice_aftermath_content() -> void:
+	# 撞碎后一小段：少障碍，靠自动提速；稍后才补加速靴/占位
+	# 医疗全关（含 Relay M3）共用清障/恢复节奏
+	if not _is_medical_location():
+		return
+	if _wraith_choice_encounters.is_empty():
+		return
+	var finish_cut := maxf(_track_length - 40.0, _track_length * 0.86)
+	# 清到渐慢段末尾，给弹射垫留空直道
+	# 清到最远弹射垫之后，保证空直道可见可踩
+	var clear_after := float(WRAITH_CHOICE_PAD_OFFSETS[WRAITH_CHOICE_PAD_OFFSETS.size() - 1]) + 8.0
+	# 先清掉自动冲刺段内的多余障碍，避免撞完立刻撞一堆
+	var kept: Array = []
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		var dist := float(obstacle.get("distance", 0.0))
+		var clear_it := false
+		for enc in _wraith_choice_encounters:
+			if typeof(enc) != TYPE_DICTIONARY:
+				continue
+			var base_d := float(enc.get("distance", 0.0))
+			if dist > base_d + 2.0 and dist < base_d + clear_after:
+				if bool(obstacle.get("wraith_choice", false)):
+					break
+				if bool(obstacle.get("wraith_choice_center", false)):
+					break
+				if int(obstacle.get("layer", 0)) != 0 or int(obstacle.get("fork_branch", 0)) != 0:
+					break
+				var otype := String(obstacle.get("type", ""))
+				if otype in ["wraith_block", "orb", "meteorite", "jump", "low_barrier", "slide", "high_bar"]:
+					clear_it = true
+				elif bool(obstacle.get("lane_placeholder", false)):
+					clear_it = true
+				break
+		if clear_it:
+			var node := obstacle.get("node") as Node3D
+			if node != null and is_instance_valid(node):
+				node.queue_free()
+			continue
+		kept.append(obstacle)
+	obstacles.clear()
+	for o in kept:
+		obstacles.append(o)
+
+	# 自动提速段内先不放加速靴（撞后靠 smash boost）
+	var kept_col: Array = []
+	for c in collectibles:
+		if typeof(c) != TYPE_DICTIONARY:
+			continue
+		if String(c.get("kind", "")) != "speed_boost":
+			kept_col.append(c)
+			continue
+		var cd := float(c.get("distance", 0.0))
+		var drop := false
+		for enc2 in _wraith_choice_encounters:
+			if typeof(enc2) != TYPE_DICTIONARY:
+				continue
+			var bd2 := float(enc2.get("distance", 0.0))
+			if cd > bd2 + 1.0 and cd < bd2 + clear_after:
+				drop = true
+				break
+		if drop:
+			var cn := c.get("node") as Node3D
+			if cn != null and is_instance_valid(cn):
+				cn.queue_free()
+			continue
+		kept_col.append(c)
+	collectibles.clear()
+	for c2 in kept_col:
+		collectibles.append(c2)
+
+	var dists := _collectible_speed_boost_distances()
+	var boost_index := dists.size()
+	var boot_lanes: Array[int] = [0, -1, 1, 0]
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		var base_d := float(enc.get("distance", 0.0))
+		# 加速靴放在弹射垫空直道之后，避免和垫子抢位
+		for bi in range(boot_lanes.size()):
+			var boot_d := base_d + clear_after + 8.0 + float(bi) * 12.0
+			if boot_d > finish_cut:
+				break
+			if _medical_emergency_coverage_skip(boot_d):
+				continue
+			boost_index = _force_place_speed_boost_at(
+				boot_d,
+				boot_lanes[bi],
+				dists,
+				boost_index
+			)
+	obstacles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	_obstacle_scan_index = 0
+
+
+func _has_non_recovery_speed_pad_near(distance: float, lane: int, radius: float) -> bool:
+	for pad in _launch_pads:
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		if not _pad_is_speed_only(pad):
+			continue
+		if bool(pad.get("wraith_choice_recovery", false)):
+			continue
+		if absf(float(pad.get("distance", 0.0)) - distance) > radius:
+			continue
+		if clampi(int(pad.get("lane", 0)), -1, 1) == lane:
+			return true
+	return false
+
+
+func _inject_gate_finish_wraith_gauntlet() -> void:
+	if not _is_gate_location():
+		return
+	var zone := _gate_finish_wraith_zone()
+	if zone.y <= zone.x:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_finish_wraith_v4")
+	var lane_seq: Array[int] = [-1, 0, 1, 0, -1, 1, 0]
+	var li := 0
+	var d := zone.x + 6.0
+	while d < zone.y - 6.0:
+		if _is_in_fork_main_gap(d):
+			d += 5.0
+			continue
+		var block_lane: int = lane_seq[li % lane_seq.size()]
+		_register_gate_static_wraith(d + rng.randf_range(-1.0, 1.5), block_lane, false)
+		li += 1
+		d += rng.randf_range(15.0, 20.0)
+
+
+func _update_wraith_lunge_obstacles(delta: float) -> void:
+	if _is_gate_location():
+		return
+	for obstacle in obstacles:
+		if String(obstacle.get("type", "")) != "wraith_lunge":
+			continue
+		var node := obstacle.get("node") as Node3D
+		if node == null:
+			continue
+		var obs_dist := float(obstacle["distance"])
+		var delta_d := obs_dist - track_distance
+		var spawn_x := float(obstacle.get("spawn_lateral", float(obstacle.get("lane", -1)) * LANE_WIDTH))
+		var target_x := float(obstacle.get("target_lateral", float(obstacle.get("target_lane", 0)) * LANE_WIDTH))
+		if not obstacle.has("spawn_lateral"):
+			obstacle["spawn_lateral"] = spawn_x
+		if not obstacle.has("target_lateral"):
+			obstacle["target_lateral"] = target_x
+		var current := float(obstacle.get("lunge_lateral", spawn_x))
+		var trigger := float(obstacle.get("lunge_trigger_ahead", 40.0))
+		if delta_d <= trigger and delta_d > -10.0:
+			var speed := float(obstacle.get("lunge_speed", 3.2))
+			var dir := signf(target_x - current)
+			if absf(target_x - current) > 0.06:
+				current += dir * speed * delta
+				if dir > 0.0:
+					current = minf(current, target_x)
+				else:
+					current = maxf(current, target_x)
+			obstacle["lunge_active"] = true
+		elif delta_d > trigger + 14.0:
+			current = spawn_x
+			obstacle["lunge_active"] = false
+		obstacle["lunge_lateral"] = current
+		_place_obstacle_node(obstacle)
+		var visual := node.get_node_or_null("WraithBlockVisual") as Node3D
+		if visual != null:
+			if bool(obstacle.get("lunge_active", false)):
+				visual.position.y = sin(Time.get_ticks_msec() * 0.011) * 0.09
+			else:
+				visual.position.y = 0.0
+
+
 func _inject_finish_sprint_orb_gauntlet() -> void:
 	# SPEED UP 之后到终点门：密集横向漂移的紫色能量球
 	var sprint_d := -1.0
@@ -5866,7 +8380,17 @@ func _inject_finish_sprint_orb_gauntlet() -> void:
 			continue
 		var crowded := false
 		for obstacle in obstacles:
-			if absf(float(obstacle.get("distance", 0.0)) - d) < 3.4:
+			if typeof(obstacle) != TYPE_DICTIONARY:
+				continue
+			if int(obstacle.get("layer", 0)) != 0:
+				continue
+			var od := float(obstacle.get("distance", 0.0))
+			var otype := String(obstacle.get("type", ""))
+			# 终点冲刺段禁止和已有跳/铲/门/陨石叠球
+			var need := 7.5
+			if _obstacle_is_road_span_blocker(otype) or otype in ["meteorite", "wraith_block", "train", "train_moving"]:
+				need = 9.0
+			if absf(od - d) < need:
 				crowded = true
 				break
 		if not crowded:
@@ -5883,7 +8407,7 @@ func _inject_finish_sprint_orb_gauntlet() -> void:
 				"layer": 0,
 			})
 			i += 1
-		d += 5.4
+		d += 6.2
 
 
 func _resolve_lava_crossing_conflicts() -> void:
@@ -5911,13 +8435,16 @@ func _resolve_lava_crossing_conflicts() -> void:
 		var zstart := float(zone.get("start", 0.0))
 		var zlen := float(zone.get("length", 55.0))
 		var entry := float(zone.get("entry_window", 10.0))
-		blocked.append(Vector2(zstart - entry - 6.0, zstart + zlen + 6.0))
+		# 入口前加宽：避免加速垫贴在上墙前制造「被弹上去」的错觉
+		blocked.append(Vector2(zstart - entry - 28.0, zstart + zlen + 8.0))
 	if blocked.is_empty():
 		return
 	for i in range(_launch_pads.size() - 1, -1, -1):
 		var pad: Dictionary = _launch_pads[i]
 		# 过熔岩弹射垫不参与互斥剔除（由关卡 JSON 与 open_gaps 配对）
 		if bool(pad.get("launch_cross", false)):
+			continue
+		if bool(pad.get("wraith_choice_launch", false)) or bool(pad.get("wraith_choice_recovery", false)):
 			continue
 		var at := float(pad.get("distance", 0.0))
 		for band: Vector2 in blocked:
@@ -5991,11 +8518,9 @@ func _pad_is_lava_launch(pad: Dictionary) -> bool:
 
 
 func _normalize_launch_pad_entry(pad: Dictionary) -> void:
-	var lane := clampi(int(pad.get("lane", 0)), -1, 1)
-	var side := _pad_lane_side_label(lane)
 	if _pad_is_speed_only(pad):
 		pad["pad_text"] = "SPEEDUP"
-		pad["hint"] = "Speed Pad · step on to burst"
+		pad["hint"] = "SPEEDUP"
 		pad["boost_time"] = 0.5
 		pad["lock_air_lane"] = false
 		pad["launch_cross"] = false
@@ -6003,11 +8528,15 @@ func _normalize_launch_pad_entry(pad: Dictionary) -> void:
 	elif _pad_is_lava_launch(pad):
 		pad["launch_cross"] = true
 		pad["pad_text"] = "LAUNCH"
+		pad["hint"] = "LAUNCH"
 		pad["speed_boost"] = false
-		pad["hint"] = "Launch Pad · move to %s lane · clear lava" % side
 	else:
 		pad["pad_text"] = "LAUNCH"
-		pad["hint"] = "Launch Pad · step on to launch"
+		pad["hint"] = "LAUNCH"
+
+
+func _is_wave_gate_obstacle_type(obstacle_type: String) -> bool:
+	return obstacle_type in ["train", "train_moving"]
 
 
 func _layout_obstacle_blocks_speed_pad(pad_dist: float, pad_lane: int, layout_id: String, gap: float) -> bool:
@@ -6019,7 +8548,8 @@ func _layout_obstacle_blocks_speed_pad(pad_dist: float, pad_lane: int, layout_id
 			continue
 		var item: Dictionary = raw
 		var otype := String(item.get("type", ""))
-		if otype in ["ramp", "turn_left", "turn_right", "meteorite_gate"]:
+		# 光波门旁专门摆 buff，不把 train 当阻挡
+		if otype in ["ramp", "turn_left", "turn_right", "meteorite_gate", "train", "train_moving"]:
 			continue
 		var obs_dist := float(item.get("distance", 0.0))
 		if absf(obs_dist - pad_dist) > gap:
@@ -6036,18 +8566,187 @@ func _layout_obstacle_blocks_speed_pad(pad_dist: float, pad_lane: int, layout_id
 	return false
 
 
+func _has_gate_buff_collectible_at(train_dist: float) -> bool:
+	# 只认「已挂在该光波门上」的奖励；跑道紧邻 buff 不挡门内挂接
+	for collectible in collectibles:
+		if typeof(collectible) != TYPE_DICTIONARY:
+			continue
+		if bool(collectible.get("collected", false)):
+			continue
+		if not collectible.has("gate_train_dist"):
+			continue
+		if absf(float(collectible.get("gate_train_dist", -9999.0)) - train_dist) <= 0.6:
+			return true
+	return false
+
+
+func _ensure_train_gate_speed_visual(root: Node3D) -> Node3D:
+	var existing := root.get_node_or_null("GateSpeedBoost") as Node3D
+	if existing != null:
+		return existing
+	var legacy := root.get_node_or_null("GateShieldCrystal") as Node3D
+	if legacy != null:
+		legacy.queue_free()
+	var boost := _make_speed_boost(0, 0.0, 0.0, 0)
+	boost.name = "GateSpeedBoost"
+	if boost.get_parent() != null:
+		boost.get_parent().remove_child(boost)
+	root.add_child(boost)
+	var blade_local_y := float(root.get_meta("blade_top", TRAIN_GATE_TOP)) - 1.12
+	boost.position = Vector3(0.0, blade_local_y, 0.36)
+	boost.scale = Vector3(1.2, 1.2, 1.2)
+	boost.rotation = Vector3.ZERO
+	return boost
+
+
+func _register_wave_gate_buff_collectible(obstacle: Dictionary, kind: String, node: Node3D) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var dist := float(obstacle.get("distance", 0.0))
+	for collectible in collectibles:
+		if typeof(collectible) != TYPE_DICTIONARY:
+			continue
+		if collectible.get("node") == node:
+			return
+		if absf(float(collectible.get("gate_train_dist", -9999.0)) - dist) <= 0.6:
+			return
+	collectibles.append({
+		"node": node,
+		"lane": 0,
+		"distance": dist,
+		"y": node.position.y if node.get_parent() != null else _layer_height(0) + 1.05,
+		"layer": 0,
+		"kind": kind,
+		"air": false,
+		"gate_train_dist": dist,
+		"gate_boost": kind == "speed_boost",
+		"collected": false,
+	})
+
+
+func _attach_wave_gate_buff_for_obstacle(obstacle: Dictionary) -> void:
+	if not _uses_wave_gate_buffs():
+		return
+	var root := obstacle.get("node") as Node3D
+	if root == null or not is_instance_valid(root):
+		return
+	if not bool(root.get_meta("has_wave_blade", false)):
+		return
+	var dist := float(obstacle.get("distance", 0.0))
+	if _has_gate_buff_collectible_at(dist):
+		return
+	var mid := clampf(_track_length * 0.52, 180.0, maxf(_track_length * 0.68, 220.0))
+	var use_shield := dist < mid
+	var node: Node3D
+	if use_shield:
+		node = _ensure_train_gate_buff_visual(root)
+		_register_wave_gate_buff_collectible(obstacle, "shield_crystal", node)
+	else:
+		node = _ensure_train_gate_speed_visual(root)
+		_register_wave_gate_buff_collectible(obstacle, "speed_boost", node)
+
+
+func _inject_gate_wave_gate_buffs() -> void:
+	# 全据点：光波门内挂奖励 + 门后补一枚（前半防护罩 / 后半加速）
+	if not _uses_wave_gate_buffs():
+		return
+	var mid := clampf(_track_length * 0.52, 180.0, maxf(_track_length * 0.68, 220.0))
+	var placed_speed := false
+	var location_shield_gate_i := 0
+	# 水源 / 居民穹顶：前半光波门防护罩只保留约一半
+	var thin_location_shield := _is_reservoir_location() or _is_dome_location()
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if not _is_wave_gate_obstacle_type(String(obstacle.get("type", ""))):
+			continue
+		if int(obstacle.get("layer", 0)) != 0:
+			continue
+		var dist := float(obstacle.get("distance", 0.0))
+		var skip_shield_pair := false
+		if thin_location_shield and dist < mid:
+			location_shield_gate_i += 1
+			if location_shield_gate_i % 2 == 0:
+				skip_shield_pair = true
+		if not skip_shield_pair:
+			_attach_wave_gate_buff_for_obstacle(obstacle)
+		var after_d := dist + 5.5
+		var crowded := false
+		for collectible in collectibles:
+			if typeof(collectible) != TYPE_DICTIONARY:
+				continue
+			var kind := String(collectible.get("kind", ""))
+			if kind not in ["shield_crystal", "speed_boost"]:
+				continue
+			# 跳过门内挂接本身，只挡真正的跑道重复物
+			if collectible.has("gate_train_dist"):
+				continue
+			if absf(float(collectible.get("distance", 0.0)) - after_d) < 4.0:
+				crowded = true
+				break
+		if crowded or skip_shield_pair:
+			continue
+		if dist < mid:
+			var y := _layer_height(0) + 0.85
+			var crystal := _make_shield_crystal(0, after_d, y, 0)
+			collectibles.append({
+				"node": crystal,
+				"lane": 0,
+				"distance": after_d,
+				"y": y,
+				"layer": 0,
+				"kind": "shield_crystal",
+				"air": false,
+				"collected": false,
+			})
+		else:
+			var by := _speed_boost_collectible_y(0, 0)
+			_register_collectible_data(0, after_d, by, 0, "speed_boost")
+			placed_speed = true
+	if placed_speed:
+		_level_has_speed_boosts = true
+		_materialize_registered_collectibles()
+	_refresh_buff_hud()
+
+
+func _launch_pad_lane_lateral(pad: Dictionary) -> float:
+	var pad_lane := clampi(int(pad.get("lane", 0)), -1, 1)
+	# 侧道垫略向中线收，避免半板悬在路肩外
+	var lat := float(pad_lane) * LANE_WIDTH
+	if pad_lane != 0:
+		lat *= 0.78
+	return lat
+
+
+func _launch_pad_half_width(pad: Dictionary) -> float:
+	var pad_lat := absf(_launch_pad_lane_lateral(pad))
+	var runway_half := _runway_half_width()
+	var margin := 0.42
+	var max_hw := maxf(runway_half - pad_lat - margin, LANE_WIDTH * 0.38)
+	var preferred := LANE_WIDTH * (0.68 if _pad_is_speed_only(pad) else 0.72)
+	return minf(preferred, max_hw)
+
+
 func _prune_speed_launch_pads(layout_id: String) -> void:
 	var keep: Array = []
 	var kept_speed: Array = []
+	var recovery_pads: Array = []
 	for pad in _launch_pads:
 		if typeof(pad) != TYPE_DICTIONARY:
 			continue
 		if not _pad_is_speed_only(pad):
 			keep.append(pad)
 			continue
+		if bool(pad.get("wraith_choice_recovery", false)):
+			recovery_pads.append(pad)
+			continue
 		var dist := float(pad.get("distance", 0.0))
 		var lane := clampi(int(pad.get("lane", 0)), -1, 1)
 		if _layout_obstacle_blocks_speed_pad(dist, lane, layout_id, SPEED_PAD_OBSTACLE_GAP):
+			continue
+		if (_is_gate_location() or _is_medical_location()) and _is_distance_on_track_turn(dist, 16.0):
+			continue
+		if (_is_gate_location() or _is_medical_location()) and _is_near_mechanic_pad(dist, MECHANIC_PAD_DRESSING_CLEAR - 4.0):
 			continue
 		var crowded := false
 		for kept in kept_speed:
@@ -6073,6 +8772,25 @@ func _prune_speed_launch_pads(layout_id: String) -> void:
 		if too_close:
 			continue
 		thinned.append(pad)
+	var kept_recovery: Array = []
+	for pad in recovery_pads:
+		var dist := float(pad.get("distance", 0.0))
+		var lane := clampi(int(pad.get("lane", 0)), -1, 1)
+		if _layout_obstacle_blocks_speed_pad(dist, lane, layout_id, SPEED_PAD_OBSTACLE_GAP):
+			continue
+		if (_is_gate_location() or _is_medical_location()) and _is_distance_on_track_turn(dist, 16.0):
+			continue
+		var crowded := false
+		for kept in kept_recovery:
+			if absf(float(kept.get("distance", 0.0)) - dist) < WRAITH_CHOICE_RECOVERY_PAD_GAP * 0.72:
+				if clampi(int(kept.get("lane", 0)), -1, 1) == lane:
+					crowded = true
+					break
+		if crowded:
+			continue
+		kept_recovery.append(pad)
+	for pad in kept_recovery:
+		keep.append(pad)
 	for pad in thinned:
 		keep.append(pad)
 	keep.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -6090,16 +8808,155 @@ func _finalize_launch_pads(layout_id: String) -> void:
 	lava_indices.sort_custom(func(a: int, b: int) -> bool:
 		return float(_launch_pads[a].get("distance", 0.0)) < float(_launch_pads[b].get("distance", 0.0))
 	)
-	var first_left := hash(layout_id + "_lava_lane") % 2 == 0
-	for ci in lava_indices.size():
-		var idx: int = lava_indices[ci]
-		var lane := -1 if ((ci % 2 == 0) == first_left) else 1
-		_launch_pads[idx]["lane"] = lane
+	# 多段熔岩弹射才轮换左右；单垫保留 JSON 明示车道（如 D1 右道）
+	if lava_indices.size() >= 2:
+		var first_left := hash(layout_id + "_lava_lane") % 2 == 0
+		for ci in lava_indices.size():
+			var idx: int = lava_indices[ci]
+			var lane := -1 if ((ci % 2 == 0) == first_left) else 1
+			_launch_pads[idx]["lane"] = lane
+	_balance_fork_approach_launch_pads(layout_id)
 	_prune_speed_launch_pads(layout_id)
+	_purge_launch_pads_in_side_runway_corridor()
 	for pad in _launch_pads:
 		if typeof(pad) != TYPE_DICTIONARY:
 			continue
 		_normalize_launch_pad_entry(pad)
+	_balance_runway_mechanic_lanes()
+
+
+func _runway_mechanic_lane_pattern() -> Array:
+	var layout_id := _mission_layout_id()
+	if layout_id == "":
+		layout_id = _mission_id_str()
+	var seed := absi(hash(layout_id + "_mechanic_lane_v2"))
+	var patterns: Array = [
+		[-1, 0, 1, 1, 0, -1],
+		[1, 0, -1, -1, 0, 1],
+		[0, -1, 1, 0, 1, -1],
+		[0, 1, -1, 0, -1, 1],
+		[-1, 1, 0, -1, 1, 0],
+	]
+	return patterns[seed % patterns.size()]
+
+
+func _balance_runway_mechanic_lanes() -> void:
+	if not (_is_medical_location() or _is_gate_location()):
+		return
+	var pattern: Array = _runway_mechanic_lane_pattern()
+	var slot := 0
+	var speed_pads: Array = []
+	for pad in _launch_pads:
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		if not _pad_is_speed_only(pad):
+			continue
+		if bool(pad.get("lane_locked", false)) or bool(pad.get("wraith_choice_recovery", false)):
+			continue
+		speed_pads.append(pad)
+	speed_pads.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	for pad in speed_pads:
+		pad["lane"] = int(pattern[slot % pattern.size()])
+		slot += 1
+	var boosts: Array = []
+	for entry in collectibles:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		if String(entry.get("kind", "")) != "speed_boost":
+			continue
+		if int(entry.get("layer", 0)) != 0:
+			continue
+		if int(entry.get("fork_side", 0)) != 0:
+			continue
+		boosts.append(entry)
+	boosts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+	)
+	for entry in boosts:
+		if bool(entry.get("lane_locked", false)):
+			continue
+		entry["lane"] = int(pattern[slot % pattern.size()])
+		slot += 1
+
+
+func _should_skip_gate_fork_dressing_at(distance: float) -> bool:
+	if not (_is_gate_location() or _is_medical_location()):
+		return false
+	var zone := _fork_zone_covering(distance, 22.0)
+	if zone.is_empty():
+		return false
+	var start := float(zone.get("distance", 0.0))
+	var length := float(zone.get("length", 70.0))
+	var t := clampf((distance - start) / maxf(length, 0.001), 0.0, 1.0)
+	# 分岔入口/出口保留水晶树，只跳过岔路中段
+	if t < 0.10 or t > 0.90:
+		return false
+	return _fork_envelope(t) > 0.20
+
+
+func _is_near_mechanic_pad(distance: float, radius: float = MECHANIC_PAD_DRESSING_CLEAR) -> bool:
+	_ensure_mechanic_layout()
+	for pad in _launch_pads:
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		if absf(float(pad.get("distance", 0.0)) - distance) <= radius:
+			return true
+	return false
+
+
+func _fork_approach_distances() -> Array:
+	var out: Array = []
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		out.append(float(zone.get("distance", 0.0)))
+	if _path_samples.is_empty():
+		_bake_track_path()
+	for region in _y_fork_regions:
+		if typeof(region) != TYPE_DICTIONARY:
+			continue
+		out.append(float(region.get("d_start", 0.0)))
+	return out
+
+
+func _is_fork_approach_pad_distance(distance: float) -> bool:
+	for fork_d in _fork_approach_distances():
+		if distance >= float(fork_d) - 48.0 and distance <= float(fork_d) + 12.0:
+			return true
+	return false
+
+
+func _balance_fork_approach_launch_pads(layout_id: String) -> void:
+	var fork_starts := _fork_approach_distances()
+	if fork_starts.is_empty():
+		return
+	var approach_indices: Array[int] = []
+	for i in _launch_pads.size():
+		var pad: Dictionary = _launch_pads[i]
+		if typeof(pad) != TYPE_DICTIONARY:
+			continue
+		var dist := float(pad.get("distance", 0.0))
+		if _is_fork_approach_pad_distance(dist):
+			approach_indices.append(i)
+	if approach_indices.is_empty():
+		return
+	approach_indices.sort_custom(func(a: int, b: int) -> bool:
+		return float(_launch_pads[a].get("distance", 0.0)) < float(_launch_pads[b].get("distance", 0.0))
+	)
+	var flip_left := hash(layout_id + "_fork_lane") % 2 == 0
+	for ci in approach_indices.size():
+		var idx: int = approach_indices[ci]
+		var pad: Dictionary = _launch_pads[idx]
+		var lane := -1 if ((ci % 2 == 0) == flip_left) else 1
+		pad["lane"] = lane
+		if not _pad_is_lava_launch(pad):
+			pad["lock_air_lane"] = false
+			pad["lock_distance"] = minf(float(pad.get("lock_distance", 28.0)), 12.0)
+		else:
+			pad["lock_air_lane"] = false
+			pad["lock_distance"] = minf(float(pad.get("lock_distance", 28.0)), 18.0)
 
 
 func _inject_side_runway_speed_boosts() -> void:
@@ -6193,6 +9050,23 @@ func _inject_y_fork_branch_obstacles() -> void:
 			{"t": 0.70, "lane": 0, "type": "meteorite", "fall_roll": true},
 			{"t": 0.84, "lane": 1, "type": "jump"},
 		]
+		if _is_medical_location():
+			left_pattern = [
+				{"t": 0.16, "lane": -1, "type": "slide", "low_slide": true},
+				{"t": 0.30, "lane": 0, "type": "orb", "orb_size": "small", "orb_tint": "purple"},
+				{"t": 0.44, "lane": 1, "type": "jump"},
+				{"t": 0.58, "lane": -1, "type": "meteorite", "fall_roll": false, "span": 1.9},
+				{"t": 0.72, "lane": 0, "type": "slide", "low_slide": true},
+				{"t": 0.86, "lane": 1, "type": "orb", "orb_size": "medium"},
+			]
+			right_pattern = [
+				{"t": 0.14, "lane": 1, "type": "jump"},
+				{"t": 0.28, "lane": 0, "type": "train"},
+				{"t": 0.42, "lane": -1, "type": "slide", "low_slide": true},
+				{"t": 0.56, "lane": 1, "type": "meteorite", "fall_roll": true, "span": 2.1},
+				{"t": 0.70, "lane": 0, "type": "orb", "orb_size": "small", "orb_tint": "purple"},
+				{"t": 0.82, "lane": -1, "type": "train_moving"},
+			]
 		for spec in left_pattern:
 			_register_fork_branch_obstacle_spec(start, length, spec, -1)
 		for spec in right_pattern:
@@ -6245,12 +9119,42 @@ func _inject_junction_fork_branch_obstacles() -> void:
 		if effect_b == "fast":
 			right_pattern = [
 				{"t": 0.16, "lane": 0, "type": "jump"},
-				{"t": 0.30, "lane": -1, "type": "train"},
-				{"t": 0.44, "lane": 1, "type": "orb", "orb_size": "small"},
-				{"t": 0.58, "lane": 0, "type": "slide"},
-				{"t": 0.72, "lane": 1, "type": "jump"},
-				{"t": 0.86, "lane": -1, "type": "meteorite", "fall_roll": true},
+				{"t": 0.28, "lane": -1, "type": "train"},
+				{"t": 0.40, "lane": 1, "type": "slide", "low_slide": true},
+				{"t": 0.52, "lane": 0, "type": "meteorite", "fall_roll": true, "span": 2.0},
+				{"t": 0.64, "lane": -1, "type": "orb", "orb_size": "medium", "orb_tint": "purple"},
+				{"t": 0.76, "lane": 1, "type": "train_moving"},
+				{"t": 0.88, "lane": 0, "type": "jump"},
 			]
+		if _is_medical_location():
+			left_pattern = [
+				{"t": 0.16, "lane": -1, "type": "orb", "orb_size": "small"},
+				{"t": 0.28, "lane": 0, "type": "slide", "low_slide": true},
+				{"t": 0.40, "lane": 1, "type": "jump"},
+				{"t": 0.52, "lane": -1, "type": "orb", "orb_size": "medium", "orb_tint": "purple", "drift_speed": 6.2, "drift_span": 2.4},
+				{"t": 0.64, "lane": 0, "type": "meteorite", "fall_roll": false, "span": 1.85},
+				{"t": 0.76, "lane": 1, "type": "slide", "low_slide": true},
+				{"t": 0.88, "lane": -1, "type": "jump"},
+			]
+			if effect_b == "fast":
+				right_pattern = [
+					{"t": 0.14, "lane": 1, "type": "jump"},
+					{"t": 0.26, "lane": 0, "type": "train"},
+					{"t": 0.38, "lane": -1, "type": "slide", "low_slide": true},
+					{"t": 0.50, "lane": 1, "type": "meteorite", "fall_roll": true, "span": 2.15},
+					{"t": 0.62, "lane": 0, "type": "orb", "orb_size": "small", "orb_tint": "purple"},
+					{"t": 0.74, "lane": -1, "type": "train_moving"},
+					{"t": 0.86, "lane": 1, "type": "jump"},
+				]
+			else:
+				right_pattern = [
+					{"t": 0.16, "lane": 0, "type": "jump"},
+					{"t": 0.30, "lane": 1, "type": "orb", "orb_size": "small"},
+					{"t": 0.44, "lane": -1, "type": "slide", "low_slide": true},
+					{"t": 0.58, "lane": 0, "type": "train"},
+					{"t": 0.72, "lane": 1, "type": "meteorite", "fall_roll": true, "span": 1.95},
+					{"t": 0.86, "lane": 0, "type": "jump"},
+				]
 		if _is_gate_location():
 			left_pattern.append_array([
 				{"t": 0.24, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple"},
@@ -6283,11 +9187,15 @@ func _register_fork_branch_obstacle_spec(start: float, length: float, spec: Dict
 		"fork_branch": fork_branch,
 	}
 	if otype == "slide":
-		item["low_slide"] = true
+		item["low_slide"] = bool(spec.get("low_slide", true))
 	if otype == "orb":
 		item["orb_size"] = String(spec.get("orb_size", "small"))
 		if spec.has("orb_tint"):
 			item["orb_tint"] = String(spec.get("orb_tint", "purple"))
+		if spec.has("drift_speed"):
+			item["drift_speed"] = float(spec.get("drift_speed", 6.2))
+		if spec.has("drift_span"):
+			item["drift_span"] = float(spec.get("drift_span", LANE_WIDTH * 1.35))
 	if otype == "meteorite":
 		item["span"] = float(spec.get("span", 1.9))
 		item["fall_roll"] = bool(spec.get("fall_roll", true))
@@ -6302,6 +9210,1253 @@ func _has_fork_branch_obstacle_near(distance: float, fork_branch: int) -> bool:
 		if absf(float(obstacle["distance"]) - distance) < 2.5:
 			return true
 	return false
+
+
+func _inject_medical_poison_choreography() -> void:
+	if not _is_medical_location():
+		return
+	var lane_cycle: Array[int] = [-1, 0, 1, 0]
+	var beat_idx := 0
+	for zone in _sandstorm_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		if String(zone.get("hazard_kind", "sand")) != "poison":
+			continue
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 40.0))
+		if length < 24.0:
+			continue
+		# 毒雾内节奏：低姿态钻行 + 漂移紫球 + 移动波门，逼玩家在掉血区换道躲障
+		var beats: Array[Dictionary] = [
+			{"offset": 10.0, "type": "train", "lane_shift": 0},
+			{"offset": 22.0, "type": "slide", "low_slide": true, "lane_shift": 1},
+			{"offset": 34.0, "type": "orb", "orb_size": "small", "orb_tint": "purple", "drift_speed": 6.4, "lane_shift": -1},
+			{"offset": 46.0, "type": "meteorite", "fall_roll": true, "span": 2.05, "lane_shift": 0},
+			{"offset": 58.0, "type": "train_moving", "lane_shift": 1},
+			{"offset": 70.0, "type": "jump", "lane_shift": -1},
+			{"offset": 82.0, "type": "slide", "low_slide": true, "lane_shift": 0},
+			{"offset": 94.0, "type": "orb", "orb_size": "medium", "orb_tint": "purple", "drift_speed": 7.0, "lane_shift": 1},
+		]
+		var cycle := 0
+		while true:
+			var cycle_start := start + 8.0 + float(cycle) * 88.0
+			if cycle_start > start + length - 12.0:
+				break
+			for beat in beats:
+				var dist := cycle_start + float(beat.get("offset", 0.0))
+				if dist > start + length - 6.0:
+					continue
+				if _medical_emergency_coverage_skip(dist):
+					continue
+				if _is_in_fork_main_gap(dist):
+					continue
+				if _gate_has_nearby_obstacle(dist, 5.0):
+					continue
+				var lane: int = int(LANES[(beat_idx + int(beat.get("lane_shift", 0))) % LANES.size()])
+				var item: Dictionary = {
+					"distance": dist,
+					"lane": lane,
+					"type": String(beat.get("type", "jump")),
+					"layer": 0,
+				}
+				var otype := String(item["type"])
+				if otype == "slide":
+					item["low_slide"] = bool(beat.get("low_slide", true))
+				elif otype == "orb":
+					item["orb_size"] = String(beat.get("orb_size", "small"))
+					item["orb_tint"] = String(beat.get("orb_tint", "purple"))
+					if beat.has("drift_speed"):
+						item["drift_speed"] = float(beat.get("drift_speed", 6.2))
+						item["drift_span"] = LANE_WIDTH * 1.42
+				elif otype == "meteorite":
+					item["span"] = float(beat.get("span", 1.95))
+					item["fall_roll"] = bool(beat.get("fall_roll", true))
+				_register_obstacle(item)
+				beat_idx += 1
+			cycle += 1
+
+
+func _inject_medical_relay_setpieces() -> void:
+	if not _is_medical_location() or _is_emergency_run:
+		return
+	var setpieces: Array[Dictionary] = [
+		{"d": 240.0, "seq": [
+			{"lane": -1, "type": "train"},
+			{"lane": 0, "type": "slide", "low_slide": true, "gap": 11.0},
+			{"lane": 1, "type": "meteorite", "fall_roll": true, "span": 2.2, "gap": 11.0},
+		]},
+		{"d": 480.0, "seq": [
+			{"lane": 0, "type": "orb", "orb_size": "medium", "orb_tint": "purple", "drift_speed": 6.8},
+			{"lane": -1, "type": "train_moving", "gap": 13.0},
+			{"lane": 1, "type": "jump", "gap": 10.0},
+		]},
+		{"d": 820.0, "seq": [
+			{"lane": 1, "type": "train"},
+			{"lane": 0, "type": "slide", "low_slide": true, "gap": 10.0},
+			{"lane": -1, "type": "orb", "orb_size": "small", "orb_tint": "purple", "drift_speed": 7.2, "gap": 12.0},
+			{"lane": 0, "type": "meteorite", "fall_roll": true, "span": 2.35, "gap": 11.0},
+		]},
+	]
+	for piece in setpieces:
+		var base_d := float(piece.get("d", 0.0))
+		if base_d >= _track_length - 40.0:
+			continue
+		var cursor := base_d
+		for step in piece.get("seq", []):
+			if typeof(step) != TYPE_DICTIONARY:
+				continue
+			cursor += float(step.get("gap", 0.0))
+			if _medical_emergency_coverage_skip(cursor) or _gate_has_nearby_obstacle(cursor, 5.5):
+				continue
+			var item: Dictionary = {
+				"distance": cursor,
+				"lane": int(step.get("lane", 0)),
+				"type": String(step.get("type", "jump")),
+				"layer": 0,
+			}
+			var otype := String(item["type"])
+			if otype == "slide":
+				item["low_slide"] = bool(step.get("low_slide", true))
+			elif otype == "orb":
+				item["orb_size"] = String(step.get("orb_size", "small"))
+				item["orb_tint"] = String(step.get("orb_tint", "purple"))
+				if step.has("drift_speed"):
+					item["drift_speed"] = float(step.get("drift_speed", 6.4))
+					item["drift_span"] = LANE_WIDTH * 1.38
+			elif otype == "meteorite":
+				item["span"] = float(step.get("span", 2.0))
+				item["fall_roll"] = bool(step.get("fall_roll", true))
+			_register_obstacle(item)
+
+
+func _wraith_choice_hard_skip(distance: float) -> bool:
+	if distance < START_PAD_LENGTH + 58.0 or distance > _track_length - 48.0:
+		return true
+	if _is_in_fork_main_gap(distance):
+		return true
+	if not _junction_fork_region_at(distance).is_empty() or not _y_fork_region_at(distance).is_empty():
+		return true
+	if not _fork_zone_at(distance).is_empty():
+		return true
+	if _is_distance_in_lava_platform_exclusion(distance) or _is_in_main_block_pit(distance):
+		return true
+	if _is_distance_in_lava_crossing_clear_zone(distance):
+		return true
+	if _is_near_mechanic_pad(distance, MECHANIC_PAD_DRESSING_CLEAR):
+		return true
+	if _is_distance_in_side_runway_entry_window(distance):
+		return true
+	# 侧墙入口 / 墙段 / 下墙后缓冲：禁放抉择（下墙段只能撞到一侧）
+	if _wraith_choice_near_side_runway(distance):
+		return true
+	if _path_turn_sharpness_on_main(distance) > 0.045:
+		return true
+	if _path_turn_sharpness_on_main(distance + 18.0) > 0.04 or _path_turn_sharpness_on_main(distance - 14.0) > 0.04:
+		return true
+	return false
+
+
+func _wraith_choice_near_side_runway(distance: float) -> bool:
+	for zone in _side_runway_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("start", 0.0))
+		var length := float(zone.get("length", 70.0))
+		var entry := float(zone.get("entry_window", 10.0))
+		var wall_end := start + length
+		# 入口前 12m → 下墙后 72m（含接近减速区）
+		if distance >= start - entry - 12.0 and distance <= wall_end + 72.0:
+			return true
+		# 恢复垫最远约 +76m，也勿让抉择落点使垫踩进侧墙
+		if distance + 80.0 >= start - entry and distance <= wall_end:
+			return true
+	return false
+
+
+func _iter_track_straight_spans() -> Array:
+	var out: Array = []
+	var cursor := 0.0
+	for raw in _active_track_segments():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = raw
+		if String(seg.get("type", "")) == "y_fork":
+			cursor += float(seg.get("branch_length", 50.0)) * 2.0
+			continue
+		var length := float(seg.get("length", 0.0))
+		var turn := float(seg.get("turn", 0.0))
+		if absf(turn) <= 0.08 and length >= 44.0:
+			out.append({
+				"start": cursor,
+				"end": cursor + length,
+				"mid": cursor + length * 0.5,
+			})
+		cursor += length
+	return out
+
+
+func _carve_wraith_choice_clearance(distance: float) -> void:
+	var kept: Array[Dictionary] = []
+	var d0 := distance - WRAITH_CHOICE_CLEAR_AHEAD
+	var d1 := distance + WRAITH_CHOICE_CLEAR_ALONG
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		var obs_d := float(obstacle.get("distance", 0.0))
+		if obs_d < d0 or obs_d > d1:
+			kept.append(obstacle)
+			continue
+		if bool(obstacle.get("wraith_choice", false)):
+			kept.append(obstacle)
+			continue
+		_retire_collectibles_on_obstacle_node(obstacle.get("node"))
+		var node := obstacle.get("node") as Node3D
+		if node != null and is_instance_valid(node):
+			node.visible = false
+		obstacle["hit"] = true
+	obstacles = kept
+	_hide_dressing_near_wraith_choice(distance)
+	_hide_competing_wave_arches_near_wraith(distance)
+
+
+func _hide_dressing_near_wraith_choice(distance: float) -> void:
+	var d0 := distance - WRAITH_CHOICE_CLEAR_AHEAD
+	var d1 := distance + WRAITH_CHOICE_CLEAR_ALONG
+	if _side_dressing_root != null and is_instance_valid(_side_dressing_root):
+		for child in _side_dressing_root.get_children():
+			if not child is Node3D:
+				continue
+			var prop_d := float(child.get_meta("path_distance", -9999.0))
+			if prop_d >= d0 and prop_d <= d1:
+				(child as Node3D).visible = false
+	if _distant_background_root != null and is_instance_valid(_distant_background_root):
+		for child in _distant_background_root.get_children():
+			if not child is Node3D:
+				continue
+			var prop_d2 := float(child.get_meta("path_distance", -9999.0))
+			if prop_d2 >= d0 - 24.0 and prop_d2 <= d1 + 24.0:
+				(child as Node3D).visible = false
+
+
+func _hide_competing_wave_arches_near_wraith(distance: float) -> void:
+	var d0 := distance - WRAITH_CHOICE_CLEAR_AHEAD
+	var d1 := distance + WRAITH_CHOICE_CLEAR_ALONG
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if bool(obstacle.get("wraith_choice", false)):
+			continue
+		var obs_d := float(obstacle.get("distance", 0.0))
+		if obs_d < d0 or obs_d > d1:
+			continue
+		var node := obstacle.get("node") as Node3D
+		if node == null or not is_instance_valid(node):
+			continue
+		node.visible = false
+		var arch := node.find_child("WaveArcEnergyArch", true, false) as Node3D
+		if arch != null:
+			arch.visible = false
+
+
+func _hide_wraith_choice_encounter_decor(enc_id: int) -> void:
+	if track_root == null or not is_instance_valid(track_root):
+		return
+	var suffix := "_%d" % enc_id
+	for child in track_root.get_children():
+		if not child is Node3D:
+			continue
+		var n := String(child.name)
+		if not n.begins_with("WraithChoice"):
+			continue
+		if not n.ends_with(suffix):
+			continue
+		(child as Node3D).visible = false
+
+
+func _collect_medical_wraith_choice_distances() -> Array:
+	# 每关只要 1 次：优先用关卡 base 落点（前半/中途），再回退直道扫描
+	var want := 1
+	var picked: Array = []
+	for raw_base in _medical_wraith_choice_base_distances():
+		var base_d := float(raw_base)
+		if _wraith_choice_hard_skip(base_d) or _is_distance_on_track_turn(base_d, 16.0):
+			continue
+		picked.append(base_d)
+		if picked.size() >= want:
+			return picked
+	var spans := _iter_track_straight_spans()
+	var candidates: Array = []
+	for span in spans:
+		if typeof(span) != TYPE_DICTIONARY:
+			continue
+		var start := float(span.get("start", 0.0))
+		var end_d := float(span.get("end", 0.0))
+		var seg_len := end_d - start
+		if seg_len < 44.0:
+			continue
+		for slot_i in 3:
+			var t := 0.28 + float(slot_i) * 0.22
+			var dist := start + seg_len * t
+			if _wraith_choice_hard_skip(dist):
+				continue
+			candidates.append(dist)
+	if candidates.is_empty():
+		return picked
+	candidates.sort()
+	var finish := maxf(_track_length - 52.0, 120.0)
+	# Relay 更偏中后半；Emergency 仍可用中前段
+	var mid_hi := finish * (0.78 if (_is_medical_location() and not _is_emergency_run) else 0.58)
+	var mid_lo := finish * (0.42 if (_is_medical_location() and not _is_emergency_run) else 0.18)
+	var last := -999.0 if picked.is_empty() else float(picked[picked.size() - 1])
+	for raw_d in candidates:
+		if picked.size() >= want:
+			break
+		var dist := float(raw_d)
+		if dist < mid_lo or dist > mid_hi:
+			continue
+		if not picked.is_empty() and dist - last < WRAITH_CHOICE_MIN_SPACING:
+			continue
+		picked.append(dist)
+		last = dist
+	# Relay 回退：若中后半没扫到，放宽到后半直道再试一次
+	if picked.is_empty() and _is_medical_location() and not _is_emergency_run:
+		for raw_d in candidates:
+			var dist := float(raw_d)
+			if dist < finish * 0.35 or dist > finish * 0.88:
+				continue
+			if _wraith_choice_hard_skip(dist):
+				continue
+			picked.append(dist)
+			break
+	return picked
+
+
+func _wraith_choice_skip_distance(distance: float) -> bool:
+	if _wraith_choice_hard_skip(distance):
+		return true
+	if _is_distance_on_track_turn(distance, 16.0):
+		return true
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if absf(float(enc.get("distance", 0.0)) - distance) < WRAITH_CHOICE_MIN_SPACING:
+			return true
+	return false
+
+
+func _medical_wraith_choice_base_distances() -> Array:
+	# 每关仅 1 次：前半或中途，避开终点、分叉、侧墙冲突
+	match _mission_id_str():
+		"mission_medical_m1":
+			return [178.0]
+		"mission_medical_m2":
+			# 平台坑 ~336–364（main_block@350 half_depth14）之后
+			return [410.0]
+		"mission_medical_m3":
+			# Relay 中后半直道（Y 岔后 490–690 段），远离侧墙 300–372 下墙区
+			return [640.0]
+		"mission_medical_m4":
+			return [172.0]
+		_:
+			var finish := maxf(_track_length - 52.0, 120.0)
+			return [110.0 + (finish - 110.0) * 0.32]
+
+
+func _inject_medical_wraith_choice_encounters() -> void:
+	if not _is_medical_location():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_mission_id_str() + "_wraith_choice_v2")
+	var slots := _collect_medical_wraith_choice_distances()
+	for raw_d in slots:
+		if _wraith_choice_encounters.size() >= 1:
+			break
+		var dist := float(raw_d) + rng.randf_range(-4.0, 4.0)
+		var tries := 0
+		while _wraith_choice_skip_distance(dist) and tries < 10:
+			dist += 6.0
+			tries += 1
+		if _wraith_choice_skip_distance(dist):
+			continue
+		_carve_wraith_choice_clearance(dist)
+		_register_wraith_choice_encounter(dist, rng)
+
+
+func _register_wraith_choice_encounter(distance: float, _layout_rng: RandomNumberGenerator) -> void:
+	var enc_id := _wraith_choice_encounters.size()
+	# 每局独立强随机：时刻 + 任务 + 距离，避免 randomize() 同帧撞出同一侧
+	var choice_rng := RandomNumberGenerator.new()
+	var salt := (
+		int(Time.get_ticks_usec())
+		^ hash(_mission_id_str() + "_wraith_choice_roll")
+		^ (enc_id * 7919)
+		^ int(distance * 97.0)
+		^ int(Time.get_unix_time_from_system() * 1000.0)
+	)
+	choice_rng.seed = salt if salt != 0 else int(Time.get_ticks_msec()) + 1
+	# 明确一死一活：50% 左致死，否则右致死（姿态另掷，不绑定结果）
+	var lethal_on_left := choice_rng.randf() < 0.5
+	var angry_on_left := choice_rng.randf() < 0.5
+	var lethal_side := -1.0 if lethal_on_left else 1.0
+	_wraith_choice_encounters.append({
+		"id": enc_id,
+		"distance": distance,
+		"lethal_side": lethal_side,
+		"lethal_on_left": lethal_on_left,
+		"resolved": false,
+		"warned": false,
+	})
+	for lane_i in [-1, 1]:
+		var lane: int = int(lane_i)
+		var side: float = float(lane_i)
+		var lateral: float = side * WRAITH_CHOICE_PAIR_HALF_SPAN * LANE_WIDTH
+		var turn_at := _path_turn_sharpness_on_main(distance)
+		if turn_at > 0.06:
+			lateral *= lerpf(1.0, 0.86, clampf((turn_at - 0.06) / 0.22, 0.0, 1.0))
+		var lethal: bool = (lane < 0) == lethal_on_left
+		# 姿态只换左右外观，不绑定致死结果
+		var pose := "angry" if ((side < 0.0) == angry_on_left) else "heart"
+		var item: Dictionary = {
+			"distance": distance + 0.85,
+			"lane": lane,
+			"wraith_choice_lateral": lateral,
+			"wraith_choice_side": side,
+			"type": "wraith_block",
+			"face": "runner",
+			"wraith_pose": pose,
+			"static_placeholder": true,
+			"wraith_aura": false,
+			"force_anim": true,
+			"wraith_choice": true,
+			"wraith_choice_id": enc_id,
+			"wraith_choice_lethal": lethal,
+			"hit_half_width": LANE_WIDTH * WRAITH_CHOICE_HIT_HALF,
+			"half_depth": 1.35,
+			"strike_label": "LETHAL WRAITH" if lethal else "DEPLETED WRAITH",
+			"layer": 0,
+		}
+		_register_obstacle(item)
+	_build_wraith_choice_center_pillar(distance, enc_id)
+	_build_wraith_choice_decision_line(distance, enc_id)
+	_build_wraith_choice_air_sign(distance)
+
+
+func _wraith_choice_encounter_by_id(enc_id: int) -> Dictionary:
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if int(enc.get("id", -1)) == enc_id:
+			return enc
+	return {}
+
+
+func _wraith_choice_is_lethal_hit(obstacle: Dictionary) -> bool:
+	# 以 encounter 记录为准，避免障碍拷贝丢字段导致「永远安全」
+	var enc_id := int(obstacle.get("wraith_choice_id", -1))
+	var enc := _wraith_choice_encounter_by_id(enc_id)
+	if not enc.is_empty() and enc.has("lethal_on_left"):
+		var lane := int(obstacle.get("lane", 0))
+		var side := float(obstacle.get("wraith_choice_side", float(lane)))
+		var on_left := side < 0.0 or lane < 0
+		return on_left == bool(enc.get("lethal_on_left", false))
+	if enc.has("lethal_side"):
+		var side2 := float(obstacle.get("wraith_choice_side", float(obstacle.get("lane", 0))))
+		return absf(side2 - float(enc.get("lethal_side", 0.0))) < 0.001
+	return bool(obstacle.get("wraith_choice_lethal", false))
+
+
+func _wraith_choice_crystal_metrics() -> Dictionary:
+	var wraith_h := WRAITH_BLOCK_HEIGHT * WRAITH_CHOICE_HEIGHT_MULT
+	var head_h := wraith_h * WRAITH_CHOICE_CRYSTAL_HEAD_FRAC
+	var shoulder_h := wraith_h * WRAITH_CHOICE_CRYSTAL_SHOULDER_FRAC
+	# 顶冠顶到「怪顶再高约两头」；横向在怪顶附近展开
+	var canopy_top := wraith_h + head_h * 2.0
+	var canopy_h := maxf(canopy_top - shoulder_h, head_h * 2.6)
+	return {
+		"wraith_h": wraith_h,
+		"head_h": head_h,
+		"shoulder_h": shoulder_h,
+		"trunk_h": shoulder_h,
+		"canopy_h": canopy_h,
+		"canopy_top": shoulder_h + canopy_h,
+		"trunk_fp": WRAITH_CHOICE_CRYSTAL_TRUNK_FOOTPRINT,
+		"canopy_fp": WRAITH_CHOICE_CRYSTAL_CANOPY_FOOTPRINT,
+	}
+
+
+func _build_wraith_choice_center_pillar(distance: float, enc_id: int) -> void:
+	# 中道阻隔：用医疗箱（crate）堆叠，不用 lifepod 舱架（拉高后像空门框）
+	var root := Node3D.new()
+	root.name = "WraithChoiceCenterPillar_%d" % enc_id
+	track_root.add_child(root)
+	root.set_meta("wraith_choice_center", true)
+	var dist := distance + 0.85
+	# 单箱约人全身高，三层顶到异能怪胸口；加宽占位，两怪中间读作「力量堵死」
+	var crate_h := 2.55
+	var stack_n := 3
+	var footprint := 2.55
+	var crate_scene := _load_runner_scene(OBSTACLE_PROP_MEDICAL_CRATE, false)
+	if crate_scene != null:
+		var y_cursor := 0.0
+		var yaws: Array[float] = [8.0, -14.0, 22.0]
+		for i in stack_n:
+			var model := crate_scene.instantiate() as Node3D
+			if model == null:
+				continue
+			model.name = "CenterMedicalCrate_%d" % i
+			root.add_child(model)
+			_fit_runner_glb_height(model, crate_h)
+			_squash_midground_footprint_keep_height(model, footprint)
+			model.force_update_transform()
+			var bounds := _compute_node_aabb(model)
+			model.position = Vector3(
+				-(bounds.position.x + bounds.size.x * 0.5),
+				y_cursor - bounds.position.y,
+				-(bounds.position.z + bounds.size.z * 0.5)
+			)
+			model.rotation_degrees.y = yaws[i % yaws.size()]
+			y_cursor += crate_h * 0.96
+		_preserve_midground_materials(root)
+	else:
+		_build_wraith_choice_medical_fallback(root, crate_h * float(stack_n) * 0.96)
+	_disable_mesh_shadows(root)
+	var entry := {
+		"type": "dressing_block",
+		"distance": dist,
+		"lane": 0,
+		"half_depth": 1.55,
+		"lat_min": -WRAITH_CHOICE_CENTER_BLOCK_HALF,
+		"lat_max": WRAITH_CHOICE_CENTER_BLOCK_HALF,
+		"layer": 0,
+		"node": root,
+		"wraith_choice": true,
+		"wraith_choice_center": true,
+		"wraith_choice_id": enc_id,
+		"dressing": true,
+	}
+	obstacles.append(entry)
+	_place_obstacle_node(entry)
+	_purge_wraith_choice_backdrop_clutter(distance)
+
+
+func _build_wraith_choice_medical_fallback(root: Node3D, target_h: float) -> void:
+	# GLB 缺失时：橄榄绿医疗箱堆叠（对齐路边 crate 气质）
+	if root == null:
+		return
+	var crate_mat := _make_material(Color(0.42, 0.48, 0.28), Color(0.18, 0.28, 0.12), 0.25)
+	crate_mat.metallic = 0.22
+	crate_mat.roughness = 0.62
+	var mark_mat := _make_material(Color(0.92, 0.95, 0.9), Color(0.28, 0.82, 0.42), 0.85)
+	var stack_h := 0.0
+	var box_h := target_h / 3.0
+	for i in 3:
+		var box := MeshInstance3D.new()
+		box.name = "CenterMedicalCrate_%d" % i
+		var mesh := BoxMesh.new()
+		var w := 1.35 - float(i) * 0.04
+		mesh.size = Vector3(w, box_h * 0.92, w * 0.9)
+		box.mesh = mesh
+		box.material_override = crate_mat
+		box.position = Vector3(0.0, stack_h + box_h * 0.46, 0.0)
+		box.rotation_degrees.y = float(i) * 14.0 - 8.0
+		box.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(box)
+		var cross_h := MeshInstance3D.new()
+		var ch := BoxMesh.new()
+		ch.size = Vector3(w * 0.38, box_h * 0.1, 0.04)
+		cross_h.mesh = ch
+		cross_h.material_override = mark_mat
+		cross_h.position = Vector3(0.0, stack_h + box_h * 0.55, w * 0.46)
+		cross_h.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(cross_h)
+		var cross_v := MeshInstance3D.new()
+		var cv := BoxMesh.new()
+		cv.size = Vector3(box_h * 0.1, w * 0.38, 0.04)
+		cross_v.mesh = cv
+		cross_v.material_override = mark_mat
+		cross_v.position = Vector3(0.0, stack_h + box_h * 0.55, w * 0.46)
+		cross_v.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(cross_v)
+		stack_h += box_h * 0.94
+
+
+func _apply_wraith_choice_center_crystal_look(root: Node3D) -> void:
+	# 医疗抉择中道：冰蓝可见，不要水源琥珀调（沙漠里会「隐身」）
+	if root == null:
+		return
+	var albedo_tint := Color(0.42, 0.78, 0.88)
+	var emission := Color(0.22, 0.62, 0.78)
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh == null:
+			continue
+		for surface_i in mesh_instance.mesh.get_surface_count():
+			var mat := mesh_instance.get_surface_override_material(surface_i)
+			if mat == null:
+				mat = mesh_instance.mesh.surface_get_material(surface_i)
+			var dup: StandardMaterial3D
+			if mat is StandardMaterial3D:
+				dup = (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
+			else:
+				dup = StandardMaterial3D.new()
+			dup.albedo_color = Color(albedo_tint.r, albedo_tint.g, albedo_tint.b, 0.96)
+			dup.metallic = 0.08
+			dup.roughness = 0.42
+			dup.emission_enabled = true
+			dup.emission = emission
+			dup.emission_energy_multiplier = 0.85
+			dup.rim_enabled = true
+			dup.rim = 0.35
+			mesh_instance.set_surface_override_material(surface_i, dup)
+			if mesh_instance.material_override is StandardMaterial3D or mesh_instance.material_override == null:
+				mesh_instance.material_override = dup
+
+
+func _spawn_wraith_choice_canopy_arm(
+	parent: Node3D,
+	scene: PackedScene,
+	part_name: String,
+	side: float,
+	band_y: float,
+	reach: float,
+	head_h: float
+) -> Node3D:
+	if parent == null or scene == null:
+		return null
+	var model := scene.instantiate() as Node3D
+	if model == null:
+		return null
+	model.name = part_name
+	parent.add_child(model)
+	model.scale = Vector3.ONE
+	model.rotation_degrees = Vector3.ZERO
+	model.force_update_transform()
+	var bounds := _compute_node_aabb(model)
+	var src_h := maxf(bounds.size.y, 0.001)
+	var src_x := maxf(bounds.size.x, 0.001)
+	var src_z := maxf(bounds.size.z, 0.001)
+	# X 拉长成横枝，Y 压矮，Z 略收 → 在怪顶上方横向展开
+	var arm_len := maxf(reach, 3.2)
+	var arm_thick := clampf(head_h * 1.35, 1.1, 2.0)
+	var arm_depth := clampf(head_h * 1.55, 1.2, 2.4)
+	model.scale = Vector3(arm_len / src_x, arm_thick / src_h, arm_depth / src_z)
+	model.force_update_transform()
+	bounds = _compute_node_aabb(model)
+	model.position = Vector3(
+		side * reach * 0.52 - (bounds.position.x + bounds.size.x * 0.5),
+		band_y - (bounds.position.y + bounds.size.y * 0.55),
+		-(bounds.position.z + bounds.size.z * 0.5)
+	)
+	model.rotation_degrees.z = side * -12.0
+	model.rotation_degrees.y = side * 8.0
+	return model
+
+
+func _spawn_wraith_choice_crystal_part(
+	parent: Node3D,
+	scene: PackedScene,
+	part_name: String,
+	target_h: float,
+	footprint: float,
+	sit_y: float,
+	yaw_deg: float
+) -> Node3D:
+	if parent == null or scene == null or target_h <= 0.05:
+		return null
+	var model := scene.instantiate() as Node3D
+	if model == null:
+		return null
+	model.name = part_name
+	parent.add_child(model)
+	model.rotation_degrees.y = yaw_deg
+	model.scale = Vector3.ONE
+	model.position = Vector3.ZERO
+	model.force_update_transform()
+	var bounds := _compute_node_aabb(model)
+	var src_h := maxf(bounds.size.y, 0.001)
+	var src_fp := maxf(maxf(bounds.size.x, bounds.size.z), 0.001)
+	# 非均匀：高度与脚印分开控，做出细干 / 展冠，而不是整坨等比缩放
+	model.scale = Vector3(footprint / src_fp, target_h / src_h, footprint / src_fp)
+	model.force_update_transform()
+	bounds = _compute_node_aabb(model)
+	model.position = Vector3(
+		-(bounds.position.x + bounds.size.x * 0.5),
+		sit_y - bounds.position.y,
+		-(bounds.position.z + bounds.size.z * 0.5)
+	)
+	return model
+
+
+func _build_wraith_choice_crystal_fallback(root: Node3D, metrics: Dictionary) -> void:
+	var shoulder_h := float(metrics["shoulder_h"])
+	var wraith_h := float(metrics["wraith_h"])
+	var head_h := float(metrics["head_h"])
+	var band_y := wraith_h + head_h * 1.05
+	var arm_reach := WRAITH_CHOICE_PAIR_HALF_SPAN * LANE_WIDTH * 0.92
+	var mat := _make_material(Color(0.38, 0.78, 0.90, 0.96), Color(0.28, 0.72, 0.88), 1.15)
+	var trunk := MeshInstance3D.new()
+	trunk.name = "CenterCrystalTrunkFallback"
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.34
+	trunk_mesh.bottom_radius = 0.52
+	trunk_mesh.height = shoulder_h
+	trunk_mesh.material = mat
+	trunk.mesh = trunk_mesh
+	trunk.position.y = shoulder_h * 0.5
+	trunk.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(trunk)
+	var neck := MeshInstance3D.new()
+	neck.name = "CenterCrystalNeckFallback"
+	var neck_mesh := CylinderMesh.new()
+	neck_mesh.top_radius = 0.22
+	neck_mesh.bottom_radius = 0.34
+	neck_mesh.height = maxf(band_y - shoulder_h, head_h * 1.1)
+	neck_mesh.material = mat
+	neck.mesh = neck_mesh
+	neck.position.y = shoulder_h + neck_mesh.height * 0.5
+	neck.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(neck)
+	for side: float in [-1.0, 1.0]:
+		var arm := MeshInstance3D.new()
+		arm.name = "CenterCrystalArmFallback_%d" % int(side)
+		var arm_mesh := BoxMesh.new()
+		arm_mesh.size = Vector3(arm_reach * 0.98, head_h * 1.35, head_h * 1.55)
+		arm.mesh = arm_mesh
+		arm.material_override = mat
+		arm.position = Vector3(side * arm_reach * 0.50, band_y, 0.0)
+		arm.rotation_degrees.z = side * -12.0
+		arm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(arm)
+	var crown := MeshInstance3D.new()
+	crown.name = "CenterCrystalCrownFallback"
+	var crown_mesh := CylinderMesh.new()
+	crown_mesh.top_radius = 0.12
+	crown_mesh.bottom_radius = 0.38
+	crown_mesh.height = head_h * 1.7
+	crown_mesh.material = mat
+	crown.mesh = crown_mesh
+	crown.position.y = band_y + crown_mesh.height * 0.35
+	crown.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(crown)
+
+
+func _purge_wraith_choice_backdrop_clutter(distance: float) -> void:
+	# 抉择区背后：列车光波门 / 能量环 / 沙暴警示黄环 一并清掉
+	var d0 := distance - WRAITH_CHOICE_CLEAR_AHEAD
+	var d1 := distance + WRAITH_CHOICE_CLEAR_ALONG
+	var clutter_types := {
+		"energy_ring": true,
+		"wave_arc_slide": true,
+		"train": true,
+		"train_moving": true,
+	}
+	var kept: Array[Dictionary] = []
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if bool(obstacle.get("wraith_choice", false)):
+			kept.append(obstacle)
+			continue
+		var obs_d := float(obstacle.get("distance", 0.0))
+		if obs_d < d0 or obs_d > d1:
+			kept.append(obstacle)
+			continue
+		var otype := String(obstacle.get("type", ""))
+		var node := obstacle.get("node") as Node3D
+		var is_clutter := clutter_types.has(otype)
+		if node != null and is_instance_valid(node):
+			is_clutter = is_clutter or _node_looks_like_wraith_choice_backdrop(node)
+		if is_clutter:
+			if node != null and is_instance_valid(node):
+				node.visible = false
+				node.queue_free()
+			continue
+		kept.append(obstacle)
+	obstacles = kept
+	_hide_dressing_near_wraith_choice(distance)
+	if track_root == null:
+		return
+	var sample := _sample_path(distance)
+	var origin: Vector3 = sample["pos"]
+	for child in track_root.get_children():
+		if not child is Node3D:
+			continue
+		var n := child as Node3D
+		var nname := String(n.name)
+		if nname.begins_with("WraithChoiceCenter"):
+			continue
+		if nname.begins_with("WraithChoicePortalFrame"):
+			n.visible = false
+			n.queue_free()
+			continue
+		if not _node_looks_like_wraith_choice_backdrop(n):
+			continue
+		var pd := float(n.get_meta("path_distance", -9999.0))
+		if pd >= d0 and pd <= d1:
+			n.visible = false
+			n.queue_free()
+			continue
+		# 沙暴门等可能没挂 path_distance：用 track_root 局部坐标比距离
+		if pd < -9000.0:
+			var delta: Vector3 = n.position - origin
+			delta.y = 0.0
+			if delta.length() < 78.0:
+				n.visible = false
+				n.queue_free()
+	if _side_dressing_root != null and is_instance_valid(_side_dressing_root):
+		for child2 in _side_dressing_root.get_children():
+			if not child2 is Node3D:
+				continue
+			var prop := child2 as Node3D
+			var prop_d := float(prop.get_meta("path_distance", -9999.0))
+			if prop_d < d0 or prop_d > d1:
+				continue
+			var prop_asset := String(prop.get_meta("obstacle_asset_path", "")).to_lower()
+			var prop_path := String(prop.get_meta("asset_path", "")).to_lower()
+			if (
+				"spark_ring" in prop_asset
+				or "spark_ring" in prop_path
+				or "星火环" in prop_asset
+				or "星火环" in prop_path
+			):
+				prop.visible = false
+
+
+func _node_looks_like_wraith_choice_backdrop(n: Node3D) -> bool:
+	if n == null or not is_instance_valid(n):
+		return false
+	var nname := String(n.name).to_lower()
+	var asset := String(n.get_meta("obstacle_asset_path", "")).to_lower()
+	return (
+		bool(n.get_meta("energy_ring_fx", false))
+		or bool(n.get_meta("wave_arc_fx", false))
+		or bool(n.get_meta("has_wave_blade", false))
+		or "spark_ring" in asset
+		or "星火环" in asset
+		or "train" in nname
+		or "sandstormgate" in nname
+		or "sidehazardgate" in nname
+		or n.find_child("TrainWaveBlade", true, false) != null
+		or n.find_child("TrainGateWaveField", true, false) != null
+		or n.find_child("TrainRoadBlockAsset", true, false) != null
+		or n.find_child("WaveArcEnergyArch", true, false) != null
+		or n.find_child("EnergyRingModel", true, false) != null
+	)
+
+
+func _purge_yellow_rings_near_wraith_choice(distance: float) -> void:
+	_purge_wraith_choice_backdrop_clutter(distance)
+
+
+func _fit_wraith_choice_tree_part(model: Node3D, footprint: float, sit_y: float) -> void:
+	if model == null:
+		return
+	_squash_midground_footprint_keep_height(model, footprint)
+	model.force_update_transform()
+	var bounds := _compute_node_aabb(model)
+	model.position = Vector3(
+		-(bounds.position.x + bounds.size.x * 0.5),
+		sit_y - bounds.position.y,
+		-(bounds.position.z + bounds.size.z * 0.5)
+	)
+
+
+func _build_wraith_choice_decision_line(distance: float, enc_id: int) -> void:
+	# 路面决策线：线外略减速思考，线内正常跑感撞穿
+	var line_d := distance - WRAITH_CHOICE_DECISION_LINE
+	var root := Node3D.new()
+	root.name = "WraithChoiceDecisionLine_%d" % enc_id
+	track_root.add_child(root)
+	var placed := _world_on_path(line_d, 0.0, GROUND_Y + 0.06)
+	root.position = placed["pos"]
+	root.rotation.y = float(placed["yaw"])
+	root.set_meta("path_distance", line_d)
+	root.set_meta("wraith_choice_decision_line", true)
+
+	var runway_w := LANE_WIDTH * 3.15
+	var bar := MeshInstance3D.new()
+	bar.name = "DecisionLineBar"
+	var bar_mesh := BoxMesh.new()
+	bar_mesh.size = Vector3(runway_w, 0.05, 0.42)
+	var bar_mat := _make_material(Color(0.95, 0.78, 0.18, 0.92), Color(1.0, 0.86, 0.28, 0.85), 1.8)
+	bar_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bar.mesh = bar_mesh
+	bar.material_override = bar_mat
+	bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bar.position = Vector3(0.0, 0.0, 0.0)
+	root.add_child(bar)
+
+	var glow := MeshInstance3D.new()
+	glow.name = "DecisionLineGlow"
+	var glow_mesh := BoxMesh.new()
+	glow_mesh.size = Vector3(runway_w * 1.04, 0.02, 0.85)
+	var glow_mat := _make_material(Color(1.0, 0.9, 0.35, 0.28), Color(1.0, 0.82, 0.2, 0.55), 2.4)
+	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow.mesh = glow_mesh
+	glow.material_override = glow_mat
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	glow.position = Vector3(0.0, 0.01, 0.0)
+	root.add_child(glow)
+
+	var tip := Label3D.new()
+	tip.name = "DecisionLineTip"
+	tip.text = "Decide"
+	tip.font_size = 72
+	tip.pixel_size = 0.011
+	tip.modulate = Color(1.0, 0.92, 0.45, 0.92)
+	tip.outline_size = 12
+	tip.outline_modulate = Color(0.08, 0.05, 0.02, 0.85)
+	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	tip.no_depth_test = true
+	tip.render_priority = 8
+	tip.position = Vector3(0.0, 1.05, 0.0)
+	root.add_child(tip)
+
+
+func _build_wraith_choice_portal_frame(_distance: float, _enc_id: int) -> void:
+	# 已废弃：抉择区不再生成黄/能量圆门
+	return
+
+
+func _build_wraith_choice_air_sign(distance: float) -> void:
+	var marker := Node3D.new()
+	marker.name = "WraithChoiceSign_%d" % int(distance)
+	var placed := _world_on_path(distance - 14.0, 0.0, GROUND_Y + 6.4)
+	marker.position = placed["pos"]
+	marker.rotation.y = float(placed["yaw"])
+	track_root.add_child(marker)
+
+	var board := MeshInstance3D.new()
+	var board_mesh := BoxMesh.new()
+	board_mesh.size = Vector3(5.6, 1.65, 0.12)
+	var board_mat := _make_material(Color(0.03, 0.02, 0.04, 0.88), Color(0.18, 0.22, 0.32, 0.35), 0.9)
+	board_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	board.mesh = board_mesh
+	board.material_override = board_mat
+	board.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	board.position = Vector3(0.0, 0.0, 0.0)
+	marker.add_child(board)
+
+	var title := Label3D.new()
+	title.name = "ChoiceTitle"
+	title.text = "LEFT or RIGHT?"
+	title.font_size = 88
+	title.pixel_size = 0.012
+	title.modulate = Color(0.82, 0.94, 0.98, 0.96)
+	title.outline_size = 14
+	title.outline_modulate = Color(0.04, 0.08, 0.12, 0.92)
+	title.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	title.no_depth_test = true
+	title.render_priority = 10
+	title.position = Vector3(0.0, 0.08, 0.14)
+	marker.add_child(title)
+
+
+func _update_wraith_choice_encounters(_delta: float) -> void:
+	if not gameplay_active or is_failed or _wraith_choice_encounters.is_empty():
+		return
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if bool(enc.get("resolved", false)):
+			continue
+		var d := float(enc.get("distance", 0.0))
+		if track_distance > d + WRAITH_CHOICE_PASS_TAIL:
+			_resolve_wraith_choice_encounter(int(enc.get("id", -1)), false)
+
+
+func _nearest_active_wraith_choice_encounter() -> Dictionary:
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if bool(enc.get("resolved", false)):
+			continue
+		var d := float(enc.get("distance", 0.0))
+		if track_distance >= d - WRAITH_CHOICE_APPROACH_LEAD and track_distance <= d + WRAITH_CHOICE_PASS_TAIL:
+			return enc
+	return {}
+
+
+func _wraith_choice_center_push_sign() -> float:
+	if target_lane_x >= LANE_WIDTH * 0.06:
+		return 1.0
+	if target_lane_x <= -LANE_WIDTH * 0.06:
+		return -1.0
+	if current_lateral >= WRAITH_CHOICE_CENTER_BLOCK_HALF * 0.12:
+		return 1.0
+	if current_lateral <= -WRAITH_CHOICE_CENTER_BLOCK_HALF * 0.12:
+		return -1.0
+	if lane_index >= 2:
+		return 1.0
+	if lane_index <= 0:
+		return -1.0
+	return -1.0
+
+
+func _wraith_choice_past_decision_line() -> bool:
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if bool(enc.get("resolved", false)):
+			continue
+		var d := float(enc.get("distance", 0.0))
+		if track_distance >= d - WRAITH_CHOICE_DECISION_LINE and track_distance <= d + WRAITH_CHOICE_PASS_TAIL:
+			return true
+	return false
+
+
+func _force_wraith_choice_side_if_needed() -> void:
+	# 过黄线后：中道立刻让开，避免顶着货垛跑出「被挡」感
+	if not gameplay_active or is_failed:
+		return
+	if not _wraith_choice_past_decision_line():
+		return
+	var enc := _nearest_active_wraith_choice_encounter()
+	if enc.is_empty():
+		return
+	# 已明确偏左/右则尊重玩家选择
+	if lane_index != 1 and absf(current_lateral) >= LANE_WIDTH * 0.42:
+		return
+	if absf(target_lane_x) >= LANE_WIDTH * 0.55 and lane_index != 1:
+		return
+	var push_sign := _wraith_choice_center_push_sign()
+	lane_index = 0 if push_sign < 0.0 else 2
+	target_lane_x = push_sign * LANE_WIDTH
+	current_lateral = lerpf(current_lateral, target_lane_x, 0.72)
+
+
+func _apply_wraith_choice_center_barrier(delta: float) -> void:
+	if not gameplay_active or is_failed:
+		return
+	# 过线后：完全关掉横向强推（那是「阻碍感」主因之一）
+	if _wraith_choice_past_decision_line():
+		return
+	var enc := _nearest_active_wraith_choice_encounter()
+	if enc.is_empty():
+		return
+	var d := float(enc.get("distance", 0.0))
+	if absf(current_lateral) >= WRAITH_CHOICE_CENTER_BLOCK_HALF:
+		return
+	var dist_t := clampf(
+		(track_distance - (d - WRAITH_CHOICE_APPROACH_LEAD)) / maxf(WRAITH_CHOICE_APPROACH_LEAD, 0.001),
+		0.0,
+		1.0
+	)
+	var center_t := 1.0 - absf(current_lateral) / maxf(WRAITH_CHOICE_CENTER_BLOCK_HALF, 0.001)
+	center_t = clampf(center_t, 0.0, 1.0)
+	center_t = center_t * center_t * (3.0 - 2.0 * center_t)
+	var push_sign := _wraith_choice_center_push_sign()
+	var push := (
+		push_sign
+		* WRAITH_CHOICE_CENTER_PUSH
+		* (0.45 + dist_t * 0.75)
+		* (0.55 + center_t * 0.65)
+		* delta
+	)
+	current_lateral += push
+	var wraith_lane_x := WRAITH_CHOICE_PAIR_HALF_SPAN * LANE_WIDTH
+	var snap_t := clampf(delta * (6.0 + dist_t * 8.0), 0.0, 0.45)
+	target_lane_x = lerpf(target_lane_x, push_sign * wraith_lane_x, snap_t)
+
+
+func _clamp_wraith_choice_center_wall() -> void:
+	## 仅线外、且未到决策线时夹住中道；过黄线后绝不再冻 track_distance
+	if not gameplay_active or is_failed:
+		return
+	if _wraith_choice_past_decision_line():
+		return
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if bool(enc.get("resolved", false)):
+			continue
+		var d := float(enc.get("distance", 0.0))
+		if absf(current_lateral) >= WRAITH_CHOICE_CENTER_BLOCK_HALF * 0.55:
+			continue
+		# 墙位卡在决策线外侧一点，避免线内还被冻前进
+		var wall_d := d - WRAITH_CHOICE_DECISION_LINE - 0.35
+		if track_distance < wall_d:
+			continue
+		if track_distance >= d - WRAITH_CHOICE_DECISION_LINE:
+			continue
+		track_distance = wall_d
+		speed_penalty_mult = minf(speed_penalty_mult, 0.78)
+		speed_penalty_timer = maxf(speed_penalty_timer, 0.06)
+		return
+
+
+func _wraith_choice_approach_speed_mult() -> float:
+	if _wraith_choice_smash_speed_mult() > 1.001:
+		return 1.0
+	if _wraith_choice_boost_timer > 0.0 or _wraith_choice_instant_burst_timer > 0.0:
+		return 1.0
+	var best := 1.0
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if bool(enc.get("resolved", false)):
+			continue
+		var d := float(enc.get("distance", 0.0))
+		var slow_start := d - WRAITH_CHOICE_SLOW_ZONE
+		if track_distance < slow_start:
+			continue
+		if track_distance > d + 2.0:
+			continue
+		# 过决策线：本函数返回 1；真正冲刺倍率在主循环用 COMMIT_RUN_MULT
+		if track_distance >= d - WRAITH_CHOICE_DECISION_LINE:
+			continue
+		var mult := WRAITH_CHOICE_SLOW_MULT
+		if track_distance < slow_start + WRAITH_CHOICE_SLOW_RAMP:
+			var ramp_t := clampf(
+				(track_distance - slow_start) / maxf(WRAITH_CHOICE_SLOW_RAMP, 0.001),
+				0.0,
+				1.0
+			)
+			ramp_t = ramp_t * ramp_t * (3.0 - 2.0 * ramp_t)
+			mult = lerpf(1.0, WRAITH_CHOICE_SLOW_MULT, ramp_t)
+		best = minf(best, mult)
+	return best
+
+
+func _wraith_choice_player_committed() -> bool:
+	if absf(current_lateral) >= WRAITH_CHOICE_CENTER_BLOCK_HALF * 0.55:
+		return true
+	var wraith_lane_x := WRAITH_CHOICE_PAIR_HALF_SPAN * LANE_WIDTH
+	if absf(target_lane_x) >= wraith_lane_x * 0.22:
+		return true
+	if lane_index <= 0 and target_lane_x <= -LANE_WIDTH * 0.04:
+		return true
+	if lane_index >= 2 and target_lane_x >= LANE_WIDTH * 0.04:
+		return true
+	return false
+
+
+func _present_wraith_choice_result(_text: String, lethal: bool) -> void:
+	if _hit_feedback == null:
+		return
+	_hit_feedback.spawn_comic_choice_splash(not lethal)
+	if lethal:
+		_hit_feedback.flash_cargo()
+	call_deferred("_update_hud")
+
+
+func _resolve_wraith_choice_encounter(enc_id: int, from_smash: bool) -> void:
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) != TYPE_DICTIONARY:
+			continue
+		if int(enc.get("id", -1)) != enc_id:
+			continue
+		if bool(enc.get("resolved", false)):
+			return
+		enc["resolved"] = true
+		break
+	_disable_wraith_choice_pair(enc_id)
+	if not from_smash:
+		_apply_cargo_loss(WRAITH_CHOICE_LETHAL_CARGO)
+		_present_wraith_choice_result("完整度 -50", true)
+
+
+func _apply_wraith_choice_smash_boost() -> void:
+	speed_penalty_mult = 1.0
+	speed_penalty_timer = 0.0
+	strike_recovery_timer = 0.0
+	_hit_stun_timer = 0.0
+	_hitstop_timer = 0.0
+	_hit_recoil_timer = 0.0
+	_wraith_choice_instant_burst_timer = WRAITH_CHOICE_SMASH_INSTANT_TIME
+	_wraith_choice_boost_timer = WRAITH_CHOICE_SMASH_BOOST
+	_wraith_choice_boost_start_d = track_distance
+	_wraith_choice_boost_end_d = track_distance + WRAITH_CHOICE_SMASH_BURST_DIST
+	# 不用平坦 pad_burst 顶住速度，否则整段会像匀速
+	_pad_burst_until_d = -1.0
+	_speed_boost_timer = 0.0
+	_speed_feel_punch = maxf(_speed_feel_punch, 3.6)
+	_hit_fov_punch = maxf(_hit_fov_punch, 1.65)
+	camera_shake = maxf(camera_shake, 0.72)
+	if trail_particles:
+		trail_particles.amount_ratio = 1.0
+		trail_particles.speed_scale = 6.2
+	_set_trail_color(Color(1.0, 0.72, 0.18, 1.0))
+	_pulse_choice_rush_aura(true)
+	_chaser_repulse(CHASER_BOOST_REPULSE * 1.75)
+	if _is_emergency_run:
+		_emergency_dash_timer = maxf(_emergency_dash_timer, EMERGENCY_DASH_DURATION * 0.55)
+	_show_runway_combat_tip("一飞冲天", Color(1.0, 0.78, 0.28, 1.0))
+
+
+func _pulse_choice_rush_aura(active: bool) -> void:
+	# 撞抉择后周身加速气流：橙金拖尾环绕 runner
+	if rush_aura_particles == null:
+		return
+	rush_aura_particles.emitting = active
+	if active:
+		rush_aura_particles.amount_ratio = 1.0
+		rush_aura_particles.speed_scale = 1.75
+		var mat := rush_aura_particles.process_material as ParticleProcessMaterial
+		if mat != null:
+			mat.color = Color(1.0, 0.72, 0.22, 0.82)
+		var mesh := rush_aura_particles.draw_pass_1
+		if mesh is BoxMesh:
+			var sm := (mesh as BoxMesh).material as StandardMaterial3D
+			if sm != null:
+				sm.albedo_color = Color(1.0, 0.78, 0.28, 0.85)
+				sm.emission = Color(1.0, 0.62, 0.15)
+				sm.emission_energy_multiplier = 3.6
+	if wall_boost_particles != null:
+		wall_boost_particles.emitting = active
+		if active:
+			wall_boost_particles.amount_ratio = 0.85
+			wall_boost_particles.speed_scale = 1.55
+	if foot_spark_particles != null and active:
+		foot_spark_particles.emitting = true
+		foot_spark_particles.amount_ratio = 0.55
+	if body_spark_particles != null and active:
+		body_spark_particles.emitting = true
+		body_spark_particles.amount_ratio = 0.7
+		body_spark_particles.speed_scale = 1.8
+
+
+func _disable_wraith_choice_pair(enc_id: int) -> void:
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		if int(obstacle.get("wraith_choice_id", -1)) != enc_id:
+			continue
+		if bool(obstacle.get("hit", false)):
+			continue
+		obstacle["hit"] = true
+		obstacle["wraith_choice_disabled"] = true
+		var node := obstacle.get("node") as Node3D
+		if node != null and is_instance_valid(node):
+			node.visible = false
+	_hide_wraith_choice_encounter_decor(enc_id)
+
+
+func _on_wraith_choice_smash(obstacle: Dictionary) -> void:
+	var enc_id := int(obstacle.get("wraith_choice_id", -1))
+	var lethal := _wraith_choice_is_lethal_hit(obstacle)
+	# 写回障碍字段，后续逻辑一致
+	obstacle["wraith_choice_lethal"] = lethal
+	if _hit_feedback != null:
+		_hit_feedback.spawn_comic_choice_splash(not lethal)
+	strike_count += 1
+	strike_recovery_timer = 0.0
+	camera_shake = maxf(camera_shake, 0.48 if lethal else 0.36)
+	run_score += 22 if not lethal else 8
+	_shatter_obstacle(obstacle)
+	_resolve_wraith_choice_encounter(enc_id, true)
+	if is_failed:
+		return
+	if lethal:
+		_apply_cargo_loss(WRAITH_CHOICE_LETHAL_CARGO)
+		_show_runway_combat_tip("完整度 -50", WRAITH_CHOICE_DEEP_RED)
+	else:
+		_show_runway_combat_tip("枯竭异能怪 · 安全", WRAITH_CHOICE_SAFE_GREEN)
+	_apply_wraith_choice_smash_boost()
+	if _pressure_chaser_enabled and _energy_chaser != null:
+		_energy_chaser.notify_hit(lethal)
+		chaser_distance = _energy_chaser.get_visual_gap()
+
 
 func _update_full_width_obstacle_positions() -> void:
 	# 仅必要时批量校正；平时障碍锚定路径，不每帧重算（避免「往镜头漂」）
@@ -6333,6 +10488,10 @@ func _place_obstacle_node(obstacle: Dictionary, _reposition_only: bool = false) 
 	if not full_width:
 		if bool(obstacle.get("float_orb", false)):
 			lateral = float(obstacle["lane"]) * LANE_WIDTH + float(obstacle.get("lateral_offset", 0.0))
+		elif obstacle_type == "wraith_lunge":
+			lateral = float(obstacle.get("lunge_lateral", float(obstacle["lane"]) * LANE_WIDTH))
+		elif bool(obstacle.get("wraith_choice", false)) and obstacle.has("wraith_choice_lateral"):
+			lateral = float(obstacle.get("wraith_choice_lateral"))
 		else:
 			lateral = float(obstacle["lane"]) * LANE_WIDTH
 	if obstacle_type in ["slide", "high_bar", "main_block", "wave_arc_slide"]:
@@ -6340,9 +10499,21 @@ func _place_obstacle_node(obstacle: Dictionary, _reposition_only: bool = false) 
 	var fork_branch := int(obstacle.get("fork_branch", 0))
 	var placed := _world_on_path_for_obstacle(dist, lateral, y, layer, fork_branch)
 	node.position = placed["pos"]
+	node.set_meta("path_distance", dist)
 	var yaw := float(placed["yaw"])
-	if full_width and not _fork_zone_at(dist).is_empty() and fork_branch == 0:
-		var ahead := _world_on_path_for_obstacle(dist + 6.0, 0.0, y, layer, 0)
+	var path_branch := fork_branch
+	if path_branch == 0:
+		path_branch = _path_fork_side_for_sample(dist)
+	var align_curve := (
+		full_width
+		or bool(obstacle.get("wraith_choice", false))
+		or _path_turn_sharpness_on_main(dist) > 0.05
+		or path_branch != 0
+	)
+	if align_curve:
+		var ahead_lat := 0.0 if full_width else lateral
+		var ahead_branch := fork_branch if fork_branch != 0 else path_branch
+		var ahead := _world_on_path_for_obstacle(dist + 6.0, ahead_lat, y, layer, ahead_branch)
 		var delta: Vector3 = (ahead["pos"] as Vector3) - (placed["pos"] as Vector3)
 		delta.y = 0.0
 		if delta.length_squared() > 0.04:
@@ -6374,7 +10545,8 @@ func _finish_run() -> void:
 	var mission_id := String(Global.runner_mission_id)
 	if mission_id == "":
 		mission_id = Global.mission_key(mission)
-	if not is_custom and mission_id != "":
+	var count_progress := (not is_custom) and mission_id != "" and Global.should_count_runner_mission_progress()
+	if count_progress:
 		if LevelConfig.has_method("get_outpost_meta"):
 			var outpost_meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
 			repair_total = maxi(1, int(outpost_meta.get("repair_total", repair_total)))
@@ -6385,6 +10557,16 @@ func _finish_run() -> void:
 			cargo_integrity,
 			mission
 		)
+	elif Global.runner_trial_run:
+		# 试玩：结算仍展示完整度，但不改任务/据点进度
+		progress_result = {
+			"newly_lit": false,
+			"gain": 0,
+			"progress_after": Global.get_mission_progress(Global.runner_planet_id, mission_id) if mission_id != "" else 0,
+			"target": MissionTypes.mission_progress_target(mission),
+			"newly_completed": false,
+			"reward_pending": 0,
+		}
 	var newly_lit := bool(progress_result.get("location_newly_lit", progress_result.get("newly_lit", false)))
 	var progress_gain := int(progress_result.get("gain", progress_result.get("contribution", 0)))
 	var progress_after := int(progress_result.get("progress_after", 0))
@@ -6396,6 +10578,9 @@ func _finish_run() -> void:
 		# 点亮奖励改为详情页手动领取，避免与据点奖励重复发放
 		Global.queue_outpost_light_reward(Global.runner_planet_id, Global.runner_location_id)
 		Global.pending_location_showcase_id = Global.runner_location_id
+		# 回地图后自动聚焦闪烁，引导点亮仪式（雾气驱散动效）
+		if Global.is_map_light_ceremony_pending(Global.runner_planet_id, Global.runner_location_id):
+			Global.pending_map_light_focus = Global.runner_location_id
 	else:
 		Global.pending_location_showcase_id = ""
 	var delivered := int(float(cargo_load) * cargo_integrity * 0.01)
@@ -6421,7 +10606,9 @@ func _finish_run() -> void:
 		elapsed,
 	]
 	var progress_line := "Mission Progress • %d / %d" % [progress_after, progress_total]
-	if progress_gain > 0 and not newly_completed:
+	if Global.runner_trial_run:
+		progress_line = "Trial Run · Progress not saved"
+	elif progress_gain > 0 and not newly_completed:
 		progress_line = "Mission Progress +%d • %d / %d" % [progress_gain, progress_after, progress_total]
 	elif newly_completed:
 		progress_line = "Mission Complete • %d / %d" % [progress_after, progress_total]
@@ -6671,6 +10858,8 @@ func _counts_for_smash_budget(obstacle: Dictionary) -> bool:
 	# 与 _can_smash_obstacle 类型门槛一致，但不检查视觉（开局时 orb 未弹出等）
 	if otype in ["main_block", "ramp", "turn_left", "turn_right", "meteorite_gate", "energy_ring"]:
 		return false
+	if bool(obstacle.get("wraith_choice", false)):
+		return false
 	return true
 
 
@@ -6739,16 +10928,20 @@ func _cargo_damage_for_smash_obstacle(obstacle: Dictionary) -> float:
 
 
 func _is_large_smash_obstacle(obstacle_type: String) -> bool:
-	return obstacle_type in ["slide", "high_bar", "block_left", "block_right", "meteorite"]
+	return obstacle_type in ["slide", "high_bar", "block_left", "block_right", "meteorite", "wraith_block", "wraith_lunge"]
 
 
 func _is_large_smash_obstacle_entry(obstacle: Dictionary) -> bool:
+	if bool(obstacle.get("wraith_choice", false)):
+		return true
 	if _is_large_smash_obstacle(String(obstacle.get("type", ""))):
 		return true
 	return String(obstacle.get("orb_tier", "")) in ["large", "huge", "colossal"]
 
 
 func _smash_sfx_size_key(obstacle: Dictionary) -> String:
+	if bool(obstacle.get("wraith_choice", false)):
+		return "large"
 	var otype := String(obstacle.get("type", ""))
 	match otype:
 		"meteorite":
@@ -6765,6 +10958,8 @@ func _smash_sfx_size_key(obstacle: Dictionary) -> String:
 		"train", "train_moving":
 			return "medium"
 		"slide", "high_bar", "block_left", "block_right", "main_block":
+			return "large"
+		"wraith_block", "wraith_lunge":
 			return "large"
 		"orb":
 			match String(obstacle.get("orb_tier", "")):
@@ -6797,6 +10992,8 @@ func _shatter_obstacle(obstacle: Dictionary) -> void:
 	obstacle["smashed"] = true
 	var otype := String(obstacle.get("type", ""))
 	var palette := _smash_palette_for_type(otype)
+	if bool(obstacle.get("wraith_choice", false)) or otype in ["wraith_block", "wraith_lunge"]:
+		palette = _wraith_choice_shatter_palette()
 	var size_key := _smash_sfx_size_key(obstacle)
 	var node = obstacle.get("node", null)
 	var blast_pos := player.global_position + Vector3(0.0, 1.1, 0.0) if player else Vector3.ZERO
@@ -6811,6 +11008,17 @@ func _shatter_obstacle(obstacle: Dictionary) -> void:
 	else:
 		Global.play_sfx_shatter(1.0, size_key in ["large", "huge"], size_key)
 		_spawn_shatter_burst(blast_pos, palette, _is_large_smash_obstacle(otype), forward)
+		if bool(obstacle.get("wraith_choice", false)):
+			_spawn_shatter_chunks(blast_pos, palette, forward, 18)
+
+
+func _wraith_choice_shatter_palette() -> Dictionary:
+	return {
+		"dust": WRAITH_CHOICE_SHATTER_DUST,
+		"spark": WRAITH_CHOICE_SHATTER_SPARK,
+		"chunk": WRAITH_CHOICE_SHATTER_CHUNK,
+		"emit": WRAITH_CHOICE_SHATTER_EMIT,
+	}
 
 
 func _play_obstacle_shatter_fx(node: Node3D, obstacle_type: String, palette: Dictionary, forward: Vector3, size_key: String = "medium") -> void:
@@ -6820,7 +11028,10 @@ func _play_obstacle_shatter_fx(node: Node3D, obstacle_type: String, palette: Dic
 	# 瞬间碎裂：本体立刻消失，改为碎片/粒子
 	node.visible = false
 	if large:
-		_spawn_shatter_chunks(origin, palette, forward, 18 if obstacle_type.begins_with("train") else 14)
+		var chunk_n := 18 if obstacle_type.begins_with("train") else 14
+		if obstacle_type in ["wraith_block", "wraith_lunge"]:
+			chunk_n = 22
+		_spawn_shatter_chunks(origin, palette, forward, chunk_n)
 	else:
 		# 小型：很多细碎片 + 超密粒子
 		_spawn_shatter_chunks(origin, palette, forward, 28, true)
@@ -6886,6 +11097,8 @@ func _smash_palette_for_type(obstacle_type: String) -> Dictionary:
 				"chunk": Color(0.55, 0.4, 0.72),
 				"emit": Color(0.85, 0.4, 1.0),
 			}
+		"wraith_block", "wraith_lunge":
+			return _wraith_choice_shatter_palette()
 		_:
 			return {
 				"dust": Color(0.9, 0.82, 0.6),
@@ -7070,6 +11283,9 @@ func _on_runner_strike(reason: String, obstacle: Dictionary = {}) -> void:
 	var rushing := _is_fork_rushing()
 	var smash := _uses_smash_collision() and _can_smash_obstacle(obstacle)
 	if smash and not _obstacle_has_meaningful_visual(obstacle):
+		return
+	if smash and bool(obstacle.get("wraith_choice", false)):
+		_on_wraith_choice_smash(obstacle)
 		return
 	if smash:
 		_smash_hit_count += 1
@@ -7324,10 +11540,19 @@ func _begin_run_from_intro() -> void:
 	if _is_defense_cargo() and shield_energy >= SHIELD_MIN_ACTIVATE - 0.001:
 		shield_active = true
 		_ensure_shield_mesh()
-		_show_gate_toast("防御包 · 防护罩 +%d" % int(DEFENSE_CARGO_START_SHIELD))
+		if not _runtime_sandstorm_zones.is_empty():
+			_show_gate_toast("Defense cargo · shield up · sandstorm ahead")
+			strike_toast_label.text = "→ 防御包开罩 · 前方沙暴"
+			strike_toast_timer = 3.4
+		elif not _defense_opening_rain_zones.is_empty():
+			_show_gate_toast("Defense cargo · shield up · toxic rain ahead")
+			strike_toast_label.text = "→ 防御包开罩 · 前方毒雨"
+			strike_toast_timer = 3.4
+		else:
+			_show_gate_toast("防御包 · 防护罩 +%d" % int(DEFENSE_CARGO_START_SHIELD))
 	_overweight_run_tip_shown = false
 	call_deferred("_try_show_overweight_intro_tip")
-	if _is_rain_weather():
+	if _is_rain_weather() and _defense_opening_rain_zones.is_empty():
 		call_deferred("_show_rain_intro")
 
 
@@ -7392,30 +11617,7 @@ func _make_tide_well(distance: float, spread: float = 16.0) -> Dictionary:
 	root.name = "NullfeedMark_%.0f" % distance
 	track_root.add_child(root)
 
-	# 大紫色叹号（空中 billboard）
-	var bang := Label3D.new()
-	bang.name = "Bang"
-	bang.text = "!"
-	bang.font_size = 220
-	bang.modulate = Color(0.78, 0.42, 1.0, 1.0)
-	bang.outline_size = 28
-	bang.outline_modulate = Color(0.18, 0.04, 0.35, 0.95)
-	bang.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	bang.no_depth_test = true
-	bang.position = Vector3(0.0, 0.0, 0.0)
-	root.add_child(bang)
-
-	var title := Label3D.new()
-	title.name = "NullfeedLabel"
-	title.text = "Nullfeed"
-	title.font_size = 72
-	title.modulate = Color(0.86, 0.62, 1.0, 1.0)
-	title.outline_size = 16
-	title.outline_modulate = Color(0.12, 0.03, 0.28, 0.92)
-	title.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	title.no_depth_test = true
-	title.position = Vector3(0.0, -1.15, 0.0)
-	root.add_child(title)
+	# Nullfeed 标记不再挂世界字标（含 ! / Nullfeed）
 
 	# 淡紫光柱：提示空中位置
 	var beam := MeshInstance3D.new()
@@ -7755,6 +11957,8 @@ func _hits_obstacle(obstacle: Dictionary) -> bool:
 			return not _player_clears_obstacle(obstacle)
 		"wraith_block":
 			# 静态异能怪：占单道，必须左右换道
+			return not _player_clears_obstacle(obstacle)
+		"wraith_lunge":
 			return not _player_clears_obstacle(obstacle)
 		"dressing_block":
 			return true
@@ -8272,6 +12476,7 @@ func _build_world() -> void:
 
 	_build_path_track()
 	_build_side_runway_tracks()
+	_prepare_defense_cargo_opening_hazard()
 	_build_sandstorm_zones()
 	for zone in _junction_zones():
 		_build_choice_gate(float(zone.get("distance", 0.0)), zone)
@@ -9346,6 +13551,7 @@ func _attach_side_hazard_cave(zone: Dictionary) -> void:
 	var right: Vector3 = entry["right"]
 	ring.position = (entry["pos"] as Vector3) + Vector3(0.0, GROUND_Y + 1.8, 0.0)
 	ring.rotation = Vector3(PI * 0.5, float(entry["yaw"]), 0.0)
+	ring.set_meta("path_distance", start + 1.5)
 	track_root.add_child(ring)
 
 func _update_side_hazard_bursts(delta: float) -> void:
@@ -9383,8 +13589,19 @@ func _attach_sandstorm_volume(zone: Dictionary) -> void:
 	haze_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	# 沿路径铺一段半透明沙雾罩（宽度/横向偏移随占据列数变化）
 	_attach_path_strip_segment(start, start + length, half_w, GROUND_Y + 1.6, haze_mat, 2.2, bias)
-	_attach_path_strip_segment(start, start + length, half_w + 0.8, GROUND_Y + 3.2, haze_mat, 2.4, bias)
+	# 防御哨站只铺一层雾罩，少一半半透明条带
+	if not _is_gate_location():
+		_attach_path_strip_segment(start, start + length, half_w + 0.8, GROUND_Y + 3.2, haze_mat, 2.4, bias)
 	# 入口警示环（对准占据列中心）
+	# 医疗抉择点背后不要黄环抢读图
+	if _is_medical_location():
+		var skip_ring := false
+		for raw_base in _medical_wraith_choice_base_distances():
+			if absf((start + 1.5) - float(raw_base)) <= WRAITH_CHOICE_CLEAR_ALONG:
+				skip_ring = true
+				break
+		if skip_ring:
+			return
 	var sample := _sample_path(start + 1.5)
 	var ring := MeshInstance3D.new()
 	ring.name = "SandstormGate"
@@ -9402,14 +13619,16 @@ func _attach_sandstorm_volume(zone: Dictionary) -> void:
 	var right: Vector3 = sample["right"]
 	ring.position = (sample["pos"] as Vector3) + right * bias + Vector3(0.0, GROUND_Y + 1.8, 0.0)
 	ring.rotation = Vector3(PI * 0.5, float(sample["yaw"]), 0.0)
+	ring.set_meta("path_distance", start + 1.5)
 	track_root.add_child(ring)
 
 func _make_sandstorm_particles() -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
 	particles.name = "SandstormDust"
-	particles.amount = 148
+	# 防御哨站略减粒子，减轻半透明叠层
+	particles.amount = 88 if _is_gate_location() else 148
 	particles.lifetime = 1.45
-	particles.preprocess = 0.5
+	particles.preprocess = 0.35 if _is_gate_location() else 0.5
 	particles.visibility_aabb = AABB(Vector3(-20, -4, -20), Vector3(40, 16, 40))
 	var mat := ParticleProcessMaterial.new()
 	mat.direction = Vector3(1.0, 0.18, 0.42)
@@ -9438,7 +13657,7 @@ func _make_sandstorm_particles() -> GPUParticles3D:
 func _make_sandstorm_grit_particles() -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
 	particles.name = "SandstormGrit"
-	particles.amount = 220
+	particles.amount = 110 if _is_gate_location() else 220
 	particles.lifetime = 0.85
 	particles.preprocess = 0.35
 	particles.visibility_aabb = AABB(Vector3(-14, -2, -14), Vector3(28, 10, 28))
@@ -9467,6 +13686,7 @@ func _make_sandstorm_grit_particles() -> GPUParticles3D:
 
 
 func _setup_rain_weather() -> void:
+	var defense_opening_rain := _defense_opening_rain_zones.duplicate(true)
 	_cached_rain_zones.clear()
 	ObstacleLayout.clear_root_cache(_runner_layout_id())
 	_rain_full_track = false
@@ -9482,7 +13702,13 @@ func _setup_rain_weather() -> void:
 
 	var zones: Array = _rain_zones()
 	var enable := false
-	if _is_full_track_rain():
+	if not defense_opening_rain.is_empty():
+		_cached_rain_zones = defense_opening_rain
+		enable = true
+		_rain_full_track = false
+		mission["rain_kind"] = String(mission.get("rain_kind", "toxic"))
+		mission["rain_cargo_hit_mult"] = float(mission.get("rain_cargo_hit_mult", 1.1))
+	elif _is_full_track_rain():
 		enable = true
 		# 全图雨：无分段则整段生效；有分段则只在分段内
 		_rain_full_track = zones.is_empty()
@@ -10306,6 +14532,79 @@ func _side_runway_pit_range(zone: Dictionary) -> Vector2:
 		pit_e = pit_s + 6.0
 	return Vector2(pit_s, pit_e)
 
+func _merge_adjacent_vector2_ranges(ranges: Array, join_gap: float = 2.5) -> Array:
+	if ranges.is_empty():
+		return []
+	var sorted: Array = []
+	for raw in ranges:
+		if typeof(raw) != TYPE_VECTOR2:
+			continue
+		sorted.append(raw as Vector2)
+	sorted.sort_custom(func(a: Vector2, b: Vector2) -> bool:
+		return a.x < b.x
+	)
+	var merged: Array = [sorted[0]]
+	for i in range(1, sorted.size()):
+		var pit: Vector2 = sorted[i]
+		var last: Vector2 = merged[merged.size() - 1]
+		if pit.x <= last.y + join_gap:
+			merged[merged.size() - 1] = Vector2(last.x, maxf(last.y, pit.y))
+		else:
+			merged.append(pit)
+	return merged
+
+
+func _pit_overlaps_launch_open_gap(pit: Vector2) -> bool:
+	for gap in _open_gaps:
+		if String(gap.get("kind", "")) != "launch":
+			continue
+		var gs := float(gap.get("start", 0.0))
+		var ge := float(gap.get("end", gs))
+		if pit.y >= gs - 3.0 and pit.x <= ge + 3.0:
+			return true
+	return false
+
+
+func _pit_inside_junction_interior(pit: Vector2) -> bool:
+	var mid := (pit.x + pit.y) * 0.5
+	for zone in _junction_zones():
+		if typeof(zone) != TYPE_DICTIONARY:
+			continue
+		var start := float(zone.get("distance", 0.0))
+		var length := float(zone.get("length", 70.0))
+		var t := clampf((mid - start) / maxf(length, 0.001), 0.0, 1.0)
+		if t > 0.08 and t < 0.92:
+			return true
+	return false
+
+
+func _platform_lava_pit_ranges_from_items(items: Array) -> Array:
+	var pits: Array = []
+	for raw in items:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw
+		if String(item.get("type", "")) != "main_block":
+			continue
+		if int(item.get("layer", 0)) != 0:
+			continue
+		if _main_block_cross_mode(item) != "platform":
+			continue
+		var center := float(item.get("distance", 0.0))
+		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		var pit := _main_block_platform_open_lava_range(center, half)
+		if _layout_lava_cross_mode() == "launch" and _pit_overlaps_launch_open_gap(pit):
+			continue
+		if _is_gate_location() and _pit_inside_junction_interior(pit):
+			continue
+		pits.append(pit)
+	return _merge_adjacent_vector2_ranges(pits, 3.0)
+
+
+func _layout_platform_lava_pit_ranges() -> Array:
+	return _platform_lava_pit_ranges_from_items(_layout_obstacle_items_raw())
+
+
 func _main_block_road_gaps() -> Array:
 	# 路网建造早于障碍注册：读本关障碍表（含 layout JSON）
 	var items: Array = _layout_obstacle_items_raw()
@@ -10319,16 +14618,17 @@ func _main_block_road_gaps() -> Array:
 			continue
 		if int(item.get("layer", 0)) != 0:
 			continue
+		if _main_block_cross_mode(item) == "platform":
+			continue
 		var center := float(item.get("distance", 0.0))
 		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
 		var key := "%d" % int(round(center))
 		if seen.has(key):
 			continue
 		seen[key] = true
-		if _main_block_cross_mode(item) == "platform":
-			gaps.append(_main_block_platform_open_lava_range(center, half))
-		else:
-			gaps.append(Vector2(center - half, center + half))
+		gaps.append(Vector2(center - half, center + half))
+	for pit in _platform_lava_pit_ranges_from_items(items):
+		gaps.append(pit)
 	_ensure_mechanic_layout()
 	for gap in _open_gaps:
 		gaps.append(Vector2(float(gap.get("start", 0.0)), float(gap.get("end", 0.0))))
@@ -10384,18 +14684,14 @@ func _lava_platform_jump_spacing() -> float:
 
 func _lava_platform_exclusion_zones() -> Array:
 	var zones: Array = []
-	for raw in _layout_obstacle_items_raw():
-		if typeof(raw) != TYPE_DICTIONARY:
+	for pit in _layout_platform_lava_pit_ranges():
+		if typeof(pit) != TYPE_VECTOR2:
 			continue
-		var item: Dictionary = raw
-		if String(item.get("type", "")) != "main_block":
-			continue
-		if _main_block_cross_mode(item) != "platform":
-			continue
-		var center := float(item.get("distance", 0.0))
-		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		var p: Vector2 = pit
+		var center := (p.x + p.y) * 0.5
+		var half := (p.y - p.x) * 0.5
 		zones.append({
-			"pit": Vector2(center - half, center + half),
+			"pit": p,
 			"exclude": Vector2(center - half - 20.0, center + half + 10.0),
 		})
 	return zones
@@ -10412,16 +14708,12 @@ func _is_distance_in_lava_platform_exclusion(distance: float) -> bool:
 
 func _lava_platform_pit_zones_from_items(items: Array) -> Array:
 	var zones: Array = []
-	for raw in items:
-		if typeof(raw) != TYPE_DICTIONARY:
+	for pit in _platform_lava_pit_ranges_from_items(items):
+		if typeof(pit) != TYPE_VECTOR2:
 			continue
-		var item: Dictionary = raw
-		if String(item.get("type", "")) != "main_block":
-			continue
-		if _main_block_cross_mode(item) != "platform":
-			continue
-		var center := float(item.get("distance", 0.0))
-		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
+		var p: Vector2 = pit
+		var center := (p.x + p.y) * 0.5
+		var half := (p.y - p.x) * 0.5
 		zones.append(Vector2(center - half - 20.0, center + half + 10.0))
 	return zones
 
@@ -10480,50 +14772,124 @@ func _purge_obstacles_in_lava_platform_zones() -> void:
 	_obstacle_scan_index = 0
 
 
-## 跳跃/滑铲全宽障碍过近或同距竖直叠放时无法操作：保留较早者，剔除冲突项
+## 跑道障碍重叠：同距/过近的异类障碍只留一个（终点前直道更严）
 func _purge_stacked_jump_slide_obstacles() -> void:
-	const MIN_ACTION_GAP := 10.0
+	_purge_overlapping_runway_obstacles()
+
+
+func _obstacle_overlap_keep_priority(otype: String) -> int:
+	match otype:
+		"main_block", "ramp", "turn_left", "turn_right":
+			return 100
+		"train", "train_moving":
+			return 90
+		"wraith_block", "wraith_lunge":
+			return 82
+		"jump", "low_barrier", "slide", "high_bar", "wave_arc_slide":
+			return 70
+		"meteorite":
+			return 55
+		"meteorite_gate", "energy_ring":
+			return 48
+		"orb":
+			return 18
+		"dressing_block":
+			return 8
+		_:
+			return 30
+
+
+func _obstacle_is_road_span_blocker(otype: String) -> bool:
+	return (
+		_is_full_width_obstacle_type(otype)
+		or otype in ["train", "train_moving", "energy_ring", "meteorite_gate"]
+	)
+
+
+func _runway_obstacles_overlap(a: Dictionary, b: Dictionary) -> bool:
+	if int(a.get("layer", 0)) != int(b.get("layer", 0)):
+		return false
+	var fa := int(a.get("fork_branch", 0))
+	var fb := int(b.get("fork_branch", 0))
+	if fa != 0 and fb != 0 and fa != fb:
+		return false
+	var ta := String(a.get("type", ""))
+	var tb := String(b.get("type", ""))
+	# 结构件 / 抉择装饰不参与互斥
+	if ta in ["ramp", "turn_left", "turn_right", "main_block"] or tb in ["ramp", "turn_left", "turn_right", "main_block"]:
+		return false
+	if bool(a.get("wraith_choice", false)) or bool(b.get("wraith_choice", false)):
+		return false
+	if ta == "dressing_block" or tb == "dressing_block":
+		return false
+	var da := float(a.get("distance", 0.0))
+	var db := float(b.get("distance", 0.0))
+	var gap := absf(da - db)
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	var near_finish := maxf(da, db) >= finish_d - 150.0
+	var boost := 3.5 if near_finish else 0.0
 	var jump_types := {"jump": true, "low_barrier": true}
 	var slide_types := {"slide": true, "high_bar": true, "wave_arc_slide": true}
-	var keep: Array = []
-	var last_jump_by_layer: Dictionary = {}
-	var last_slide_by_layer: Dictionary = {}
+	# 跳/铲全宽：过近即冲突（同点必须又跳又铲）
+	if (jump_types.has(ta) and slide_types.has(tb)) or (slide_types.has(ta) and jump_types.has(tb)):
+		return gap < 10.0 + boost
+	# 任一横跨/门类：整条跑道冲突
+	if _obstacle_is_road_span_blocker(ta) or _obstacle_is_road_span_blocker(tb):
+		return gap < 8.0 + boost
+	# 陨石体量大：同道或邻道也算叠
+	var la := int(a.get("lane", 0))
+	var lb := int(b.get("lane", 0))
+	if ta == "meteorite" or tb == "meteorite":
+		if absi(la - lb) <= 1 and gap < 7.0 + boost:
+			return true
+	# 同道任意障碍过近
+	if la == lb and gap < 6.5 + boost:
+		return true
+	# 同距不同道但都是「占视觉中心」的大障碍：仍判叠（终点读图）
+	if gap < 1.25 and near_finish:
+		if ta in ["orb", "meteorite", "wraith_block"] and tb in ["orb", "meteorite", "wraith_block", "jump", "slide"]:
+			return true
+	return false
+
+
+func _purge_overlapping_runway_obstacles() -> void:
 	var sorted: Array = obstacles.duplicate()
 	sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
+		var da := float(a.get("distance", 0.0))
+		var db := float(b.get("distance", 0.0))
+		if absf(da - db) > 0.001:
+			return da < db
+		return _obstacle_overlap_keep_priority(String(a.get("type", ""))) > _obstacle_overlap_keep_priority(String(b.get("type", "")))
 	)
+	var keep: Array = []
 	for obstacle in sorted:
 		if typeof(obstacle) != TYPE_DICTIONARY:
 			continue
-		var otype := String(obstacle.get("type", ""))
-		var layer := int(obstacle.get("layer", 0))
-		var dist := float(obstacle.get("distance", 0.0))
-		var fork_branch := int(obstacle.get("fork_branch", 0))
-		var drop := false
-		if jump_types.has(otype):
-			var prev_slide: Variant = last_slide_by_layer.get(layer, null)
-			if typeof(prev_slide) == TYPE_DICTIONARY:
-				var pd := float(prev_slide.get("distance", -9999.0))
-				var pf := int(prev_slide.get("fork_branch", 0))
-				if pf == fork_branch and absf(dist - pd) < MIN_ACTION_GAP:
-					drop = true
-			if not drop:
-				last_jump_by_layer[layer] = obstacle
-		elif slide_types.has(otype):
-			var prev_jump: Variant = last_jump_by_layer.get(layer, null)
-			if typeof(prev_jump) == TYPE_DICTIONARY:
-				var pd2 := float(prev_jump.get("distance", -9999.0))
-				var pf2 := int(prev_jump.get("fork_branch", 0))
-				if pf2 == fork_branch and absf(dist - pd2) < MIN_ACTION_GAP:
-					drop = true
-			if not drop:
-				last_slide_by_layer[layer] = obstacle
-		if drop:
-			var node := obstacle.get("node") as Node3D
-			if node != null and is_instance_valid(node):
-				node.queue_free()
-			continue
-		keep.append(obstacle)
+		while true:
+			var conflict_i := -1
+			for i in keep.size():
+				if typeof(keep[i]) != TYPE_DICTIONARY:
+					continue
+				if _runway_obstacles_overlap(keep[i], obstacle):
+					conflict_i = i
+					break
+			if conflict_i < 0:
+				keep.append(obstacle)
+				break
+			var kept: Dictionary = keep[conflict_i]
+			var p_new := _obstacle_overlap_keep_priority(String(obstacle.get("type", "")))
+			var p_old := _obstacle_overlap_keep_priority(String(kept.get("type", "")))
+			# 显著更重要的后来者可替换；否则丢掉后来者（含同距低优先级）
+			if p_new > p_old + 12:
+				var old_node := kept.get("node") as Node3D
+				if old_node != null and is_instance_valid(old_node):
+					old_node.queue_free()
+				keep.remove_at(conflict_i)
+				continue
+			var new_node := obstacle.get("node") as Node3D
+			if new_node != null and is_instance_valid(new_node):
+				new_node.queue_free()
+			break
 	obstacles.clear()
 	for o in keep:
 		obstacles.append(o)
@@ -10690,20 +15056,12 @@ func _generate_lava_platform_specs(pit: Vector2, center: float) -> Array:
 
 func _prepare_lava_platforms_from_layout() -> void:
 	_lava_platforms.clear()
-	for raw in _layout_obstacle_items_raw():
-		if typeof(raw) != TYPE_DICTIONARY:
+	for pit in _layout_platform_lava_pit_ranges():
+		if typeof(pit) != TYPE_VECTOR2:
 			continue
-		var item: Dictionary = raw
-		if String(item.get("type", "")) != "main_block":
-			continue
-		if int(item.get("layer", 0)) != 0:
-			continue
-		if _main_block_cross_mode(item) != "platform":
-			continue
-		var center := float(item.get("distance", 0.0))
-		var half := float(item.get("half_depth", OBSTACLE_HALF_DEPTH.get("main_block", 8.0)))
-		var pit := Vector2(center - half, center + half)
-		for spec in _generate_lava_platform_specs(pit, center):
+		var p: Vector2 = pit
+		var center := (p.x + p.y) * 0.5
+		for spec in _generate_lava_platform_specs(p, center):
 			_lava_platforms.append(spec)
 	_ensure_mechanic_layout()
 	var layout_id := _runner_layout_id()
@@ -10912,26 +15270,40 @@ func _update_lava_platform_hint(delta: float) -> void:
 		strike_toast_label.modulate = Color(1.0, 0.72, 0.38, _lava_platform_hint_timer)
 		strike_toast_timer = maxf(strike_toast_timer, 0.12)
 
-func _try_trigger_launch_pads() -> void:
+func _try_trigger_launch_pads(dist_from: float = -1.0, dist_to: float = -1.0) -> void:
 	if player == null or track_layer != 0 or _is_wall_running() or is_failed or is_finished:
 		return
 	_ensure_mechanic_layout()
+	var span_min := track_distance
+	var span_max := track_distance
+	if dist_from >= 0.0 and dist_to >= 0.0:
+		span_min = minf(dist_from, dist_to)
+		span_max = maxf(dist_from, dist_to)
+	var step_pad := maxf(absf(span_max - span_min) * 0.5, 0.2)
 	for pad in _launch_pads:
 		var pid := String(pad.get("id", ""))
 		var dist := float(pad.get("distance", 0.0))
-		var hd := float(pad.get("half_depth", 1.6))
-		if track_distance < dist - hd or track_distance > dist + hd:
+		var hd := float(pad.get("half_depth", 1.6)) + step_pad
+		if bool(pad.get("wraith_choice_launch", false)):
+			hd = maxf(hd, 3.4)
+		if span_max < dist - hd or span_min > dist + hd:
 			if track_distance > dist + hd + 8.0:
 				_triggered_launch_ids.erase(pid)
 			continue
 		if _triggered_launch_ids.has(pid):
 			continue
 		var pad_lane := clampi(int(pad.get("lane", 0)), -1, 1)
-		var pad_lat := float(pad_lane) * LANE_WIDTH
-		if absf(current_lateral - pad_lat) > LANE_WIDTH * 0.66:
+		var pad_lat := _launch_pad_lane_lateral(pad)
+		var hit_hw := maxf(_launch_pad_half_width(pad) + 0.35, LANE_WIDTH * 0.55)
+		if bool(pad.get("wraith_choice_launch", false)):
+			hit_hw = maxf(hit_hw, LANE_WIDTH * 0.72)
+		if absf(current_lateral - pad_lat) > hit_hw:
 			continue
 		var ground_y := _ground_y_at(track_distance)
-		if player.position.y > ground_y + 0.55:
+		var air_slack := 0.55
+		if bool(pad.get("wraith_choice_launch", false)) and _wraith_choice_smash_speed_mult() > 1.001:
+			air_slack = 1.35
+		if player.position.y > ground_y + air_slack:
 			continue
 		_triggered_launch_ids[pid] = true
 		var launch_cross := bool(pad.get("launch_cross", false))
@@ -10951,10 +15323,7 @@ func _try_trigger_launch_pads() -> void:
 				trail_particles.amount_ratio = 1.0
 				trail_particles.speed_scale = 3.2
 			_set_trail_color(Color(1.0, 0.82, 0.22, 1.0))
-			var boost_hint := String(pad.get("hint", "")).strip_edges()
-			if boost_hint == "":
-				boost_hint = "Speed Pad · step on to burst"
-			_show_gate_toast(boost_hint)
+			_show_gate_toast(_launch_pad_surface_text(pad))
 			continue
 		vertical_velocity = maxf(vertical_velocity, float(pad.get("impulse", JUMP_SPEED * 1.45)))
 		_pit_fall_grace = maxf(_pit_fall_grace, 1.35)
@@ -10966,11 +15335,14 @@ func _try_trigger_launch_pads() -> void:
 			_speed_boost_timer = maxf(_speed_boost_timer, float(pad.get("boost_time", 2.4)))
 			_chaser_repulse(CHASER_BOOST_REPULSE * 0.7)
 			_refresh_buff_hud()
-		camera_shake = maxf(camera_shake, 0.16)
-		var hint := String(pad.get("hint", "")).strip_edges()
-		if hint == "":
-			hint = "Launch Pad · step on to launch"
-		_show_gate_toast(hint)
+		if bool(pad.get("wraith_choice_launch", false)):
+			camera_shake = maxf(camera_shake, 0.42)
+			_speed_feel_punch = maxf(_speed_feel_punch, 2.2)
+			_hit_fov_punch = maxf(_hit_fov_punch, 0.85)
+			_show_runway_combat_tip("弹射！", Color(0.45, 0.95, 1.0, 1.0))
+		else:
+			camera_shake = maxf(camera_shake, 0.16)
+		_show_gate_toast(_launch_pad_surface_text(pad))
 
 func _update_lift_pad_visuals() -> void:
 	if _lava_platforms.is_empty():
@@ -10992,28 +15364,7 @@ func _update_lift_pad_visuals() -> void:
 		holder.rotation.y = float(placed["yaw"])
 
 func _update_launch_pad_approach_hints() -> void:
-	if is_failed or is_finished or not gameplay_active:
-		return
-	_ensure_mechanic_layout()
-	for pad in _launch_pads:
-		var pid := "approach_%s" % String(pad.get("id", ""))
-		if _mechanic_hint_warned.has(pid):
-			continue
-		var dist := float(pad.get("distance", 0.0))
-		if track_distance < dist - 24.0 or track_distance > dist - 3.0:
-			continue
-		_mechanic_hint_warned[pid] = true
-		var lane := clampi(int(pad.get("lane", 0)), -1, 1)
-		var side := _pad_lane_side_label(lane)
-		var hint := String(pad.get("hint", "")).strip_edges()
-		if hint == "":
-			if _pad_is_speed_only(pad):
-				hint = "Speed Pad · move to %s lane" % side
-			elif _pad_is_lava_launch(pad):
-				hint = "Launch Pad · move to %s lane · clear lava" % side
-			else:
-				hint = "Launch Pad · move to %s lane" % side
-		_show_gate_toast(hint)
+	pass
 
 func _attach_lift_pad_visual(parent: Node3D, plat: Dictionary, index: int) -> void:
 	var dist := float(plat.get("distance", 0.0))
@@ -11046,12 +15397,7 @@ func _attach_lift_pad_visual(parent: Node3D, plat: Dictionary, index: int) -> vo
 	_lava_platforms[index] = plat
 
 func _launch_pad_surface_text(pad: Dictionary) -> String:
-	var custom := String(pad.get("pad_text", "")).strip_edges()
-	if custom != "":
-		return custom
-	if _pad_is_speed_only(pad):
-		return "SPEEDUP"
-	return "LAUNCH"
+	return "SPEEDUP" if _pad_is_speed_only(pad) else "LAUNCH"
 
 
 func _make_launch_pad_material(albedo: Color, emission: Color, energy: float, metallic: float = 0.42, roughness: float = 0.28) -> StandardMaterial3D:
@@ -11080,9 +15426,8 @@ func _attach_launch_pad_visual(root: Node3D, pad: Dictionary) -> void:
 	# 过熔岩弹射：青白；纯加速：琥珀金，避免误认成弹射
 	var dist := float(pad.get("distance", 0.0))
 	var hd := float(pad.get("half_depth", 1.6))
-	var pad_lane := clampi(int(pad.get("lane", 0)), -1, 1)
-	var pad_lat := float(pad_lane) * LANE_WIDTH
-	var hw := LANE_WIDTH * 0.88
+	var pad_lat := _launch_pad_lane_lateral(pad)
+	var hw := _launch_pad_half_width(pad)
 	var placed := _world_on_path(dist, pad_lat, _ground_y_at(dist) + 0.05)
 	var holder := Node3D.new()
 	holder.name = "LaunchPad"
@@ -11099,13 +15444,11 @@ func _attach_launch_pad_visual(root: Node3D, pad: Dictionary) -> void:
 		glow_mat = _make_launch_pad_material(Color(1.0, 0.62, 0.12), Color(1.0, 0.72, 0.18), 2.6, 0.1, 0.18)
 		rim_mat = _make_launch_pad_material(Color(1.0, 0.9, 0.55), Color(1.0, 0.8, 0.3), 1.9, 0.08, 0.2)
 		arrow_mat = _make_launch_pad_material(Color(1.0, 0.95, 0.55), Color(1.0, 0.78, 0.15), 2.0, 0.05, 0.18)
-		hw = LANE_WIDTH * 0.72
 	else:
 		base_mat = _make_launch_pad_material(Color(0.05, 0.10, 0.16), Color(0.08, 0.42, 0.55), 0.55, 0.55, 0.38)
 		glow_mat = _make_launch_pad_material(Color(0.18, 0.82, 0.95), Color(0.22, 0.92, 1.0), 2.15, 0.12, 0.18)
 		rim_mat = _make_launch_pad_material(Color(0.95, 0.98, 1.0), Color(0.75, 0.95, 1.0), 1.8, 0.08, 0.22)
 		arrow_mat = _make_launch_pad_material(Color(1.0, 0.96, 0.72), Color(1.0, 0.82, 0.28), 1.65, 0.05, 0.2)
-		hw = LANE_WIDTH * 0.92
 	_attach_launch_pad_box(holder, Vector3(hw * 2.0, 0.20, hd * 2.0), Vector3(0.0, 0.02, 0.0), base_mat)
 	_attach_launch_pad_box(holder, Vector3(hw * 1.62, 0.05, hd * 1.58), Vector3(0.0, 0.13, 0.0), glow_mat)
 	_attach_launch_pad_box(holder, Vector3(0.08, 0.10, hd * 2.02), Vector3(-hw + 0.05, 0.10, 0.0), rim_mat)
@@ -11116,8 +15459,6 @@ func _attach_launch_pad_visual(root: Node3D, pad: Dictionary) -> void:
 		var z := -hd * 0.42 + float(i) * (hd * 0.38)
 		_attach_launch_pad_box(holder, Vector3(0.42 - float(i) * 0.06, 0.05, 0.22), Vector3(0.0, 0.17, z), arrow_mat)
 	var en := _launch_pad_surface_text(pad)
-	if en in ["", "SPEEDUP", "LAUNCH"]:
-		en = "SPEEDUP" if speed_only else "LAUNCH"
 	var pad_dist := float(pad.get("distance", 0.0))
 	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
 	var suppress_labels := pad_dist >= finish_d - 96.0
@@ -11158,16 +15499,6 @@ func _attach_launch_pad_visual(root: Node3D, pad: Dictionary) -> void:
 		hover.position = Vector3(0.0, 1.75, 0.0)
 		hover.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		holder.add_child(hover)
-		var hover_sub := Label3D.new()
-		hover_sub.text = "Step to boost" if speed_only else "Step to launch"
-		hover_sub.modulate = Color(1.0, 0.95, 0.75) if speed_only else Color(0.85, 0.95, 1.0)
-		hover_sub.font_size = 36
-		hover_sub.pixel_size = 0.011
-		hover_sub.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
-		hover_sub.outline_size = 14
-		hover_sub.position = Vector3(0.0, 1.35, 0.0)
-		hover_sub.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		holder.add_child(hover_sub)
 
 
 func _attach_launch_gap_broken_edges(pit: Vector2) -> void:
@@ -11245,7 +15576,7 @@ func _is_on_fork_branch_road(distance: float) -> bool:
 	# 岔路分支仍用主路径 distance，但角色不在主路坑/侧墙坑上
 	if _y_fork_side_at(distance) != 0:
 		return true
-	if _fork_side != 0 and not _junction_fork_region_at(distance).is_empty():
+	if _fork_side != 0 and _should_use_junction_branch_geometry(distance):
 		return true
 	return false
 
@@ -12606,7 +16937,7 @@ func _build_fork_branch_roads(
 	var spread := float(zone.get("spread", 22.0))
 	# 与主路同宽：左右岔各含完整左中右三道
 	var branch_half := _fork_branch_half_width()
-	var lead := 14.0
+	var lead := _junction_fork_lead()
 	# 全息贴图中心亮、两侧偏暗：岔路补实心底盘，避免看起来像细丝带
 	var holo_deck: Material = null
 	if _road_style_id == "holographic":
@@ -12719,12 +17050,11 @@ func _attach_fork_branch_strip(
 	var centers: Array[Vector3] = []
 	var rights: Array[Vector3] = []
 	var ds: Array[float] = []
+	var zone := {"distance": start, "length": length, "spread": spread}
 	var d := start - lead
 	var end_d := start + length + lead
 	while d <= end_d + 0.001:
-		var t := clampf((d - start) / maxf(length, 0.001), 0.0, 1.0)
-		var envelope := _fork_envelope(t)
-		var lateral := side * spread * envelope + extra_lateral * side
+		var lateral := _junction_branch_offset(d, zone, side) + extra_lateral * side
 		var sample := _sample_path(d)
 		var origin: Vector3 = sample["pos"] + (sample["right"] as Vector3) * lateral
 		origin.y = y
@@ -13403,9 +17733,13 @@ func _build_runway_edge_fillers(parent: Node3D, track_end: float) -> void:
 		d += rng.randf_range(18.0, 28.0)
 
 func _build_path_side_dressing(_theme: Dictionary) -> void:
+	if _uses_runway_dressing_collision():
+		_ensure_mechanic_layout()
 	_build_midground_dressing(_theme)
 	if _is_reservoir_location():
 		_build_reservoir_channel_dressing()
+	elif _is_gate_location():
+		_build_gate_crystal_channel_dressing()
 	else:
 		_build_near_runway_dressing(_theme)
 	if _uses_ruin_dressing():
@@ -13734,6 +18068,9 @@ func _spawn_reservoir_channel_prop(
 	else:
 		root.rotation.y = path_yaw
 	root.set_meta("path_distance", distance)
+	root.set_meta("path_lateral", lateral)
+	if _is_gate_location():
+		root.set_meta("dressing_visual_only", true)
 	var model := _add_scaled_model_visual(
 		root,
 		scene,
@@ -13757,7 +18094,123 @@ func _spawn_reservoir_channel_prop(
 		_apply_midground_meteorite_variant(root, _pick_meteorite_palette(rng, distance, lateral))
 	elif _is_reservoir_crystal_prop(asset_path):
 		_apply_reservoir_crystal_look(root, rng, distance, lateral)
+	if _is_gate_location():
+		_push_midground_base_off_runway(root, distance, lateral)
 	_disable_mesh_shadows(root)
+
+
+func _should_skip_gate_crystal_at(distance: float) -> bool:
+	if distance < START_PAD_LENGTH + 8.0:
+		return true
+	if _is_near_mechanic_pad(distance, MECHANIC_PAD_DRESSING_CLEAR):
+		return true
+	if _should_skip_gate_fork_dressing_at(distance):
+		return true
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	if distance >= finish_d - 90.0:
+		return true
+	for gap in _main_block_road_gaps():
+		if typeof(gap) == TYPE_VECTOR2 and distance >= gap.x - 6.0 and distance <= gap.y + 6.0:
+			return true
+	return false
+
+
+func _gate_crystal_launch_approach_slot(distance: float) -> bool:
+	for gap in _open_gaps:
+		if typeof(gap) != TYPE_DICTIONARY:
+			continue
+		if String(gap.get("kind", "")) != "launch":
+			continue
+		var start := float(gap.get("start", 0.0))
+		if distance >= start - 42.0 and distance <= start + 8.0:
+			return true
+	return false
+
+
+func _gate_crystal_fork_approach_slot(distance: float) -> bool:
+	var zone := _fork_zone_covering(distance, 18.0)
+	if zone.is_empty():
+		return false
+	var start := float(zone.get("distance", 0.0))
+	var length := float(zone.get("length", 70.0))
+	var t := clampf((distance - start) / maxf(length, 0.001), 0.0, 1.0)
+	if t > 0.82:
+		return false
+	return _fork_envelope(t) >= 0.08 and _fork_envelope(t) <= 0.42
+
+
+func _gate_crystal_channel_slot(distance: float) -> bool:
+	if _should_skip_gate_crystal_at(distance):
+		return false
+	if _gate_crystal_launch_approach_slot(distance):
+		return true
+	if _gate_crystal_fork_approach_slot(distance):
+		return true
+	if _is_distance_on_track_turn(distance, GATE_TURN_DRESSING_PAD + 6.0):
+		return true
+	if _path_turn_sharpness(distance) > 0.06:
+		return true
+	var turn_ahead := _path_turn_sharpness(distance + 18.0) > 0.04 or _path_turn_sharpness(distance + 32.0) > 0.04
+	if turn_ahead and int(floor(distance / 20.0)) % 3 != 2:
+		return true
+	return false
+
+
+func _build_gate_crystal_channel_dressing() -> void:
+	if not _is_gate_location():
+		return
+	_ensure_side_dressing_root()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("gate_crystal_channel_v2_" + _mission_id_str())
+	var cursor := 0.0
+	for raw in _active_track_segments():
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var seg: Dictionary = raw
+		var length := float(seg.get("length", 0.0))
+		if absf(float(seg.get("turn", 0.0))) > 0.08:
+			var td := cursor + 4.0
+			var turn_end := cursor + length - 4.0
+			while td < turn_end:
+				if not _should_skip_gate_crystal_at(td):
+					_spawn_gate_crystal_tree_arch(td, rng)
+				td += rng.randf_range(7.5, 11.5)
+		cursor += length
+	var track_end := maxf(_path_length, _track_length) - 16.0
+	var d := START_PAD_LENGTH + 12.0
+	while d < track_end:
+		if _gate_crystal_channel_slot(d):
+			_spawn_gate_crystal_tree_arch(d, rng)
+			d += rng.randf_range(12.0, 18.0)
+		else:
+			d += rng.randf_range(6.0, 10.0)
+
+
+func _spawn_gate_crystal_tree_arch(distance: float, rng: RandomNumberGenerator) -> void:
+	for side: float in [-1.0, 1.0]:
+		if rng.randf() < 0.02:
+			continue
+		_spawn_reservoir_channel_prop(
+			distance + rng.randf_range(-0.8, 0.8),
+			side,
+			RESERVOIR_CHANNEL_CORAL,
+			rng.randf_range(7.4, 10.2),
+			rng.randf_range(2.6, 3.4),
+			rng.randf_range(28.0, 38.0),
+			2.4,
+			rng
+		)
+		_spawn_reservoir_channel_prop(
+			distance + 2.2 + rng.randf_range(-0.5, 0.5),
+			side,
+			RESERVOIR_CHANNEL_TREE,
+			rng.randf_range(11.0, 15.2),
+			rng.randf_range(3.8, 5.2),
+			rng.randf_range(20.0, 30.0),
+			3.8,
+			rng
+		)
+
 
 func _build_midground_dressing(_theme: Dictionary) -> void:
 	_ensure_midground_prop_paths()
@@ -13790,6 +18243,8 @@ func _midground_density_scale() -> float:
 			base = 0.88
 		_:
 			base = 1.0
+	if _is_medical_location():
+		base = maxf(base, 0.96 if _is_emergency_run else 0.92)
 	if _uses_ruin_dressing():
 		base *= 1.10
 	if _is_relay_mission():
@@ -13815,11 +18270,14 @@ func _build_near_runway_dressing(_theme: Dictionary) -> void:
 		planet_key = String(LevelConfig.get_planet_id())
 	var track_end := maxf(_path_length, _track_length) + 48.0
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(planet_key + "_near_runway_v2_" + String(Global.runner_location_id) + "_" + String(Global.runner_mission_id))
+	rng.seed = hash(planet_key + "_near_runway_v3_" + String(Global.runner_location_id) + "_" + String(Global.runner_mission_id))
 	var d := START_PAD_LENGTH + 14.0
 	while d < track_end - 24.0:
 		if _should_skip_midground_at(d):
 			d += rng.randf_range(8.0, 12.0)
+			continue
+		if _is_near_mechanic_pad(d, MECHANIC_PAD_DRESSING_CLEAR):
+			d += rng.randf_range(12.0, 18.0)
 			continue
 		var path := ""
 		if _should_pick_environment_pack_v2(rng):
@@ -13832,7 +18290,12 @@ func _build_near_runway_dressing(_theme: Dictionary) -> void:
 		if _is_gate_location() and _is_runway_wrapping_prop(path):
 			d += rng.randf_range(10.0, 16.0)
 			continue
-		if _is_reservoir_location() and ("purifier" in path.to_lower() or "coral" in path.to_lower()):
+		if _is_reservoir_location() and (
+			"purifier" in path.to_lower()
+			or "coral" in path.to_lower()
+			or _is_bulky_near_runway_prop(path)
+		):
+			# 大型净化器/挖掘机/广告牌不进近景；弯道外也避免扫进三道
 			d += rng.randf_range(14.0, 22.0)
 			continue
 		var side := -1.0 if rng.randf() > 0.5 else 1.0
@@ -13848,44 +18311,55 @@ func _build_near_runway_dressing(_theme: Dictionary) -> void:
 				height = rng.randf_range(2.4, 4.0)
 			else:
 				height = rng.randf_range(1.9, 3.2)
-		elif _is_reservoir_location():
-			lateral = side * rng.randf_range(13.6, 17.2)
-			if "purifier" in path.to_lower() or "coral" in path.to_lower():
-				height = rng.randf_range(8.8, 13.5)
-			elif "meteorite" in path.to_lower():
-				height = rng.randf_range(6.4, 10.5)
-			else:
-				height = rng.randf_range(1.6, 2.6)
-	elif _is_gate_location() or _is_medical_location():
-		var block_slot := int(floor(d / 18.0))
-		if _is_bulky_near_runway_prop(path):
-			if block_slot % 4 == 3:
-				d += rng.randf_range(8.0, 14.0)
-				continue
-			side = -1.0 if block_slot % 2 == 0 else 1.0
-			lateral = side * rng.randf_range(4.6, 7.0)
-			height = rng.randf_range(2.0, 3.0)
-		else:
-			if block_slot % 3 == 0:
-				side = -1.0
-				lateral = rng.randf_range(-6.2, -3.6)
-			elif block_slot % 3 == 1:
-				side = 1.0
-				lateral = rng.randf_range(3.6, 6.2)
-			else:
-				lateral = side * rng.randf_range(5.0, 8.0)
-			height = rng.randf_range(1.6, 2.6)
-		if _is_gate_location():
+		elif _is_reservoir_location() or _is_dome_location():
+			var road_edge := _holographic_road_half() + 2.2
+			lateral = side * rng.randf_range(road_edge + 1.4, road_edge + 4.0)
 			lateral = _gate_dressing_lateral_outside_runway(d, side, absf(lateral), rng)
-		elif _is_medical_location():
-			lateral = side * clampf(absf(lateral), 3.8, 7.8)
+			if absf(lateral) < road_edge + 0.8:
+				lateral = signf(side) * (road_edge + 0.8)
+			if "meteorite" in path.to_lower():
+				height = rng.randf_range(2.4, 3.8)
+			else:
+				height = rng.randf_range(1.5, 2.5)
+		elif _is_gate_location() or _is_medical_location():
+			var block_slot := int(floor(d / 18.0))
+			# 医疗/哨站：建筑必须完全在全息路外侧，禁止占道导致穿模
+			var road_edge := _holographic_road_half() + (1.5 if _is_medical_location() else 1.8)
+			if _is_medical_location() and _is_runway_wrapping_prop(path):
+				d += rng.randf_range(10.0, 16.0)
+				continue
+			if _is_bulky_near_runway_prop(path):
+				if block_slot % 4 == 3:
+					d += rng.randf_range(8.0, 14.0)
+					continue
+				side = -1.0 if block_slot % 2 == 0 else 1.0
+				lateral = side * rng.randf_range(road_edge + 1.2, road_edge + 3.8)
+				height = rng.randf_range(2.0, 3.0)
+			else:
+				if block_slot % 3 == 0:
+					side = -1.0
+					lateral = -rng.randf_range(road_edge + 0.8, road_edge + 3.2)
+				elif block_slot % 3 == 1:
+					side = 1.0
+					lateral = rng.randf_range(road_edge + 0.8, road_edge + 3.2)
+				else:
+					lateral = side * rng.randf_range(road_edge + 1.0, road_edge + 3.6)
+				height = rng.randf_range(1.6, 2.6)
+			if _is_gate_location() or _is_medical_location():
+				lateral = _gate_dressing_lateral_outside_runway(d, side, absf(lateral), rng)
+				# 再夹一次：非分叉段也不许压进路缘
+				var min_out := road_edge + 0.6
+				if absf(lateral) < min_out:
+					lateral = signf(lateral if absf(lateral) > 0.01 else side) * min_out
 		elif "purifier" in path.to_lower() or "coral" in path.to_lower():
 			height = rng.randf_range(2.2, 3.4)
 		if "pod" in path.to_lower() and not _is_reservoir_location() and not _is_gate_location():
 			height = rng.randf_range(1.8, 2.8)
-		_spawn_midground_prop(d, lateral, path, height, rng, 0.85, _uses_runway_dressing_collision())
+		_spawn_midground_prop(d, lateral, path, height, rng, 0.85, true)
 		if _is_relay_mission():
 			d += rng.randf_range(11.0, 18.0)
+		elif _is_medical_location() or _is_reservoir_location() or _is_dome_location():
+			d += rng.randf_range(10.0, 15.0)
 		else:
 			d += rng.randf_range(14.0, 22.0)
 
@@ -14064,6 +18538,13 @@ func _build_midground_dressing_pass(
 				# 中景带：介于近景路缘与远景地平线之间
 				lat_min = 16.0
 				lat_max = 26.0
+			if _is_gate_location() or _is_medical_location():
+				lat_min = maxf(lat_min, 11.5 if _is_medical_location() else 10.5)
+				lat_max = maxf(lat_max, 16.5 if _is_medical_location() else 15.0)
+			if _is_reservoir_location() or _is_dome_location():
+				# 大型水晶/净化器也必须整座在路外，弯道外直道同样防扫进三道
+				lat_min = maxf(lat_min, _holographic_road_half() + 5.5)
+				lat_max = maxf(lat_max, lat_min + 3.5)
 			if _is_midground_neon_sign(asset_path):
 				if side < 0.0:
 					lat_min = 17.5
@@ -14086,7 +18567,9 @@ func _build_midground_dressing_pass(
 				if side_i > 0:
 					offset_d += rng.randf_range(1.5, 5.0)
 				var offset_lat := lateral + float(ci - cluster_count * 0.5) * rng.randf_range(0.8, 1.6)
-				if _is_gate_location():
+				if _is_gate_location() or _is_medical_location():
+					offset_lat = _gate_dressing_lateral_outside_runway(offset_d, side, absf(offset_lat), rng)
+				elif _is_reservoir_location() or _is_dome_location():
 					offset_lat = _gate_dressing_lateral_outside_runway(offset_d, side, absf(offset_lat), rng)
 				var target_h := _midground_target_height(rng, asset_path, side, spec)
 				if _spawn_midground_prop(
@@ -14546,6 +19029,16 @@ func _should_skip_distant_at(distance: float) -> bool:
 func _should_skip_midground_at(distance: float) -> bool:
 	if distance < START_PAD_LENGTH + 4.0:
 		return true
+	if _is_gate_location() or _is_medical_location():
+		if _is_distance_on_track_turn(distance, GATE_TURN_DRESSING_PAD):
+			return true
+		if _is_near_mechanic_pad(distance, MECHANIC_PAD_DRESSING_CLEAR):
+			return true
+		if _should_skip_gate_fork_dressing_at(distance):
+			return true
+	# 水源/穹顶：弯道禁止近中景建筑，避免曲率下建筑扫进跑道穿模
+	if (_is_reservoir_location() or _is_dome_location()) and _is_distance_on_track_turn(distance, GATE_TURN_DRESSING_PAD):
+		return true
 	if _is_gate_location():
 		# 分叉段改把近/中景推到岔路外侧，不再整段不刷
 		if not _y_fork_region_at(distance).is_empty():
@@ -14618,13 +19111,26 @@ func _spawn_midground_prop(
 	else:
 		root.rotation.y = path_yaw if channel else path_yaw + rng.randf_range(-0.42, 0.42)
 	root.set_meta("path_distance", distance)
+	root.set_meta("path_lateral", lateral)
+	if _is_gate_location() or _is_medical_location():
+		root.set_meta("dressing_visual_only", true)
+	elif _is_reservoir_location() or _is_dome_location():
+		root.set_meta("dressing_visual_only", true)
+	elif near_runway:
+		root.set_meta("near_runway_dressing", true)
+	var runway_edge := (
+		_is_gate_location()
+		or _is_medical_location()
+		or _is_reservoir_location()
+		or _is_dome_location()
+	)
 	var preferred_fp := clampf(target_height * 1.15, 1.8, 4.2)
 	if is_neon:
 		preferred_fp = clampf(target_height * 1.05, 1.8, 3.6)
-	if _uses_runway_dressing_collision() and near_runway:
-		preferred_fp = clampf(target_height * 1.35, 2.8, 5.2)
+	if runway_edge or (_uses_runway_dressing_collision() and near_runway):
+		preferred_fp = clampf(target_height * 1.28, 2.4, 4.6)
 	var footprint := -1.0 if channel else _midground_safe_footprint(lateral, preferred_fp)
-	if _uses_runway_dressing_collision() and near_runway:
+	if runway_edge or (_uses_runway_dressing_collision() and near_runway):
 		footprint = _gate_near_safe_footprint(lateral, preferred_fp)
 	var model := _add_scaled_model_visual(
 		root,
@@ -14645,10 +19151,15 @@ func _spawn_midground_prop(
 		_resit_midground_on_ground(root, 1.05)
 		_push_midground_base_off_runway(root, distance, lateral)
 		_resit_midground_on_ground(root, 1.05)
+		# 倾斜后整座 AABB 可能再次扫进跑道，再推一次
+		if _is_reservoir_location() or _is_dome_location():
+			_keep_dressing_prop_clear_runway(root, distance, lateral, true)
 	elif not _is_wide_midground_prop(asset_path):
 		_enforce_midground_min_size(model, target_height)
 		_clamp_midground_footprint(model, footprint)
 	elif _uses_runway_dressing_collision() and near_runway:
+		_clamp_midground_footprint(model, footprint if footprint > 0.0 else 5.5)
+	elif runway_edge:
 		_clamp_midground_footprint(model, footprint if footprint > 0.0 else 5.5)
 	elif _is_gate_location():
 		_clamp_midground_footprint(model, footprint if footprint > 0.0 else 8.0)
@@ -14660,8 +19171,8 @@ func _spawn_midground_prop(
 	elif _is_relay_mission():
 		var depth_tier := 2 if _is_wide_midground_prop(asset_path) else 1
 		_apply_relay_nightscape_look(root, depth_tier)
-	if _uses_runway_dressing_collision():
-		_keep_dressing_prop_clear_runway(root, distance, lateral, near_runway)
+	if _uses_runway_dressing_collision() or runway_edge:
+		_keep_dressing_prop_clear_runway(root, distance, lateral, true)
 	_disable_mesh_shadows(root)
 	return true
 
@@ -14964,16 +19475,23 @@ func _gate_dressing_lateral_outside_runway(
 	rng: RandomNumberGenerator
 ) -> float:
 	var sign_v := 1.0 if side >= 0.0 else -1.0
+	var min_out := preferred_abs
+	if _is_medical_location():
+		min_out = maxf(preferred_abs, _holographic_road_half() + 1.85)
+	elif _is_reservoir_location() or _is_dome_location():
+		min_out = maxf(preferred_abs, _holographic_road_half() + 2.4)
+	elif _is_gate_location():
+		min_out = maxf(preferred_abs, _holographic_road_half() + 1.6)
 	var zone := _fork_zone_covering(distance, 16.0)
 	if zone.is_empty():
-		return sign_v * preferred_abs
+		return sign_v * min_out
 	var envelope := _fork_envelope_at_distance(distance, zone)
 	var spread := float(zone.get("spread", 17.0))
 	var branch_half := _fork_branch_half_width()
 	var outer := spread * envelope + branch_half
 	if outer < 7.2:
-		return sign_v * maxf(preferred_abs, 9.2)
-	var abs_lat := rng.randf_range(outer + 1.6, outer + 4.6)
+		return sign_v * maxf(min_out, 9.2)
+	var abs_lat := rng.randf_range(maxf(outer + 1.6, min_out), maxf(outer + 4.6, min_out + 2.0))
 	return sign_v * abs_lat
 
 
@@ -14984,9 +19502,17 @@ func _is_channel_midground_prop(path: String) -> bool:
 func _apply_reservoir_channel_lean(root: Node3D, lateral: float, rng: RandomNumberGenerator, asset_path: String = "") -> void:
 	if root == null:
 		return
-	var lean := deg_to_rad(rng.randf_range(6.0, 14.0))
+	# 弯道附近不再大幅倾斜，避免高大建筑扫进跑道
+	var lean_max := 14.0
+	var lean_min := 6.0
 	if _is_midground_meteorite(asset_path):
-		lean = deg_to_rad(rng.randf_range(3.0, 9.0))
+		lean_min = 3.0
+		lean_max = 9.0
+	var dist := float(root.get_meta("path_distance", -1.0))
+	if dist >= 0.0 and _is_distance_on_track_turn(dist, GATE_TURN_DRESSING_PAD + 8.0):
+		lean_min = 1.0
+		lean_max = 4.0
+	var lean := deg_to_rad(rng.randf_range(lean_min, lean_max))
 	var yaw := root.rotation.y
 	var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
 	root.rotate(forward, lean * (-1.0 if lateral > 0.0 else 1.0))
@@ -15073,10 +19599,16 @@ func _midground_safe_footprint(lateral: float, preferred: float) -> float:
 
 
 func _gate_near_safe_footprint(lateral: float, preferred: float) -> float:
+	# 医疗：整条全息路三道都留空；哨站仍允许外道略贴边形成通道
+	if _is_medical_location():
+		var road_half := _holographic_road_half() if _road_style_id == "holographic" else 6.0
+		var keep := road_half + 0.85
+		var edge_room := maxf(absf(lateral) - keep, 1.6)
+		return clampf(minf(preferred, edge_room * 0.95), 1.8, 3.6)
 	# 外道可被挡住形成通道，中道 |lat|<2.45 必须留空
-	var keep := 2.45
-	var edge_room := maxf(absf(lateral) - keep, 2.2)
-	return clampf(minf(preferred, edge_room * 1.12), 2.6, 5.5)
+	var keep_center := 2.45
+	var edge_room2 := maxf(absf(lateral) - keep_center, 2.2)
+	return clampf(minf(preferred, edge_room2 * 1.12), 2.6, 5.5)
 
 
 func _gate_blocked_lane_count(lat_min: float, lat_max: float) -> int:
@@ -15088,12 +19620,21 @@ func _gate_blocked_lane_count(lat_min: float, lat_max: float) -> int:
 	return count
 
 
+func _dressing_blocks_center_lane(lat_min: float, lat_max: float) -> bool:
+	return lat_min <= LANE_HIT_HALF_WIDTH and lat_max >= -LANE_HIT_HALF_WIDTH
+
+
 func _dressing_encroaches_lanes(lat_min: float, lat_max: float) -> bool:
 	return _gate_blocked_lane_count(lat_min, lat_max) > 0
 
 
 func _register_dressing_collider(root: Node3D, distance: float, layer: int = 0) -> void:
 	if root == null or not _uses_runway_dressing_collision():
+		return
+	if bool(root.get_meta("dressing_visual_only", false)):
+		return
+	var near_runway := bool(root.get_meta("near_runway_dressing", false))
+	if not near_runway:
 		return
 	if _dressing_collider_exists(root):
 		return
@@ -15103,6 +19644,8 @@ func _register_dressing_collider(root: Node3D, distance: float, layer: int = 0) 
 	var origin: Vector3 = sample["pos"]
 	var extents := _dressing_lateral_extents(root, origin, right)
 	if extents == Vector2.ZERO:
+		if near_runway:
+			root.queue_free()
 		return
 	var lat_min := extents.x
 	var lat_max := extents.y
@@ -15111,7 +19654,7 @@ func _register_dressing_collider(root: Node3D, distance: float, layer: int = 0) 
 	var side := 1.0 if (lat_min + lat_max) * 0.5 >= 0.0 else -1.0
 	if layer == 0:
 		var push_attempts := 0
-		while _gate_blocked_lane_count(lat_min, lat_max) >= 3 and push_attempts < 8:
+		while _gate_blocked_lane_count(lat_min, lat_max) >= 3 and push_attempts < 10:
 			root.global_position += right * side * 0.75
 			root.force_update_transform()
 			extents = _dressing_lateral_extents(root, origin, right)
@@ -15119,7 +19662,20 @@ func _register_dressing_collider(root: Node3D, distance: float, layer: int = 0) 
 			lat_max = extents.y
 			push_attempts += 1
 		if _gate_blocked_lane_count(lat_min, lat_max) >= 3:
+			root.queue_free()
 			return
+		if near_runway and _dressing_blocks_center_lane(lat_min, lat_max):
+			var center_push := 0
+			while _dressing_blocks_center_lane(lat_min, lat_max) and center_push < 10:
+				root.global_position += right * side * 0.65
+				root.force_update_transform()
+				extents = _dressing_lateral_extents(root, origin, right)
+				lat_min = extents.x
+				lat_max = extents.y
+				center_push += 1
+			if _dressing_blocks_center_lane(lat_min, lat_max):
+				root.queue_free()
+				return
 	var half_depth := 3.8
 	var bounds := _compute_node_aabb(root)
 	if bounds.size.z > 0.5:
@@ -15157,6 +19713,23 @@ func _finalize_dressing_colliders() -> void:
 		return
 	if _side_dressing_root == null or not is_instance_valid(_side_dressing_root):
 		return
+	# 清掉误注册的水晶树/通道装饰碰撞（旧存档热重载时可能残留）
+	var kept: Array[Dictionary] = []
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			kept.append(obstacle)
+			continue
+		if String(obstacle.get("type", "")) != "dressing_block":
+			kept.append(obstacle)
+			continue
+		var root := obstacle.get("node") as Node3D
+		if root != null and is_instance_valid(root):
+			if bool(root.get_meta("dressing_visual_only", false)):
+				continue
+			if not bool(root.get_meta("near_runway_dressing", false)):
+				continue
+		kept.append(obstacle)
+	obstacles = kept
 	for child in _side_dressing_root.get_children():
 		var root := child as Node3D
 		if root == null:
@@ -15198,8 +19771,18 @@ func _keep_dressing_prop_clear_runway(
 	var sample := _sample_path(distance)
 	var right: Vector3 = sample["right"]
 	var origin: Vector3 = sample["pos"]
-	var keep := 2.45
-	var max_span := 5.8 if near_runway else 12.0
+	var keep := 3.15 if (_is_gate_location() or _is_medical_location()) else 2.45
+	if _is_medical_location():
+		# 医疗：清出整幅全息路，避免建筑压进三道导致只能穿模跑
+		keep = _holographic_road_half() + 0.95
+	elif _is_reservoir_location() or _is_dome_location():
+		# 水源/穹顶：同样清出全息路；弯道曲率下再多留一点
+		keep = _holographic_road_half() + (1.35 if _is_distance_on_track_turn(distance, 18.0) else 1.05)
+	var max_span := 5.2 if near_runway else 12.0
+	if _is_medical_location() and near_runway:
+		max_span = 4.2
+	elif (_is_reservoir_location() or _is_dome_location()) and near_runway:
+		max_span = 4.4
 	var extents := _dressing_lateral_extents(root, origin, right)
 	if extents == Vector2.ZERO:
 		return
@@ -15234,11 +19817,17 @@ func _keep_dressing_prop_clear_runway(
 	if extra > 0.04:
 		root.global_position += right * side * extra
 		root.force_update_transform()
-	if _uses_runway_dressing_collision() and near_runway:
+	if (
+		(_uses_runway_dressing_collision() or _is_medical_location() or _is_reservoir_location() or _is_dome_location())
+		and near_runway
+	):
 		extents = _dressing_lateral_extents(root, origin, right)
 		var lane_push := 0
-		while _gate_blocked_lane_count(extents.x, extents.y) >= 3 and lane_push < 8:
-			root.global_position += right * side * 0.75
+		var max_block := 0 if (
+			_is_medical_location() or _is_reservoir_location() or _is_dome_location()
+		) else 2
+		while _gate_blocked_lane_count(extents.x, extents.y) > max_block and lane_push < 10:
+			root.global_position += right * side * 0.85
 			root.force_update_transform()
 			extents = _dressing_lateral_extents(root, origin, right)
 			lane_push += 1
@@ -16124,10 +20713,17 @@ func _finish_sprint_entries() -> Array:
 
 func _build_finish_sprint_pads() -> void:
 	_finish_sprint_pads.clear()
+	var finish_d := _finish_line_distance if _finish_line_distance > 0.0 else maxf(_track_length - FINISH_GATE_BEFORE_END, 80.0)
+	# 至少留出冲刺距离，避免「到终点门了才出现 SPEED UP」
+	var latest_ok := finish_d - 95.0
 	for raw in _finish_sprint_entries():
 		if typeof(raw) != TYPE_DICTIONARY:
 			continue
 		var dist := float(raw.get("distance", 0.0))
+		if dist < 40.0:
+			continue
+		if dist > latest_ok:
+			dist = latest_ok
 		if dist < 40.0:
 			continue
 		var lane := int(raw.get("lane", 0))
@@ -16251,12 +20847,8 @@ func _add_choice_gate_banner(parent: Node3D, accent: Color, label: String, effec
 	parent.add_child(board)
 	var tag := _fork_ground_tag(effect, is_left)
 	var tip := Label3D.new()
-	tip.text = "%s\n%s\n%s\n%s" % [
-		tag,
-		"←" if is_left else "→",
-		label,
-		_choice_gate_effect_hint(effect),
-	]
+	# 分叉门板：REGULAR / SPEEDUP / BONUS + 箭头（不挂额外中文说明）
+	tip.text = "%s\n%s" % [tag, "←" if is_left else "→"]
 	tip.font_size = 56 if effect == "fast" else 46
 	tip.pixel_size = 0.012
 	var is_speed := effect == "fast"
@@ -16414,7 +21006,7 @@ func _add_choice_gate_arch(parent: Node3D, accent: Color, label: String, effect:
 	parent.add_child(panel)
 	var tip := Label3D.new()
 	var ground_tag := _fork_ground_tag(effect, effect in ["repair", "safe"])
-	tip.text = "%s\n%s\n%s" % [ground_tag, label, _choice_gate_effect_hint(effect)]
+	tip.text = ground_tag
 	tip.font_size = 46 if effect == "fast" else 40
 	tip.modulate = accent.lightened(0.25)
 	tip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -17157,7 +21749,10 @@ func _build_train(root: Node3D, item: Dictionary, moving: bool) -> void:
 	root.set_meta("blade_top", gate_h)
 	root.set_meta("has_wave_blade", true)
 	_add_train_wave_blade(root, span)
-	if _runner_layout_id() == "":
+	if _uses_wave_gate_buffs():
+		# 门内奖励在 _inject_gate_wave_gate_buffs / spawn 时挂接
+		pass
+	elif _runner_layout_id() == "":
 		var train_d := float(item.get("distance", 0.0))
 		if train_d <= _last_hazard_end_distance():
 			_ensure_train_gate_buff_visual(root)
@@ -17221,42 +21816,213 @@ func _disable_runner_glb_shadows(root: Node) -> void:
 	for child in root.get_children():
 		_disable_runner_glb_shadows(child)
 
+func _start_wraith_block_idle_anim(model: Node3D, phase_seed: float = 0.0, prefer_pose: String = "angry") -> void:
+	if model == null:
+		return
+	var anim_player := _find_animation_player(model)
+	if anim_player == null:
+		return
+	var anim_name := ""
+	var names := anim_player.get_animation_list()
+	if names.is_empty():
+		return
+	var prefer := prefer_pose.strip_edges().to_lower()
+	if prefer == "":
+		prefer = "angry"
+	# 先精确匹配姿态动画（angry / heart），再回落其它非 run 片段
+	var prefer_keys: Array[String] = [prefer]
+	if prefer in ["heart", "capture", "capture_heart", "比心"]:
+		prefer_keys = ["heart", "capture", "比心"]
+	elif prefer == "angry":
+		prefer_keys = ["angry", "intro"]
+	for key in prefer_keys:
+		for candidate in names:
+			var lower := String(candidate).to_lower()
+			if "run" in lower:
+				continue
+			if key in lower:
+				anim_name = String(candidate)
+				break
+		if anim_name != "":
+			break
+	if anim_name == "":
+		for candidate in names:
+			var lower2 := String(candidate).to_lower()
+			if "run" in lower2:
+				continue
+			if "angry" in lower2 or "intro" in lower2 or "heart" in lower2 or "capture" in lower2 or "idle" in lower2:
+				anim_name = String(candidate)
+				break
+	if anim_name == "":
+		for candidate in names:
+			if "run" not in String(candidate).to_lower():
+				anim_name = String(candidate)
+				break
+	if anim_name == "":
+		anim_name = String(names[0])
+	var anim := anim_player.get_animation(anim_name)
+	if anim != null:
+		anim.loop_mode = Animation.LOOP_LINEAR
+		_sanitize_run_animation_root_motion(anim)
+	anim_player.play(anim_name)
+	var len := anim.length if anim != null else 1.0
+	if len > 0.05:
+		anim_player.seek(fmod(absf(phase_seed), len), true)
+	anim_player.speed_scale = 0.92 if prefer == "angry" else 0.78
+
+
+func _wraith_block_model_path_for_pose(pose: String) -> String:
+	var key := pose.strip_edges().to_lower()
+	if key in ["heart", "capture", "capture_heart", "比心"]:
+		return WRAITH_HEART_GLB
+	return WRAITH_BLOCK_GLB
+
+
+func _face_wraith_model_to_runner(model: Node3D) -> void:
+	# 与追逐异能怪同约定：-Z 朝 runner，再补 PI 对齐 GLB +Z 朝前
+	if model == null or player == null or not is_instance_valid(player):
+		return
+	var to_player: Vector3 = player.global_position - model.global_position
+	to_player.y = 0.0
+	if to_player.length_squared() < 0.04:
+		return
+	var face_yaw := atan2(-to_player.x, -to_player.z) + PI
+	var parent := model.get_parent() as Node3D
+	var parent_yaw := parent.global_rotation.y if parent != null else 0.0
+	model.rotation.y = face_yaw - parent_yaw
+
+
 func _build_wraith_block(root: Node3D, item: Dictionary) -> void:
 	var holder := Node3D.new()
 	holder.name = "WraithBlockVisual"
 	root.add_child(holder)
-	var model := _load_runner_glb(WRAITH_BLOCK_GLB)
+	var static_placeholder := bool(item.get("static_placeholder", _is_gate_location()))
+	var force_anim := bool(item.get("force_anim", false))
+	var is_choice := bool(item.get("wraith_choice", false))
+	var size_mult := WRAITH_CHOICE_HEIGHT_MULT if is_choice else 1.0
+	var block_height := WRAITH_BLOCK_HEIGHT * size_mult
+	var pose := String(item.get("wraith_pose", "angry")).strip_edges().to_lower()
+	if pose == "":
+		pose = "angry"
+	holder.set_meta("wraith_idle_life", true)
+	holder.set_meta(
+		"wraith_idle_phase",
+		float(item.get("distance", 0.0)) * 0.37
+		+ float(item.get("wraith_choice_lateral", float(item.get("lane", 0)) * LANE_WIDTH)) * 0.31
+	)
+	holder.set_meta("wraith_pose", pose)
+	holder.set_meta("wraith_force_anim", force_anim)
+	# 接地底座：减少「飘在路面上」的违和感
+	var base := MeshInstance3D.new()
+	base.name = "WraithPedestal"
+	var base_mesh := CylinderMesh.new()
+	base_mesh.top_radius = 0.62 * size_mult
+	base_mesh.bottom_radius = 0.78 * size_mult
+	base_mesh.height = 0.14 * size_mult
+	var base_mat := StandardMaterial3D.new()
+	base_mat.albedo_color = Color(0.04, 0.06, 0.11)
+	base_mat.metallic = 0.55
+	base_mat.roughness = 0.72
+	base_mesh.material = base_mat
+	base.mesh = base_mesh
+	base.position.y = 0.07
+	base.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	holder.add_child(base)
+	if not is_choice:
+		var ring := MeshInstance3D.new()
+		ring.name = "WraithGroundRing"
+		var ring_mesh := TorusMesh.new()
+		ring_mesh.inner_radius = 0.52 * size_mult
+		ring_mesh.outer_radius = 0.68 * size_mult
+		ring_mesh.rings = 10
+		ring_mesh.ring_segments = 18
+		var ring_mat := StandardMaterial3D.new()
+		ring_mat.albedo_color = Color(0.22, 0.08, 0.34, 0.62)
+		ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		ring_mat.emission_enabled = true
+		ring_mat.emission = Color(0.55, 0.22, 0.92)
+		ring_mat.emission_energy_multiplier = 0.85 if static_placeholder and not force_anim else 1.05
+		ring_mesh.material = ring_mat
+		ring.mesh = ring_mesh
+		ring.material_override = ring_mat
+		ring.rotation_degrees.x = 90.0
+		ring.position.y = 0.03
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(ring)
+	# 静态路障不加半透明光罩/点光（近处再靠材质自发光撑氛围）
+	if not static_placeholder or force_anim:
+		var aura := MeshInstance3D.new()
+		aura.name = "WraithIdleAura"
+		var aura_mesh := SphereMesh.new()
+		aura_mesh.radius = 0.78 * size_mult
+		aura_mesh.height = 2.35 * size_mult
+		var aura_mat := StandardMaterial3D.new()
+		aura_mat.albedo_color = Color(0.28, 0.08, 0.48, 0.16)
+		aura_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		aura_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		aura_mat.emission_enabled = true
+		aura_mat.emission = Color(0.48, 0.18, 0.85)
+		aura_mat.emission_energy_multiplier = 0.55
+		aura_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		aura_mesh.material = aura_mat
+		aura.mesh = aura_mesh
+		aura.material_override = aura_mat
+		aura.position = Vector3(0.0, 1.15, 0.0)
+		aura.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(aura)
+	# 只用 angry / 比心 GLB，并播对应动画片段（非定格姿势）
+	var model_path := _wraith_block_model_path_for_pose(pose)
+	var model := _load_runner_glb(model_path)
+	if model == null and model_path != WRAITH_BLOCK_GLB:
+		model = _load_runner_glb(WRAITH_BLOCK_GLB)
 	if model == null:
 		model = _load_runner_glb(WRAITH_BLOCK_GLB_FALLBACK)
 	if model == null:
 		var fallback := MeshInstance3D.new()
 		fallback.name = "MissingFallback"
 		var box := BoxMesh.new()
-		box.size = Vector3(1.05, WRAITH_BLOCK_HEIGHT, 0.88)
-		var mat := _make_material(Color(0.12, 0.05, 0.22), Color(0.55, 0.22, 0.88), 2.4)
+		box.size = Vector3(1.05 * size_mult, block_height, 0.88 * size_mult)
+		var mat := _make_material(Color(0.12, 0.05, 0.22), Color(0.55, 0.22, 0.88), 2.2)
 		box.material = mat
 		fallback.mesh = box
-		fallback.position.y = WRAITH_BLOCK_HEIGHT * 0.5
+		fallback.position.y = block_height * 0.5 + 0.08
 		holder.add_child(fallback)
+		holder.set_meta("wraith_model_path", "MissingFallback")
 	else:
+		model.name = "WraithModel"
 		_disable_runner_glb_shadows(model)
-		_fit_runner_glb_height(model, WRAITH_BLOCK_HEIGHT)
-		var face := String(item.get("face", "front")).strip_edges()
-		model.rotation_degrees.y = 0.0 if face == "back" else 180.0
+		_fit_runner_glb_height(model, block_height * (0.94 if static_placeholder and not force_anim else 1.0))
+		model.position.y = 0.08
 		holder.add_child(model)
-	var light := OmniLight3D.new()
-	light.name = "WraithBlockLight"
-	light.light_color = Color(0.42, 0.22, 0.72)
-	light.light_energy = 0.65
-	light.omni_range = 5.5
-	light.shadow_enabled = false
-	light.position = Vector3(0.0, WRAITH_BLOCK_HEIGHT * 0.72, 0.35)
-	holder.add_child(light)
+		holder.set_meta("wraith_model_base_y", model.position.y)
+		holder.set_meta("wraith_model_path", "WraithModel")
+		model.rotation.y = 0.0
+		_face_wraith_model_to_runner(model)
+		_start_wraith_block_idle_anim(model, float(holder.get_meta("wraith_idle_phase", 0.0)), pose)
+		var ap := _find_animation_player(model)
+		# 开局展示怪：持续播 angry 动画；其它静态路障靠近再播
+		if ap != null and static_placeholder and not force_anim:
+			ap.speed_scale = 0.0
+			holder.set_meta("wraith_anim_active", false)
+		else:
+			holder.set_meta("wraith_anim_active", true)
+	if not static_placeholder:
+		var light := OmniLight3D.new()
+		light.name = "WraithBlockLight"
+		light.light_color = Color(0.48, 0.24, 0.82)
+		light.light_energy = 0.65
+		light.omni_range = 5.5
+		light.shadow_enabled = false
+		light.position = Vector3(0.0, block_height * 0.72, 0.35)
+		holder.add_child(light)
 	root.set_meta("obstacle_asset_path", "wraith_block")
-	root.set_meta("prop_clear_height", GROUND_Y + WRAITH_BLOCK_HEIGHT + 0.08)
+	root.set_meta("prop_clear_height", GROUND_Y + block_height + 0.08)
 	root.set_meta("prop_hit_half_width", LANE_HIT_HALF_WIDTH_JUMP * 1.02)
 	root.set_meta("prop_half_depth", 0.72)
-	_add_ground_contact_shadow(root, 1.05, 1.18)
+	_add_ground_contact_shadow(root, 1.05 * size_mult, 1.18 * size_mult)
+	if is_choice:
+		for vis in holder.find_children("*", "MeshInstance3D", true, false):
+			(vis as GeometryInstance3D).sorting_offset = 2.0
 
 func _resolve_train_gate_scene() -> PackedScene:
 	var scene := _load_runner_scene(TRAIN_GATE_SCENE_PATH, false)
@@ -17299,15 +22065,7 @@ func _add_train_gate_visual(parent: Node3D, span: float, gate_h: float) -> Node3
 	parent.set_meta("train_gate_asset_path", "train_wave_gate")
 	_add_train_gate_frame_pillars(holder, span, gate_h)
 	_add_train_gate_wave_field(holder, span, gate_h)
-	var display := Label3D.new()
-	display.name = "TrainGateDisplay"
-	display.text = "$ 000"
-	display.font_size = 56
-	display.modulate = Color(0.92, 0.98, 1.0, 0.92)
-	display.outline_size = 8
-	display.outline_modulate = Color(0.05, 0.12, 0.22, 0.95)
-	display.position = Vector3(0.0, gate_h * 0.58, 0.18)
-	holder.add_child(display)
+	# 光波门不挂 $000 等字标
 	return holder
 
 func _add_train_gate_wave_field(parent: Node3D, span: float, gate_h: float) -> void:
@@ -17350,14 +22108,7 @@ func _add_procedural_train_gate_panel(parent: Node3D, gate_h: float, span: float
 	panel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	panel.position = Vector3(0.0, gate_h * 0.58, 0.06)
 	parent.add_child(panel)
-	var display := Label3D.new()
-	display.text = "$ 000"
-	display.font_size = 72
-	display.modulate = Color(0.92, 0.98, 1.0, 0.95)
-	display.outline_size = 10
-	display.outline_modulate = Color(0.05, 0.12, 0.22, 0.95)
-	display.position = Vector3(0.0, gate_h * 0.58, 0.22)
-	parent.add_child(display)
+
 
 func _make_procedural_train_gate_visual(parent: Node3D, gate_h: float, span: float) -> Node3D:
 	var model := Node3D.new()
@@ -18444,6 +23195,13 @@ func _w1_append_diagonal_ribbon(coins: Array, start_b: float, to_right: bool) ->
 		coins.append(_w1_coin_item(d, int(step["lane"]), tier > 0, tier))
 
 
+func _realign_all_obstacles_on_path() -> void:
+	for obstacle in obstacles:
+		if typeof(obstacle) != TYPE_DICTIONARY:
+			continue
+		_place_obstacle_node(obstacle, true)
+
+
 func _build_content() -> void:
 	var raw_obstacles: Array
 	if CustomLevels.has_level(Global.runner_location_id):
@@ -18479,15 +23237,36 @@ func _build_content() -> void:
 		_register_obstacle(item)
 	_inject_sparse_runway_obstacles()
 	_inject_gate_tension_obstacles()
-	_inject_finish_sprint_orb_gauntlet()
+	_inject_medical_emergency_coverage_pass()
+	_inject_gate_turn_obstacles()
+	_inject_gate_fork_approach_obstacles()
+	_inject_gate_coverage_pass()
+	_inject_gate_opening_wraiths()
+	_inject_gate_wraith_ambush_zones()
+	_inject_gate_finish_wraith_gauntlet()
+	_finalize_gate_finish_wraith_lane()
+	if not _is_gate_location():
+		_inject_finish_sprint_orb_gauntlet()
 	_inject_side_runway_wave_arc_obstacles()
 	_inject_side_runway_speed_boosts()
 	_purge_side_wall_collision_obstacles()
 	_inject_junction_fork_branch_obstacles()
 	_inject_y_fork_branch_obstacles()
+	_inject_medical_poison_choreography()
+	_inject_medical_relay_setpieces()
+	_inject_medical_wraith_choice_encounters()
 	_purge_obstacles_in_lava_platform_zones()
 	_purge_stacked_jump_slide_obstacles()
+	_reshape_medical_emergency_finish_lane()
+	# 水源/穹顶：在其它注入与清理之后再扫空档（JSON sparse 对 beat-sync 关无效）
+	_inject_reservoir_dome_coverage_pass()
+	_purge_overlapping_runway_obstacles()
+	# 抉择区二次清黄光波门（防止其它 inject 后又摆回来）
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) == TYPE_DICTIONARY:
+			_purge_yellow_rings_near_wraith_choice(float(enc.get("distance", 0.0)))
 	_finalize_dressing_colliders()
+	_realign_all_obstacles_on_path()
 	_refresh_smash_budget()
 	obstacles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a["distance"]) < float(b["distance"])
@@ -18586,7 +23365,21 @@ func _build_content() -> void:
 			})
 
 	_spawn_shield_crystals()
+	_inject_emergency_speed_launch_pads()
 	_register_speed_boost_data()
+	_ensure_emergency_speed_boost_coverage()
+	_spawn_mechanic_lab_visuals()
+	_inject_shield_near_first_gate_wraith()
+	_inject_gate_wave_gate_buffs()
+	# 光波门 buff 注入后再清一次抉择区黄门，避免身后列车门回潮
+	for enc in _wraith_choice_encounters:
+		if typeof(enc) == TYPE_DICTIONARY:
+			_purge_wraith_choice_backdrop_clutter(float(enc.get("distance", 0.0)))
+	# 清场后再铺撞后内容，避免被 CLEAR_ALONG / clutter purge 挖空
+	_inject_wraith_choice_aftermath_content()
+	# 撞后空直道弹射垫：清障完成后再注入，并重刷机关视觉
+	_inject_wraith_choice_recovery_speed_pads()
+	_spawn_mechanic_lab_visuals()
 	_register_bonus_fork_rewards()
 	_register_y_fork_branch_rewards()
 	_materialize_registered_collectibles()
@@ -18597,9 +23390,9 @@ func _build_content() -> void:
 			total_collectibles += 1
 	_build_finish_sprint_pads()
 	if _buff_hud_panel != null:
-		_buff_hud_panel.custom_minimum_size = Vector2(320.0, _top_status_panel_height())
+		_buff_hud_panel.custom_minimum_size = Vector2(BUFF_HUD_PANEL_WIDTH, BUFF_HUD_PANEL_HEIGHT)
 		if _cargo_hud_panel != null:
-			_cargo_hud_panel.custom_minimum_size = Vector2(CARGO_HUD_PANEL_WIDTH, _cargo_hud_panel_height())
+			_cargo_hud_panel.custom_minimum_size = Vector2(CARGO_HUD_PANEL_WIDTH, CARGO_HUD_PANEL_HEIGHT)
 		if _top_hud_wrap != null:
 			var hud_top := _top_status_hud_top()
 			_top_hud_wrap.offset_top = hud_top
@@ -18660,11 +23453,24 @@ func _register_speed_boost_pickup() -> void:
 			trail_particles.speed_scale = 3.4 if on_bonus else 2.8
 		_set_trail_color(Color(1.0, 0.78, 0.18, 0.95) if on_bonus else Color(1.0, 0.82, 0.22, 1.0))
 	else:
-		camera_shake = maxf(camera_shake, 0.14 if _is_relay_mission() else 0.08)
-		_speed_feel_punch = maxf(_speed_feel_punch, 0.95 if _is_relay_mission() else 0.55)
-		_hit_fov_punch = maxf(_hit_fov_punch, 0.28 if _is_relay_mission() else 0.12)
-	var hint := "Bonus Fork · speed burst" if on_bonus else ("Speed Pad · shake Nulltide" if _chaser_enabled else "Speed Pad · step on to burst")
-	_show_gate_toast(hint)
+		if _is_relay_mission():
+			camera_shake = maxf(camera_shake, 0.14)
+			_speed_feel_punch = maxf(_speed_feel_punch, 0.95)
+			_hit_fov_punch = maxf(_hit_fov_punch, 0.28)
+		elif _is_emergency_run:
+			camera_shake = maxf(camera_shake, 0.18)
+			_speed_feel_punch = maxf(_speed_feel_punch, 1.12)
+			_hit_fov_punch = maxf(_hit_fov_punch, 0.36)
+			_pad_burst_until_d = maxf(_pad_burst_until_d, track_distance + PAD_BURST_DIST * 0.85)
+			if trail_particles:
+				trail_particles.amount_ratio = 1.0
+				trail_particles.speed_scale = 2.6
+			_set_trail_color(Color(1.0, 0.78, 0.2, 1.0))
+		else:
+			camera_shake = maxf(camera_shake, 0.08)
+			_speed_feel_punch = maxf(_speed_feel_punch, 0.55)
+			_hit_fov_punch = maxf(_hit_fov_punch, 0.12)
+	_show_gate_toast("SPEEDUP")
 	_refresh_buff_hud()
 
 
@@ -18859,6 +23665,7 @@ func _register_speed_boost_data() -> void:
 		var y: float = _speed_boost_collectible_y(boost_index, layer)
 		boost_index += 1
 		_register_collectible_data(lane, dist, y, layer, "speed_boost")
+	_balance_runway_mechanic_lanes()
 	if boost_index > 0 or _launch_pads_have_speed_pad():
 		_level_has_speed_boosts = true
 	else:
@@ -18867,9 +23674,9 @@ func _register_speed_boost_data() -> void:
 			return
 	_refresh_buff_hud()
 	if _buff_hud_panel != null:
-		_buff_hud_panel.custom_minimum_size = Vector2(320.0, _top_status_panel_height())
+		_buff_hud_panel.custom_minimum_size = Vector2(BUFF_HUD_PANEL_WIDTH, BUFF_HUD_PANEL_HEIGHT)
 		if _cargo_hud_panel != null:
-			_cargo_hud_panel.custom_minimum_size = Vector2(CARGO_HUD_PANEL_WIDTH, _cargo_hud_panel_height())
+			_cargo_hud_panel.custom_minimum_size = Vector2(CARGO_HUD_PANEL_WIDTH, CARGO_HUD_PANEL_HEIGHT)
 		if _top_hud_wrap != null:
 			var hud_top := _top_status_hud_top()
 			_top_hud_wrap.offset_top = hud_top
@@ -18976,22 +23783,22 @@ func _spawn_shield_crystals() -> void:
 				thinned.append(items[idx])
 				cursor += step
 			items = thinned
-	# 居民穹顶 H3：防护水晶减半（沙暴+毒雨区自动生成偏多）
-	if _mission_id_str() == "mission_dome_h3" and items.size() > 1:
-		var h3_keep := maxi(1, int(round(float(items.size()) * 0.5)))
-		if h3_keep < items.size():
-			var h3_thinned: Array = []
-			var h3_step := float(items.size()) / float(h3_keep)
-			var h3_cursor := 0.0
-			var h3_used: Dictionary = {}
-			for _k in h3_keep:
-				var h3_idx := clampi(int(floor(h3_cursor)), 0, items.size() - 1)
-				while h3_used.has(h3_idx) and h3_idx < items.size() - 1:
-					h3_idx += 1
-				h3_used[h3_idx] = true
-				h3_thinned.append(items[h3_idx])
-				h3_cursor += h3_step
-			items = h3_thinned
+	# 水源据点 / 居民穹顶：全关卡防护水晶统一减半（含紧急）
+	if (_is_reservoir_location() or _is_dome_location()) and items.size() > 1:
+		var loc_keep := maxi(1, int(round(float(items.size()) * 0.5)))
+		if loc_keep < items.size():
+			var loc_thinned: Array = []
+			var loc_step := float(items.size()) / float(loc_keep)
+			var loc_cursor := 0.0
+			var loc_used: Dictionary = {}
+			for _k in loc_keep:
+				var loc_idx := clampi(int(floor(loc_cursor)), 0, items.size() - 1)
+				while loc_used.has(loc_idx) and loc_idx < items.size() - 1:
+					loc_idx += 1
+				loc_used[loc_idx] = true
+				loc_thinned.append(items[loc_idx])
+				loc_cursor += loc_step
+			items = loc_thinned
 	var finish_cut := maxf(_track_length - 30.0, _track_length * 0.9)
 	for raw in items:
 		if typeof(raw) != TYPE_DICTIONARY:
@@ -19125,6 +23932,18 @@ func _last_hazard_end_distance() -> float:
 
 func _register_obstacle(item: Dictionary) -> Node3D:
 	var obstacle_type := String(item["type"])
+	if _is_gate_location() and obstacle_type == "wraith_lunge":
+		obstacle_type = "wraith_block"
+		item["type"] = "wraith_block"
+		item["lane"] = int(item.get("target_lane", item.get("lane", 0)))
+		item["static_placeholder"] = true
+		item["face"] = "runner"
+		if not item.has("wraith_pose"):
+			var d0 := float(item.get("distance", 0.0))
+			item["wraith_pose"] = "angry" if int(floor(d0 * 0.11) + int(item["lane"]) + 3) % 2 == 0 else "heart"
+	if obstacle_type == "wraith_block" and not item.has("wraith_pose"):
+		var d1 := float(item.get("distance", 0.0))
+		item["wraith_pose"] = "angry" if int(floor(d1 * 0.13) + int(item.get("lane", 0))) % 2 == 0 else "heart"
 	if obstacle_type == "energy_ring":
 		return null
 	var lane: int = int(item.get("lane", 0))
@@ -19142,7 +23961,27 @@ func _register_obstacle(item: Dictionary) -> Node3D:
 	if fork_branch == 0 and not _is_distance_on_main_ground_runway(dist, layer):
 		return null
 	if layer == 0 and fork_branch == 0 and obstacle_type != "main_block" and _is_distance_on_track_turn(dist, 12.0):
-		return null
+		var gate_turn_ok := (
+			_is_gate_location()
+			and bool(item.get("gate_turn", false))
+			and obstacle_type in ["orb", "meteorite", "meteorite_gate", "wraith_block", "wraith_lunge"]
+		)
+		var medical_wraith_ok := (
+			_is_medical_location()
+			and (
+				bool(item.get("wraith_choice", false))
+				or bool(item.get("wraith_choice_aftermath", false))
+			)
+			and obstacle_type == "wraith_block"
+		)
+		# 水源/穹顶覆盖补障：弯道仅允许轻障碍（已打 outpost_turn）
+		var outpost_turn_ok := (
+			(_is_reservoir_location() or _is_dome_location())
+			and bool(item.get("outpost_turn", false))
+			and obstacle_type in ["orb", "jump", "slide"]
+		)
+		if not gate_turn_ok and not medical_wraith_ok and not outpost_turn_ok:
+			return null
 	var node := _make_obstacle(lane, dist, obstacle_type, layer, item)
 	var asset_path := String(node.get_meta("obstacle_asset_path", ""))
 	var is_float_orb := obstacle_type == "orb" or (node.has_meta("float_orb") and bool(node.get_meta("float_orb")))
@@ -19175,6 +24014,8 @@ func _register_obstacle(item: Dictionary) -> Node3D:
 		else:
 			default_clear = float(node.get_meta("prop_clear_height", GROUND_Y + 1.86))
 	elif obstacle_type == "wraith_block":
+		default_clear = float(node.get_meta("prop_clear_height", GROUND_Y + WRAITH_BLOCK_HEIGHT + 0.08))
+	elif obstacle_type == "wraith_lunge":
 		default_clear = float(node.get_meta("prop_clear_height", GROUND_Y + WRAITH_BLOCK_HEIGHT + 0.08))
 	var strike_label := ""
 	if LevelConfig.has_method("get_jump_obstacle_label") and asset_path != "":
@@ -19228,6 +24069,39 @@ func _register_obstacle(item: Dictionary) -> Node3D:
 		entry["half_depth"] = float(node.get_meta("prop_half_depth", 0.72))
 		entry["clear_height"] = float(node.get_meta("prop_clear_height", GROUND_Y + WRAITH_BLOCK_HEIGHT + 0.08))
 		entry["strike_label"] = String(item.get("strike_label", "异能怪"))
+		# 抉择异能怪：必须把 lethal / 横向锚点拷进 entry，否则会当普通撞碎扣大额完整度
+		if bool(item.get("wraith_choice", false)):
+			entry["wraith_choice"] = true
+			entry["wraith_choice_id"] = int(item.get("wraith_choice_id", -1))
+			entry["wraith_choice_lethal"] = bool(item.get("wraith_choice_lethal", false))
+			entry["wraith_choice_lateral"] = float(item.get("wraith_choice_lateral", float(lane) * LANE_WIDTH))
+			entry["wraith_choice_side"] = float(item.get("wraith_choice_side", float(lane)))
+			entry["hit_half_width"] = float(item.get("hit_half_width", LANE_WIDTH * WRAITH_CHOICE_HIT_HALF))
+			entry["half_depth"] = float(item.get("half_depth", 1.35))
+			entry["static_placeholder"] = bool(item.get("static_placeholder", true))
+			entry["force_anim"] = bool(item.get("force_anim", true))
+			entry["wraith_aura"] = bool(item.get("wraith_aura", false))
+			entry["wraith_pose"] = String(item.get("wraith_pose", ""))
+		elif bool(item.get("wraith_choice_aftermath", false)):
+			entry["wraith_choice_aftermath"] = true
+			entry["static_placeholder"] = bool(item.get("static_placeholder", true))
+			entry["wraith_aura"] = bool(item.get("wraith_aura", true))
+			entry["wraith_pose"] = String(item.get("wraith_pose", ""))
+			entry["force_anim"] = bool(item.get("force_anim", false))
+	if obstacle_type == "wraith_lunge":
+		var spawn_lane := int(item.get("lane", -1))
+		var target_lane := int(item.get("target_lane", 0))
+		entry["spawn_lateral"] = float(spawn_lane) * LANE_WIDTH
+		entry["target_lateral"] = float(target_lane) * LANE_WIDTH
+		entry["lunge_lateral"] = entry["spawn_lateral"]
+		entry["lunge_speed"] = float(item.get("lunge_speed", 3.2))
+		entry["lunge_trigger_ahead"] = float(item.get("lunge_trigger_ahead", 40.0))
+		entry["target_lane"] = target_lane
+		entry["lunge_active"] = false
+		entry["hit_half_width"] = float(node.get_meta("prop_hit_half_width", LANE_HIT_HALF_WIDTH_JUMP * 1.02))
+		entry["half_depth"] = float(node.get_meta("prop_half_depth", 0.72))
+		entry["clear_height"] = float(node.get_meta("prop_clear_height", GROUND_Y + WRAITH_BLOCK_HEIGHT + 0.08))
+		entry["strike_label"] = String(item.get("strike_label", "Nulltide"))
 	if obstacle_type == "main_block":
 		entry["cross_mode"] = _main_block_cross_mode(item)
 	if obstacle_type == "meteorite":
@@ -19286,8 +24160,11 @@ func _register_obstacle(item: Dictionary) -> Node3D:
 	if not bool(entry.get("moving", false)):
 		entry["move_offset"] = 0.0
 	_place_obstacle_node(entry)
-	if obstacle_type in ["train", "train_moving"] and bool(node.get_meta("has_wave_blade", false)) and _runner_layout_id() == "":
-		_register_train_gate_shield_crystal(entry)
+	if obstacle_type in ["train", "train_moving"] and bool(node.get_meta("has_wave_blade", false)):
+		if _uses_wave_gate_buffs():
+			_attach_wave_gate_buff_for_obstacle(entry)
+		elif _runner_layout_id() == "":
+			_register_train_gate_shield_crystal(entry)
 	return node
 
 func _make_obstacle(lane: int, distance: float, obstacle_type: String, layer: int, item: Dictionary) -> Node3D:
@@ -19316,6 +24193,8 @@ func _make_obstacle(lane: int, distance: float, obstacle_type: String, layer: in
 		"train_moving":
 			_build_train(root, item, true)
 		"wraith_block":
+			_build_wraith_block(root, item)
+		"wraith_lunge":
 			_build_wraith_block(root, item)
 		"block_left":
 			_build_lane_block(root, "left")
@@ -20627,7 +25506,7 @@ func _build_main_block(root: Node3D, item: Dictionary) -> void:
 	_add_ground_contact_shadow(root, LANE_WIDTH * 3.0, 1.2)
 
 func _build_turn_sign(root: Node3D, turn_type: String) -> void:
-	# 不再用跳跃模型冒充门：左 REGULAR / 右 SPEEDUP 的轻量路标
+	# 左 REGULAR / 右 SPEEDUP 轻量路标（英文标签；不挂额外中文）
 	var is_left := turn_type == "turn_left"
 	var accent := Color(0.28, 0.9, 0.7) if is_left else Color(0.55, 0.76, 0.92)
 	var tag := "REGULAR" if is_left else "SPEEDUP"
@@ -20650,7 +25529,7 @@ func _build_turn_sign(root: Node3D, turn_type: String) -> void:
 	beam.position = Vector3(0.0, 2.15, 0.0)
 	root.add_child(beam)
 	var tip := Label3D.new()
-	tip.text = "%s\n%s" % [tag, ("← 安全" if is_left else "飞驰 →")]
+	tip.text = tag
 	tip.font_size = 48
 	tip.modulate = Color(0.94, 0.97, 1.0, 1.0) if not is_left else accent.lightened(0.15)
 	tip.outline_size = 16
@@ -21288,21 +26167,22 @@ func _make_status_panel_style(accent: Color) -> StyleBoxFlat:
 	return panel_style
 
 
-## 货物完整度面板：全据点关卡统一尺寸与字号
+## 顶部状态板（增益 / 货物）：全关卡统一框体与字号
+const STATUS_HUD_PANEL_ACCENT := Color(0.42, 0.72, 0.96, 0.78)
 const CARGO_HUD_PANEL_HEIGHT := 172.0
 const CARGO_HUD_PANEL_WIDTH := 360.0
 const CARGO_HUD_TITLE_SIZE := 22
 const CARGO_HUD_INTEGRITY_SIZE := 34
 const CARGO_HUD_DETAIL_SIZE := 20
 const CARGO_HUD_ICON_SIZE := 68.0
+const BUFF_HUD_PANEL_WIDTH := 320.0
+const BUFF_HUD_PANEL_HEIGHT := CARGO_HUD_PANEL_HEIGHT
+const BUFF_HUD_TITLE_SIZE := CARGO_HUD_TITLE_SIZE
+const BUFF_HUD_ICON_SIZE := 58.0
 
 
 func _top_status_panel_height() -> float:
-	if _is_emergency_run:
-		return 148.0
-	if _level_offers_speed_boosts():
-		return maxf(148.0, CARGO_HUD_PANEL_HEIGHT)
-	return CARGO_HUD_PANEL_HEIGHT
+	return BUFF_HUD_PANEL_HEIGHT
 
 
 func _cargo_hud_panel_height() -> float:
@@ -21310,7 +26190,24 @@ func _cargo_hud_panel_height() -> float:
 
 
 func _top_status_row_height() -> float:
-	return maxf(_top_status_panel_height(), _cargo_hud_panel_height())
+	return CARGO_HUD_PANEL_HEIGHT
+
+
+func _make_hud_icon_wrap(size: float, corner: float = 10.0) -> PanelContainer:
+	var wrap := PanelContainer.new()
+	wrap.custom_minimum_size = Vector2(size, size)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.10, 0.16, 0.92)
+	style.border_color = Color(0.35, 0.58, 0.82, 0.65)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(corner)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	wrap.add_theme_stylebox_override("panel", style)
+	return wrap
 
 
 func _style_cargo_hud_labels() -> void:
@@ -21416,22 +26313,24 @@ func _build_buff_hud(parent: Control) -> void:
 	_buff_hud_panel.name = "BuffHudPanel"
 	_buff_hud_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_buff_hud_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_buff_hud_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_buff_hud_panel.size_flags_stretch_ratio = 1.08
-	_buff_hud_panel.custom_minimum_size = Vector2(320.0, _top_status_panel_height())
+	_buff_hud_panel.custom_minimum_size = Vector2(BUFF_HUD_PANEL_WIDTH, BUFF_HUD_PANEL_HEIGHT)
 	parent.add_child(_buff_hud_panel)
 	_buff_hud_panel.add_theme_stylebox_override(
 		"panel",
-		_make_status_panel_style(Color(0.52, 0.82, 0.96, 0.72))
+		_make_status_panel_style(STATUS_HUD_PANEL_ACCENT)
 	)
 
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 6)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_buff_hud_panel.add_child(root)
 
 	var buff_title := Label.new()
 	buff_title.text = "增益状态"
-	_style_buff_label(buff_title, 20, Color(0.78, 0.90, 1.0), 3)
+	_style_buff_label(buff_title, BUFF_HUD_TITLE_SIZE, Color(0.78, 0.90, 1.0), 3)
 	root.add_child(buff_title)
 
 	var shield_row := HBoxContainer.new()
@@ -21439,19 +26338,7 @@ func _build_buff_hud(parent: Control) -> void:
 	shield_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shield_row)
 
-	var shield_icon_wrap := PanelContainer.new()
-	shield_icon_wrap.custom_minimum_size = Vector2(58, 58)
-	shield_icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var shield_icon_style := StyleBoxFlat.new()
-	shield_icon_style.bg_color = Color(0.05, 0.10, 0.16, 0.92)
-	shield_icon_style.border_color = Color(0.35, 0.58, 0.82, 0.65)
-	shield_icon_style.set_border_width_all(1)
-	shield_icon_style.set_corner_radius_all(10)
-	shield_icon_style.content_margin_left = 4
-	shield_icon_style.content_margin_right = 4
-	shield_icon_style.content_margin_top = 4
-	shield_icon_style.content_margin_bottom = 4
-	shield_icon_wrap.add_theme_stylebox_override("panel", shield_icon_style)
+	var shield_icon_wrap := _make_hud_icon_wrap(BUFF_HUD_ICON_SIZE, 10.0)
 	shield_row.add_child(shield_icon_wrap)
 	var shield_icon_label := Label.new()
 	shield_icon_label.text = "盾"
@@ -21496,41 +26383,104 @@ func _build_buff_hud(parent: Control) -> void:
 	shield_bar.add_theme_stylebox_override("background", _make_buff_bar_style(Color(0.10, 0.14, 0.20, 0.95), Color(0.10, 0.14, 0.20)))
 	shield_text_col.add_child(shield_bar)
 
-	if not _is_emergency_run:
-		var boost_divider := ColorRect.new()
-		boost_divider.custom_minimum_size = Vector2(0, 1)
-		boost_divider.color = Color(0.45, 0.72, 0.88, 0.28)
-		boost_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.add_child(boost_divider)
-		_buff_boost_divider = boost_divider
+	# 全关卡同一壳：分割线 + 加速行；内容按紧急/普通切换
+	_buff_boost_divider = ColorRect.new()
+	_buff_boost_divider.custom_minimum_size = Vector2(0, 1)
+	_buff_boost_divider.color = Color(0.45, 0.72, 0.88, 0.28)
+	_buff_boost_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_buff_boost_divider)
 
-		_buff_boost_row = HBoxContainer.new()
-		_buff_boost_row.add_theme_constant_override("separation", 12)
-		_buff_boost_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.add_child(_buff_boost_row)
+	_buff_boost_row = HBoxContainer.new()
+	_buff_boost_row.add_theme_constant_override("separation", 10)
+	_buff_boost_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_buff_boost_row)
 
-		var boost_icon := Label.new()
-		boost_icon.text = "⚡"
-		boost_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_style_buff_label(boost_icon, 26, Color(0.98, 0.88, 0.42))
-		_buff_boost_row.add_child(boost_icon)
+	var boost_icon_wrap := _make_hud_icon_wrap(BUFF_HUD_ICON_SIZE, 10.0)
+	_buff_boost_row.add_child(boost_icon_wrap)
+	var boost_icon := Label.new()
+	boost_icon.text = "⚡"
+	boost_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boost_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_style_buff_label(boost_icon, 26, Color(0.98, 0.88, 0.42))
+	boost_icon_wrap.add_child(boost_icon)
 
-		var boost_body := VBoxContainer.new()
-		boost_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		boost_body.add_theme_constant_override("separation", 4)
-		boost_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_buff_boost_row.add_child(boost_body)
+	var boost_body := VBoxContainer.new()
+	boost_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	boost_body.add_theme_constant_override("separation", 4)
+	boost_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_buff_boost_row.add_child(boost_body)
 
-		var boost_head := HBoxContainer.new()
-		boost_head.add_theme_constant_override("separation", 8)
-		boost_head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		boost_body.add_child(boost_head)
+	var boost_head := HBoxContainer.new()
+	boost_head.add_theme_constant_override("separation", 8)
+	boost_head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boost_body.add_child(boost_head)
 
-		var boost_title := Label.new()
-		boost_title.text = "加速"
-		_style_buff_label(boost_title, 22, Color(0.95, 0.98, 1.0))
-		boost_head.add_child(boost_title)
+	var boost_title := Label.new()
+	boost_title.text = "加速"
+	_style_buff_label(boost_title, 22, Color(0.95, 0.98, 1.0))
+	boost_head.add_child(boost_title)
 
+	if _is_emergency_run:
+		_boost_count_label = Label.new()
+		_boost_count_label.text = "0/5"
+		_style_buff_label(_boost_count_label, 24, Color(0.55, 0.95, 1.0))
+		boost_head.add_child(_boost_count_label)
+
+		_boost_status_label = Label.new()
+		_boost_status_label.text = "拾取加速包 · 集满 5 解锁冲刺"
+		_boost_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_boost_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_style_buff_label(_boost_status_label, 16, Color(0.68, 0.78, 0.88), 2)
+		boost_head.add_child(_boost_status_label)
+
+		var pip_row := HBoxContainer.new()
+		pip_row.add_theme_constant_override("separation", 6)
+		pip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		boost_body.add_child(pip_row)
+
+		_boost_pips.clear()
+		for _i in SPEED_BOOST_SKILL_THRESHOLD:
+			var pip := ColorRect.new()
+			pip.custom_minimum_size = Vector2(0, 18)
+			pip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			pip.color = Color(0.12, 0.18, 0.26, 0.95)
+			pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			pip_row.add_child(pip)
+			_boost_pips.append(pip)
+
+		_boost_dash_icon_wrap = PanelContainer.new()
+		_boost_dash_icon_wrap.custom_minimum_size = Vector2(BUFF_HUD_ICON_SIZE, BUFF_HUD_ICON_SIZE)
+		_boost_dash_icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var dash_style := StyleBoxFlat.new()
+		dash_style.bg_color = Color(0.08, 0.12, 0.18, 0.92)
+		dash_style.border_color = Color(0.32, 0.48, 0.58, 0.65)
+		dash_style.set_border_width_all(2)
+		dash_style.set_corner_radius_all(12)
+		dash_style.content_margin_left = 6
+		dash_style.content_margin_right = 6
+		dash_style.content_margin_top = 2
+		dash_style.content_margin_bottom = 2
+		_boost_dash_icon_wrap.add_theme_stylebox_override("panel", dash_style)
+		_buff_boost_row.add_child(_boost_dash_icon_wrap)
+
+		var dash_col := VBoxContainer.new()
+		dash_col.alignment = BoxContainer.ALIGNMENT_CENTER
+		dash_col.add_theme_constant_override("separation", 0)
+		dash_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_boost_dash_icon_wrap.add_child(dash_col)
+
+		_boost_dash_icon = Label.new()
+		_boost_dash_icon.text = "—"
+		_boost_dash_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_buff_label(_boost_dash_icon, 22, Color(0.42, 0.48, 0.54), 2)
+		dash_col.add_child(_boost_dash_icon)
+
+		var dash_hint := Label.new()
+		dash_hint.text = "冲刺"
+		dash_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_buff_label(dash_hint, 13, Color(0.58, 0.66, 0.74), 2)
+		dash_col.add_child(dash_hint)
+	else:
 		_speed_boost_time_label = Label.new()
 		_speed_boost_time_label.text = "未激活"
 		_speed_boost_time_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -21546,100 +26496,6 @@ func _build_buff_hud(parent: Control) -> void:
 		_speed_boost_bar.add_theme_stylebox_override("fill", _make_buff_bar_style(Color(0.98, 0.78, 0.22), Color(0.98, 0.78, 0.22)))
 		_speed_boost_bar.add_theme_stylebox_override("background", _make_buff_bar_style(Color(0.10, 0.14, 0.20, 0.95), Color(0.10, 0.14, 0.20)))
 		boost_body.add_child(_speed_boost_bar)
-		return
-
-	var divider := ColorRect.new()
-	divider.custom_minimum_size = Vector2(0, 1)
-	divider.color = Color(0.45, 0.72, 0.88, 0.28)
-	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(divider)
-
-	var emergency_boost_row := HBoxContainer.new()
-	emergency_boost_row.add_theme_constant_override("separation", 12)
-	emergency_boost_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(emergency_boost_row)
-
-	var emergency_icon := Label.new()
-	emergency_icon.text = "⚡"
-	emergency_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_buff_label(emergency_icon, 26, Color(0.98, 0.88, 0.42))
-	emergency_boost_row.add_child(emergency_icon)
-
-	var emergency_body := VBoxContainer.new()
-	emergency_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	emergency_body.add_theme_constant_override("separation", 4)
-	emergency_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	emergency_boost_row.add_child(emergency_body)
-
-	var emergency_head := HBoxContainer.new()
-	emergency_head.add_theme_constant_override("separation", 8)
-	emergency_head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	emergency_body.add_child(emergency_head)
-
-	var emergency_title := Label.new()
-	emergency_title.text = "加速"
-	_style_buff_label(emergency_title, 22, Color(0.95, 0.98, 1.0))
-	emergency_head.add_child(emergency_title)
-
-	_boost_count_label = Label.new()
-	_boost_count_label.text = "0/5"
-	_style_buff_label(_boost_count_label, 24, Color(0.55, 0.95, 1.0))
-	emergency_head.add_child(_boost_count_label)
-
-	_boost_status_label = Label.new()
-	_boost_status_label.text = "拾取加速包 · 集满 5 解锁冲刺"
-	_boost_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_boost_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_style_buff_label(_boost_status_label, 16, Color(0.68, 0.78, 0.88), 2)
-	emergency_head.add_child(_boost_status_label)
-
-	var pip_row := HBoxContainer.new()
-	pip_row.add_theme_constant_override("separation", 6)
-	pip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	emergency_body.add_child(pip_row)
-
-	_boost_pips.clear()
-	for _i in SPEED_BOOST_SKILL_THRESHOLD:
-		var pip := ColorRect.new()
-		pip.custom_minimum_size = Vector2(0, 18)
-		pip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		pip.color = Color(0.12, 0.18, 0.26, 0.95)
-		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pip_row.add_child(pip)
-		_boost_pips.append(pip)
-
-	_boost_dash_icon_wrap = PanelContainer.new()
-	_boost_dash_icon_wrap.custom_minimum_size = Vector2(58, 58)
-	_boost_dash_icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var dash_style := StyleBoxFlat.new()
-	dash_style.bg_color = Color(0.08, 0.12, 0.18, 0.92)
-	dash_style.border_color = Color(0.32, 0.48, 0.58, 0.65)
-	dash_style.set_border_width_all(2)
-	dash_style.set_corner_radius_all(12)
-	dash_style.content_margin_left = 6
-	dash_style.content_margin_right = 6
-	dash_style.content_margin_top = 2
-	dash_style.content_margin_bottom = 2
-	_boost_dash_icon_wrap.add_theme_stylebox_override("panel", dash_style)
-	emergency_boost_row.add_child(_boost_dash_icon_wrap)
-
-	var dash_col := VBoxContainer.new()
-	dash_col.alignment = BoxContainer.ALIGNMENT_CENTER
-	dash_col.add_theme_constant_override("separation", 0)
-	dash_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_boost_dash_icon_wrap.add_child(dash_col)
-
-	_boost_dash_icon = Label.new()
-	_boost_dash_icon.text = "—"
-	_boost_dash_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_buff_label(_boost_dash_icon, 22, Color(0.42, 0.48, 0.54), 2)
-	dash_col.add_child(_boost_dash_icon)
-
-	var dash_hint := Label.new()
-	dash_hint.text = "冲刺"
-	dash_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_buff_label(dash_hint, 13, Color(0.58, 0.66, 0.74), 2)
-	dash_col.add_child(dash_hint)
 
 
 func _build_cargo_hud(parent: Control) -> void:
@@ -21647,17 +26503,19 @@ func _build_cargo_hud(parent: Control) -> void:
 	_cargo_hud_panel.name = "CargoHudPanel"
 	_cargo_hud_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_cargo_hud_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_cargo_hud_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_cargo_hud_panel.size_flags_stretch_ratio = 1.05
-	_cargo_hud_panel.custom_minimum_size = Vector2(CARGO_HUD_PANEL_WIDTH, _cargo_hud_panel_height())
+	_cargo_hud_panel.custom_minimum_size = Vector2(CARGO_HUD_PANEL_WIDTH, CARGO_HUD_PANEL_HEIGHT)
 	parent.add_child(_cargo_hud_panel)
 	_cargo_hud_panel.add_theme_stylebox_override(
 		"panel",
-		_make_status_panel_style(Color(0.42, 0.72, 0.96, 0.78))
+		_make_status_panel_style(STATUS_HUD_PANEL_ACCENT)
 	)
 
 	var root := VBoxContainer.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_theme_constant_override("separation", 8)
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_cargo_hud_panel.add_child(root)
 
 	cargo_title_label = Label.new()
@@ -21671,19 +26529,7 @@ func _build_cargo_hud(parent: Control) -> void:
 	cargo_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(cargo_row)
 
-	var icon_wrap := PanelContainer.new()
-	icon_wrap.custom_minimum_size = Vector2(CARGO_HUD_ICON_SIZE, CARGO_HUD_ICON_SIZE)
-	icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = Color(0.05, 0.10, 0.16, 0.92)
-	icon_style.border_color = Color(0.35, 0.58, 0.82, 0.65)
-	icon_style.set_border_width_all(1)
-	icon_style.set_corner_radius_all(12)
-	icon_style.content_margin_left = 5
-	icon_style.content_margin_right = 5
-	icon_style.content_margin_top = 5
-	icon_style.content_margin_bottom = 5
-	icon_wrap.add_theme_stylebox_override("panel", icon_style)
+	var icon_wrap := _make_hud_icon_wrap(CARGO_HUD_ICON_SIZE, 12.0)
 	cargo_row.add_child(icon_wrap)
 	icon_wrap.add_child(cargo_icon)
 	var icon_inner := CARGO_HUD_ICON_SIZE - 10.0
@@ -22116,11 +26962,7 @@ func _ensure_settlement_buttons_interactive() -> void:
 
 
 func _path_turn_sharpness(distance: float) -> float:
-	# 0=直道，越大弯越急（用于压镜头眩晕）
-	var a := _sample_path(distance)
-	var b := _sample_path(distance + 10.0)
-	var dyaw := absf(angle_difference(float(a["yaw"]), float(b["yaw"])))
-	return clampf(dyaw / 1.2, 0.0, 1.0)
+	return _path_turn_sharpness_on_main(distance)
 
 func _visual_speed_ratio() -> float:
 	var base := maxf(_base_run_speed(), 0.001)
@@ -22378,24 +27220,39 @@ func _update_runner_feedback(delta: float) -> void:
 		# 主路 body tilt / pitch 统一在 _sync_player_position 更新，避免双重 lerp 造成微抖
 
 	trail_particles.amount_ratio = clampf(0.18 + speed_feel * 0.28, 0.15, 0.42)
-	if _is_fork_rushing() or _finish_sprint_timer > 0.0 or _speed_boost_timer > 0.0:
-		trail_particles.amount_ratio = clampf(0.55 + speed_feel * 0.35, 0.5, 0.82)
-		trail_particles.speed_scale = 1.85 if _is_fork_rushing() else (1.65 if _speed_boost_timer > 0.0 else 1.55)
-		if _is_fork_rushing():
+	var choice_rush := (
+		_wraith_choice_smash_speed_mult() > 1.001
+		or _wraith_choice_boost_timer > 0.0
+		or _wraith_choice_instant_burst_timer > 0.0
+	)
+	if _is_fork_rushing() or _finish_sprint_timer > 0.0 or _speed_boost_timer > 0.0 or choice_rush:
+		trail_particles.amount_ratio = clampf(0.55 + speed_feel * 0.35, 0.5, 0.92 if choice_rush else 0.82)
+		trail_particles.speed_scale = (
+			2.35 if choice_rush
+			else (1.85 if _is_fork_rushing() else (1.65 if _speed_boost_timer > 0.0 else 1.55))
+		)
+		if choice_rush:
+			_set_trail_color(Color(1.0, 0.72, 0.18, 0.95))
+			_pulse_choice_rush_aura(true)
+		elif _is_fork_rushing():
 			_set_trail_color(Color(0.5, 0.85, 1.0, 0.88))
 		elif _speed_boost_timer > 0.0:
 			_set_trail_color(Color(1.0, 0.78, 0.28, 0.86))
 		else:
 			_set_trail_color(Color(1.0, 0.78, 0.35, 0.75))
-		if wall_boost_particles and _is_fork_rushing():
+		if wall_boost_particles and (_is_fork_rushing() or choice_rush):
 			wall_boost_particles.emitting = true
-			wall_boost_particles.amount_ratio = 0.38
-			wall_boost_particles.speed_scale = 1.2
-		if rush_aura_particles and (_is_fork_rushing() or _finish_sprint_timer > 0.0):
+			wall_boost_particles.amount_ratio = 0.85 if choice_rush else 0.38
+			wall_boost_particles.speed_scale = 1.55 if choice_rush else 1.2
+		if rush_aura_particles and (_is_fork_rushing() or _finish_sprint_timer > 0.0 or choice_rush):
 			rush_aura_particles.emitting = true
-			rush_aura_particles.amount_ratio = 0.62 if _is_fork_rushing() else 0.48
-			rush_aura_particles.speed_scale = 1.35 if _is_fork_rushing() else 1.15
-		elif rush_aura_particles:
+			if choice_rush:
+				rush_aura_particles.amount_ratio = 1.0
+				rush_aura_particles.speed_scale = 1.75
+			else:
+				rush_aura_particles.amount_ratio = 0.62 if _is_fork_rushing() else 0.48
+				rush_aura_particles.speed_scale = 1.35 if _is_fork_rushing() else 1.15
+		elif rush_aura_particles and not choice_rush:
 			rush_aura_particles.emitting = false
 	elif _is_wall_running():
 		trail_particles.amount_ratio = clampf(0.12 + speed_feel * 0.12, 0.1, 0.22)
@@ -22413,6 +27270,8 @@ func _update_runner_feedback(delta: float) -> void:
 		_pulse_wall_boost_particles(false)
 		if rush_aura_particles:
 			rush_aura_particles.emitting = false
+		if body_spark_particles and not choice_rush:
+			body_spark_particles.emitting = false
 
 	# 末段落陨石段关掉路边粒子，减轻 GPU 压力
 	var edge_on := track_distance < 760.0
@@ -22420,7 +27279,17 @@ func _update_runner_feedback(delta: float) -> void:
 		if fx != null and is_instance_valid(fx):
 			fx.emitting = edge_on
 
-	var boosting := _speed_boost_timer > 0.0 or _pad_burst_until_d > track_distance or _is_fork_rushing() or _is_on_bonus_fork() or _finish_sprint_timer > 0.0 or _emergency_dash_timer > 0.0
+	var boosting := (
+		_speed_boost_timer > 0.0
+		or _wraith_choice_smash_speed_mult() > 1.001
+		or _wraith_choice_boost_timer > 0.0
+		or _wraith_choice_instant_burst_timer > 0.0
+		or _pad_burst_until_d > track_distance
+		or _is_fork_rushing()
+		or _is_on_bonus_fork()
+		or _finish_sprint_timer > 0.0
+		or _emergency_dash_timer > 0.0
+	)
 	if _ember_fx_root:
 		# 脚下火环 + 周身蝴蝶光晕：全程保持，避免中后段角色“裸奔”
 		var ember_on := not is_finished and not is_failed and (gameplay_active or is_intro)
@@ -22449,18 +27318,27 @@ func _update_runner_feedback(delta: float) -> void:
 			foot_spark_particles.speed_scale = (0.88 if rush else (0.82 if air else 0.78)) + beat * 0.1
 
 	if body_spark_particles:
-		# 周身星火：平时少量点缀，加速时更密
+		# 周身星火：平时少量点缀，加速时更密；抉择冲刺再加强
 		var body_on := not is_finished and not is_failed and (gameplay_active or is_intro)
 		body_spark_particles.emitting = body_on
 		if body_on:
 			var sliding := _is_sliding()
 			var air := not _is_on_ground()
 			var beat := _aura_kick_smooth
+			var choice_rush_fx := (
+				_wraith_choice_smash_speed_mult() > 1.001
+				or _wraith_choice_boost_timer > 0.0
+				or _wraith_choice_instant_burst_timer > 0.0
+			)
 			body_spark_particles.position.y = 0.55 if sliding else (1.05 if air else 0.95)
 			body_spark_particles.scale = (Vector3(0.55, 0.42, 0.7) if sliding else Vector3.ONE) * (1.0 + beat * 0.12)
-			var body_ratio := 0.28 if boosting else 0.14
-			body_spark_particles.amount_ratio = clampf((0.12 if sliding else body_ratio) + beat * 0.06, 0.10, 0.38)
-			body_spark_particles.speed_scale = 0.82 + beat * 0.25
+			var body_ratio := 0.58 if choice_rush_fx else (0.28 if boosting else 0.14)
+			body_spark_particles.amount_ratio = clampf(
+				(0.12 if sliding else body_ratio) + beat * 0.06,
+				0.10,
+				0.82 if choice_rush_fx else 0.38
+			)
+			body_spark_particles.speed_scale = (1.55 if choice_rush_fx else 0.82) + beat * 0.25
 			var pm := body_spark_particles.process_material as ParticleProcessMaterial
 			if pm:
 				pm.emission_box_extents = Vector3(0.4, 0.32, 0.05) if sliding else Vector3(0.7 + beat * 0.2, 0.55 + beat * 0.15, 0.06)
@@ -22500,8 +27378,8 @@ func _update_collectible_magnet(delta: float) -> void:
 			continue
 		if absf(track_distance - float(collectible.get("distance", 0.0))) > magnet_scan:
 			continue
-		var node := collectible["node"] as Node3D
-		if node == null or not is_instance_valid(node):
+		var node := _collectible_node_from_entry(collectible)
+		if node == null:
 			continue
 		var coin_lane := int(collectible.get("lane", 0))
 		var lane_gap := absi(coin_lane - player_lane)
@@ -22538,8 +27416,8 @@ func _update_coin_collectible_visuals(delta: float) -> void:
 			continue
 		if absf(track_distance - float(collectible.get("distance", 0.0))) > visual_scan:
 			continue
-		var node := collectible.get("node") as Node3D
-		if node == null or not is_instance_valid(node):
+		var node := _collectible_node_from_entry(collectible)
+		if node == null:
 			continue
 		node.rotate_object_local(Vector3.UP, delta * spin)
 		var phase := float(collectible.get("bob_phase", 0.0))
@@ -23154,6 +28032,8 @@ func _update_train_blade_gates() -> void:
 				if wmat:
 					var pulse := 0.72 + sin(elapsed * 7.0 + float(idx)) * 0.28
 					wmat.emission_energy_multiplier = (6.2 if blocking else 4.4) * pulse
+		if _uses_wave_gate_buffs():
+			_try_attach_gate_boosts_for_train(obstacle)
 
 
 func _update_train_moving_props(delta: float) -> void:
@@ -23174,6 +28054,7 @@ func _update_train_moving_props(delta: float) -> void:
 
 func _update_procedural_obstacle_fx(delta: float) -> void:
 	var pulse := 0.82 + sin(elapsed * 4.2) * 0.18
+	var fx_span := 36.0 if _is_gate_location() else 48.0
 	for obstacle in obstacles:
 		if bool(obstacle.get("hit", false)):
 			continue
@@ -23181,7 +28062,11 @@ func _update_procedural_obstacle_fx(delta: float) -> void:
 		if node == null or not is_instance_valid(node):
 			continue
 		var dist := float(obstacle.get("distance", 0.0)) + float(obstacle.get("move_offset", 0.0))
-		if absf(track_distance - dist) > 48.0:
+		var along := absf(track_distance - dist)
+		if along > fx_span:
+			# 远处异能怪：冻动画，跳过呼吸/转向
+			if String(obstacle.get("type", "")) in ["wraith_block", "wraith_lunge"]:
+				_set_wraith_block_anim_active(node, false)
 			continue
 		var otype := String(obstacle.get("type", ""))
 		if otype == "energy_ring" or bool(node.get_meta("energy_ring_fx", false)):
@@ -23197,6 +28082,77 @@ func _update_procedural_obstacle_fx(delta: float) -> void:
 				var mat := glow.material_override as StandardMaterial3D
 				if mat != null:
 					mat.emission_energy_multiplier = 1.4 * pulse
+		if otype in ["wraith_block", "wraith_lunge"]:
+			_update_wraith_block_idle_life(obstacle, node, delta, along)
+
+
+func _set_wraith_block_anim_active(node: Node3D, active: bool) -> void:
+	var holder := node.get_node_or_null("WraithBlockVisual") as Node3D
+	if holder == null:
+		return
+	if bool(holder.get_meta("wraith_force_anim", false)):
+		active = true
+	if bool(holder.get_meta("wraith_anim_active", false)) == active:
+		return
+	holder.set_meta("wraith_anim_active", active)
+	var model_path := String(holder.get_meta("wraith_model_path", "WraithModel"))
+	var model := holder.get_node_or_null(model_path) as Node3D
+	if model == null:
+		return
+	var ap := _find_animation_player(model)
+	if ap == null:
+		return
+	var pose := String(holder.get_meta("wraith_pose", "angry"))
+	ap.speed_scale = (0.92 if pose == "angry" else 0.78) if active else 0.0
+	if active and not ap.is_playing():
+		_start_wraith_block_idle_anim(model, float(holder.get_meta("wraith_idle_phase", 0.0)), pose)
+
+
+func _update_wraith_block_idle_life(obstacle: Dictionary, node: Node3D, delta: float, along: float = -1.0) -> void:
+	var holder := node.get_node_or_null("WraithBlockVisual") as Node3D
+	if holder == null or not bool(holder.get_meta("wraith_idle_life", false)):
+		return
+	if along < 0.0:
+		along = absf(track_distance - float(obstacle.get("distance", 0.0)))
+	if along > WRAITH_LIFE_FAR:
+		_set_wraith_block_anim_active(node, false)
+		return
+	var near := along <= WRAITH_LIFE_NEAR
+	_set_wraith_block_anim_active(node, near)
+	if not near:
+		return
+	var phase := float(holder.get_meta("wraith_idle_phase", 0.0)) + delta * 2.15
+	holder.set_meta("wraith_idle_phase", phase)
+	var breath := 0.5 + 0.5 * sin(phase)
+	var model_path := String(holder.get_meta("wraith_model_path", "WraithModel"))
+	var model := holder.get_node_or_null(model_path) as Node3D
+	if model != null:
+		var base_y := float(holder.get_meta("wraith_model_base_y", model.position.y))
+		model.position.y = base_y + sin(phase) * 0.05
+		var face_cd := float(holder.get_meta("wraith_face_cd", 0.0)) - delta
+		if face_cd <= 0.0:
+			_face_wraith_model_to_runner(model)
+			holder.set_meta("wraith_face_cd", WRAITH_FACE_INTERVAL)
+		else:
+			holder.set_meta("wraith_face_cd", face_cd)
+		model.rotation_degrees.z = sin(phase * 0.72) * 2.4
+		model.rotation_degrees.x = sin(phase * 0.55 + 0.9) * 1.5
+	var ground_ring := holder.get_node_or_null("WraithGroundRing") as MeshInstance3D
+	if ground_ring != null:
+		var ring_mat := ground_ring.material_override as StandardMaterial3D
+		if ring_mat != null:
+			ring_mat.emission_energy_multiplier = 0.65 + breath * 0.55
+		ground_ring.rotation_degrees.y += delta * 28.0
+	var aura := holder.get_node_or_null("WraithIdleAura") as MeshInstance3D
+	if aura != null:
+		var aura_mat := aura.material_override as StandardMaterial3D
+		if aura_mat != null:
+			aura_mat.emission_energy_multiplier = 0.35 + breath * 0.45
+			aura_mat.albedo_color.a = 0.10 + breath * 0.08
+		aura.scale = Vector3.ONE * (0.96 + breath * 0.06)
+	var light := holder.get_node_or_null("WraithBlockLight") as OmniLight3D
+	if light != null:
+		light.light_energy = 0.55 + breath * 0.22
 
 
 func _update_meteorite_gate_drops(delta: float) -> void:
@@ -23414,7 +28370,13 @@ func _refresh_buff_hud(delta: float = 0.0) -> void:
 			fill_color = Color(0.42, 0.96, 1.0)
 		shield_bar.add_theme_stylebox_override("fill", _make_buff_bar_style(fill_color, fill_color))
 
-	if _speed_boost_bar != null:
+	# 紧急关始终显示加速行；普通关无加速补给时隐藏内容，但面板高度/框体保持统一
+	if _is_emergency_run:
+		if _buff_boost_divider != null:
+			_buff_boost_divider.visible = true
+		if _buff_boost_row != null:
+			_buff_boost_row.visible = true
+	elif _speed_boost_bar != null:
 		var show_boost := _level_offers_speed_boosts()
 		var active := _speed_boost_timer > 0.001
 		if _buff_boost_divider != null:
@@ -23478,6 +28440,38 @@ func _refresh_buff_hud(delta: float = 0.0) -> void:
 		_boost_status_label.text = " · ".join(status_bits)
 
 
+func _collectible_node_from_ref(node_ref: Variant) -> Node3D:
+	if node_ref == null or not is_instance_valid(node_ref):
+		return null
+	if not (node_ref is Node3D):
+		return null
+	return node_ref as Node3D
+
+
+func _collectible_node_from_entry(collectible: Dictionary) -> Node3D:
+	var node := _collectible_node_from_ref(collectible.get("node"))
+	if node == null:
+		return null
+	if not _collectible_node_alive(node):
+		return null
+	return node
+
+
+func _retire_collectibles_on_obstacle_node(node_ref: Variant) -> void:
+	var root := _collectible_node_from_ref(node_ref)
+	if root == null:
+		return
+	for collectible in collectibles:
+		if bool(collectible.get("collected", false)):
+			continue
+		var cnode := _collectible_node_from_ref(collectible.get("node"))
+		if cnode == null:
+			continue
+		if cnode == root or root.is_ancestor_of(cnode):
+			collectible["collected"] = true
+			collectible["node"] = null
+
+
 func _collectible_node_alive(node: Node3D) -> bool:
 	return (
 		node != null
@@ -23528,6 +28522,8 @@ func _try_attach_gate_boosts_for_train(obstacle: Dictionary) -> void:
 	var root := obstacle.get("node") as Node3D
 	if root == null or not is_instance_valid(root):
 		return
+	if _uses_wave_gate_buffs() and not _has_gate_buff_collectible_at(float(obstacle.get("distance", 0.0))):
+		_attach_wave_gate_buff_for_obstacle(obstacle)
 	var train_dist := float(obstacle.get("distance", 0.0))
 	for collectible in collectibles:
 		if collectible.get("collected", false):
@@ -23536,7 +28532,7 @@ func _try_attach_gate_boosts_for_train(obstacle: Dictionary) -> void:
 			continue
 		if absf(float(collectible.get("gate_train_dist", -999.0)) - train_dist) > 0.5:
 			continue
-		if _collectible_node_alive(collectible.get("node") as Node3D):
+		if _collectible_node_alive(_collectible_node_from_ref(collectible.get("node"))):
 			continue
 		var lane := int(collectible.get("lane", 0))
 		var layer := int(collectible.get("layer", 0))
@@ -23652,6 +28648,28 @@ func _update_runway_side_light_visibility() -> void:
 		light.light_energy = energy
 
 
+func _dressing_matches_active_fork(node: Node3D, anchor_d: float) -> bool:
+	if _fork_side == 0:
+		return true
+	if _junction_fork_region_at(anchor_d).is_empty():
+		return true
+	var lat := float(node.get_meta("path_lateral", 0.0))
+	var zone := _fork_zone_at(anchor_d)
+	if zone.is_empty():
+		zone = _fork_zone_covering(anchor_d, 18.0)
+	if zone.is_empty():
+		return true
+	var start := float(zone.get("distance", 0.0))
+	var length := float(zone.get("length", 70.0))
+	var t := clampf((anchor_d - start) / maxf(length, 0.001), 0.0, 1.0)
+	var center := float(zone.get("spread", 17.0)) * _fork_envelope(t)
+	if center < 1.0:
+		return true
+	if _fork_side > 0:
+		return lat >= center * 0.22
+	return lat <= -center * 0.22
+
+
 func _update_midground_visibility() -> void:
 	var roots: Array[Node3D] = []
 	if _side_dressing_root != null:
@@ -23675,6 +28693,9 @@ func _update_midground_visibility() -> void:
 				continue
 			var delta_d := anchor_d - track_distance
 			if delta_d < MIDGROUND_VISIBLE_BEHIND or delta_d > ahead:
+				node.visible = false
+				continue
+			if not _dressing_matches_active_fork(node, anchor_d):
 				node.visible = false
 				continue
 			node.visible = true

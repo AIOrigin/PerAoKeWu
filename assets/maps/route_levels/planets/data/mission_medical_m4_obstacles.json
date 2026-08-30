@@ -1,33 +1,46 @@
 {
-	"note": "M4 · 早Y岔→平台→S弯→右侧墙。毒雾不压平台/弯道；侧墙远离熔岩坑。",
+	"note": "M4 Emergency · 对齐M1：盾稀靴密、垫避障；异能抉择约172m；撞后空直道+恢复垫由代码注入。",
 	"layout_id": "mission_medical_m4",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 5,
+	"version": 8,
 	"lava_cross_mode": "platform",
 	"track_segments": [
-		{"length": 110.0, "turn": 0.0},
-		{"type": "y_fork", "branch_length": 42.0, "angle_deg": 34.0},
-		{"length": 140.0, "turn": 0.0},
-		{"length": 34.0, "turn": 0.78},
-		{"length": 90.0, "turn": 0.0},
-		{"length": 34.0, "turn": -0.78},
-		{"length": 160.0, "turn": 0.0},
-		{"length": 170.0, "turn": 0.0}
-	],
-	"junction_zones": [
 		{
-			"distance": 116.0,
-			"length": 78.0,
-			"spread": 19.0,
-			"lane_a": 0,
-			"label_a": "安全岔路",
-			"effect_a": "safe",
-			"lane_b": 2,
-			"label_b": "奖励岔路",
-			"effect_b": "bonus"
+			"length": 110.0,
+			"turn": 0.0
+		},
+		{
+			"type": "y_fork",
+			"branch_length": 42.0,
+			"angle_deg": 34.0
+		},
+		{
+			"length": 140.0,
+			"turn": 0.0
+		},
+		{
+			"length": 34.0,
+			"turn": 0.78
+		},
+		{
+			"length": 90.0,
+			"turn": 0.0
+		},
+		{
+			"length": 34.0,
+			"turn": -0.78
+		},
+		{
+			"length": 160.0,
+			"turn": 0.0
+		},
+		{
+			"length": 170.0,
+			"turn": 0.0
 		}
 	],
+	"junction_zones": [],
 	"side_runway_zones": [
 		{
 			"start": 520.0,
@@ -58,51 +71,406 @@
 			"lane_count": 3
 		}
 	],
+	"launch_pads": [
+		{
+			"id": "m4_open_speed",
+			"distance": 30.0,
+			"lane": 1,
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
+		},
+		{
+			"id": "m4_mid_speed",
+			"distance": 290.0,
+			"lane": 1,
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
+		},
+		{
+			"id": "m4_late_speed",
+			"distance": 560.0,
+			"lane": 0,
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
+		}
+	],
 	"shield_crystals": [
-		{"distance": 70.0, "lane": 0, "layer": 0},
-		{"distance": 92.0, "lane": 1, "layer": 0},
-		{"distance": 312.0, "lane": -1, "layer": 0},
-		{"distance": 382.0, "lane": 0, "layer": 0},
-		{"distance": 650.0, "lane": 1, "layer": 0},
-		{"distance": 668.0, "lane": 0, "layer": 0}
+		{
+			"distance": 28.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 300.0,
+			"lane": 1,
+			"layer": 0
+		}
 	],
 	"obstacles": [
-		{"distance": 24.0, "lane": 0, "type": "jump"},
-		{"distance": 40.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 56.0, "lane": 1, "type": "train"},
-		{"distance": 72.0, "lane": 0, "type": "jump"},
-		{"distance": 88.0, "lane": 1, "type": "orb", "orb_size": "small"},
-		{"distance": 212.0, "lane": 0, "type": "jump"},
-		{"distance": 218.0, "lane": 1, "type": "train"},
-		{"distance": 258.0, "half_depth": 14.0, "lane": 0, "layer": 0, "type": "main_block", "cross": "platform"},
-		{"distance": 288.0, "lane": -1, "type": "orb", "orb_size": "small"},
-		{"distance": 302.0, "lane": 0, "type": "jump"},
-		{"distance": 314.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 388.0, "lane": 0, "type": "jump"},
-		{"distance": 402.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 418.0, "lane": -1, "type": "train"},
-		{"distance": 432.0, "lane": 0, "type": "meteorite", "span": 1.95, "fall_roll": true},
-		{"distance": 508.0, "lane": 0, "type": "ramp", "layer": 0, "target_layer": 1},
-		{"distance": 622.0, "lane": -1, "type": "jump"},
-		{"distance": 632.0, "lane": 0, "type": "slide", "low_slide": true},
-		{"distance": 646.0, "lane": 1, "type": "train"},
-		{"distance": 660.0, "lane": -1, "type": "jump"},
-		{"distance": 674.0, "lane": 0, "type": "meteorite", "span": 2.1, "fall_roll": false},
-		{"distance": 688.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 702.0, "lane": 0, "type": "train_moving"},
-		{"distance": 716.0, "lane": -1, "type": "jump"}
+		{
+			"distance": 24.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 40.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 56.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 72.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 88.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 104.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 1.9,
+			"fall_roll": true
+		},
+		{
+			"distance": 120.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 136.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 258.0,
+			"half_depth": 14.0,
+			"lane": 0,
+			"layer": 0,
+			"type": "main_block",
+			"cross": "platform"
+		},
+		{
+			"distance": 288.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 302.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 314.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 328.0,
+			"lane": -1,
+			"type": "train"
+		},
+		{
+			"distance": 342.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 1.95,
+			"fall_roll": true
+		},
+		{
+			"distance": 356.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 370.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 388.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 402.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 418.0,
+			"lane": -1,
+			"type": "train"
+		},
+		{
+			"distance": 432.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 1.95,
+			"fall_roll": true
+		},
+		{
+			"distance": 446.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 460.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 474.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 488.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 508.0,
+			"lane": 0,
+			"type": "ramp",
+			"layer": 0,
+			"target_layer": 1
+		},
+		{
+			"distance": 522.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 536.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 2.05,
+			"fall_roll": false
+		},
+		{
+			"distance": 550.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 564.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 578.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 592.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 606.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 1.9,
+			"fall_roll": true
+		},
+		{
+			"distance": 622.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 638.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 654.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 670.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 686.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 2.1,
+			"fall_roll": false
+		},
+		{
+			"distance": 702.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 718.0,
+			"lane": 0,
+			"type": "train_moving"
+		}
 	],
 	"speed_boosts": [
-		{"distance": 20.0, "lane": 1, "layer": 0},
-		{"distance": 80.0, "lane": 0, "layer": 0},
-		{"distance": 212.0, "lane": -1, "layer": 0},
-		{"distance": 294.0, "lane": 0, "layer": 0},
-		{"distance": 396.0, "lane": 1, "layer": 0},
-		{"distance": 622.0, "lane": -1, "layer": 0},
-		{"distance": 662.0, "lane": 0, "layer": 0},
-		{"distance": 708.0, "lane": 1, "layer": 0}
+		{
+			"distance": 14.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 14.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 28.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 60.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 70.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 92.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 106.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 128.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 152.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 198.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 244.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 290.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 312.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 336.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 382.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 382.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 428.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 474.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 520.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 566.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 612.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 628.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 650.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 658.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 668.0,
+			"lane": 0,
+			"layer": 0
+		}
 	],
 	"finish_sprints": [
-		{"distance": 732.0, "lane": 0, "width_ratio": 0.58}
+		{
+			"distance": 645.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
 	]
 }

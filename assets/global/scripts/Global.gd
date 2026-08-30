@@ -34,6 +34,8 @@ var runner_planet_id: String = "glass_desert"
 var exploration_planet_id: String = "glass_desert"
 var runner_location_id: String = "dome"
 var runner_mission_id: String = ""
+## 预览据点「试玩」：可跑酷，但不计入任务进度 / 点亮 / 领奖
+var runner_trial_run: bool = false
 ## 跑酷结束后回到的场景；空则回探索地图
 var runner_return_scene: String = ""
 ## 跑酷跑道外观（进关前选择，与背景独立）
@@ -1514,7 +1516,7 @@ func is_active_mission(planet_id: String, location_id: String, mission_key_id: S
 	return String(active.get("location_id", "")) == location_id
 
 
-## 校验进行中任务：已完成或未点亮则清除。返回仍有效的任务（可能为空）。
+## 校验进行中任务：据点已点亮 / 批次未解锁 / 该任务已完成则清除。
 func validate_active_mission(planet_id: String) -> Dictionary:
 	var current := get_active_mission(planet_id)
 	var location_id := String(current.get("location_id", ""))
@@ -1524,6 +1526,10 @@ func validate_active_mission(planet_id: String) -> Dictionary:
 		clear_active_mission(planet_id)
 		return {}
 	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
+		clear_active_mission(planet_id)
+		return {}
+	var mid := String(current.get("mission_id", ""))
+	if mid != "" and mid != location_id and is_mission_completed(planet_id, mid):
 		clear_active_mission(planet_id)
 		return {}
 	return current
@@ -1944,14 +1950,26 @@ func _sync_messenger_story_unlocks() -> void:
 	var before_stories := messenger_unlocked_stories.duplicate()
 	var before_char := selected_character_id
 	var dome_lit := get_completed_runner_locations("glass_desert").has("dome")
-	if dome_lit:
+	var dome_claimed := is_outpost_light_reward_claimed("glass_desert", "dome")
+	# Rook 在领取穹顶点亮奖励时解锁；点亮瞬间不同步解锁，避免领取页无法播角色揭示
+	if is_dev_full_unlock() or (dome_lit and dome_claimed):
 		_unlock_messenger_story("dome_resident")
-	else:
+	elif not dome_lit:
 		_remove_messenger_story("dome_resident")
 	_clamp_selected_character_to_unlocked()
 	if before_stories != messenger_unlocked_stories or before_char != selected_character_id:
 		save_mobile_progress()
 
+
+## 正式运输才计入任务板 / 据点点亮；试玩与未解锁批次不计入
+func should_count_runner_mission_progress() -> bool:
+	if runner_trial_run:
+		return false
+	if runner_planet_id == "" or runner_location_id == "":
+		return false
+	if CustomLevels.has_level(runner_location_id):
+		return false
+	return MissionDispatch.is_location_batch_unlocked(runner_planet_id, runner_location_id)
 
 func _sync_completed_outpost_progress() -> void:
 	# 旧存档：已点亮据点补满进度条，并同步对应 mission 为已完成
