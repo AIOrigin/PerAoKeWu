@@ -24,7 +24,7 @@ static func get_panels() -> Array[Dictionary]:
 		},
 		{
 			"texture": preload("res://assets/maps/route_levels/mobile_home/story_intro/p5.png"),
-			"caption": "So the last roads were given to those who could run.\nThey are called Spark Messengers.",
+			"caption": "So the last roads were given to those who could run.\nThey are called Ember Runners.",
 		},
 		{
 			"texture": preload("res://assets/maps/route_levels/mobile_home/story_intro/p6.png"),
@@ -41,7 +41,7 @@ static func get_panels() -> Array[Dictionary]:
 	]
 
 static func title_text() -> String:
-	return "SPARK MESSENGER: DAWN LINE"
+	return "EMBER\nRUNNERS:\nDAWN LINE"
 
 static func title_subtitle() -> String:
 	return "Prologue"

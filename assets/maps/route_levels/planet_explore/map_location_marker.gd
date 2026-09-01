@@ -26,6 +26,7 @@ var _revealed := true
 var _completed := false
 var _selected := false
 var _preview_mode := false
+var _has_open_missions := false
 var _pin_mode := false
 var _ui_built := false
 var _accent := Color(0.42, 0.82, 0.98)
@@ -59,10 +60,17 @@ func set_pin_mode(enabled: bool) -> void:
 		_refresh_visuals()
 
 
-func apply_state(revealed: bool, completed: bool, selected: bool, preview: bool = false) -> void:
+func apply_state(
+	revealed: bool,
+	completed: bool,
+	selected: bool,
+	has_open_missions: bool = false,
+	preview: bool = false
+) -> void:
 	_revealed = revealed
 	_completed = completed
 	_selected = selected
+	_has_open_missions = has_open_missions and not completed
 	_preview_mode = preview
 	if _ui_built:
 		_refresh_visuals()
@@ -228,7 +236,9 @@ func _draw_pin() -> void:
 	_pin_canvas.draw_colored_polygon(tri, Color(accent.r, accent.g, accent.b, 0.85))
 	# 类型图标（简化为圆点/星）
 	if _completed:
-		_pin_canvas.draw_string(ThemeDB.fallback_font, c + Vector2(-6, 5), "★", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.86, 0.36, 0.95))
+		_pin_canvas.draw_string(ThemeDB.fallback_font, c + Vector2(-6, 5), "★", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.82, 0.78, 0.95))
+	elif _has_open_missions:
+		_pin_canvas.draw_circle(c, 4.5, accent.lightened(0.18))
 	elif _preview_mode:
 		_pin_canvas.draw_string(ThemeDB.fallback_font, c + Vector2(-5, 5), "◆", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, accent.lightened(0.2))
 	else:
@@ -238,20 +248,21 @@ func _draw_pin() -> void:
 func _refresh_visuals() -> void:
 	if not _ui_built:
 		return
+	# 黄=有开放任务 · 蓝=无开放任务 · 红=已点亮
 	var accent := Color(0.38, 0.72, 0.96)
 	var glow := Color(0.22, 0.46, 0.72, 0.35)
 	var frame_fill := Color(0.08, 0.11, 0.16, 0.94)
 	if _completed:
+		accent = Color(0.92, 0.34, 0.30)
+		glow = Color(0.88, 0.28, 0.24, 0.42)
+		frame_fill = Color(0.14, 0.06, 0.06, 0.96)
+	elif _has_open_missions:
 		accent = Color(0.98, 0.78, 0.28)
 		glow = Color(0.98, 0.72, 0.22, 0.42)
 		frame_fill = Color(0.14, 0.11, 0.06, 0.96)
-	elif _preview_mode:
-		accent = Color(0.98, 0.72, 0.28)
-		glow = Color(0.98, 0.68, 0.18, 0.38)
-		frame_fill = Color(0.12, 0.09, 0.05, 0.90)
-	elif not _revealed:
-		accent = Color(0.52, 0.58, 0.66)
-		glow = Color(0.18, 0.20, 0.24, 0.28)
+	elif not _revealed and not _preview_mode:
+		accent = Color(0.42, 0.58, 0.72)
+		glow = Color(0.16, 0.22, 0.30, 0.28)
 		frame_fill = Color(0.06, 0.07, 0.10, 0.88)
 	if _selected:
 		accent = accent.lightened(0.14)
@@ -268,7 +279,7 @@ func _refresh_visuals() -> void:
 		_lock_overlay.visible = not _revealed and not _preview_mode
 		_badge.text = "★" if _completed else _type_icon
 		if _completed:
-			_badge.add_theme_color_override("font_color", Color(0.98, 0.84, 0.36))
+			_badge.add_theme_color_override("font_color", Color(1.0, 0.72, 0.68))
 		elif not _revealed and not _preview_mode:
 			_badge.text = "?"
 			_badge.add_theme_color_override("font_color", Color(0.72, 0.76, 0.82))

@@ -40,7 +40,7 @@ const RUNNER_PRELOAD_PATHS := [
 ]
 
 var _location_data: Array[Dictionary] = []
-var _revealed_location_ids: Array[String] = ["dome", "reservoir"]
+var _revealed_location_ids: Array[String] = ["reservoir", "gate"]
 var _reveal_points: Array[Vector2] = []
 var _selected_location_id := "dome"
 var _map_image_texture: Texture2D
@@ -96,7 +96,10 @@ func _ready() -> void:
 	legacy_panel.visible = false
 	hint_label.visible = false
 	_mobile_layout = true
-	hint_label.text = "点击地图上的地点进入详情  ·  累计运输进度满额后点亮据点"
+	hint_label.text = GameLocale.pick(
+		"点击地图上的地点进入详情  ·  累计运输进度满额后点亮据点",
+		"Tap a location for details · light outposts when transport progress is full"
+	)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	Global.play_home_bgm()
 	_load_map_texture()
@@ -104,7 +107,10 @@ func _ready() -> void:
 	_load_revealed_location_state()
 	var unlocked_names := _apply_completed_runner_unlocks()
 	if not unlocked_names.is_empty():
-		hint_label.text = "跑酷完成：%s 已点亮" % "、".join(unlocked_names)
+		hint_label.text = GameLocale.pick(
+			"跑酷完成：%s 已点亮" % "、".join(unlocked_names),
+			"Run complete: %s lit" % ", ".join(unlocked_names)
+		)
 	_rebuild_reveal_points_from_revealed_locations()
 	_build_map_ui()
 	_setup_pause_overlay()
@@ -125,8 +131,13 @@ func _maybe_start_pending_light_focus() -> void:
 	_selected_location_id = focus_id
 	_select_location(focus_id)
 	_start_location_light_pulse(focus_id)
-	var name := String(_get_location(focus_id).get("name", "据点"))
-	_set_ceremony_hint("点击闪烁的%s，点亮并驱散雾气" % name)
+	var name := GameLocale.field(_get_location(focus_id), "name", "name_en")
+	if name == "":
+		name = GameLocale.pick("据点", "Outpost")
+	_set_ceremony_hint(GameLocale.pick(
+		"点击闪烁的%s，点亮并驱散雾气" % name,
+		"Tap the glowing %s to light it and clear the fog" % name
+	))
 	call_deferred("_layout_ceremony_hint_above_pulse")
 
 
@@ -651,7 +662,7 @@ func _build_info_panel(ui: Control) -> void:
 
 	_story_button = Button.new()
 	_story_button.custom_minimum_size = Vector2(0, 56)
-	_story_button.text = "剧情"
+	_story_button.text = GameLocale.pick("剧情", "Story")
 	_story_button.add_theme_font_size_override("font_size", 18)
 	_style_action_button(_story_button, Color(0.20, 0.15, 0.10, 0.95), Color(0.88, 0.74, 0.48))
 	_story_button.pressed.connect(_show_selected_location_story)
@@ -659,7 +670,7 @@ func _build_info_panel(ui: Control) -> void:
 
 	_scan_button = Button.new()
 	_scan_button.custom_minimum_size = Vector2(0, 58)
-	_scan_button.text = "跑酷完成后解锁相邻区域"
+	_scan_button.text = GameLocale.pick("跑酷完成后解锁相邻区域", "Clear a run to unlock nearby areas")
 	_scan_button.add_theme_font_size_override("font_size", 18)
 	_style_action_button(_scan_button, Color(0.14, 0.11, 0.08, 0.92), Color(0.42, 0.32, 0.20))
 	_scan_button.disabled = true
@@ -669,7 +680,7 @@ func _build_info_panel(ui: Control) -> void:
 	road_row.add_theme_constant_override("separation", 10)
 	vbox.add_child(road_row)
 	var road_title := Label.new()
-	road_title.text = "跑道"
+	road_title.text = GameLocale.pick("跑道", "Track")
 	road_title.custom_minimum_size = Vector2(72, 0)
 	road_title.add_theme_font_size_override("font_size", 14)
 	road_title.add_theme_color_override("font_color", Color(0.72, 0.86, 0.95))
@@ -691,7 +702,7 @@ func _build_info_panel(ui: Control) -> void:
 	bg_row.add_theme_constant_override("separation", 10)
 	vbox.add_child(bg_row)
 	var bg_title := Label.new()
-	bg_title.text = "背景"
+	bg_title.text = GameLocale.pick("背景", "Backdrop")
 	bg_title.custom_minimum_size = Vector2(72, 0)
 	bg_title.add_theme_font_size_override("font_size", 14)
 	bg_title.add_theme_color_override("font_color", Color(0.72, 0.86, 0.95))
@@ -711,7 +722,7 @@ func _build_info_panel(ui: Control) -> void:
 
 	_runner_button = Button.new()
 	_runner_button.custom_minimum_size = Vector2(0, 62)
-	_runner_button.text = "进入跑酷模式"
+	_runner_button.text = GameLocale.pick("进入跑酷模式", "Enter Runner")
 	_runner_button.add_theme_font_size_override("font_size", 20)
 	_style_action_button(_runner_button, Color(0.86, 0.59, 0.27), Color(0.98, 0.82, 0.42))
 	_runner_button.pressed.connect(_start_runner)
@@ -885,8 +896,9 @@ func _layout_location_buttons() -> void:
 		var revealed := _is_revealed(id)
 		var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, id)
 		var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(id)
+		var has_open := MissionDispatch.location_has_open_missions(Global.exploration_planet_id, id)
 		var selected := id == _selected_location_id
-		marker.apply_state(revealed, completed, selected, preview)
+		marker.apply_state(revealed, completed, selected, has_open, preview)
 
 
 func _on_map_gui_input(event: InputEvent) -> void:
@@ -1103,19 +1115,21 @@ func _select_location(location_id: String) -> void:
 	var revealed := _is_revealed(location_id)
 	var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, location_id)
 	var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(location_id)
-	_info_title.text = String(location["name"])
+	_info_title.text = GameLocale.field(location, "name", "name_en")
 	if completed:
-		_info_status.text = "● 状态：已点亮"
+		_info_status.text = GameLocale.pick("● 状态：已点亮", "● Status: Lit")
 	elif preview:
-		_info_status.text = "● 状态：预览（批次未开放）"
+		_info_status.text = GameLocale.pick("● 状态：预览（批次未开放）", "● Status: Preview (batch locked)")
 	elif revealed:
-		_info_status.text = "● 状态：运输修复中"
+		_info_status.text = GameLocale.pick("● 状态：运输修复中", "● Status: Repairing")
 	else:
-		_info_status.text = "● 状态：未开放"
+		_info_status.text = GameLocale.pick("● 状态：未开放", "● Status: Locked")
 	if revealed or preview:
-		_info_desc.text = "%s\n%s" % [String(location.get("tagline", "")), String(location.get("goal", ""))]
+		var tagline := GameLocale.field(location, "tagline", "tagline_en")
+		var goal := GameLocale.field(location, "goal", "goal_en")
+		_info_desc.text = "%s\n%s" % [tagline, goal]
 	else:
-		_info_desc.text = "还没轮到这个据点的任务哦。"
+		_info_desc.text = GameLocale.pick("还没轮到这个据点的任务哦。", "This outpost's missions aren't open yet.")
 	_info_functions.text = ""
 	_update_location_buttons()
 	_refresh_map_stats()
@@ -1200,7 +1214,7 @@ func _start_runner_with_transition() -> void:
 		overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 		_ui_shell.add_child(overlay)
 		var label := Label.new()
-		label.text = "正在进入运输任务…"
+		label.text = GameLocale.pick("正在进入运输任务…", "Starting transport run…")
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1437,7 +1451,10 @@ func _refresh_map_stats() -> void:
 		if Global.get_completed_runner_locations(Global.exploration_planet_id).has(String(location["id"])):
 			lit += 1
 	var purify := int(round(float(lit) / float(maxi(total, 1)) * 100.0))
-	_map_stats_label.text = "已点亮 %d/%d\n净化度 %d%%" % [lit, total, purify]
+	_map_stats_label.text = GameLocale.pick(
+		"已点亮 %d/%d\n净化度 %d%%" % [lit, total, purify],
+		"Lit %d/%d\nPurify %d%%" % [lit, total, purify]
+	)
 	_map_stats_label.add_theme_color_override("font_color", Color(0.58, 0.64, 0.72))
 
 
@@ -1470,7 +1487,7 @@ func _layout_connections() -> void:
 
 
 func _is_revealed(location_id: String) -> bool:
-	# 地图可见 = 当前批次任务已开放（开局即开放穹顶+水源；点亮后开放下一批）
+	# 地图可见 = 当前批次任务已开放（开局水源+防御；点亮任一后开穹顶+医疗）
 	return MissionDispatch.is_location_batch_unlocked(Global.exploration_planet_id, location_id)
 
 
@@ -1496,7 +1513,7 @@ func _setup_pause_overlay() -> void:
 	add_child(layer)
 	_pause_overlay = MobilePauseOverlay.new()
 	_pause_overlay.configure({
-		"quit_text": "返回主界面",
+		"quit_text": GameLocale.pick("返回主界面", "Back to Home"),
 		"show_quit": true,
 		"show_pause_button": true,
 	})
@@ -1530,18 +1547,24 @@ func _show_selected_location_story() -> void:
 		return
 	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
 	var mission: Dictionary = cfg.get_mission_for_location(_selected_location_id)
-	var title := "%s · 剧情" % String(location["name"])
-	var body := String(mission.get("story", "这里还没有新的剧情记录。"))
+	var title := GameLocale.pick(
+		"%s · 剧情" % GameLocale.field(location, "name", "name_en"),
+		"%s · Story" % GameLocale.field(location, "name", "name_en")
+	)
+	var body := GameLocale.field(mission, "story", "story_en")
+	if body == "":
+		body = GameLocale.pick("这里还没有新的剧情记录。", "No new story logs here yet.")
 	if Global.get_completed_runner_locations(Global.exploration_planet_id).has(_selected_location_id):
-		body += "\n\n运输完成后，据点广播恢复，居民开始向周边节点发送火种信号。"
+		body += GameLocale.pick(
+			"\n\n运输完成后，据点广播恢复，居民开始向周边节点发送火种信号。",
+			"\n\nAfter delivery, the outpost broadcast returns and residents send ember signals to nearby nodes."
+		)
 	_show_story_overlay(title, body)
 
 
 func _location_display_name(location: Dictionary) -> String:
-	var name_en := String(location.get("name_en", "")).strip_edges()
-	if name_en != "":
-		return name_en
-	return String(location.get("name", "Outpost"))
+	var localized := GameLocale.field(location, "name", "name_en")
+	return localized if localized != "" else GameLocale.pick("据点", "Outpost")
 
 
 func _show_location_showcase(location_id: String) -> void:
@@ -1711,7 +1734,7 @@ func _show_story_overlay(title_text: String, body_text: String) -> void:
 	box.add_child(body)
 
 	var close := Button.new()
-	close.text = "关闭"
+	close.text = GameLocale.pick("关闭", "Close")
 	close.custom_minimum_size = Vector2(0, 58)
 	close.add_theme_font_size_override("font_size", 20)
 	close.pressed.connect(root.queue_free)

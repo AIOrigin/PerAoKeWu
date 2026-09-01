@@ -65,6 +65,7 @@ var _upper_block: VBoxContainer
 var _missions_panel: PanelContainer
 var _task_detail: Control
 var _revealed := false
+var _is_preview := false
 var _missions_cache: Array = []
 
 
@@ -92,7 +93,8 @@ func _apply_payload(payload: Dictionary) -> void:
 	_planet_id = String(payload.get("planet_id", Global.exploration_planet_id))
 	_selected_mission_id = ""
 	_revealed = bool(payload.get("revealed", false))
-	var preview := bool(payload.get("preview", false))
+	_is_preview = bool(payload.get("preview", false))
+	var preview := _is_preview
 	_icon_label.text = String(payload.get("type_icon", "◎"))
 	_title_label.text = String(payload.get("title", "Outpost Detail"))
 	_title_en_label.visible = false
@@ -123,7 +125,7 @@ func _apply_payload(payload: Dictionary) -> void:
 		int(payload.get("repair_total", 0)),
 	]
 	_rebuild_needs(payload.get("needs", []))
-	_rebuild_missions(payload.get("transport_missions", []), _revealed)
+	_rebuild_missions(payload.get("transport_missions", []), _revealed, preview)
 	var manager: Dictionary = payload.get("manager", {})
 	var show_identity := bool(manager.get("show_identity", bool(payload.get("completed", false))))
 	if show_identity:
@@ -349,7 +351,7 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 		var payout := Global.get_mission_reward_amount(planet_id, mission_id)
 		if Global.claim_mission_reward(planet_id, mission_id, payout):
 			_open_task_detail(mission)
-			_rebuild_missions(_missions_cache, _revealed)
+			_rebuild_missions(_missions_cache, _revealed, _is_preview)
 		return
 	if mission_done or location_lit or accepted:
 		if _task_detail:
@@ -359,7 +361,7 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 		return
 	Global.accept_mission(planet_id, mission_id)
 	_open_task_detail(mission)
-	_rebuild_missions(_missions_cache, _revealed)
+	_rebuild_missions(_missions_cache, _revealed, _is_preview)
 
 
 func _find_mission(mission_id: String) -> Dictionary:
@@ -705,7 +707,7 @@ func _build_need_card(need: Dictionary) -> Control:
 	return card
 
 
-func _rebuild_missions(missions: Array, revealed: bool) -> void:
+func _rebuild_missions(missions: Array, revealed: bool, preview: bool = false) -> void:
 	_mission_card_refs.clear()
 	_selected_mission_id = ""
 	var source: Array = []
@@ -716,7 +718,14 @@ func _rebuild_missions(missions: Array, revealed: bool) -> void:
 	for child in _missions_box.get_children():
 		child.queue_free()
 	if not revealed or _missions_cache.is_empty():
-		_missions_box.add_child(_make_label("Unlock after adjacent outpost missions", 16, MUTED))
+		var empty_msg := GameLocale.pick(
+			"该批次解锁后才会开放运输任务",
+			"Transport missions unlock when this batch opens"
+		) if preview else GameLocale.pick(
+			"完成相邻据点任务后解锁",
+			"Unlock after adjacent outpost missions"
+		)
+		_missions_box.add_child(_make_label(empty_msg, 20, MUTED))
 		return
 	for i in _missions_cache.size():
 		var mission: Dictionary = _missions_cache[i]

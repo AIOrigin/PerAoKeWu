@@ -171,8 +171,8 @@ const EXPLORE_LOCATIONS := [
 ]
 
 const MISSION_BATCHES := [
-	{"id": 1, "name": "生存基础", "locations": ["dome", "reservoir"]},
-	{"id": 2, "name": "危机应对", "locations": ["medical", "gate"]},
+	{"id": 1, "name": "净水防线", "locations": ["reservoir", "gate"]},
+	{"id": 2, "name": "家园救援", "locations": ["dome", "medical"]},
 	{"id": 3, "name": "网络核心", "locations": ["relay"]},
 ]
 
@@ -589,21 +589,27 @@ const LOCATION_MISSIONS := [
 		"cargo_icon": "防御",
 		"cargo_load": 92,
 		"cargo_fragility": 0.7,
-		"cargo_trait": "主动防御 · 碰撞减损 · 开局盾25",
+		"cargo_trait": "主动防御 · 碰撞减损 · 开局盾25 · 身后异能体",
 		"obstacle_density": 1.05,
 		"fork_bias": false,
 		"source_hearth": "Crystal Wastes",
 		"target_hearth": "居民穹顶",
 		"task_type": "Repair Run",
+		"enable_chaser": true,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 14.0,
+		"chaser_creep_mult": 0.58,
 		"duration": 65.0,
 		"order": 12,
 		"difficulty": 2,
 		"base_reward": 60,
-		"runner_rhythm": "防御包可主动格挡：激活后免疫伤害，但速度 -10% 且消耗耐力。",
+		"mechanics_hint": "异能体初现：身后零潮压迫较轻；受击加压，加速靴减压，开罩可扛碰撞。",
+		"runner_rhythm": "防御包可主动格挡：激活后免疫伤害，但速度 -10% 且消耗耐力。留意身后异能体，多踩加速靴拉开距离。",
 		"environment_factor": "侧墙绕坑与抬升支路，广告牌与屏障交替出现。",
 		"unlock_ids": [],
 		"unlocks": [],
-		"story": "防御组件需抢修送达，加固穹顶外墙。",
+		"story": "防御组件需抢修送达；零潮异能体已在荒原边缘嗅到动静。",
 	},
 	{
 		"mission_id": "mission_dome_h3",
@@ -1455,7 +1461,7 @@ const LOCATION_MISSIONS := [
 		"cargo_icon": "防御",
 		"cargo_load": 112,
 		"cargo_fragility": 0.7,
-		"cargo_trait": "主动防御 · 碰撞减损 · 开局盾25",
+		"cargo_trait": "主动防御 · 碰撞减损 · 开局盾25 · 身后异能体",
 		"cargo_secondary": "能源包",
 		"obstacle_density": 1.08,
 		"fork_bias": true,
@@ -1463,15 +1469,21 @@ const LOCATION_MISSIONS := [
 		"source_hearth": "居民穹顶",
 		"target_hearth": "防御哨站",
 		"task_type": "Relay Run",
+		"enable_chaser": true,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 18.0,
+		"chaser_creep_mult": 0.64,
 		"duration": 90.0,
 		"order": 53,
 		"difficulty": 3,
 		"base_reward": 70,
-		"runner_rhythm": "长途双货：热浪里点按散热，受击开防护罩。右道弹射过熔岩，后段平台跳再上侧墙。",
+		"mechanics_hint": "哨站追击：长途双货护送，身后异能体持续压迫；加速靴减压，受击开罩。",
+		"runner_rhythm": "长途双货：热浪里点按散热，受击开防护罩。右道弹射过熔岩，后段平台跳再上侧墙；留意身后距离。",
 		"environment_factor": "补给车队近景（净化器/药箱）+ 信号塔天际线。",
 		"unlock_ids": [],
 		"unlocks": [],
-		"story": "防御与能源中继运输：为哨站提供持续防线与能源。",
+		"story": "防御与能源中继运输途中，零潮异能体沿防线尾随而来。",
 	},
 	{
 		"mission_id": "mission_gate_d4",
@@ -2655,7 +2667,8 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 	var outpost := get_outpost_meta(location_id)
 	if outpost.is_empty():
 		return {}
-	var show_missions := revealed or preview
+	# 仅批次真正解锁（revealed）才列出运输任务；preview 可看据点，不展示任务卡
+	var show_missions := revealed
 	var mission: Dictionary = get_mission_for_location(location_id) if show_missions else {}
 	var repair_total := maxi(1, int(outpost.get("repair_total", 400)))
 	var repair_current := 0
@@ -2693,20 +2706,21 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 			transport_missions.append(loc_mission)
 			mission_index += 1
 	var copy_en := _detail_copy_en(location_id)
+	var batch_id := MissionDispatch.get_location_batch_id(PLANET_ID, location_id)
 	var status_text := ""
 	if completed:
 		status_text = "Status: Lit"
 	elif revealed:
 		status_text = "Status: Transport Repair"
 	elif preview:
-		status_text = "Status: Preview · Batch 3 locked"
+		status_text = "Status: Preview · Batch %d locked" % maxi(batch_id, 1)
 	else:
 		status_text = "Status: Locked"
 	var locked_hint := ""
 	if not revealed and not preview:
 		locked_hint = "\nMain Rewards: Runner ??? · Ember Coins ???"
 	elif preview and not revealed:
-		locked_hint = "\nPreview only · missions not on dispatch board yet"
+		locked_hint = "\nPreview only · transport missions unlock with this batch"
 	var meta_state := ""
 	if completed:
 		meta_state = "Lit"
@@ -2763,7 +2777,7 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 			"unlock_character": String(outpost.get("unlock_character", "")),
 		},
 		"cargo_icon_path": get_cargo_icon_path(mission) if not mission.is_empty() else "",
-		"revealed": revealed or preview,
+		"revealed": revealed,
 		"preview": preview,
 		"completed": completed,
 		"locked_hint": locked_hint,

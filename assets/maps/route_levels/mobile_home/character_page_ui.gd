@@ -11,8 +11,16 @@ const STAT_GLYPH := {"sp": "⏱", "hp": "♥", "en": "🔋"}
 const GEAR_GLYPH := {"boots": "👢", "core": "⚛", "shield": "🛡"}
 # 与 CharacterHubRing 弧段中点对齐：上 / 左下 / 右下，间隔 120°
 const STAT_ORBIT_DEG := {"sp": -90.0, "hp": 150.0, "en": 30.0}
-# 纵向压缩系数：在保持横向撑满感的同时，让整页一屏展示无需滚动
-const RUNNER_V := 0.70
+# 纵向压缩：一屏内显示全，但保留可读高度与四周缝隙
+const RUNNER_V := 0.78
+## 设计稿内左右内边距（相对 CONTENT_W 外再缩一圈）
+const PAGE_INSET_X := 3.0
+const PAGE_INSET_TOP := 0.8
+const PAGE_INSET_BOT := 1.2
+
+
+static func _page_w() -> float:
+	return Design.CONTENT_W - Design.cqw(PAGE_INSET_X) * 2.0
 
 
 static func _vh(v: float) -> float:
@@ -23,9 +31,9 @@ static func _vhi(v: float) -> int:
 	return int(round(_vh(v)))
 
 
-## 故事/装备等关键区块：用完整 cqh，避免被 RUNNER_V 压扁后裁切
+## 区块高度同样走纵向压缩，避免故事/装备把页面撑出屏幕
 static func _block_h(v: float) -> int:
-	return int(Design.cqh(v))
+	return _vhi(v)
 
 
 static func build(parent: Control, ctx: Dictionary) -> void:
@@ -41,46 +49,153 @@ static func build(parent: Control, ctx: Dictionary) -> void:
 class _RunnerPageShell extends Control:
 	var _canvas: Control
 	var _design_size := Vector2.ZERO
+	var _base_design_size := Vector2.ZERO
+	var _page_col: VBoxContainer
+	var _equip_sec: VBoxContainer
+	var _tray: PanelContainer
+	var _fan_host: Control
+	var _base_card_h := 0
+	var _base_fan_h := 0
+	var _fan_pad_v := 0
+	var _card_w := 0
+	var _fit_guard := false
 
 	func setup(ctx: Dictionary) -> void:
-		clip_contents = true
+		clip_contents = false
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		size_flags_vertical = Control.SIZE_EXPAND_FILL
 		_canvas = Control.new()
 		_canvas.name = "DesignCanvas"
 		_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_canvas)
-		_design_size = CharacterPageUI._build_canvas(_canvas, ctx)
+		var built: Dictionary = CharacterPageUI._build_canvas(_canvas, ctx)
+		_design_size = built.get("size", Vector2.ZERO)
+		_base_design_size = _design_size
+		_page_col = built.get("col") as VBoxContainer
+		_equip_sec = built.get("equip_sec") as VBoxContainer
+		_tray = built.get("tray") as PanelContainer
+		_fan_host = built.get("fan_host") as Control
+		_base_card_h = int(built.get("card_h", 0))
+		_base_fan_h = int(built.get("fan_h", 0))
+		_fan_pad_v = int(built.get("fan_pad_v", 0))
+		_card_w = int(built.get("card_w", 0))
 		_canvas.custom_minimum_size = _design_size
 		_canvas.size = _design_size
 		resized.connect(_fit_canvas)
 		call_deferred("_fit_canvas")
-		var ancestor: Node = self
+		var ancestor: Node = get_parent()
 		while ancestor:
+			if ancestor is Control:
+				var c := ancestor as Control
+				if not c.resized.is_connected(_fit_canvas):
+					c.resized.connect(_fit_canvas)
 			if ancestor is ScrollContainer:
-				if not ancestor.resized.is_connected(_fit_canvas):
-					ancestor.resized.connect(_fit_canvas)
 				break
 			ancestor = ancestor.get_parent()
 
+	func _measure_avail() -> Vector2:
+		# 必须用 Scroll 视口高度，不能用内容撑开后的 host.size（会偏大导致不缩放、底部裁切）
+		var node: Node = self
+		while node:
+			if node is ScrollContainer:
+				var sc := node as ScrollContainer
+				if sc.size.x > 1.0 and sc.size.y > 1.0:
+					return sc.size
+			node = node.get_parent()
+		var host := get_parent() as Control
+		if host != null and host.size.y > 1.0:
+			return host.size
+		return size
+
+	func _remeasure_design_height() -> float:
+		if _page_col == null:
+			return _base_design_size.y
+		_page_col.custom_minimum_size = Vector2(CharacterPageUI._page_w(), 0)
+		_page_col.update_minimum_size()
+		var col_h := _page_col.get_combined_minimum_size().y
+		_page_col.custom_minimum_size = Vector2(CharacterPageUI._page_w(), col_h)
+		_page_col.size = _page_col.custom_minimum_size
+		var pad := _page_col.get_parent() as Control
+		if pad != null:
+			pad.update_minimum_size()
+			var pad_h := pad.get_combined_minimum_size().y
+			pad.custom_minimum_size = Vector2(_base_design_size.x, pad_h)
+			pad.size = pad.custom_minimum_size
+			return pad_h
+		return col_h + CharacterPageUI._vhi(CharacterPageUI.PAGE_INSET_TOP) + CharacterPageUI._vhi(CharacterPageUI.PAGE_INSET_BOT)
+
 	func _fit_canvas() -> void:
-		if _design_size.x <= 0.0:
+		if _fit_guard or _base_design_size.x <= 0.0:
 			return
-		var avail := size
+		var avail := _measure_avail()
 		if avail.x <= 1.0 or avail.y <= 1.0:
 			return
-		var sx := avail.x / _design_size.x
-		var sy := (avail.y - 6.0) / _design_size.y
-		var scale := minf(sx, sy)
+		_fit_guard = true
+		# 宿主锁死为视口，避免被未缩放的 canvas 最小高度撑破
+		custom_minimum_size = Vector2(maxi(1, int(avail.x)), int(floor(avail.y)))
+		size = custom_minimum_size
+
+		_apply_equip_card_height(_base_card_h)
+		var content_h := _remeasure_design_height()
+		var card_h := _base_card_h
+		var scale_x := avail.x / _base_design_size.x
+		var room := maxf(avail.y - 1.0, 1.0)
+		# 先按宽度缩放：若还有竖直空余，把空余加进装备卡；最后仍用 min(宽,高) 硬钳制
+		var used_at_width := content_h * scale_x
+		if used_at_width < room - 2.0 and _base_card_h > 0:
+			var leftover_design := (room / maxf(scale_x, 0.001)) - content_h
+			if leftover_design > 2.0:
+				card_h = _base_card_h + int(floor(leftover_design))
+				_apply_equip_card_height(card_h)
+				content_h = _remeasure_design_height()
+		_design_size = Vector2(_base_design_size.x, content_h)
+		var scale := minf(scale_x, room / maxf(content_h, 1.0))
+		# 再保险：缩放后高度绝不超过视口
+		if content_h * scale > room:
+			scale = room / maxf(content_h, 1.0)
+
+		if _equip_sec:
+			_equip_sec.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		if _tray:
+			_tray.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_canvas.custom_minimum_size = _design_size
+		_canvas.size = _design_size
 		_canvas.scale = Vector2(scale, scale)
 		var fitted := _design_size * scale
-		_canvas.position = Vector2(
-			(avail.x - fitted.x) * 0.5,
-			0.0
+		# 顶对齐：底部空余留给装备区扩展，避免露出背后场景图
+		_canvas.position = Vector2((avail.x - fitted.x) * 0.5, 0.0)
+		_fit_guard = false
+
+	func _apply_equip_card_height(card_h: int) -> void:
+		if _fan_host == null or _base_card_h <= 0:
+			return
+		card_h = maxi(card_h, _base_card_h)
+		var fan_h := card_h + _fan_pad_v * 2 + CharacterPageUI._block_h(0.35)
+		if card_h <= _base_card_h and _base_fan_h > 0:
+			fan_h = _base_fan_h
+		_fan_host.custom_minimum_size = Vector2(
+			_fan_host.custom_minimum_size.x if _fan_host.custom_minimum_size.x > 0 else 1.0,
+			fan_h
 		)
-		clip_contents = false
+		_fan_host.size = _fan_host.custom_minimum_size
+		for child in _fan_host.get_children():
+			if child is Control:
+				var card := child as Control
+				var cw := _card_w if _card_w > 0 else int(card.custom_minimum_size.x)
+				if cw <= 0:
+					cw = 1
+				card.custom_minimum_size = Vector2(cw, card_h)
+				card.size = Vector2(cw, card_h)
+				card.position.y = float(_fan_pad_v)
+				for nested in card.get_children():
+					if nested is Control:
+						var panel := nested as Control
+						panel.custom_minimum_size = Vector2(cw, card_h)
+						panel.size = Vector2(cw, card_h)
 
 
-static func _build_canvas(root: Control, ctx: Dictionary) -> Vector2:
+static func _build_canvas(root: Control, ctx: Dictionary) -> Dictionary:
 	var character_id: String = String(ctx.get("character_id", CharacterRoster.CHAR_ELSA))
 	var snapshot: Dictionary = ctx.get("snapshot", {})
 	var character: Dictionary = CharacterRoster.get_character(character_id)
@@ -89,20 +204,44 @@ static func _build_canvas(root: Control, ctx: Dictionary) -> Vector2:
 	var is_active := String(ctx.get("active_character_id", character_id)) == character_id
 
 	var col := VBoxContainer.new()
-	col.custom_minimum_size = Vector2(Design.CONTENT_W, 0)
-	col.size = Vector2(Design.CONTENT_W, 0)
-	col.add_theme_constant_override("separation", _vhi(1.05))
+	var page_w := _page_w()
+	col.custom_minimum_size = Vector2(page_w, 0)
+	col.size = Vector2(page_w, 0)
+	col.add_theme_constant_override("separation", _vhi(0.9))
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(col)
+	var pad := MarginContainer.new()
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.add_theme_constant_override("margin_left", int(Design.cqw(PAGE_INSET_X)))
+	pad.add_theme_constant_override("margin_right", int(Design.cqw(PAGE_INSET_X)))
+	pad.add_theme_constant_override("margin_top", _vhi(PAGE_INSET_TOP))
+	pad.add_theme_constant_override("margin_bottom", _vhi(PAGE_INSET_BOT))
+	pad.add_child(col)
+	root.add_child(pad)
 
 	col.add_child(_build_hub(ctx, character, snapshot, character_id, is_locked, is_active))
 	col.add_child(_build_character_switch_bar(ctx, character_id, snapshot))
 	col.add_child(_build_info_section(ctx, character, snapshot, character_id, is_locked, is_active))
 	col.add_child(_build_story_banner(ctx, character, is_locked))
-	col.add_child(_build_equipment_section(character, is_locked))
+	var equip_built: Dictionary = _build_equipment_section(character, is_locked)
+	var equip_sec: VBoxContainer = equip_built["sec"]
+	col.add_child(equip_sec)
 
 	_finalize_col(col)
-	return Vector2(Design.CONTENT_W, col.size.y)
+	pad.update_minimum_size()
+	var pad_sz := pad.get_combined_minimum_size()
+	pad.custom_minimum_size = pad_sz
+	pad.size = pad_sz
+	return {
+		"size": Vector2(Design.CONTENT_W, pad_sz.y),
+		"col": col,
+		"equip_sec": equip_sec,
+		"tray": equip_built.get("tray"),
+		"fan_host": equip_built.get("fan_host"),
+		"card_h": equip_built.get("card_h", 0),
+		"fan_h": equip_built.get("fan_h", 0),
+		"fan_pad_v": equip_built.get("fan_pad_v", 0),
+		"card_w": equip_built.get("card_w", 0),
+	}
 
 
 static func _finalize_col(col: VBoxContainer) -> void:
@@ -120,19 +259,29 @@ static func _build_hub(
 	is_locked: bool,
 	is_active: bool
 ) -> Control:
-	var ring_size := int(Design.cqw(52))
-	var chip_px := int(Design.cqw(8.4))
-	var stat_gap := Design.cqw(2.2)
+	# 立绘环按宽度略收，给下方 XP/故事/装备留出一屏空间
+	var ring_size := int(Design.cqw(42))
+	var chip_px := int(Design.cqw(7.2))
+	var stat_gap := Design.cqw(1.6)
 	var orbit_r := ring_size * 0.5 + chip_px * 0.5 + stat_gap
-	var stat_stack_h := chip_px + _vhi(2.4)
-	var ring_pad := int(orbit_r - ring_size * 0.5 + stat_stack_h - chip_px + _vh(0.35))
-	var ring_top := ring_pad
+	# SPEED 在圆顶外侧：label + value 叠在 chip 上方，顶边必须留足，否则会被裁切
+	var value_fs := Design.fs_cqw(3.8)
+	var label_fs := Design.fs_cqw(2.2)
+	var stack_sep := _vhi(0.15)
+	var orbit_out := orbit_r - ring_size * 0.5
+	var ring_pad_top := int(ceil(
+		orbit_out + label_fs + value_fs + chip_px * 0.5 + stack_sep * 2.0 + _vh(0.55)
+	))
+	var ring_pad_bot := int(ceil(
+		orbit_out * 0.42 + chip_px * 0.5 + value_fs + label_fs + stack_sep * 2.0 + _vh(0.35)
+	))
+	var ring_top := ring_pad_top
 	var inset := ring_size * 0.075
 	var portrait_d := int(ring_size - inset * 2.0)
-	var hub_h := ring_top + ring_size + ring_pad
+	var hub_h := ring_top + ring_size + ring_pad_bot
 
 	var hub := Control.new()
-	hub.custom_minimum_size = Vector2(Design.CONTENT_W, hub_h)
+	hub.custom_minimum_size = Vector2(_page_w(), hub_h)
 	hub.clip_contents = false
 	hub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -216,7 +365,7 @@ static func _build_stat_node(
 	node.custom_minimum_size = sz
 	node.size = sz
 
-	var hub_cx := Design.CONTENT_W * 0.5
+	var hub_cx := _page_w() * 0.5
 	var hub_cy := ring_top + ring_size * 0.5
 	var angle_deg: float = STAT_ORBIT_DEG.get(icon, -90.0)
 	var dir := Vector2(cos(deg_to_rad(angle_deg)), sin(deg_to_rad(angle_deg)))
@@ -255,7 +404,7 @@ static func _stat_chip(icon: String, color: Color, size_px: int) -> PanelContain
 static func _stat_value(stat: Dictionary, color: Color, masked: bool = false) -> Label:
 	var label := Label.new()
 	label.text = "?" if masked else String(stat.get("value", ""))
-	label.add_theme_font_size_override("font_size", Design.fs_cqw(4.3))
+	label.add_theme_font_size_override("font_size", Design.fs_cqw(3.8))
 	label.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.35))
 	label.add_theme_color_override("font_shadow_color", Color(color.r, color.g, color.b, 0.55))
 	return label
@@ -264,9 +413,9 @@ static func _stat_value(stat: Dictionary, color: Color, masked: bool = false) ->
 static func _stat_label(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", Design.fs_cqw(2.5))
+	label.add_theme_font_size_override("font_size", Design.fs_cqw(2.2))
 	label.add_theme_color_override("font_color", Color(0.72, 0.78, 0.86))
-	label.add_theme_constant_override("letter_spacing", Design.em_cqw(2.5, 0.18))
+	label.add_theme_constant_override("letter_spacing", Design.em_cqw(2.2, 0.18))
 	return label
 
 
@@ -292,7 +441,7 @@ static func _pill_tag(text: String) -> PanelContainer:
 
 static func _hub_arrow_btn(ctx: Dictionary, next: bool) -> Control:
 	var wrap := Control.new()
-	var sz := int(Design.cqw(10.0))
+	var sz := maxi(_vhi(3.2), 28)
 	wrap.custom_minimum_size = Vector2(sz, sz)
 	wrap.mouse_filter = Control.MOUSE_FILTER_STOP
 	var lbl := Label.new()
@@ -317,7 +466,7 @@ static func _hub_arrow_btn(ctx: Dictionary, next: bool) -> Control:
 static func _build_character_switch_bar(ctx: Dictionary, current_id: String, snapshot: Dictionary) -> Control:
 	var bar := PanelContainer.new()
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.custom_minimum_size = Vector2(0, int(Design.cqh(4.4)))
+	bar.custom_minimum_size = Vector2(0, int(Design.cqh(3.6) * RUNNER_V))
 	var panel := StyleBoxFlat.new()
 	panel.bg_color = Color(0.015, 0.028, 0.048, 0.94)
 	panel.border_color = Color(0.627, 0.784, 0.922, 0.38)
@@ -423,7 +572,12 @@ static func _build_info_section(
 
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", Design.card_style())
+	var info_style := Design.card_style()
+	info_style.content_margin_top = _vhi(0.7)
+	info_style.content_margin_bottom = _vhi(0.7)
+	info_style.content_margin_left = Design.fs_cqw(3.0)
+	info_style.content_margin_right = Design.fs_cqw(3.0)
+	card.add_theme_stylebox_override("panel", info_style)
 	wrap.add_child(card)
 
 	var body := VBoxContainer.new()
@@ -440,7 +594,7 @@ static func _build_info_section(
 	name.text = String(character.get("name_en", "ELSA"))
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name.add_theme_font_size_override("font_size", Design.fs_cqw(6.2))
+	name.add_theme_font_size_override("font_size", Design.fs_cqw(5.4))
 	name.add_theme_color_override("font_color", Design.ICE)
 	name.add_theme_color_override("font_shadow_color", Color(0.667, 0.894, 0.98, 0.45))
 	name_row.add_child(name)
@@ -463,8 +617,8 @@ static func _build_info_section(
 static func _build_xp_strip(snapshot: Dictionary, masked: bool = false) -> Control:
 	var badge := PanelContainer.new()
 	badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	badge.custom_minimum_size = Vector2(0, _vhi(3.6))
-	badge.add_theme_stylebox_override("panel", Design.glass_style(Design.cqw(8), Vector4(14, 6, 14, 6)))
+	badge.custom_minimum_size = Vector2(0, _vhi(3.1))
+	badge.add_theme_stylebox_override("panel", Design.glass_style(Design.cqw(8), Vector4(12, 4, 12, 4)))
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -575,23 +729,27 @@ static func _build_use_chip(ctx: Dictionary, character_id: String, is_active: bo
 
 
 static func _build_story_banner(ctx: Dictionary, character: Dictionary, locked: bool) -> Control:
-	var banner_h := _block_h(6.4)
-	var icon_side := int(minf(Design.cqw(8.8), banner_h - _block_h(2.0)))
+	# 故事条保底高度：两行字 + 内边距，避免被纵向压缩挤成一条线
+	var title_fs := Design.fs_cqw(3.4)
+	var sub_fs := Design.fs_cqw(2.3)
+	var pad_v := maxi(_block_h(1.15), 8)
+	var banner_h := maxi(_block_h(9.4), title_fs + sub_fs + pad_v * 2 + _vhi(0.55))
+	var icon_side := int(clampf(float(banner_h - pad_v), Design.cqw(7.5), Design.cqw(10.0)))
 
 	var btn := Button.new()
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.custom_minimum_size = Vector2(0, banner_h)
-	btn.clip_contents = true
+	btn.clip_contents = false
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.045, 0.095, 0.165, 0.96)
 	style.border_color = Color(0.667, 0.902, 1.0, 0.52)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(Design.fs_cqw(2.4))
-	style.content_margin_left = Design.fs_cqw(2.8)
-	style.content_margin_right = Design.fs_cqw(2.8)
-	style.content_margin_top = _block_h(1.0)
-	style.content_margin_bottom = _block_h(1.0)
+	style.content_margin_left = Design.fs_cqw(2.6)
+	style.content_margin_right = Design.fs_cqw(2.6)
+	style.content_margin_top = pad_v
+	style.content_margin_bottom = pad_v
 	style.shadow_color = Color(Design.CYAN.r, Design.CYAN.g, Design.CYAN.b, 0.22)
 	style.shadow_size = 10
 	btn.add_theme_stylebox_override("normal", style)
@@ -633,20 +791,20 @@ static func _build_story_banner(ctx: Dictionary, character: Dictionary, locked: 
 	var text_col := VBoxContainer.new()
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	text_col.add_theme_constant_override("separation", int(Design.cqh(0.2)))
+	text_col.add_theme_constant_override("separation", maxi(_vhi(0.25), 2))
 	text_col.alignment = BoxContainer.ALIGNMENT_CENTER
 	text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(text_col)
 	var title := Label.new()
 	title.text = "RUNNER STORY"
-	title.add_theme_font_size_override("font_size", Design.fs_cqw(3.0))
+	title.add_theme_font_size_override("font_size", title_fs)
 	title.add_theme_color_override("font_color", Design.ICE)
-	title.add_theme_constant_override("letter_spacing", Design.em_cqw(3.0, 0.10))
+	title.add_theme_constant_override("letter_spacing", Design.em_cqw(3.4, 0.10))
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	text_col.add_child(title)
 	var sub := Label.new()
 	sub.text = "? ? ?" if locked else "READ CHARACTER ARCHIVE"
-	sub.add_theme_font_size_override("font_size", Design.fs_cqw(2.1))
+	sub.add_theme_font_size_override("font_size", sub_fs)
 	sub.add_theme_color_override("font_color", Design.TEXT_SUB if locked else Design.CYAN_SOFT)
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	text_col.add_child(sub)
@@ -654,43 +812,49 @@ static func _build_story_banner(ctx: Dictionary, character: Dictionary, locked: 
 	var chev := Label.new()
 	chev.text = "›"
 	chev.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	chev.add_theme_font_size_override("font_size", Design.fs_cqw(5.2))
+	chev.add_theme_font_size_override("font_size", Design.fs_cqw(5.8))
 	chev.add_theme_color_override("font_color", Design.CYAN)
 	chev.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(chev)
 	return btn
 
 
-static func _build_equipment_section(character: Dictionary, is_locked: bool) -> Control:
+static func _build_equipment_section(character: Dictionary, is_locked: bool) -> Dictionary:
 	var sec := VBoxContainer.new()
-	sec.add_theme_constant_override("separation", _vhi(0.45))
+	sec.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sec.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sec.add_theme_constant_override("separation", _vhi(0.4))
 	sec.add_child(_section_label())
 
 	var tray := PanelContainer.new()
 	tray.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tray.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tray.clip_contents = false
 	var tray_style := StyleBoxFlat.new()
-	tray_style.bg_color = Color(0.018, 0.034, 0.058, 0.88)
+	# 半透明玻璃托盘：高度跟加高后的卡片走
+	tray_style.bg_color = Color(0.018, 0.034, 0.058, 0.55)
 	tray_style.border_color = Color(0.627, 0.784, 0.922, 0.22)
 	tray_style.set_border_width_all(1)
 	tray_style.set_corner_radius_all(Design.fs_cqw(2.0))
 	tray_style.content_margin_left = int(Design.cqw(1.2))
 	tray_style.content_margin_right = int(Design.cqw(1.2))
-	tray_style.content_margin_top = _block_h(0.75)
-	tray_style.content_margin_bottom = _block_h(1.15)
+	tray_style.content_margin_top = _block_h(0.55)
+	tray_style.content_margin_bottom = _block_h(0.7)
 	tray.add_theme_stylebox_override("panel", tray_style)
 	sec.add_child(tray)
 
 	var fan_host := Control.new()
-	var card_w := int(Design.cqw(29))
-	var card_h := _block_h(14.0) if is_locked else _block_h(16.2)
+	var card_w := int(Design.cqw(27))
+	var card_h := _block_h(15.5) if is_locked else _block_h(17.5)
 	var overlap := int(Design.cqw(1.4))
-	var fan_pad_v := _block_h(0.55)
+	var fan_pad_v := _block_h(0.45)
+	var fan_h := card_h + fan_pad_v * 2 + _block_h(0.35)
 	fan_host.custom_minimum_size = Vector2(
-		Design.CONTENT_W - Design.cqw(2.4),
-		card_h + fan_pad_v * 2 + _block_h(0.65)
+		_page_w() - Design.cqw(2.4),
+		fan_h
 	)
 	fan_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fan_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	fan_host.clip_contents = false
 	tray.add_child(fan_host)
 
@@ -707,7 +871,15 @@ static func _build_equipment_section(character: Dictionary, is_locked: bool) -> 
 			card.z_index = 2 if i == 1 else 1
 			fan_host.add_child(card)
 
-	return sec
+	return {
+		"sec": sec,
+		"tray": tray,
+		"fan_host": fan_host,
+		"card_h": card_h,
+		"fan_h": fan_h,
+		"fan_pad_v": fan_pad_v,
+		"card_w": card_w,
+	}
 
 
 static func _section_label() -> Control:
@@ -760,10 +932,10 @@ static func _build_gear_card(
 
 	var corner_r := Design.fs_cqw(2.2)
 	var panel_style := Design.gear_style(accent, (locked or empty) and not runner_locked, corner_r)
-	panel_style.content_margin_left = int(Design.cqw(1.4))
-	panel_style.content_margin_right = int(Design.cqw(1.4))
-	panel_style.content_margin_top = _block_h(0.85)
-	panel_style.content_margin_bottom = _block_h(1.0)
+	panel_style.content_margin_left = int(Design.cqw(1.2))
+	panel_style.content_margin_right = int(Design.cqw(1.2))
+	panel_style.content_margin_top = _block_h(0.5)
+	panel_style.content_margin_bottom = _block_h(0.55)
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(card_w, card_h)
@@ -850,7 +1022,7 @@ static func _build_gear_card(
 
 static func _gear_icon_box(accent: Color, dimmed: bool) -> PanelContainer:
 	var box := PanelContainer.new()
-	var side := int(Design.cqw(8.2))
+	var side := int(Design.cqw(10.0))
 	box.custom_minimum_size = Vector2(side, side)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.02, 0.04, 0.08, 0.95)

@@ -3,7 +3,7 @@
 	"layout_id": "mission_reservoir_w2",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 19,
+	"version": 20,
 	"track_segments": [
 		{
 			"length": 280.0,
@@ -95,13 +95,6 @@
 			"lane": -1,
 			"type": "slide",
 			"low_slide": true
-		},
-		{
-			"distance": 262.0,
-			"lane": 0,
-			"layer": 0,
-			"target_layer": 1,
-			"type": "ramp"
 		},
 		{
 			"distance": 292.0,

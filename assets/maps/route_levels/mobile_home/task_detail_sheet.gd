@@ -276,6 +276,7 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	if not type_en.ends_with(" RUN") and "RUN" not in type_en:
 		type_en = "%s RUN" % type_en
 	var type_zh := String(mission.get("task_type_zh", profile.get("name_zh", "补给")))
+	var type_label := type_en if GameLocale.is_en() else ("%s运输" % type_zh)
 	var reward := int(mission.get("base_reward", profile.get("base_reward", 100 + int(mission.get("difficulty", 1)) * 10)))
 	var duration_s := int(mission.get("duration", profile.get("duration", 60)))
 	var timed := bool(profile.get("timed_fail", false))
@@ -283,9 +284,9 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	var outpost := String(mission.get("target_hearth", mission.get("source_hearth", location_id)))
 	if _outpost_name_cb.is_valid():
 		outpost = String(_outpost_name_cb.call(location_id, outpost))
-	var cargo_name := String(mission.get("cargo_name", "Cargo"))
-	var cargo_en := String(mission.get("cargo_name_en", "")).strip_edges()
-	var cargo_text := cargo_en if cargo_en != "" else cargo_name
+	var cargo_text := GameLocale.field(mission, "cargo_name", "cargo_name_en")
+	if cargo_text == "":
+		cargo_text = "Cargo"
 	var trait_text := _cargo_trait(mission, profile)
 	var tip := _tip_text(mission, profile)
 	var diff := clampi(int(mission.get("difficulty", 1)), 1, 5)
@@ -316,7 +317,7 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	_body.add_child(title)
 
 	var sub := Label.new()
-	sub.text = "%s运输" % type_zh
+	sub.text = type_label
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub.add_theme_font_size_override("font_size", _spec_fs(22))
 	sub.add_theme_color_override("font_color", UI_MUTED)
@@ -337,7 +338,10 @@ func open(planet_id: String, mission: Dictionary) -> void:
 		lock_panel.add_theme_stylebox_override("panel", lock_style)
 		_body.add_child(lock_panel)
 		var lock_lbl := Label.new()
-		lock_lbl.text = "预览模式 · 批次正式解锁前可试玩体验\n点击底部「试玩体验」直接进入关卡调优（进度暂不计入任务板）"
+		lock_lbl.text = GameLocale.pick(
+			"预览模式 · 批次正式解锁前可试玩体验\n点击底部「试玩体验」直接进入关卡调优（进度暂不计入任务板）",
+			"Preview · trial run before this batch unlocks\nTap Trial Run below (progress does not count toward the board)"
+		)
 		lock_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lock_lbl.add_theme_font_size_override("font_size", _spec_fs(18))
@@ -383,7 +387,7 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	elif mission_done and reward_claimed:
 		_add_row(rows, "REWARD", "★  %d" % reward, ClaimButtonUI.DONE)
 	else:
-		_add_row(rows, "REWARD", "★  完成奖励 %d（跑酷采集另计）" % reward, UI_CYAN)
+		_add_row(rows, "REWARD", GameLocale.pick("★  完成奖励 %d（跑酷采集另计）" % reward, "★  Clear reward %d (runner loot extra)" % reward), UI_CYAN)
 
 	var mechanics := _mechanics_text(mission, profile)
 	if mechanics != "":
@@ -405,7 +409,7 @@ func open(planet_id: String, mission: Dictionary) -> void:
 		mech_box.add_theme_constant_override("separation", _spec_h(8))
 		mech_panel.add_child(mech_box)
 		var mech_title := Label.new()
-		mech_title.text = "机制说明"
+		mech_title.text = GameLocale.pick("机制说明", "Mechanics")
 		mech_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		mech_title.add_theme_font_size_override("font_size", _spec_fs(18))
 		mech_title.add_theme_color_override("font_color", UI_CYAN_SOFT)
@@ -444,10 +448,10 @@ func open(planet_id: String, mission: Dictionary) -> void:
 		_apply_accept_button_style("claim")
 	elif preview_locked:
 		if MissionDispatch.can_preview_trial_run(planet_id, location_id):
-			_accept.text = "试玩体验"
+			_accept.text = GameLocale.pick("试玩体验", "TRIAL RUN")
 			_apply_accept_button_style("run")
 		else:
-			_accept.text = "批次未解锁"
+			_accept.text = GameLocale.pick("批次未解锁", "BATCH LOCKED")
 			_apply_accept_button_style("preview")
 	elif mission_done:
 		_accept.text = "REPLAY"
@@ -496,77 +500,88 @@ func refresh_if_open(planet_id: String, mission: Dictionary) -> void:
 
 func _cargo_trait(mission: Dictionary, profile: Dictionary) -> String:
 	if MissionTypes.is_defense_cargo(mission):
-		return "主动防御 · 碰撞减损 · 开局盾25"
-	var custom := String(mission.get("cargo_trait", "")).strip_edges()
+		return GameLocale.pick("主动防御 · 碰撞减损 · 开局盾25", "Active defense · collision softens hit · start shield 25")
+	var custom := GameLocale.field(mission, "cargo_trait", "cargo_trait_en")
 	if custom != "":
 		return custom
 	var fragility := float(mission.get("cargo_fragility", 0.0))
 	if fragility >= 1.35:
-		return "极脆 · ×%.1f" % fragility
+		return GameLocale.pick("极脆 · ×%.1f" % fragility, "Fragile · ×%.1f" % fragility)
 	var load_n := int(mission.get("cargo_load", 0))
 	var mid := String(profile.get("id", "supply"))
 	if load_n >= 90:
-		return "超重 · 单击短跳"
+		return GameLocale.pick("超重 · 单击短跳", "Heavy · tap = short hop")
 	if mid == "emergency":
-		return "极脆 · 限时冲刺"
+		return GameLocale.pick("极脆 · 限时冲刺", "Fragile · timed sprint")
 	if mid == "ignition":
-		return "高压 · 注意追击"
+		return GameLocale.pick("高压 · 注意追击", "High pressure · watch pursuit")
 	if mid == "repair":
-		return "密障 · 完整度优先"
+		return GameLocale.pick("密障 · 完整度优先", "Dense hazards · integrity first")
 	if mid == "relay":
-		return "中继 · 分叉选择"
+		return GameLocale.pick("中继 · 分叉选择", "Relay · fork choices")
 	if fragility > 0.0 and fragility < 0.95:
-		return "稳健 · ×%.1f" % fragility
-	return "标准载荷"
+		return GameLocale.pick("稳健 · ×%.1f" % fragility, "Sturdy · ×%.1f" % fragility)
+	return GameLocale.pick("标准载荷", "Standard cargo")
 
 
 func _tip_text(mission: Dictionary, profile: Dictionary) -> String:
 	if MissionTypes.normalize_type(String(mission.get("task_type", profile.get("task_type", "")))) == "Emergency Run":
-		var env := String(mission.get("environment_factor", "")).strip_edges()
+		var env := GameLocale.field(mission, "environment_factor", "environment_factor_en")
 		if env != "":
 			return env
 	if MissionTypes.is_overweight_cargo(mission):
-		var env_over := String(mission.get("environment_factor", "")).strip_edges()
+		var env_over := GameLocale.field(mission, "environment_factor", "environment_factor_en")
 		if env_over != "":
 			return env_over
-		return "负重运输：注意跳跃节奏，保护建设包完整度。"
-	var rhythm := String(mission.get("runner_rhythm", "")).strip_edges()
+		return GameLocale.pick(
+			"负重运输：注意跳跃节奏，保护建设包完整度。",
+			"Heavy haul: mind jump timing and protect build-pack integrity."
+		)
+	var rhythm := GameLocale.field(mission, "runner_rhythm", "runner_rhythm_en")
 	if rhythm != "":
 		return rhythm
-	var hint := String(mission.get("task_hint", profile.get("hint", ""))).strip_edges()
+	var hint := GameLocale.field(mission, "task_hint", "task_hint_en")
+	if hint == "":
+		hint = GameLocale.field(profile, "hint", "hint_en")
 	if hint != "":
 		return hint
-	return "完成运输以推进据点修复进度。"
+	return GameLocale.pick("完成运输以推进据点修复进度。", "Complete delivery to advance outpost repair.")
 
 
 func _mechanics_text(mission: Dictionary, profile: Dictionary) -> String:
-	var custom := String(mission.get("mechanics_hint", "")).strip_edges()
+	var custom := GameLocale.field(mission, "mechanics_hint", "mechanics_hint_en")
 	if custom != "":
 		return custom
 	if MissionTypes.is_overweight_cargo(mission):
-		var rhythm := String(mission.get("runner_rhythm", "")).strip_edges()
+		var rhythm := GameLocale.field(mission, "runner_rhythm", "runner_rhythm_en")
 		if rhythm != "":
 			return rhythm
-		return "超重建设包：单击短跳更低，快速双击才是满跳。跳跃障碍请连点两次；贴墙就绪时单击即可上墙。"
+		return GameLocale.pick(
+			"超重建设包：单击短跳更低，快速双击才是满跳。跳跃障碍请连点两次；贴墙就绪时单击即可上墙。",
+			"Heavy pack: tap = short hop, quick double-tap = full jump. Double-tap jump hazards; tap once when wall-ready."
+		)
 	if MissionTypes.normalize_type(String(mission.get("task_type", profile.get("task_type", "")))) != "Emergency Run":
 		return ""
 	if not bool(profile.get("timed_fail", false)):
 		return ""
-	return "限时挑战：多吃加速靴提速。集满 5 个解锁紧急冲刺（电脑 Shift/E，手机点按冲刺键）。"
+	return GameLocale.pick(
+		"限时挑战：多吃加速靴提速。集满 5 个解锁紧急冲刺（电脑 Shift/E，手机点按冲刺键）。",
+		"Timed run: grab speed boots. Fill 5 to unlock emergency dash (PC Shift/E, mobile dash button)."
+	)
 
 
 func _difficulty_label(diff: int) -> String:
 	match clampi(diff, 1, 5):
 		1:
-			return "教学"
+			return GameLocale.pick("教学", "Tutorial")
 		2:
-			return "简单"
+			return GameLocale.pick("简单", "Easy")
 		3:
-			return "标准"
+			return GameLocale.pick("标准", "Standard")
 		4:
-			return "困难"
+			return GameLocale.pick("困难", "Hard")
 		_:
-			return "极限"
+			return GameLocale.pick("极限", "Extreme")
 
 
 func _add_cargo_row(parent: Control, planet_id: String, mission: Dictionary, cargo_text: String, trait_text: String) -> void:

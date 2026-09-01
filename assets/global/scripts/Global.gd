@@ -56,8 +56,11 @@ var outpost_light_rewards_claimed_by_planet: Dictionary = {}
 var first_launch_story_seen: bool = false
 var opening_comic_seen: bool = false
 var home_guide_seen: bool = false
+var transport_intro_seen: bool = false
 ## 跑酷新手引导总开关（设置里可关）
 var runner_tutorial_enabled: bool = true
+## UI 语言：zh / en（设置里切换；重置进度时保留）
+var ui_locale: String = "zh"
 ## 开发测试：全解锁模式（解锁全部据点批次，详情页展示全部负责人立绘）
 var dev_full_unlock: bool = false
 ## 分项：jump / slide / lane / shield / fork / sandstorm / wall_run
@@ -126,7 +129,7 @@ var completed_missions_by_planet: Dictionary = {}
 var mission_rewards_pending_by_planet: Dictionary = {}
 ## planet_id -> Array[String] 已领取完成奖励的 mission_id
 var mission_rewards_claimed_by_planet: Dictionary = {}
-# planet_id -> Array[String]  任务板 3 槽（mission_id）
+# planet_id -> Array[String]  任务板 4 槽（mission_id，两据点交错）
 var mission_board_slots_by_planet: Dictionary = {}
 # planet_id -> int  已解锁到第几批（1/2/3）
 var unlocked_mission_batch_by_planet: Dictionary = {}
@@ -981,10 +984,23 @@ func get_outpost_display_name(planet_id: String, location_id: String) -> String:
 	var cfg: Script = PlanetDatabase.get_runner_config(planet_id) if planet_id != "" else null
 	if cfg != null and cfg.has_method("get_outpost_meta"):
 		var meta: Dictionary = cfg.get_outpost_meta(location_id)
-		var name := String(meta.get("name", ""))
-		if name != "":
-			return name
+		var localized := GameLocale.field(meta, "name", "name_en")
+		if localized != "":
+			return localized
 	return location_id
+
+
+func get_ui_locale() -> String:
+	return "en" if ui_locale == "en" else "zh"
+
+
+func set_ui_locale(locale: String) -> void:
+	ui_locale = "en" if locale == "en" else "zh"
+	save_mobile_progress()
+
+
+func is_ui_english() -> bool:
+	return get_ui_locale() == "en"
 
 
 func get_outpost_progress(planet_id: String, location_id: String) -> int:
@@ -1179,6 +1195,17 @@ func add_daily_task_progress(task_id: String, delta: int, target: int = -1) -> v
 	daily_task_progress[task_id] = maxi(0, next)
 
 
+## 成功通关一局运输后写入日常进度（试玩不计入）
+func record_daily_run_completion(integrity: float, coins_earned: int) -> void:
+	ensure_daily_tasks_fresh()
+	add_daily_task_progress("first_run", 1, 1)
+	if integrity >= 90.0:
+		add_daily_task_progress("safe_courier", 1, 1)
+	if coins_earned > 0:
+		add_daily_task_progress("spark_collector", coins_earned, 100)
+	save_mobile_progress()
+
+
 func is_daily_task_complete(task_id: String, target: int) -> bool:
 	return get_daily_task_progress(task_id, target) >= maxi(target, 1)
 
@@ -1322,13 +1349,22 @@ func is_mission_on_board(planet_id: String, mission_or_location_id: String) -> b
 	return get_mission_board_slots(planet_id).has(mission_or_location_id)
 
 
-## 同步批次解锁、地图揭示与 3 槽任务板。返回 unlocked_batch / batch_just_unlocked / board_slots / revealed_added
+## 同步批次解锁、地图揭示与任务板。返回 unlocked_batch / batch_just_unlocked / board_slots / revealed_added
 func sync_mission_dispatch(planet_id: String, rotate_completed_mission_id: String = "") -> Dictionary:
 	if planet_id == "":
 		return {
 			"unlocked_batch": 1,
 			"batch_just_unlocked": false,
 			"board_slots": [],
+			"revealed_added": [],
+		}
+	if dev_full_unlock:
+		apply_dev_full_unlock(planet_id)
+		var unlocked_batch := MissionDispatch.compute_unlocked_batch(planet_id)
+		return {
+			"unlocked_batch": unlocked_batch,
+			"batch_just_unlocked": false,
+			"board_slots": get_mission_board_slots(planet_id),
 			"revealed_added": [],
 		}
 	var previous_batch := int(unlocked_mission_batch_by_planet.get(planet_id, 0))
@@ -1394,6 +1430,7 @@ func apply_dev_full_unlock(planet_id: String = "glass_desert") -> void:
 		max_batch = maxi(max_batch, int(entry.get("id", 1)))
 	unlocked_mission_batch_by_planet[planet_id] = max_batch
 	var all_ids: Array[String] = []
+	var all_mission_ids: Array[String] = []
 	var cfg: Script = PlanetDatabase.get_runner_config(planet_id) if planet_id != "" else null
 	if cfg != null and cfg.has_method("get_explore_locations"):
 		for loc in cfg.get_explore_locations():
@@ -1404,13 +1441,24 @@ func apply_dev_full_unlock(planet_id: String = "glass_desert") -> void:
 				all_ids.append(location_id)
 	if all_ids.is_empty():
 		all_ids = MissionDispatch.get_batch_location_ids(planet_id, max_batch)
+	if cfg != null and cfg.has_method("get_location_missions"):
+		for raw in cfg.get_location_missions():
+			if typeof(raw) != TYPE_DICTIONARY:
+				continue
+			var mission_id := mission_key(raw as Dictionary)
+			if mission_id != "" and not all_mission_ids.has(mission_id):
+				all_mission_ids.append(mission_id)
 	exploration_revealed_locations_by_planet[planet_id] = all_ids
-	mission_board_slots_by_planet[planet_id] = MissionDispatch.fill_mission_board_slots(
-		planet_id,
-		get_mission_board_slots(planet_id),
-		max_batch,
-		""
-	)
+	# 全解锁：任务板放入全部未完成任务，方便直接开打
+	if not all_mission_ids.is_empty():
+		mission_board_slots_by_planet[planet_id] = all_mission_ids
+	else:
+		mission_board_slots_by_planet[planet_id] = MissionDispatch.fill_mission_board_slots(
+			planet_id,
+			get_mission_board_slots(planet_id),
+			max_batch,
+			""
+		)
 	_sync_messenger_story_unlocks()
 	save_mobile_progress()
 
@@ -1657,6 +1705,11 @@ func mark_home_guide_seen() -> void:
 	save_mobile_progress()
 
 
+func mark_transport_intro_seen() -> void:
+	transport_intro_seen = true
+	save_mobile_progress()
+
+
 func mark_runner_wall_run_tutorial_seen() -> void:
 	mark_runner_tutorial_seen("wall_run")
 
@@ -1729,6 +1782,15 @@ const RUNNER_ROAD_STYLE_LABELS := {
 	"rust_metal": "锈蚀金属",
 	"void_crystal": "虚空晶体",
 }
+const RUNNER_ROAD_STYLE_LABELS_EN := {
+	"holographic": "Holo Energy Track",
+	"alien_energy": "Alien Energy Track",
+	"energy_neon": "Energy Neon",
+	"planet": "Planet Default",
+	"coarse_desert": "Coarse Desert",
+	"rust_metal": "Rust Metal",
+	"void_crystal": "Void Crystal",
+}
 
 
 func get_runner_road_style() -> String:
@@ -1737,7 +1799,10 @@ func get_runner_road_style() -> String:
 
 func get_runner_road_style_label(style_id: String = "") -> String:
 	var id := normalize_runner_road_style(style_id if style_id != "" else runner_road_style)
-	return String(RUNNER_ROAD_STYLE_LABELS.get(id, id))
+	return GameLocale.pick(
+		String(RUNNER_ROAD_STYLE_LABELS.get(id, id)),
+		String(RUNNER_ROAD_STYLE_LABELS_EN.get(id, RUNNER_ROAD_STYLE_LABELS.get(id, id)))
+	)
 
 
 func normalize_runner_road_style(style_id: String) -> String:
@@ -1775,6 +1840,13 @@ const RUNNER_BACKGROUND_STYLE_LABELS := {
 	"savanna": "稀树草原",
 	"starfield": "深空星野",
 }
+const RUNNER_BACKGROUND_STYLE_LABELS_EN := {
+	"void_dark": "Void Dark",
+	"desert_crystal": "Crystal Desert",
+	"industrial_ruin": "Industrial Ruin",
+	"savanna": "Savanna",
+	"starfield": "Starfield",
+}
 
 
 func get_runner_background_style() -> String:
@@ -1783,7 +1855,10 @@ func get_runner_background_style() -> String:
 
 func get_runner_background_style_label(style_id: String = "") -> String:
 	var id := normalize_runner_background_style(style_id if style_id != "" else runner_background_style)
-	return String(RUNNER_BACKGROUND_STYLE_LABELS.get(id, id))
+	return GameLocale.pick(
+		String(RUNNER_BACKGROUND_STYLE_LABELS.get(id, id)),
+		String(RUNNER_BACKGROUND_STYLE_LABELS_EN.get(id, RUNNER_BACKGROUND_STYLE_LABELS.get(id, id)))
+	)
 
 
 func normalize_runner_background_style(style_id: String) -> String:
@@ -1819,7 +1894,9 @@ func save_mobile_progress() -> void:
 		"first_launch_story_seen": first_launch_story_seen,
 		"opening_comic_seen": opening_comic_seen,
 		"home_guide_seen": home_guide_seen,
+		"transport_intro_seen": transport_intro_seen,
 		"runner_tutorial_enabled": runner_tutorial_enabled,
+		"ui_locale": get_ui_locale(),
 		"dev_full_unlock": dev_full_unlock,
 		"runner_tutorial_seen": runner_tutorial_seen.duplicate(true),
 		"runner_wall_run_tutorial_seen": runner_wall_run_tutorial_seen or bool(runner_tutorial_seen.get("wall_run", false)),
@@ -1882,7 +1959,9 @@ func load_mobile_progress() -> void:
 	first_launch_story_seen = bool(data.get("first_launch_story_seen", first_launch_story_seen))
 	opening_comic_seen = bool(data.get("opening_comic_seen", opening_comic_seen))
 	home_guide_seen = bool(data.get("home_guide_seen", home_guide_seen))
+	transport_intro_seen = bool(data.get("transport_intro_seen", transport_intro_seen))
 	runner_tutorial_enabled = bool(data.get("runner_tutorial_enabled", true))
+	ui_locale = "en" if String(data.get("ui_locale", ui_locale)) == "en" else "zh"
 	dev_full_unlock = bool(data.get("dev_full_unlock", false))
 	bgm_enabled = bool(data.get("bgm_enabled", true))
 	bgm_volume = clampf(float(data.get("bgm_volume", bgm_volume)), 0.0, 1.0)
@@ -2017,6 +2096,7 @@ func reset_mobile_progress() -> void:
 	first_launch_story_seen = false
 	opening_comic_seen = false
 	home_guide_seen = false
+	transport_intro_seen = false
 	runner_tutorial_enabled = true
 	runner_tutorial_seen.clear()
 	runner_wall_run_tutorial_seen = false

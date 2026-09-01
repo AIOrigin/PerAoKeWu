@@ -33,8 +33,10 @@ const FAIL_RING_INNER := Color("#F0B0FF")
 const FAIL_RING_MID := Color("#C868E8")
 const FAIL_RING_OUTER := Color("#8848B8")
 const FAIL_HORIZON_CORE := Color("#FFD0F8")
-const FAIL_BODY := Color("#050508")
-const FAIL_RIM := Color("#8AD8FF")
+const FAIL_BODY := Color("#101820")
+const FAIL_RIM := Color("#B8F0FF")
+const FAIL_RIM_SOFT := Color("#78C8F0")
+const FAIL_GLOW := Color("#D8A8FF")
 
 var outpost_title := "Water Station"
 var horizon_ratio := 0.42
@@ -207,10 +209,17 @@ func configure(outpost_name: String, location_id: String, _hearth_scene_path: St
 		var figure_path := FIGURE_FAILURE_SILHOUETTE_PATH if failed else FIGURE_SILHOUETTE_PATH
 		var fig_tex := _load_failure_figure_tex(figure_path) if failed else _load_black_figure_tex(FIGURE_SILHOUETTE_PATH)
 		_figure.texture = fig_tex
+		_figure.modulate = Color(1.0, 1.0, 1.0, 1.0)
 		if _figure_glow_outer != null:
-			_figure_glow_outer.visible = not failed
+			_figure_glow_outer.texture = fig_tex
+			_figure_glow_outer.modulate = Color(FAIL_GLOW.r, FAIL_GLOW.g, FAIL_GLOW.b, 0.42) if failed else Color(0.72, 0.58, 0.96, 0.14)
+			_figure_glow_outer.visible = failed and fig_tex != null
 		if _figure_glow_inner != null:
-			_figure_glow_inner.visible = not failed
+			_figure_glow_inner.texture = fig_tex
+			_figure_glow_inner.modulate = Color(FAIL_RIM.r, FAIL_RIM.g, FAIL_RIM.b, 0.55) if failed else Color(1.0, 1.0, 1.0, 0.22)
+			_figure_glow_inner.visible = failed and fig_tex != null
+		if _figure_halo != null:
+			_figure_halo.visible = failed
 	call_deferred("_sync_layout")
 
 
@@ -418,20 +427,60 @@ func _load_failure_figure_tex(path: String) -> Texture2D:
 	if img == null or img.is_empty():
 		return tex
 	img.convert(Image.FORMAT_RGBA8)
-	for y in img.get_height():
-		for x in img.get_width():
+	var w := img.get_width()
+	var h := img.get_height()
+	# 先按亮度抽出主体 alpha，再描亮边，避免失败剪影融进暗色地面
+	var mask: Array = []
+	mask.resize(w * h)
+	for y in h:
+		for x in w:
 			var c := img.get_pixel(x, y)
-			if c.a < 0.08:
+			var luma := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+			var solid := c.a > 0.10 and luma < 0.86
+			mask[y * w + x] = solid
+	for y in h:
+		for x in w:
+			var idx := y * w + x
+			if not bool(mask[idx]):
 				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
 				continue
-			var luma := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
-			if luma < 0.72:
-				c = Color(FAIL_BODY.r, FAIL_BODY.g, FAIL_BODY.b, maxf(c.a, 0.99))
+			var edge := false
+			for oy in range(-1, 2):
+				for ox in range(-1, 2):
+					if ox == 0 and oy == 0:
+						continue
+					var nx := x + ox
+					var ny := y + oy
+					if nx < 0 or ny < 0 or nx >= w or ny >= h or not bool(mask[ny * w + nx]):
+						edge = true
+						break
+				if edge:
+					break
+			if edge:
+				img.set_pixel(x, y, Color(FAIL_RIM.r, FAIL_RIM.g, FAIL_RIM.b, 1.0))
 			else:
-				c = FAIL_RIM.lerp(HORIZON_CORE, 0.22)
-				c.a = maxf(c.a, 0.88)
-			img.set_pixel(x, y, c)
-	return ImageTexture.create_from_image(img)
+				img.set_pixel(x, y, Color(FAIL_BODY.r, FAIL_BODY.g, FAIL_BODY.b, 1.0))
+	# 再扩一圈软边，增强轮廓可读性
+	var rim_img := img.duplicate()
+	for y in h:
+		for x in w:
+			if bool(mask[y * w + x]):
+				continue
+			var near_edge := false
+			for oy in range(-2, 3):
+				for ox in range(-2, 3):
+					var nx := x + ox
+					var ny := y + oy
+					if nx < 0 or ny < 0 or nx >= w or ny >= h:
+						continue
+					if bool(mask[ny * w + nx]):
+						near_edge = true
+						break
+				if near_edge:
+					break
+			if near_edge:
+				rim_img.set_pixel(x, y, Color(FAIL_RIM_SOFT.r, FAIL_RIM_SOFT.g, FAIL_RIM_SOFT.b, 0.55))
+	return ImageTexture.create_from_image(rim_img)
 
 
 func _make_soft_flare_texture(size: int) -> Texture2D:
@@ -501,7 +550,7 @@ func _sync_layout() -> void:
 		_fx.queue_redraw()
 
 	if _figure != null:
-		var fig_h := sz.y * (0.26 if _is_failure else 0.24)
+		var fig_h := sz.y * (0.30 if _is_failure else 0.24)
 		var fig_aspect := 0.72
 		if _figure.texture != null:
 			var ft := _figure.texture.get_size()
@@ -522,10 +571,26 @@ func _sync_layout() -> void:
 			_figure_reflect.scale = Vector2(1.0, -1.0)
 			_figure_reflect.position = Vector2(fig_pos.x, feet_y + sz.y * 0.004)
 			_figure_reflect.visible = _figure.visible and not _is_failure
-		if _figure_glow_outer != null:
-			_figure_glow_outer.visible = false
-		if _figure_glow_inner != null:
-			_figure_glow_inner.visible = false
+		if _figure_glow_outer != null and _figure.texture != null:
+			var ow := fig_w * 1.28
+			var oh := fig_h * 1.28
+			_figure_glow_outer.texture = _figure.texture
+			_figure_glow_outer.size = Vector2(ow, oh)
+			_figure_glow_outer.position = Vector2(fig_pos.x - (ow - fig_w) * 0.5, fig_pos.y - (oh - fig_h) * 0.42)
+			_figure_glow_outer.visible = _is_failure and _figure.visible
+		if _figure_glow_inner != null and _figure.texture != null:
+			var iw := fig_w * 1.12
+			var ih := fig_h * 1.12
+			_figure_glow_inner.texture = _figure.texture
+			_figure_glow_inner.size = Vector2(iw, ih)
+			_figure_glow_inner.position = Vector2(fig_pos.x - (iw - fig_w) * 0.5, fig_pos.y - (ih - fig_h) * 0.35)
+			_figure_glow_inner.visible = _is_failure and _figure.visible
+		if _figure_halo != null:
+			_figure_halo.visible = _is_failure and _figure.visible
+			if _figure_halo.visible:
+				_figure_halo.position = fig_pos + Vector2(fig_w * 0.5 - 56.0, fig_h * 0.18 - 56.0)
+				_figure_halo.custom_minimum_size = Vector2(112, 112)
+				_figure_halo.size = Vector2(112, 112)
 	if _fx != null:
 		_fx.queue_redraw()
 
