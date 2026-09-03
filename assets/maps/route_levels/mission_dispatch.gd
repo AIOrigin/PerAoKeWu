@@ -397,6 +397,41 @@ static func location_has_open_missions(planet_id: String, location_id: String, u
 	return not _list_open_missions_for_location(planet_id, location_id, unlocked_batch).is_empty()
 
 
+## 地图：该据点当前是否在 4 槽任务板上发放任务
+static func location_has_board_missions(planet_id: String, location_id: String) -> bool:
+	if planet_id == "" or location_id == "":
+		return false
+	for raw in Global.get_mission_board_slots(planet_id):
+		var mission_id := _migrate_slot_to_mission_id(planet_id, String(raw))
+		if mission_id == "":
+			continue
+		if _mission_location_id(planet_id, mission_id) == location_id:
+			return true
+	return false
+
+
+## 地图：据点已点亮（完成仪式/已进 completed 列表）
+static func location_is_lit(planet_id: String, location_id: String) -> bool:
+	if planet_id == "" or location_id == "":
+		return false
+	return Global.get_completed_runner_locations(planet_id).has(location_id)
+
+
+## 地图：据点已有运输修复进度（含已点亮）
+static func location_has_repair_progress(planet_id: String, location_id: String) -> bool:
+	if planet_id == "" or location_id == "":
+		return false
+	if location_is_lit(planet_id, location_id):
+		return true
+	return Global.get_outpost_progress(planet_id, location_id) > 0
+
+
+## 地图：可点开据点详情（任务板发放中，或已点亮）
+static func location_map_can_open_detail(planet_id: String, location_id: String) -> bool:
+	return location_has_board_missions(planet_id, location_id) \
+		or location_is_lit(planet_id, location_id)
+
+
 static func _interleave_mission_pools(pools: Array) -> Array[String]:
 	var result: Array[String] = []
 	var max_len := 0

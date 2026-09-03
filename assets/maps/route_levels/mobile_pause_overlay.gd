@@ -185,6 +185,10 @@ func _build_ui() -> void:
 
 	if quit_text == "返回主界面" or quit_text == "Back to Home":
 		quit_text = GameLocale.pick("返回主界面", "Back to Home")
+	elif quit_text == "返回地图" or quit_text == "Return to Map":
+		quit_text = GameLocale.pick("返回地图", "Return to Map")
+	elif quit_text == "返回编辑器" or quit_text == "Back to Editor":
+		quit_text = GameLocale.pick("返回编辑器", "Back to Editor")
 	_quit_button = _make_action_button(quit_text, Color(0.68, 0.58, 0.42, 0.98), Color(0.28, 0.20, 0.12, 0.96))
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_quit_button.visible = show_quit_button

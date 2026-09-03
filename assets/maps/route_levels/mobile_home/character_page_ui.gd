@@ -84,42 +84,49 @@ class _RunnerPageShell extends Control:
 		_canvas.size = _design_size
 		resized.connect(_fit_canvas)
 		call_deferred("_fit_canvas")
+		# 只盯 Scroll 视口，避免祖先链 resized 在中间态用错误尺寸反复拟合
 		var ancestor: Node = get_parent()
 		while ancestor:
-			if ancestor is Control:
-				var c := ancestor as Control
-				if not c.resized.is_connected(_fit_canvas):
-					c.resized.connect(_fit_canvas)
 			if ancestor is ScrollContainer:
+				var sc := ancestor as ScrollContainer
+				if not sc.resized.is_connected(_fit_canvas):
+					sc.resized.connect(_fit_canvas)
 				break
 			ancestor = ancestor.get_parent()
 
 	func _measure_avail() -> Vector2:
-		# 必须用 Scroll 视口高度，不能用内容撑开后的 host.size（会偏大导致不缩放、底部裁切）
 		var node: Node = self
 		while node:
 			if node is ScrollContainer:
 				var sc := node as ScrollContainer
-				if sc.size.x > 1.0 and sc.size.y > 1.0:
+				if sc.size.x > 8.0 and sc.size.y > 8.0:
 					return sc.size
 			node = node.get_parent()
 		var host := get_parent() as Control
-		if host != null and host.size.y > 1.0:
+		if host != null and host.size.x > 8.0 and host.size.y > 8.0:
 			return host.size
-		return size
+		if size.x > 8.0 and size.y > 8.0:
+			return size
+		return Vector2.ZERO
 
 	func _remeasure_design_height() -> float:
 		if _page_col == null:
 			return _base_design_size.y
 		_page_col.custom_minimum_size = Vector2(CharacterPageUI._page_w(), 0)
+		_page_col.reset_size()
 		_page_col.update_minimum_size()
 		var col_h := _page_col.get_combined_minimum_size().y
+		# 测量异常时回退，避免后续 leftover 把缩放算崩
+		if col_h < _base_design_size.y * 0.35 or col_h > _base_design_size.y * 4.0:
+			col_h = _base_design_size.y
 		_page_col.custom_minimum_size = Vector2(CharacterPageUI._page_w(), col_h)
 		_page_col.size = _page_col.custom_minimum_size
 		var pad := _page_col.get_parent() as Control
 		if pad != null:
 			pad.update_minimum_size()
 			var pad_h := pad.get_combined_minimum_size().y
+			if pad_h < _base_design_size.y * 0.35 or pad_h > _base_design_size.y * 4.0:
+				pad_h = col_h + CharacterPageUI._vhi(CharacterPageUI.PAGE_INSET_TOP) + CharacterPageUI._vhi(CharacterPageUI.PAGE_INSET_BOT)
 			pad.custom_minimum_size = Vector2(_base_design_size.x, pad_h)
 			pad.size = pad.custom_minimum_size
 			return pad_h
@@ -129,41 +136,58 @@ class _RunnerPageShell extends Control:
 		if _fit_guard or _base_design_size.x <= 0.0:
 			return
 		var avail := _measure_avail()
-		if avail.x <= 1.0 or avail.y <= 1.0:
+		if avail.x <= 8.0 or avail.y <= 8.0:
 			return
 		_fit_guard = true
-		# 宿主锁死为视口，避免被未缩放的 canvas 最小高度撑破
+
+		# 宿主锁死为视口，避免被未缩放 canvas 的设计高度撑破
 		custom_minimum_size = Vector2(maxi(1, int(avail.x)), int(floor(avail.y)))
 		size = custom_minimum_size
 
+		# 1) 始终按宽度铺满——可读性优先，禁止再出现「缩成一小块」
+		var scale_x := avail.x / _base_design_size.x
+		var room := maxf(avail.y - 2.0, 1.0)
+		var scale := scale_x
+
+		# 2) 先回到基础卡片高度，测真实内容高
 		_apply_equip_card_height(_base_card_h)
 		var content_h := _remeasure_design_height()
-		var card_h := _base_card_h
-		var scale_x := avail.x / _base_design_size.x
-		var room := maxf(avail.y - 1.0, 1.0)
-		# 先按宽度缩放：若还有竖直空余，把空余加进装备卡；最后仍用 min(宽,高) 硬钳制
-		var used_at_width := content_h * scale_x
-		if used_at_width < room - 2.0 and _base_card_h > 0:
-			var leftover_design := (room / maxf(scale_x, 0.001)) - content_h
-			if leftover_design > 2.0:
-				card_h = _base_card_h + int(floor(leftover_design))
-				_apply_equip_card_height(card_h)
-				content_h = _remeasure_design_height()
+		content_h = clampf(content_h, _base_design_size.y * 0.5, _base_design_size.y * 2.5)
+
+		# 3) 宽度缩放后若还有竖直空余，有上限地加高装备卡（禁止无上限 leftover）
+		var target_h := room / maxf(scale, 0.001)
+		if content_h < target_h - 4.0 and _base_card_h > 0:
+			var grow := int(floor(target_h - content_h))
+			var grow_cap := maxi(_base_card_h, int(round(float(_base_card_h) * 1.25)))
+			grow = clampi(grow, 0, grow_cap)
+			if grow > 2:
+				_apply_equip_card_height(_base_card_h + grow)
+				var grown_h := _remeasure_design_height()
+				if grown_h > target_h * 1.2 or grown_h < content_h:
+					# 测量失控则退回基础高度
+					_apply_equip_card_height(_base_card_h)
+					content_h = _remeasure_design_height()
+				else:
+					content_h = grown_h
+
+		content_h = clampf(content_h, _base_design_size.y * 0.5, target_h * 1.05)
 		_design_size = Vector2(_base_design_size.x, content_h)
-		var scale := minf(scale_x, room / maxf(content_h, 1.0))
-		# 再保险：缩放后高度绝不超过视口
-		if content_h * scale > room:
-			scale = room / maxf(content_h, 1.0)
+
+		# 4) 仅当基础内容仍超出时才略降缩放，且不低于宽度缩放的 92%
+		if content_h * scale > room + 1.0:
+			scale = maxf(room / maxf(content_h, 1.0), scale_x * 0.92)
 
 		if _equip_sec:
-			_equip_sec.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			_equip_sec.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		if _tray:
-			_tray.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			_tray.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		if _fan_host:
+			_fan_host.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+
 		_canvas.custom_minimum_size = _design_size
 		_canvas.size = _design_size
 		_canvas.scale = Vector2(scale, scale)
 		var fitted := _design_size * scale
-		# 顶对齐：底部空余留给装备区扩展，避免露出背后场景图
 		_canvas.position = Vector2((avail.x - fitted.x) * 0.5, 0.0)
 		_fit_guard = false
 
@@ -282,6 +306,7 @@ static func _build_hub(
 
 	var hub := Control.new()
 	hub.custom_minimum_size = Vector2(_page_w(), hub_h)
+	hub.size = hub.custom_minimum_size
 	hub.clip_contents = false
 	hub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -291,12 +316,13 @@ static func _build_hub(
 	hub.add_child(glow)
 
 	var id_tag := _pill_tag("?" if is_locked else String(character.get("runner_code", "R-07")))
-	id_tag.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	id_tag.offset_top = Design.cqh(0.8)
-	id_tag.offset_right = 0
-	id_tag.offset_left = -Design.cqw(14)
-	id_tag.z_index = 6
+	id_tag.z_index = 8
 	hub.add_child(id_tag)
+	id_tag.reset_size()
+	var tag_sz := id_tag.get_combined_minimum_size()
+	if tag_sz.x < 8.0:
+		tag_sz = Vector2(Design.cqw(12.0), Design.cqh(2.4))
+	id_tag.position = Vector2(_page_w() - tag_sz.x - Design.cqw(1.2), Design.cqh(0.55))
 
 	var ring_wrap := Control.new()
 	ring_wrap.custom_minimum_size = Vector2(ring_size, ring_size)
@@ -346,11 +372,14 @@ static func _build_stat_node(
 	var node := Control.new()
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	node.z_index = 4
+	node.clip_contents = false
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", _vhi(0.2))
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# 顶部 SPEED：文字在外侧；底部 HP/EN：文字在外侧，圆 chip 朝向立绘
+	# 子项水平居中：避免 STAMINA 比 HP 宽时，左对齐把「120」的「1」挤进立绘被挡成「20」
 	if icon == "sp":
 		col.add_child(_stat_label(String(stat.get("label", "SPEED"))))
 		col.add_child(_stat_value(stat, color, masked))
@@ -359,29 +388,41 @@ static func _build_stat_node(
 		col.add_child(_stat_chip(icon, color, chip_px))
 		col.add_child(_stat_value(stat, color, masked))
 		col.add_child(_stat_label(String(stat.get("label", ""))))
+	for child in col.get_children():
+		if child is Control:
+			(child as Control).size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	node.add_child(col)
 	col.update_minimum_size()
 	var sz := col.get_combined_minimum_size()
+	# 给三位数数值留足宽度，防止 min size 低估后被裁切
+	sz.x = maxf(sz.x, Design.cqw(14.0))
 	node.custom_minimum_size = sz
 	node.size = sz
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var hub_cx := _page_w() * 0.5
 	var hub_cy := ring_top + ring_size * 0.5
 	var angle_deg: float = STAT_ORBIT_DEG.get(icon, -90.0)
 	var dir := Vector2(cos(deg_to_rad(angle_deg)), sin(deg_to_rad(angle_deg)))
-	var chip_anchor := Vector2(hub_cx, hub_cy) + dir * orbit_r
+	# 侧向属性略收，避免贴边被 Scroll 裁切
+	var orbit_use := orbit_r * (0.92 if icon != "sp" else 1.0)
+	var chip_anchor := Vector2(hub_cx, hub_cy) + dir * orbit_use
 
 	node.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	if icon == "sp":
 		node.position = chip_anchor - Vector2(sz.x * 0.5, sz.y - chip_px * 0.5)
 	else:
 		node.position = chip_anchor - Vector2(sz.x * 0.5, chip_px * 0.5)
+	var margin := Design.cqw(0.8)
+	node.position.x = clampf(node.position.x, margin, _page_w() - sz.x - margin)
+	node.position.y = maxf(node.position.y, 0.0)
 	return node
 
 
 static func _stat_chip(icon: String, color: Color, size_px: int) -> PanelContainer:
 	var chip := PanelContainer.new()
 	chip.custom_minimum_size = Vector2(size_px, size_px)
+	chip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var style := StyleBoxFlat.new()
 	style.bg_color = color.lerp(Color(0.024, 0.047, 0.086), 0.68)
 	style.set_corner_radius_all(size_px / 2)
@@ -404,15 +445,21 @@ static func _stat_chip(icon: String, color: Color, size_px: int) -> PanelContain
 static func _stat_value(stat: Dictionary, color: Color, masked: bool = false) -> Label:
 	var label := Label.new()
 	label.text = "?" if masked else String(stat.get("value", ""))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	label.add_theme_font_size_override("font_size", Design.fs_cqw(3.8))
 	label.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.35))
 	label.add_theme_color_override("font_shadow_color", Color(color.r, color.g, color.b, 0.55))
+	label.add_theme_constant_override("outline_size", 2)
+	label.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.08, 0.75))
 	return label
 
 
 static func _stat_label(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	label.add_theme_font_size_override("font_size", Design.fs_cqw(2.2))
 	label.add_theme_color_override("font_color", Color(0.72, 0.78, 0.86))
 	label.add_theme_constant_override("letter_spacing", Design.em_cqw(2.2, 0.18))
@@ -822,17 +869,17 @@ static func _build_story_banner(ctx: Dictionary, character: Dictionary, locked: 
 static func _build_equipment_section(character: Dictionary, is_locked: bool) -> Dictionary:
 	var sec := VBoxContainer.new()
 	sec.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sec.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sec.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	sec.add_theme_constant_override("separation", _vhi(0.4))
 	sec.add_child(_section_label())
 
 	var tray := PanelContainer.new()
 	tray.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tray.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tray.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	tray.clip_contents = false
 	var tray_style := StyleBoxFlat.new()
-	# 半透明玻璃托盘：高度跟加高后的卡片走
-	tray_style.bg_color = Color(0.018, 0.034, 0.058, 0.55)
+	# 半透明玻璃托盘：贴合卡片，避免大块近黑底板
+	tray_style.bg_color = Color(0.018, 0.034, 0.058, 0.42)
 	tray_style.border_color = Color(0.627, 0.784, 0.922, 0.22)
 	tray_style.set_border_width_all(1)
 	tray_style.set_corner_radius_all(Design.fs_cqw(2.0))
@@ -854,7 +901,7 @@ static func _build_equipment_section(character: Dictionary, is_locked: bool) -> 
 		fan_h
 	)
 	fan_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	fan_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	fan_host.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	fan_host.clip_contents = false
 	tray.add_child(fan_host)
 

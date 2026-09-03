@@ -83,14 +83,20 @@ func _build() -> void:
 
 	_sheet = PanelContainer.new()
 	_sheet.name = "TaskDetailSheet"
-	_sheet.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_sheet.anchor_top = 0.26
-	_sheet.offset_top = 0
-	_sheet.offset_bottom = 0
-	_sheet.offset_left = 0
-	_sheet.offset_right = 0
+	# 显式四边锚点：自屏幕约 26% 拉满到底，避免 PRESET_BOTTOM_WIDE 残留 offset 把面板「卡」在半屏
+	_sheet.anchor_left = 0.0
+	_sheet.anchor_right = 1.0
+	_sheet.anchor_top = 0.22
+	_sheet.anchor_bottom = 1.0
+	_sheet.offset_left = 0.0
+	_sheet.offset_right = 0.0
+	_sheet.offset_top = 0.0
+	_sheet.offset_bottom = 0.0
+	_sheet.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_sheet.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_sheet.mouse_filter = Control.MOUSE_FILTER_STOP
 	_sheet.z_index = 1
+	_sheet.clip_contents = true
 	var sheet_style := StyleBoxFlat.new()
 	sheet_style.bg_color = Color(0.031, 0.067, 0.118, 0.92)
 	sheet_style.border_color = Color(0.667, 0.902, 1.0, 0.35)
@@ -159,9 +165,13 @@ func _build() -> void:
 	head_row.add_child(_close_btn)
 
 	var scroll := ScrollContainer.new()
+	scroll.name = "TaskDetailScroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	# 不要 connect(resized→改 min size)：会布局死循环，表现为点任务整进程无报错退出
 	root.add_child(scroll)
 
 	_body = VBoxContainer.new()
@@ -288,7 +298,6 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	if cargo_text == "":
 		cargo_text = "Cargo"
 	var trait_text := _cargo_trait(mission, profile)
-	var tip := _tip_text(mission, profile)
 	var diff := clampi(int(mission.get("difficulty", 1)), 1, 5)
 	var accepted := Global.is_mission_accepted(planet_id, mission_id)
 	var location_lit := Global.get_completed_runner_locations(planet_id).has(location_id)
@@ -305,23 +314,28 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	_reward = reward
 	_preview_locked = preview_locked
 
-	for child in _body.get_children():
-		child.queue_free()
+	_clear_body_children()
 
 	var title := Label.new()
 	title.text = type_en
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_font_size_override("font_size", _spec_fs(40))
 	title.add_theme_color_override("font_color", UI_TEXT)
 	title.add_theme_constant_override("letter_spacing", _spec_em(40, 0.04))
 	_body.add_child(title)
 
-	var sub := Label.new()
-	sub.text = type_label
-	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sub.add_theme_font_size_override("font_size", _spec_fs(22))
-	sub.add_theme_color_override("font_color", UI_MUTED)
-	_body.add_child(sub)
+	# 英文界面 type_label 常与 type_en 相同，避免「SUPPLY RUN」叠两行
+	if type_label.strip_edges() != "" and type_label.to_upper() != type_en.to_upper():
+		var sub := Label.new()
+		sub.text = type_label
+		sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sub.add_theme_font_size_override("font_size", _spec_fs(22))
+		sub.add_theme_color_override("font_color", UI_MUTED)
+		_body.add_child(sub)
 
 	if preview_locked:
 		var lock_panel := PanelContainer.new()
@@ -422,27 +436,6 @@ func open(planet_id: String, mission: Dictionary) -> void:
 		mech_body.add_theme_color_override("font_color", UI_TEXT)
 		mech_box.add_child(mech_body)
 
-	var tip_panel := PanelContainer.new()
-	tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tip_style := StyleBoxFlat.new()
-	tip_style.bg_color = Color(0.12, 0.08, 0.04, 0.35)
-	tip_style.border_color = Color(0.75, 0.48, 0.28, 0.75)
-	tip_style.set_border_width_all(1)
-	tip_style.set_corner_radius_all(_spec_w(12))
-	tip_style.content_margin_left = _spec_w(18)
-	tip_style.content_margin_right = _spec_w(18)
-	tip_style.content_margin_top = _spec_h(14)
-	tip_style.content_margin_bottom = _spec_h(14)
-	tip_panel.add_theme_stylebox_override("panel", tip_style)
-	_body.add_child(tip_panel)
-	var tip_l := Label.new()
-	tip_l.text = tip
-	tip_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tip_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tip_l.add_theme_font_size_override("font_size", _spec_fs(20))
-	tip_l.add_theme_color_override("font_color", Color(0.93, 0.72, 0.42))
-	tip_panel.add_child(tip_l)
-
 	if reward_pending:
 		_accept.text = "★ %d" % reward
 		_apply_accept_button_style("claim")
@@ -472,6 +465,8 @@ func open(planet_id: String, mission: Dictionary) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = true
 	modulate = Color(1, 1, 1, 1)
+	# 仅在打开后延后同步一次宽度，避免 resized 信号递归
+	call_deferred("_sync_body_width_safe")
 	_sheet.modulate.a = 0.0
 	_sheet.offset_top = float(_spec_h(48))
 	if _tween:
@@ -500,8 +495,13 @@ func refresh_if_open(planet_id: String, mission: Dictionary) -> void:
 
 func _cargo_trait(mission: Dictionary, profile: Dictionary) -> String:
 	if MissionTypes.is_defense_cargo(mission):
-		return GameLocale.pick("主动防御 · 碰撞减损 · 开局盾25", "Active defense · collision softens hit · start shield 25")
-	var custom := GameLocale.field(mission, "cargo_trait", "cargo_trait_en")
+		var start_shield := 25
+		return GameLocale.pick(
+			"主动防御 · 碰撞减损 · 开局盾%d" % start_shield,
+			"Active defense · collision softens hit · start shield %d" % start_shield
+		)
+	# 英文模式：无 *_en 时不要回退中文文案（地图据点任务常只有中文 trait）
+	var custom := _mission_locale_line(mission, "cargo_trait", "cargo_trait_en")
 	if custom != "":
 		return custom
 	var fragility := float(mission.get("cargo_fragility", 0.0))
@@ -509,7 +509,7 @@ func _cargo_trait(mission: Dictionary, profile: Dictionary) -> String:
 		return GameLocale.pick("极脆 · ×%.1f" % fragility, "Fragile · ×%.1f" % fragility)
 	var load_n := int(mission.get("cargo_load", 0))
 	var mid := String(profile.get("id", "supply"))
-	if load_n >= 90:
+	if load_n >= 90 or MissionTypes.is_overweight_cargo(mission):
 		return GameLocale.pick("超重 · 单击短跳", "Heavy · tap = short hop")
 	if mid == "emergency":
 		return GameLocale.pick("极脆 · 限时冲刺", "Fragile · timed sprint")
@@ -524,36 +524,12 @@ func _cargo_trait(mission: Dictionary, profile: Dictionary) -> String:
 	return GameLocale.pick("标准载荷", "Standard cargo")
 
 
-func _tip_text(mission: Dictionary, profile: Dictionary) -> String:
-	if MissionTypes.normalize_type(String(mission.get("task_type", profile.get("task_type", "")))) == "Emergency Run":
-		var env := GameLocale.field(mission, "environment_factor", "environment_factor_en")
-		if env != "":
-			return env
-	if MissionTypes.is_overweight_cargo(mission):
-		var env_over := GameLocale.field(mission, "environment_factor", "environment_factor_en")
-		if env_over != "":
-			return env_over
-		return GameLocale.pick(
-			"负重运输：注意跳跃节奏，保护建设包完整度。",
-			"Heavy haul: mind jump timing and protect build-pack integrity."
-		)
-	var rhythm := GameLocale.field(mission, "runner_rhythm", "runner_rhythm_en")
-	if rhythm != "":
-		return rhythm
-	var hint := GameLocale.field(mission, "task_hint", "task_hint_en")
-	if hint == "":
-		hint = GameLocale.field(profile, "hint", "hint_en")
-	if hint != "":
-		return hint
-	return GameLocale.pick("完成运输以推进据点修复进度。", "Complete delivery to advance outpost repair.")
-
-
 func _mechanics_text(mission: Dictionary, profile: Dictionary) -> String:
-	var custom := GameLocale.field(mission, "mechanics_hint", "mechanics_hint_en")
+	var custom := _mission_locale_line(mission, "mechanics_hint", "mechanics_hint_en")
 	if custom != "":
 		return custom
 	if MissionTypes.is_overweight_cargo(mission):
-		var rhythm := GameLocale.field(mission, "runner_rhythm", "runner_rhythm_en")
+		var rhythm := _mission_locale_line(mission, "runner_rhythm", "runner_rhythm_en")
 		if rhythm != "":
 			return rhythm
 		return GameLocale.pick(
@@ -568,6 +544,12 @@ func _mechanics_text(mission: Dictionary, profile: Dictionary) -> String:
 		"限时挑战：多吃加速靴提速。集满 5 个解锁紧急冲刺（电脑 Shift/E，手机点按冲刺键）。",
 		"Timed run: grab speed boots. Fill 5 to unlock emergency dash (PC Shift/E, mobile dash button)."
 	)
+
+
+func _mission_locale_line(mission: Dictionary, zh_key: String, en_key: String) -> String:
+	if GameLocale.is_en():
+		return String(mission.get(en_key, "")).strip_edges()
+	return String(mission.get(zh_key, "")).strip_edges()
 
 
 func _difficulty_label(diff: int) -> String:
@@ -586,15 +568,17 @@ func _difficulty_label(diff: int) -> String:
 
 func _add_cargo_row(parent: Control, planet_id: String, mission: Dictionary, cargo_text: String, trait_text: String) -> void:
 	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", _spec_w(18))
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	parent.add_child(row)
 
 	var key := Label.new()
 	key.text = "CARGO"
 	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	key.custom_minimum_size = Vector2(_spec_w(140), 0)
+	key.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	key.add_theme_font_size_override("font_size", _spec_fs(18))
 	key.add_theme_color_override("font_color", UI_MUTED)
 	key.add_theme_constant_override("letter_spacing", _spec_em(18, 0.2))
@@ -627,8 +611,10 @@ func _add_cargo_row(parent: Control, planet_id: String, mission: Dictionary, car
 		value.add_child(icon_wrap)
 		var icon_rect := TextureRect.new()
 		icon_rect.texture = icon_tex
-		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		# 忽略贴图像素尺寸，避免大 PNG 把行宽/行高撑破裁切
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.custom_minimum_size = Vector2(icon_px - icon_pad * 2, icon_px - icon_pad * 2)
 		icon_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		icon_rect.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -644,6 +630,8 @@ func _add_cargo_row(parent: Control, planet_id: String, mission: Dictionary, car
 	var cargo_l := Label.new()
 	cargo_l.text = cargo_text
 	cargo_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cargo_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cargo_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cargo_l.add_theme_font_size_override("font_size", _spec_fs(22))
 	cargo_l.add_theme_color_override("font_color", UI_TEXT)
 	text_col.add_child(cargo_l)
@@ -651,6 +639,8 @@ func _add_cargo_row(parent: Control, planet_id: String, mission: Dictionary, car
 	var trait_l := Label.new()
 	trait_l.text = trait_text
 	trait_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	trait_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	trait_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	trait_l.add_theme_font_size_override("font_size", _spec_fs(20))
 	trait_l.add_theme_color_override("font_color", UI_CYAN_SOFT)
 	text_col.add_child(trait_l)
@@ -678,13 +668,40 @@ func _load_cargo_icon_texture(path: String) -> Texture2D:
 	return null
 
 
+func _clear_body_children() -> void:
+	if _body == null:
+		return
+	# 同步移除，避免 queue_free 未落地时又往同一容器塞新节点
+	while _body.get_child_count() > 0:
+		var child := _body.get_child(0)
+		_body.remove_child(child)
+		child.free()
+
+
+func _sync_body_width_safe() -> void:
+	if not is_instance_valid(self) or _body == null or not is_instance_valid(_body):
+		return
+	var scroll := _body.get_parent() as ScrollContainer
+	if scroll == null or not is_instance_valid(scroll):
+		return
+	var w := int(floor(scroll.size.x))
+	if w <= 1:
+		return
+	if int(_body.custom_minimum_size.x) == w:
+		return
+	_body.custom_minimum_size.x = float(w)
+
+
 func _add_row(parent: Control, label: String, value: String, value_color: Color = UI_TEXT) -> HBoxContainer:
 	var value_host := HBoxContainer.new()
+	value_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	value_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	value_host.add_theme_constant_override("separation", _spec_w(12))
 	var value_l := Label.new()
 	value_l.text = value
 	value_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	value_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	value_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	value_l.add_theme_font_size_override("font_size", _spec_fs(22))
 	value_l.add_theme_color_override("font_color", value_color)
 	value_host.add_child(value_l)
@@ -694,14 +711,16 @@ func _add_row(parent: Control, label: String, value: String, value_color: Color 
 
 func _add_row_control(parent: Control, label: String, value_control: Control) -> void:
 	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", _spec_w(18))
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	parent.add_child(row)
 	var key := Label.new()
 	key.text = label
 	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	key.custom_minimum_size = Vector2(_spec_w(140), 0)
+	key.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	key.add_theme_font_size_override("font_size", _spec_fs(18))
 	key.add_theme_color_override("font_color", UI_MUTED)
 	key.add_theme_constant_override("letter_spacing", _spec_em(18, 0.2))

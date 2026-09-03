@@ -4464,42 +4464,8 @@ func _sync_sky_cheer_hud_size(_unused: Variant = null) -> void:
 	_sky_cheer_hud_layer.position = Vector2.ZERO
 
 func _schedule_sky_cheer_danmaku() -> void:
+	# 已关闭：跑酷中不再刷屏幕中央鼓励弹幕
 	_clear_sky_cheer_danmaku()
-	var finish_d := maxf(_finish_arrival_distance(), maxf(_path_length, _track_length * 0.82))
-	if finish_d < 80.0:
-		finish_d = maxf(_track_length, 120.0)
-	_sky_cheer_rng.randomize()
-	var count := _sky_cheer_rng.randi_range(SKY_CHEER_MIN_COUNT, SKY_CHEER_MAX_COUNT)
-	var pool: Array = SKY_CHEER_LINES.duplicate()
-	for i in range(pool.size() - 1, 0, -1):
-		var j := _sky_cheer_rng.randi_range(0, i)
-		var tmp = pool[i]
-		pool[i] = pool[j]
-		pool[j] = tmp
-	var span_start := maxf(16.0, finish_d * 0.04)
-	var span_end := finish_d * 0.90
-	var usable := maxf(span_end - span_start, 40.0)
-	var step := usable / float(count + 1)
-	var run_time := maxf(_run_time, 8.0)
-	var time_start := maxf(1.0, run_time * 0.04)
-	var time_end := run_time * 0.88
-	var time_step := maxf((time_end - time_start) / float(count + 1), 1.5)
-	for i in count:
-		var jitter := _sky_cheer_rng.randf_range(-step * 0.28, step * 0.28)
-		var at_d := clampf(span_start + step * float(i + 1) + jitter, span_start, span_end)
-		var at_time := clampf(
-			time_start + time_step * float(i + 1) + _sky_cheer_rng.randf_range(-0.8, 0.8),
-			time_start,
-			time_end
-		)
-		var line: Dictionary = pool[i % pool.size()]
-		_sky_cheer_schedule.append({
-			"d": at_d,
-			"at_time": at_time,
-			"zh": String(line.get("zh", "")),
-			"en": String(line.get("en", "")),
-			"spawned": false,
-		})
 
 func _clear_sky_cheer_danmaku() -> void:
 	_sky_cheer_schedule.clear()
@@ -4524,100 +4490,17 @@ func _clear_sky_cheer_danmaku() -> void:
 				child.queue_free()
 
 func _update_sky_cheer_spawns() -> void:
-	if not gameplay_active or is_intro or is_failed or is_finished:
-		return
-	if _tutorial_paused:
-		return
-	if _sky_cheer_hud_layer == null:
-		return
-	for i in _sky_cheer_schedule.size():
-		var item: Dictionary = _sky_cheer_schedule[i]
-		if bool(item.get("spawned", false)):
-			continue
-		var ready_by_distance := track_distance >= float(item.get("d", 0.0))
-		var ready_by_time := elapsed >= float(item.get("at_time", 99999.0))
-		if not ready_by_distance and not ready_by_time:
-			continue
-		item["spawned"] = true
-		_sky_cheer_schedule[i] = item
-		_spawn_sky_cheer_line(String(item.get("zh", "")), String(item.get("en", "")))
+	# 弹幕已关闭
+	pass
 
 func _sky_cheer_spawn_y(layer_h: float) -> float:
 	return layer_h * 0.24
 
-func _spawn_sky_cheer_line(zh: String, en: String) -> void:
-	if (zh == "" and en == "") or _sky_cheer_hud_layer == null:
-		return
-	var layer_w := maxf(_sky_cheer_hud_layer.size.x, MOBILE_VIEWPORT_SIZE.x)
-	var layer_h := maxf(_sky_cheer_hud_layer.size.y, MOBILE_VIEWPORT_SIZE.y)
-	var max_text_w := layer_w * SKY_CHEER_MAX_WIDTH_RATIO
-	var block := VBoxContainer.new()
-	block.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	block.add_theme_constant_override("separation", 3)
-	var show_en := GameLocale.is_en()
-	var line_text := en if show_en else zh
-	if line_text == "":
-		line_text = en if en != "" else zh
-	if line_text != "":
-		var lab := Label.new()
-		lab.text = line_text
-		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lab.custom_minimum_size = Vector2(max_text_w, 0.0)
-		lab.add_theme_font_size_override("font_size", SKY_CHEER_EN_FONT if show_en else SKY_CHEER_ZH_FONT)
-		lab.add_theme_color_override("font_color", Color(1.0, 0.98, 0.82, 1.0) if show_en else Color(1.0, 0.94, 0.68, 0.96))
-		lab.add_theme_color_override("font_outline_color", Color(0.06, 0.03, 0.01, 0.92))
-		lab.add_theme_constant_override("outline_size", 10 if show_en else 8)
-		block.add_child(lab)
-	block.modulate = Color(1, 1, 1, 0)
-	block.z_index = 20
-	_sky_cheer_hud_layer.add_child(block)
-	block.reset_size()
-	var y := _sky_cheer_spawn_y(layer_h)
-	var center_x := (layer_w - block.size.x) * 0.5
-	block.position = Vector2(center_x, y)
-	block.pivot_offset = block.size * 0.5
-	block.scale = Vector2(SKY_CHEER_SCALE, SKY_CHEER_SCALE)
-	var life := _sky_cheer_rng.randf_range(3.6, 4.8)
-	_sky_cheer_active.append({
-		"root": block,
-		"label": block,
-		"age": 0.0,
-		"life": life,
-		"center_x": center_x,
-		"y": y,
-		"bob": _sky_cheer_rng.randf_range(0.8, 1.1),
-		"phase": _sky_cheer_rng.randf() * TAU,
-	})
+func _spawn_sky_cheer_line(_zh: String, _en: String) -> void:
+	pass
 
-func _update_sky_cheer_visuals(delta: float) -> void:
-	if _sky_cheer_active.is_empty():
-		return
-	var remain: Array[Dictionary] = []
-	for entry in _sky_cheer_active:
-		var block := entry.get("root", entry.get("label")) as Control
-		if block == null or not is_instance_valid(block):
-			continue
-		var age := float(entry.get("age", 0.0)) + delta
-		entry["age"] = age
-		var life := maxf(float(entry.get("life", 4.0)), 0.1)
-		var t := age / life
-		var fade_in := clampf(age / 0.35, 0.0, 1.0)
-		var fade_out := clampf((1.0 - t) / 0.45, 0.0, 1.0)
-		var alpha := minf(fade_in, fade_out)
-		block.modulate = Color(1, 1, 1, alpha)
-		var bob := float(entry.get("bob", 1.0))
-		var phase := float(entry.get("phase", 0.0))
-		var y0 := float(entry.get("y", block.position.y))
-		block.position.x = float(entry.get("center_x", block.position.x))
-		block.position.y = y0 + sin(age * bob + phase) * 4.0
-		block.scale = Vector2(SKY_CHEER_SCALE, SKY_CHEER_SCALE)
-		if t < 1.0 and alpha > 0.01:
-			remain.append(entry)
-		else:
-			block.queue_free()
-	_sky_cheer_active = remain
+func _update_sky_cheer_visuals(_delta: float) -> void:
+	pass
 
 func _orb_pop_visual_scale(pop: float) -> float:
 	return lerpf(0.05, 1.0, pop * pop)
@@ -11329,7 +11212,7 @@ func _setup_pause_overlay() -> void:
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(layer)
 	_pause_overlay = MobilePauseOverlay.new()
-	var quit_text := "返回编辑器" if String(Global.runner_return_scene) != "" else "返回地图"
+	var quit_text := GameLocale.pick("返回编辑器", "Back to Editor") if String(Global.runner_return_scene) != "" else GameLocale.pick("返回地图", "Return to Map")
 	_pause_overlay.configure({
 		"quit_text": quit_text,
 		"show_quit": true,
@@ -12020,7 +11903,7 @@ func _update_pre_run(delta: float) -> void:
 				intro_panel.visible = true
 	if pre_run_phase == "loading":
 		intro_title.text = "Preparing Route..."
-		intro_body.text = "正在规划运输路线…"
+		intro_body.text = GameLocale.pick("正在规划运输路线…", "Plotting the supply route…")
 		if _world_ready and intro_elapsed >= PRE_RUN_LOADING_TIME:
 			pre_run_phase = "countdown"
 			countdown_step = 3
@@ -22081,8 +21964,9 @@ func _build_player_visual() -> void:
 					-1.0,
 					-1.0
 				)
-				_fit_slide_pose_to_runner(player_slide_pose_root)
-				player_slide_pose_root.visible = false
+				if player_slide_pose_root != null:
+					_fit_slide_pose_to_runner(player_slide_pose_root)
+					player_slide_pose_root.visible = false
 				# 站立 idle.glb：与骨骼跑步同朝向（背对镜头），勿用 model_yaw 否则会正面朝相机
 				_add_player_pose_model(
 					"idle",
@@ -22132,8 +22016,9 @@ func _build_player_visual() -> void:
 				-1.0,
 				-1.0
 			)
-			_fit_slide_pose_to_runner(player_slide_pose_root)
-			player_slide_pose_root.visible = false
+			if player_slide_pose_root != null:
+				_fit_slide_pose_to_runner(player_slide_pose_root)
+				player_slide_pose_root.visible = false
 			_play_player_animation("idle")
 			return
 
@@ -22160,9 +22045,16 @@ func _load_runner_scene(path: String, warn_if_missing: bool = true) -> PackedSce
 	if path.ends_with(".png") or path.ends_with(".webp") or path.ends_with(".jpg") or path.ends_with(".jpeg"):
 		return _get_or_create_sprite_obstacle_scene(path, warn_if_missing)
 	if _scene_cache.has(path):
-		return _scene_cache[path] as PackedScene
+		var cached: Variant = _scene_cache[path]
+		if cached is PackedScene:
+			return cached as PackedScene
+		_scene_cache.erase(path)
 
 	var scene := ResourceLoader.load(path) as PackedScene
+	if scene == null and ResourceLoader.exists(path):
+		# UID 缓存失效时偶发 load 失败：清缓存再试一次
+		_scene_cache.erase(path)
+		scene = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
 	if scene:
 		_scene_cache[path] = scene
 		return scene
@@ -23294,6 +23186,8 @@ func _add_player_pose_model(
 	if not scene:
 		return
 	var model := _add_scaled_model_visual(player_body, scene, "RunnerModel_%s" % pose_name, target_height, yaw_degrees)
+	if model == null:
+		return
 	model.visible = false
 	player_pose_models[pose_name] = model
 
@@ -27465,54 +27359,86 @@ func _update_runner_letterboxes() -> void:
 
 func _update_hud() -> void:
 	var type_zh := String(mission.get("task_type_zh", _mission_profile.get("name_zh", "补给")))
+	var type_en := String(mission.get("task_type", "Supply Run")).strip_edges()
+	if type_en.ends_with(" Run"):
+		type_en = type_en.substr(0, type_en.length() - 4)
+	var type_label := GameLocale.pick(type_zh, type_en if type_en != "" else "Supply")
 	var time_text := ""
 	if bool(_mission_profile.get("timed_fail", false)):
-		time_text = "剩余 %0.1f · %s" % [maxf(_run_time - elapsed, 0.0), type_zh]
+		time_text = GameLocale.pick(
+			"剩余 %0.1f · %s" % [maxf(_run_time - elapsed, 0.0), type_label],
+			"Left %0.1f · %s" % [maxf(_run_time - elapsed, 0.0), type_label]
+		)
 	else:
-		time_text = "时间 %0.1f / %0.0f · %s" % [elapsed, _run_time, type_zh]
+		time_text = GameLocale.pick(
+			"时间 %0.1f / %0.0f · %s" % [elapsed, _run_time, type_label],
+			"Time %0.1f / %0.0f · %s" % [elapsed, _run_time, type_label]
+		)
 	if time_text != _hud_time_cache:
 		_hud_time_cache = time_text
 		time_label.text = time_text
-	var speed_text := "速度 %0.1f m/s" % (current_speed * speed_penalty_mult)
+	var speed_text := GameLocale.pick(
+		"速度 %0.1f m/s" % (current_speed * speed_penalty_mult),
+		"Speed %0.1f m/s" % (current_speed * speed_penalty_mult)
+	)
 	if speed_penalty_timer > 0.0:
-		speed_text += " (减速)"
+		speed_text += GameLocale.pick(" (减速)", " (slow)")
 	if speed_text != _hud_speed_cache:
 		_hud_speed_cache = speed_text
 		speed_label.text = speed_text
 
 	var phase: Dictionary = LevelConfig.phase_at(track_distance)
 	if track_layer > 0:
-		phase_label.text = "侧墙跑 · 左/右切换高度列"
+		phase_label.text = GameLocale.pick("侧墙跑 · 左/右切换高度列", "Wall run · left/right height lanes")
 	else:
-		phase_label.text = "阶段 %s · %s" % [phase["name"], phase["hint"]]
+		phase_label.text = GameLocale.pick(
+			"阶段 %s · %s" % [phase["name"], phase["hint"]],
+			"Phase %s · %s" % [phase["name"], phase["hint"]]
+		)
 	if cargo_label != null:
-		var cargo_name := String(mission.get("cargo_name", "物资"))
+		var cargo_name := GameLocale.field(mission, "cargo_name", "cargo_name_en")
+		if cargo_name == "":
+			cargo_name = GameLocale.pick("物资", "Supplies")
 		if cargo_title_label != null:
-			cargo_title_label.text = "货物 · %s" % cargo_name
+			cargo_title_label.text = GameLocale.pick("货物 · %s" % cargo_name, "Cargo · %s" % cargo_name)
 		var integ_text := _cargo_integrity_hud_text()
 		var integ_changed := integ_text != _hud_integrity_cache
 		if integ_changed:
 			_hud_integrity_cache = integ_text
 		if _uses_smash_collision():
-			cargo_label.text = "完整度 %s%%" % integ_text
+			cargo_label.text = GameLocale.pick("完整度 %s%%" % integ_text, "Integrity %s%%" % integ_text)
 			if cargo_detail_label != null:
-				cargo_detail_label.text = "撞碎 %d/%d  ·  体力 %0.0f/%0.0f" % [
-					_smash_hit_count,
-					maxi(_smash_obstacle_total, 1),
-					Global.runner_hp,
-					Global.runner_hp_max,
-				]
+				cargo_detail_label.text = GameLocale.pick(
+					"撞碎 %d/%d  ·  体力 %0.0f/%0.0f" % [
+						_smash_hit_count,
+						maxi(_smash_obstacle_total, 1),
+						Global.runner_hp,
+						Global.runner_hp_max,
+					],
+					"Smashed %d/%d  ·  HP %0.0f/%0.0f" % [
+						_smash_hit_count,
+						maxi(_smash_obstacle_total, 1),
+						Global.runner_hp,
+						Global.runner_hp_max,
+					]
+				)
 				cargo_detail_label.visible = true
 		else:
-			cargo_label.text = "完整度 %s%%" % integ_text
+			cargo_label.text = GameLocale.pick("完整度 %s%%" % integ_text, "Integrity %s%%" % integ_text)
 			if cargo_detail_label != null:
-				cargo_detail_label.text = "装载 %d" % int(mission.get("cargo_load", 0))
+				cargo_detail_label.text = GameLocale.pick(
+					"装载 %d" % int(mission.get("cargo_load", 0)),
+					"Load %d" % int(mission.get("cargo_load", 0))
+				)
 				cargo_detail_label.visible = int(mission.get("cargo_load", 0)) > 0
 		if integ_changed:
 			_style_cargo_hud_labels()
-	score_label.text = "星火币 %d" % run_score
-	layer_label.text = "地图 %s" % LevelConfig.MAP_NAME
-	collectible_label.text = "星火币 %d / %d · 水晶 %d" % [collected_count, total_collectibles, crystal_collected_count]
+	score_label.text = GameLocale.pick("星火币 %d" % run_score, "Coins %d" % run_score)
+	layer_label.text = GameLocale.pick("地图 %s" % LevelConfig.MAP_NAME, "Map %s" % LevelConfig.MAP_NAME)
+	collectible_label.text = GameLocale.pick(
+		"星火币 %d / %d · 水晶 %d" % [collected_count, total_collectibles, crystal_collected_count],
+		"Coins %d / %d · Crystals %d" % [collected_count, total_collectibles, crystal_collected_count]
+	)
 	_refresh_buff_hud()
 	if shield_button:
 		shield_button.modulate = Color(0.55, 0.95, 1.0) if _is_shield_protecting() else Color(1, 1, 1)
@@ -29134,23 +29060,57 @@ func _spawn_meteor_gate_drop(gate: Dictionary, lane: int, rng: RandomNumberGener
 	camera_shake = maxf(camera_shake, 0.06)
 
 
-func _pre_run_briefing_text() -> String:
-	var dest := String(mission.get("target_hearth", "")).strip_edges()
-	if dest == "" and LevelConfig != null and LevelConfig.has_method("get_outpost_meta"):
+func _localized_outpost_title(fallback_hearth: String = "") -> String:
+	if LevelConfig != null and LevelConfig.has_method("get_outpost_meta"):
 		var meta: Dictionary = LevelConfig.get_outpost_meta(Global.runner_location_id)
-		dest = String(meta.get("name", "")).strip_edges()
-	if dest == "":
-		dest = "未知据点"
-	var cargo := String(mission.get("cargo_name", "物资")).strip_edges()
+		var localized := GameLocale.field(meta, "name", "name_en").strip_edges()
+		if localized != "":
+			return localized
+	match String(Global.runner_location_id):
+		"dome":
+			return GameLocale.pick("居民穹顶", "Habitat Dome")
+		"reservoir":
+			return GameLocale.pick("水源据点", "Water Station")
+		"medical":
+			return GameLocale.pick("医疗据点", "Medical Station")
+		"relay":
+			return GameLocale.pick("星火中继站", "Ember Relay Station")
+		"gate":
+			return GameLocale.pick("防御哨站", "Defense Outpost")
+		_:
+			pass
+	var hearth := fallback_hearth.strip_edges()
+	if hearth != "":
+		return hearth
+	return GameLocale.pick("未知据点", "Unknown Outpost")
+
+
+func _pre_run_briefing_text() -> String:
+	var dest := _localized_outpost_title(String(mission.get("target_hearth", "")))
+	var cargo := GameLocale.field(mission, "cargo_name", "cargo_name_en").strip_edges()
 	if cargo == "":
-		cargo = "物资"
+		cargo = GameLocale.pick("物资", "Supplies")
 	var load_n := int(mission.get("cargo_load", 0))
-	var cargo_line := "运输货物：%s ×%d" % [cargo, load_n] if load_n > 0 else "运输货物：%s" % cargo
-	var task_type := String(mission.get("task_type_zh", mission.get("task_type", "补给"))).strip_edges()
+	var cargo_line := (
+		GameLocale.pick("运输货物：%s ×%d" % [cargo, load_n], "Cargo: %s ×%d" % [cargo, load_n])
+		if load_n > 0
+		else GameLocale.pick("运输货物：%s" % cargo, "Cargo: %s" % cargo)
+	)
+	var profile: Dictionary = _mission_profile if not _mission_profile.is_empty() else MissionTypes.resolve(mission)
+	var task_zh := String(mission.get("task_type_zh", profile.get("name_zh", "补给"))).strip_edges()
+	var task_en := String(mission.get("task_type", "Supply Run")).strip_edges()
+	if task_en.ends_with(" Run"):
+		task_en = task_en.substr(0, task_en.length() - 4)
+	if task_en == "":
+		task_en = "Supply"
+	var task_type := GameLocale.pick(task_zh if task_zh != "" else "补给", task_en)
 	var obs_count := maxi(_smash_obstacle_total, 0)
 	if obs_count <= 0:
 		obs_count = obstacles.size()
-	return "目的地：%s\n%s\n运输类型：%s\n障碍物：%d" % [dest, cargo_line, task_type, obs_count]
+	return GameLocale.pick(
+		"目的地：%s\n%s\n运输类型：%s\n障碍物：%d" % [dest, cargo_line, task_type, obs_count],
+		"Destination: %s\n%s\nRun type: %s\nObstacles: %d" % [dest, cargo_line, task_type, obs_count]
+	)
 
 
 func _update_meteor_fall_roll(delta: float) -> void:

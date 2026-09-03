@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cad7lwrpbl3ai"
+uid="uid://s3um5w4ek2hx"
 path.s3tc="res://.godot/imported/medical_outpost_futuristic_hospital_3d_model_rm.jpg-0488320a268e1f0d684c65cc95edd2e6.s3tc.ctex"
 path.etc2="res://.godot/imported/medical_outpost_futuristic_hospital_3d_model_rm.jpg-0488320a268e1f0d684c65cc95edd2e6.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "8da205f7e1421c936debcc753d0f0445"
+"md5": "dba708049a7b8cc10051341a574acf48"
 }
 
 [deps]

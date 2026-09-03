@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1x06dgyrkj1h"
-path.s3tc="res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-6b8c59ba0f7b9887a0577a2861d60e8c.s3tc.ctex"
-path.etc2="res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-6b8c59ba0f7b9887a0577a2861d60e8c.etc2.ctex"
+uid="uid://o062xjw4fybh"
+path.s3tc="res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-4a4c6e4da66e26055f1755d4e84ccd24.s3tc.ctex"
+path.etc2="res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-4a4c6e4da66e26055f1755d4e84ccd24.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png"
-dest_files=["res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-6b8c59ba0f7b9887a0577a2861d60e8c.s3tc.ctex", "res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-6b8c59ba0f7b9887a0577a2861d60e8c.etc2.ctex"]
+source_file="res://assets/maps/route_levels/models/environment/distant/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png"
+dest_files=["res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-4a4c6e4da66e26055f1755d4e84ccd24.s3tc.ctex", "res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_basecolor.png-4a4c6e4da66e26055f1755d4e84ccd24.etc2.ctex"]
 
 [params]
 

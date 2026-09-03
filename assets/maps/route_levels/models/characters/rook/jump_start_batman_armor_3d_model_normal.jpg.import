@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1onejt4wwjc4"
+uid="uid://bne7eh015mubk"
 path.s3tc="res://.godot/imported/jump_start_batman_armor_3d_model_normal.jpg-5168169f54df1a2899c9c24360a84160.s3tc.ctex"
 path.etc2="res://.godot/imported/jump_start_batman_armor_3d_model_normal.jpg-5168169f54df1a2899c9c24360a84160.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "7b8cd0c8284f8a890e272be54c239a50"
+"md5": "6801c983bdfe58f5e037c96956cc6124"
 }
 
 [deps]

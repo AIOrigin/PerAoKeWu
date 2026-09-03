@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b0vdkekdd182j"
+uid="uid://3rlinav4ffv1"
 path.s3tc="res://.godot/imported/crystal_planet_带纹理的行星3d模型_basecolor.jpg-520c630de938e42ea91d280258e78cc3.s3tc.ctex"
 path.etc2="res://.godot/imported/crystal_planet_带纹理的行星3d模型_basecolor.jpg-520c630de938e42ea91d280258e78cc3.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "aee5966619445fff89a55191e39d346d"
+"md5": "8ca3340707fff7779fa315bb7519d399"
 }
 
 [deps]

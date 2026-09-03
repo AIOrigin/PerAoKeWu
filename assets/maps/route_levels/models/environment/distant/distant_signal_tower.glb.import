@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://clp18pclybqvt"
-path="res://.godot/imported/distant_signal_tower.glb-70e9f67d1d4e1e73cad999fb2a876aa9.scn"
+path="res://.godot/imported/distant_signal_tower.glb-bd2666779275c6108d7950d21a3e7c01.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/distant_props/distant_signal_tower.glb"
-dest_files=["res://.godot/imported/distant_signal_tower.glb-70e9f67d1d4e1e73cad999fb2a876aa9.scn"]
+source_file="res://assets/maps/route_levels/models/environment/distant/distant_signal_tower.glb"
+dest_files=["res://.godot/imported/distant_signal_tower.glb-bd2666779275c6108d7950d21a3e7c01.scn"]
 
 [params]
 

@@ -125,10 +125,35 @@ const CHARACTERS := {
 			{"icon": "en", "label": "STAMINA", "value": "120", "pct": 65},
 		],
 		"level_bonus_pct": "+5%",
+		# 解锁后与 Elsa 共用同一套装备展示（暂无独立装备系统）
 		"gear": [
-			{"slot": "BOOTS", "icon_key": "boots", "locked": true},
-			{"slot": "CORE", "icon_key": "core", "locked": true},
-			{"slot": "SHIELD", "icon_key": "shield", "locked": true},
+			{
+				"slot": "BOOTS",
+				"icon_key": "boots",
+				"equipped": true,
+				"name": "Swiftstride Boots",
+				"rarity": "rare",
+				"rarity_label": "RARE",
+				"fx": "+12% SPEED",
+			},
+			{
+				"slot": "CORE",
+				"icon_key": "core",
+				"equipped": true,
+				"name": "Power Reactor Core",
+				"rarity": "epic",
+				"rarity_label": "EPIC",
+				"fx": "+20% HP",
+			},
+			{
+				"slot": "SHIELD",
+				"icon_key": "shield",
+				"equipped": true,
+				"name": "Impact Shield",
+				"rarity": "rare",
+				"rarity_label": "RARE",
+				"fx": "+15% IMPACT RESIST",
+			},
 		],
 		"stats": [
 			{"id": "hp", "label": "生命", "label_en": "HP", "value": "140", "fill": 0.90},

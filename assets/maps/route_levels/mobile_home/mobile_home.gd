@@ -198,11 +198,7 @@ var _selected_planet_id := "glass_desert"
 var _guide_step := -1
 var _pause_overlay: MobilePauseOverlay
 var _settings_overlay: Control
-var _settings_tutorial_check: CheckButton
-var _settings_bgm_check: CheckButton
 var _settings_bgm_slider: HSlider
-var _settings_sfx_slider: HSlider
-var _settings_full_unlock_btn: Button
 var _settings_language_option: OptionButton
 var _energy_tick := 0.0
 var _task_detail: Control
@@ -998,20 +994,6 @@ func _build_status_bar() -> Control:
 	_status_ember_label.add_theme_color_override("font_color", UI_TEXT)
 	_status_ember_label.add_theme_constant_override("letter_spacing", 2)
 	credits_wrap.add_child(_status_ember_label)
-
-	if OS.has_feature("editor"):
-		var editor_dev_btn := Button.new()
-		editor_dev_btn.text = "EDITOR"
-		editor_dev_btn.focus_mode = Control.FOCUS_NONE
-		editor_dev_btn.custom_minimum_size = Vector2(_home_spec_w(108), _home_spec_h(44))
-		editor_dev_btn.add_theme_font_size_override("font_size", _home_spec_fs(18))
-		editor_dev_btn.add_theme_color_override("font_color", Color(0.55, 0.95, 1.0))
-		editor_dev_btn.add_theme_stylebox_override("normal", _style(Color(0.04, 0.14, 0.22, 0.88), Color(0.45, 0.82, 0.95, 0.65), 1, _home_spec_w(10)))
-		editor_dev_btn.add_theme_stylebox_override("hover", _style(Color(0.06, 0.18, 0.28, 0.95), Color(0.55, 0.9, 1.0, 0.85), 1, _home_spec_w(10)))
-		editor_dev_btn.add_theme_stylebox_override("pressed", _style(Color(0.02, 0.1, 0.16, 0.95), Color(0.35, 0.72, 0.88, 0.75), 1, _home_spec_w(10)))
-		editor_dev_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-		editor_dev_btn.pressed.connect(_on_settings_open_level_editor)
-		row.add_child(editor_dev_btn)
 
 	var settings_button := Button.new()
 	settings_button.focus_mode = Control.FOCUS_NONE
@@ -3175,28 +3157,27 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 
 	var panel := _make_tasks_mission_card_shell(accent, is_done, reward_pending)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_on_tasks_mission_action(planet_id, mission.duplicate(true))
-		elif event is InputEventScreenTouch and event.pressed:
-			_on_tasks_mission_action(planet_id, mission.duplicate(true))
-	)
-	_tasks_missions_box.add_child(panel)
-
 	var open_detail := func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_open_task_detail(planet_id, mission.duplicate(true))
+		elif event is InputEventScreenTouch and event.pressed:
+			_open_task_detail(planet_id, mission.duplicate(true))
+	# 点卡片本体 → 任务详情；只有右侧 ACCEPT/RUN 才接取或开跑
+	panel.gui_input.connect(open_detail)
+	_tasks_missions_box.add_child(panel)
 
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", _tasks_spec_w(8))
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(row)
 
 	var accent_bar := ColorRect.new()
 	accent_bar.custom_minimum_size = Vector2(_tasks_spec_w(4), _tasks_spec_h(52))
 	accent_bar.color = accent
 	accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	accent_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(accent_bar)
 
 	var icon_wrap := PanelContainer.new()
@@ -3216,8 +3197,8 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	icon_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	icon_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
 	icon_lbl.add_theme_color_override("font_color", accent)
-	icon_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-	icon_lbl.gui_input.connect(open_detail)
+	icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_wrap.add_child(icon_lbl)
 
 	var body := VBoxContainer.new()
@@ -3232,8 +3213,7 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
 	name_lbl.add_theme_color_override("font_color", UI_TEXT)
-	name_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-	name_lbl.gui_input.connect(open_detail)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(name_lbl)
 	var obj_lbl := RichTextLabel.new()
 	obj_lbl.bbcode_enabled = true
@@ -3244,8 +3224,7 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	obj_lbl.custom_minimum_size = Vector2(0, _tasks_spec_fs(18))
 	obj_lbl.add_theme_font_size_override("normal_font_size", _tasks_spec_fs(14))
 	obj_lbl.add_theme_color_override("default_color", UI_MUTED)
-	obj_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-	obj_lbl.gui_input.connect(open_detail)
+	obj_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(obj_lbl)
 	if not is_done and progress_now > 0:
 		var prog_lbl := Label.new()
@@ -3260,26 +3239,31 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	right.alignment = BoxContainer.ALIGNMENT_CENTER
 	right.add_theme_constant_override("separation", _tasks_spec_h(6))
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(right)
 	var reward_row := HBoxContainer.new()
 	reward_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	reward_row.add_theme_constant_override("separation", _tasks_spec_w(4))
+	reward_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	right.add_child(reward_row)
 	var star_lbl := Label.new()
 	star_lbl.text = "★"
 	star_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(16))
 	star_lbl.add_theme_color_override("font_color", UI_CYAN)
+	star_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reward_row.add_child(star_lbl)
 	var reward_lbl := Label.new()
 	reward_lbl.text = str(reward)
 	reward_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(18))
 	reward_lbl.add_theme_color_override("font_color", UI_ICE)
+	reward_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reward_row.add_child(reward_lbl)
 
 	if is_done and reward_pending:
 		var claim_btn := Button.new()
 		claim_btn.focus_mode = Control.FOCUS_NONE
 		claim_btn.text = "CLAIM"
+		claim_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		claim_btn.custom_minimum_size = Vector2(_tasks_spec_w(88), _tasks_spec_h(34))
 		_apply_mission_reward_claim_style(claim_btn)
 		claim_btn.pressed.connect(_on_claim_mission_reward.bind(planet_id, mission_id, reward))
@@ -3289,10 +3273,12 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 		done_lbl.text = "DONE"
 		done_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(14))
 		done_lbl.add_theme_color_override("font_color", UI_MISSION_DONE)
+		done_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		right.add_child(done_lbl)
 	else:
 		var action_btn := Button.new()
 		action_btn.focus_mode = Control.FOCUS_NONE
+		action_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		if is_preview:
 			action_btn.text = GameLocale.pick("试玩", "TRIAL") if MissionDispatch.can_preview_trial_run(planet_id, location_id) else "PREVIEW"
 		else:
@@ -3525,9 +3511,13 @@ func _refit_runner_page_host() -> void:
 		return
 	if _page_scroll == null or _page_box == null:
 		return
+	# 等一帧：切换 Elsa/Rook 重建后 Scroll 尺寸才稳定，避免用中间态把整页缩没
+	await get_tree().process_frame
+	if _selected_tab != TAB_CHARACTER or _page_scroll == null or _page_box == null:
+		return
 	var view_h := _page_scroll.size.y
 	var view_w := _page_scroll.size.x
-	if view_h <= 1.0:
+	if view_h <= 8.0 or view_w <= 8.0:
 		return
 	_page_box.custom_minimum_size = Vector2(view_w, view_h)
 	_page_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -3539,13 +3529,12 @@ func _refit_runner_page_host() -> void:
 		var shell := host.get_node_or_null("RunnerPageShell")
 		if shell != null and shell.has_method("_fit_canvas"):
 			shell.call("_fit_canvas")
-	# 再等一帧，等 Scroll 尺寸稳定后再锁一次
 	await get_tree().process_frame
 	if _selected_tab != TAB_CHARACTER or _page_scroll == null:
 		return
 	view_h = _page_scroll.size.y
 	view_w = _page_scroll.size.x
-	if view_h <= 1.0:
+	if view_h <= 8.0 or view_w <= 8.0:
 		return
 	host = _page_box.get_node_or_null("RunnerPageHost") as Control
 	if host:
@@ -3557,13 +3546,10 @@ func _refit_runner_page_host() -> void:
 
 
 func _select_character_id(character_id: String) -> void:
+	# 仅切换浏览角色；出战角色由 SWITCH / _switch_active_character 决定
 	if character_id == _selected_character_id:
 		return
 	_selected_character_id = character_id
-	var snapshot: Dictionary = Global.get_messenger_snapshot()
-	var unlocked: Array = snapshot.get("unlocked_stories", [])
-	if CharacterRoster.is_unlocked(character_id, unlocked):
-		Global.set_selected_character(character_id)
 	_show_tab(TAB_CHARACTER, true)
 
 
@@ -3926,6 +3912,7 @@ func _add_character_trait_card(character: Dictionary) -> void:
 
 
 func _cycle_character(direction: int = 1) -> void:
+	# 左右浏览不改出战角色；点 SWITCH 才设为 IN USE
 	var next_id := (
 		CharacterRoster.next_id(_selected_character_id)
 		if direction >= 0
@@ -3934,12 +3921,6 @@ func _cycle_character(direction: int = 1) -> void:
 	if next_id == _selected_character_id:
 		return
 	_selected_character_id = next_id
-	var snapshot: Dictionary = Global.get_messenger_snapshot()
-	var unlocked: Array = snapshot.get("unlocked_stories", [])
-	if CharacterRoster.is_unlocked(next_id, unlocked):
-		Global.set_selected_character(next_id)
-		var name := String(CharacterRoster.get_character(next_id).get("name_en", next_id))
-		_show_toast("Now running as %s" % name)
 	_show_tab(TAB_CHARACTER, true)
 
 
@@ -3950,7 +3931,6 @@ func _show_character_story(character_id: String) -> void:
 		_character_story_overlay = null
 
 	_selected_character_id = character_id
-	Global.set_selected_character(_selected_character_id)
 	var character: Dictionary = CharacterRoster.get_character(character_id)
 	var snapshot: Dictionary = Global.get_messenger_snapshot()
 
@@ -5051,7 +5031,8 @@ func _build_settings_overlay() -> void:
 
 	var panel := PanelContainer.new()
 	var panel_w := _settings_spec_w(560)
-	var panel_h := mini(_settings_spec_h(980), maxf(420.0, _ui_root.size.y * 0.82))
+	# 正式版只保留语言 / BGM / 回看剧情，面板不必再做很高
+	var panel_h := mini(_settings_spec_h(520), maxf(360.0, _ui_root.size.y * 0.62))
 	panel.custom_minimum_size = Vector2(panel_w, panel_h)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.add_theme_stylebox_override("panel", _style(UI_FRAME, UI_FRAME_BORDER, 2, _settings_spec_w(14)))
@@ -5088,17 +5069,11 @@ func _build_settings_overlay() -> void:
 	tip.add_theme_color_override("font_color", UI_MUTED)
 	root.add_child(tip)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	root.add_child(scroll)
-
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", _settings_spec_h(14))
-	scroll.add_child(box)
+	root.add_child(box)
 
 	var lang_row := HBoxContainer.new()
 	lang_row.add_theme_constant_override("separation", _settings_spec_w(12))
@@ -5119,17 +5094,6 @@ func _build_settings_overlay() -> void:
 	_settings_language_option.item_selected.connect(_on_settings_language_selected)
 	lang_row.add_child(_settings_language_option)
 
-	_settings_tutorial_check = CheckButton.new()
-	_settings_tutorial_check.text = GameLocale.t("settings_tutorial")
-	_settings_tutorial_check.focus_mode = Control.FOCUS_NONE
-	_settings_tutorial_check.custom_minimum_size = Vector2(0, _settings_spec_h(52))
-	_settings_tutorial_check.add_theme_font_size_override("font_size", _settings_spec_fs(20))
-	_settings_tutorial_check.add_theme_color_override("font_color", UI_TEXT)
-	_settings_tutorial_check.toggled.connect(_on_settings_tutorial_toggled)
-	box.add_child(_settings_tutorial_check)
-
-	_settings_bgm_check = null
-
 	var bgm_vol_row := HBoxContainer.new()
 	bgm_vol_row.add_theme_constant_override("separation", _settings_spec_w(12))
 	box.add_child(bgm_vol_row)
@@ -5148,73 +5112,9 @@ func _build_settings_overlay() -> void:
 	_settings_bgm_slider.value_changed.connect(_on_settings_bgm_volume_changed)
 	bgm_vol_row.add_child(_settings_bgm_slider)
 
-	var sfx_vol_row := HBoxContainer.new()
-	sfx_vol_row.add_theme_constant_override("separation", _settings_spec_w(12))
-	box.add_child(sfx_vol_row)
-	var sfx_vol_label := Label.new()
-	sfx_vol_label.text = GameLocale.t("settings_sfx_volume")
-	sfx_vol_label.custom_minimum_size = Vector2(_settings_spec_w(140), 0)
-	sfx_vol_label.add_theme_font_size_override("font_size", _settings_spec_fs(18))
-	sfx_vol_label.add_theme_color_override("font_color", UI_TEXT)
-	sfx_vol_row.add_child(sfx_vol_label)
-	_settings_sfx_slider = HSlider.new()
-	_settings_sfx_slider.min_value = 0.0
-	_settings_sfx_slider.max_value = 1.0
-	_settings_sfx_slider.step = 0.01
-	_settings_sfx_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_settings_sfx_slider.custom_minimum_size = Vector2(0, _settings_spec_h(36))
-	_settings_sfx_slider.value_changed.connect(_on_settings_sfx_volume_changed)
-	sfx_vol_row.add_child(_settings_sfx_slider)
-
-	var dev_sep := Label.new()
-	dev_sep.text = GameLocale.t("settings_dev")
-	dev_sep.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dev_sep.add_theme_font_size_override("font_size", _settings_spec_fs(18))
-	dev_sep.add_theme_color_override("font_color", UI_MUTED)
-	box.add_child(dev_sep)
-
-	# 用整行 Button，避免长文案 CheckButton 把开关挤出可点区域
-	_settings_full_unlock_btn = _make_settings_flat_button(GameLocale.t("settings_full_unlock_off"))
-	_settings_full_unlock_btn.focus_mode = Control.FOCUS_NONE
-	_settings_full_unlock_btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	_settings_full_unlock_btn.pressed.connect(_on_settings_full_unlock_pressed)
-	box.add_child(_settings_full_unlock_btn)
-
-	var reset_all_btn := _make_settings_flat_button(GameLocale.t("settings_reset_all"))
-	reset_all_btn.pressed.connect(_on_settings_reset_all_progress)
-	box.add_child(reset_all_btn)
-
-	var reset_mission_btn := _make_settings_flat_button(GameLocale.t("settings_reset_missions"))
-	reset_mission_btn.pressed.connect(_on_settings_reset_mission_progress)
-	box.add_child(reset_mission_btn)
-
-	var reset_map_btn := _make_settings_flat_button(GameLocale.t("settings_reset_map_light"))
-	reset_map_btn.pressed.connect(_on_settings_reset_map_light)
-	box.add_child(reset_map_btn)
-
-	var reset_btn := _make_settings_flat_button(GameLocale.t("settings_reset_tutorials"))
-	reset_btn.pressed.connect(_on_settings_reset_tutorials)
-	box.add_child(reset_btn)
-
-	var home_guide_btn := _make_settings_flat_button(GameLocale.t("settings_replay_guide"))
-	home_guide_btn.pressed.connect(_on_settings_replay_home_guide)
-	box.add_child(home_guide_btn)
-	var transport_intro_btn := _make_settings_flat_button(GameLocale.t("settings_replay_transport_intro"))
-	transport_intro_btn.pressed.connect(_on_settings_show_transport_intro)
-	box.add_child(transport_intro_btn)
-
 	var story_review_btn := _make_settings_flat_button(GameLocale.t("settings_story_review"))
 	story_review_btn.pressed.connect(_on_settings_story_review)
 	box.add_child(story_review_btn)
-
-	var reset_comic_btn := _make_settings_flat_button(GameLocale.t("settings_reset_comic"))
-	reset_comic_btn.pressed.connect(_on_settings_reset_opening_comic)
-	box.add_child(reset_comic_btn)
-
-	if OS.has_feature("editor"):
-		var level_editor_btn := _make_settings_flat_button(GameLocale.t("settings_level_editor"))
-		level_editor_btn.pressed.connect(_on_settings_open_level_editor)
-		box.add_child(level_editor_btn)
 
 	var close_btn := _make_settings_gold_button(GameLocale.t("settings_close"))
 	close_btn.pressed.connect(_close_settings)
@@ -5226,30 +5126,9 @@ func _refresh_settings_ui() -> void:
 		_settings_language_option.set_block_signals(true)
 		_settings_language_option.select(1 if Global.is_ui_english() else 0)
 		_settings_language_option.set_block_signals(false)
-	if _settings_tutorial_check != null:
-		_settings_tutorial_check.set_pressed_no_signal(Global.is_runner_tutorial_enabled())
 	if _settings_bgm_slider != null:
 		_settings_bgm_slider.set_value_no_signal(Global.bgm_volume)
 		_settings_bgm_slider.editable = true
-	if _settings_sfx_slider != null:
-		_settings_sfx_slider.set_value_no_signal(Global.sfx_volume)
-	_refresh_full_unlock_button()
-
-
-func _refresh_full_unlock_button() -> void:
-	if _settings_full_unlock_btn == null or not is_instance_valid(_settings_full_unlock_btn):
-		return
-	var on := Global.is_dev_full_unlock()
-	_settings_full_unlock_btn.text = GameLocale.t(
-		"settings_full_unlock_on" if on else "settings_full_unlock_off"
-	)
-	# 开启时用高亮边，方便确认状态
-	var border := UI_CYAN if on else UI_PANEL_BORDER
-	var bg := Color(0.08, 0.18, 0.24, 0.98) if on else Color(0.08, 0.10, 0.13, 0.98)
-	var radius := _settings_spec_w(8)
-	_settings_full_unlock_btn.add_theme_stylebox_override("normal", _style(bg, border, 2, radius))
-	_settings_full_unlock_btn.add_theme_stylebox_override("hover", _style(bg.lightened(0.06), border, 2, radius))
-	_settings_full_unlock_btn.add_theme_stylebox_override("pressed", _style(bg.darkened(0.08), border, 2, radius))
 
 
 func _on_settings_language_selected(index: int) -> void:
@@ -5263,82 +5142,13 @@ func _on_settings_language_selected(index: int) -> void:
 	_show_tab(_selected_tab, true)
 
 
-func _on_settings_tutorial_toggled(pressed: bool) -> void:
-	Global.set_runner_tutorial_enabled(pressed)
-	_show_toast(GameLocale.t("toast_tutorial_on" if pressed else "toast_tutorial_off"))
-
-
-func _on_settings_bgm_toggled(pressed: bool) -> void:
-	Global.set_bgm_enabled(pressed)
-	if _settings_bgm_slider != null:
-		_settings_bgm_slider.editable = pressed
-	_show_toast(GameLocale.t("toast_bgm_on" if pressed else "toast_bgm_off"))
-
-
 func _on_settings_bgm_volume_changed(value: float) -> void:
 	Global.set_bgm_volume(value)
-	# 去掉 BGM 开关后：音量>0 自动开启，=0 视为关闭
+	# 音量>0 自动开启，=0 视为关闭
 	if value > 0.001 and not Global.bgm_enabled:
 		Global.set_bgm_enabled(true)
 	elif value <= 0.001 and Global.bgm_enabled:
 		Global.set_bgm_enabled(false)
-
-
-func _on_settings_sfx_volume_changed(value: float) -> void:
-	Global.set_sfx_volume(value)
-
-
-func _on_settings_full_unlock_pressed() -> void:
-	var next := not Global.is_dev_full_unlock()
-	Global.set_dev_full_unlock(next, "glass_desert")
-	_refresh_full_unlock_button()
-	_show_toast(GameLocale.t("toast_full_unlock_on" if next else "toast_full_unlock_off"))
-	# 立刻刷新任务/地图入口
-	if _selected_tab == TAB_TASKS or _selected_tab == TAB_MAP or _selected_tab == TAB_HOME:
-		_show_tab(_selected_tab, true)
-
-
-func _on_settings_reset_all_progress() -> void:
-	Global.reset_mobile_progress()
-	_refresh_settings_ui()
-	_close_settings()
-	_show_toast(GameLocale.t("toast_reset_all"))
-	if _selected_tab == TAB_TASKS:
-		_show_tab(TAB_TASKS, true)
-
-
-func _on_settings_reset_mission_progress() -> void:
-	Global.reset_planet_mission_progress("glass_desert")
-	_refresh_settings_ui()
-	_close_settings()
-	_show_toast(GameLocale.t("toast_reset_missions"))
-	_show_tab(TAB_TASKS, true)
-
-
-func _on_settings_reset_map_light() -> void:
-	Global.reset_map_light_progress("glass_desert")
-	_close_settings()
-	_show_toast(GameLocale.t("toast_reset_map_light"))
-	if _selected_tab == TAB_TASKS:
-		_show_tab(TAB_TASKS, true)
-
-
-func _on_settings_reset_tutorials() -> void:
-	Global.reset_runner_tutorials()
-	_show_toast(GameLocale.t("toast_reset_tutorials"))
-
-
-func _on_settings_replay_home_guide() -> void:
-	Global.home_guide_seen = false
-	Global.save_mobile_progress()
-	_close_settings()
-	_clear_home_guide()
-	_start_home_guide()
-
-
-func _on_settings_show_transport_intro() -> void:
-	_close_settings()
-	_show_transport_intro(true)
 
 
 func _attach_transport_help_button(parent: Control) -> void:
@@ -5694,24 +5504,6 @@ func _select_ship(ship_id: String) -> void:
 func _on_settings_story_review() -> void:
 	_close_settings()
 	_show_story_intro(true)
-
-
-func _on_settings_reset_opening_comic() -> void:
-	Global.opening_comic_seen = false
-	Global.save_mobile_progress()
-	_close_settings()
-	_show_tab(TAB_HOME, true)
-	_refresh_dawnline_comic_hint()
-	_show_toast(GameLocale.pick(
-		"已重置开场漫画 · 回首页点击 DAWNLINE 光点播放",
-		"Opening comic reset · tap the DAWNLINE glow on Home"
-	))
-
-
-func _on_settings_open_level_editor() -> void:
-	_close_settings()
-	Global.runner_return_scene = PlanetDatabase.MOBILE_HOME_SCENE
-	Global.change_game_scene(PlanetDatabase.LEVEL_EDITOR_SCENE)
 
 
 func _show_story_intro(replay: bool = false) -> void:

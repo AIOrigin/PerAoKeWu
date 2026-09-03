@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cd1553oat30pp"
+uid="uid://oud6ctd01l3u"
 path.s3tc="res://.godot/imported/fighter_spaceship_fighter_spaceship_3d_model_rm.jpg-0d4bad29e3f03cbf37b55283f2320014.s3tc.ctex"
 path.etc2="res://.godot/imported/fighter_spaceship_fighter_spaceship_3d_model_rm.jpg-0d4bad29e3f03cbf37b55283f2320014.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "eea81c5a1b9373f4b4fa5c0827b23d2e"
+"md5": "bc58d4a6b8c6c39709b2dc19a2e813b7"
 }
 
 [deps]

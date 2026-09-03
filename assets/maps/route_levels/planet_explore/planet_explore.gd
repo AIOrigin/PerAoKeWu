@@ -855,6 +855,8 @@ func _spawn_map_tap_markers() -> void:
 func _on_map_marker_activated(location_id: String) -> void:
 	if _ceremony_animating:
 		return
+	if not MissionDispatch.location_map_can_open_detail(Global.exploration_planet_id, location_id):
+		return
 	var location := _get_location(location_id)
 	if location.is_empty():
 		return
@@ -896,9 +898,10 @@ func _layout_location_buttons() -> void:
 		var revealed := _is_revealed(id)
 		var preview := MissionDispatch.is_preview_location(Global.exploration_planet_id, id)
 		var completed := Global.get_completed_runner_locations(Global.exploration_planet_id).has(id)
-		var has_open := MissionDispatch.location_has_open_missions(Global.exploration_planet_id, id)
+		var on_board := MissionDispatch.location_has_board_missions(Global.exploration_planet_id, id)
 		var selected := id == _selected_location_id
-		marker.apply_state(revealed, completed, selected, has_open, preview)
+		# 红点只看已点亮；运输半进度不染红
+		marker.apply_state(revealed, completed, selected, on_board, false, preview)
 
 
 func _on_map_gui_input(event: InputEvent) -> void:
@@ -929,6 +932,8 @@ func _try_open_location_at_map_pos(local_pos: Vector2) -> void:
 		return
 	var location_id := _hit_test_map_location(local_pos)
 	if location_id == "":
+		return
+	if not MissionDispatch.location_map_can_open_detail(Global.exploration_planet_id, location_id):
 		return
 	var location := _get_location(location_id)
 	if location.is_empty():

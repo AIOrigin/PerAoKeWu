@@ -26,7 +26,9 @@ var _revealed := true
 var _completed := false
 var _selected := false
 var _preview_mode := false
-var _has_open_missions := false
+var _on_board := false
+var _has_progress := false
+var _show_question := false
 var _pin_mode := false
 var _ui_built := false
 var _accent := Color(0.42, 0.82, 0.98)
@@ -64,14 +66,18 @@ func apply_state(
 	revealed: bool,
 	completed: bool,
 	selected: bool,
-	has_open_missions: bool = false,
+	on_board: bool = false,
+	_has_progress_unused: bool = false,
 	preview: bool = false
 ) -> void:
 	_revealed = revealed
 	_completed = completed
 	_selected = selected
-	_has_open_missions = has_open_missions and not completed
+	_on_board = on_board and not completed
+	# 红点仅「已点亮」；运输进度半满不算红
+	_has_progress = completed
 	_preview_mode = preview
+	_show_question = (revealed or preview) and not _on_board and not _completed
 	if _ui_built:
 		_refresh_visuals()
 
@@ -214,10 +220,15 @@ func _draw_pin() -> void:
 	var c := _pin_canvas.size * 0.5
 	if c.x < 4.0:
 		c = Vector2(PIN_HIT * 0.5, PIN_HIT * 0.5)
+	# 未发放：只画问号，不要外圈
+	if _show_question or (not _revealed and not _preview_mode and not _on_board and not _completed):
+		var q_col := Color(0.78, 0.82, 0.88, 0.92) if _show_question else Color(0.62, 0.66, 0.72, 0.82)
+		_pin_canvas.draw_string(ThemeDB.fallback_font, c + Vector2(-7, 8), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, q_col)
+		return
 	var accent := _accent
-	var pulse := 0.5 + 0.5 * sin(_pulse_phase)
-	var outer_r := lerpf(22.0, 30.0, pulse)
-	var ring_a := lerpf(0.18, 0.42, pulse)
+	var pulse := 0.5 + 0.5 * sin(_pulse_phase) if (_on_board or _completed) else 0.0
+	var outer_r := lerpf(22.0, 30.0, pulse) if pulse > 0.0 else 22.0
+	var ring_a := lerpf(0.18, 0.42, pulse) if pulse > 0.0 else 0.14
 	var inner_r := 16.0
 	# 外圈脉冲
 	_pin_canvas.draw_arc(c, outer_r, 0.0, TAU, 48, Color(accent.r, accent.g, accent.b, ring_a), 2.0, true)
@@ -237,18 +248,14 @@ func _draw_pin() -> void:
 	# 类型图标（简化为圆点/星）
 	if _completed:
 		_pin_canvas.draw_string(ThemeDB.fallback_font, c + Vector2(-6, 5), "★", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.82, 0.78, 0.95))
-	elif _has_open_missions:
-		_pin_canvas.draw_circle(c, 4.5, accent.lightened(0.18))
-	elif _preview_mode:
-		_pin_canvas.draw_string(ThemeDB.fallback_font, c + Vector2(-5, 5), "◆", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, accent.lightened(0.2))
-	else:
-		_pin_canvas.draw_circle(c, 4.5, accent.lightened(0.15))
+	elif _on_board:
+		_pin_canvas.draw_circle(c, 4.5, accent.lightened(0.22))
 
 
 func _refresh_visuals() -> void:
 	if not _ui_built:
 		return
-	# 黄=有开放任务 · 蓝=无开放任务 · 红=已点亮
+	# 黄=任务板发放中 · 红=已点亮 · 灰?=已揭示但未发放
 	var accent := Color(0.38, 0.72, 0.96)
 	var glow := Color(0.22, 0.46, 0.72, 0.35)
 	var frame_fill := Color(0.08, 0.11, 0.16, 0.94)
@@ -256,10 +263,14 @@ func _refresh_visuals() -> void:
 		accent = Color(0.92, 0.34, 0.30)
 		glow = Color(0.88, 0.28, 0.24, 0.42)
 		frame_fill = Color(0.14, 0.06, 0.06, 0.96)
-	elif _has_open_missions:
+	elif _on_board:
 		accent = Color(0.98, 0.78, 0.28)
 		glow = Color(0.98, 0.72, 0.22, 0.42)
 		frame_fill = Color(0.14, 0.11, 0.06, 0.96)
+	elif _show_question:
+		accent = Color(0.52, 0.58, 0.66)
+		glow = Color(0.16, 0.20, 0.26, 0.24)
+		frame_fill = Color(0.06, 0.07, 0.10, 0.88)
 	elif not _revealed and not _preview_mode:
 		accent = Color(0.42, 0.58, 0.72)
 		glow = Color(0.16, 0.22, 0.30, 0.28)
@@ -277,19 +288,28 @@ func _refresh_visuals() -> void:
 		if _preview:
 			_preview.modulate = Color.WHITE if _revealed or _preview_mode else Color(0.62, 0.64, 0.68)
 		_lock_overlay.visible = not _revealed and not _preview_mode
-		_badge.text = "★" if _completed else _type_icon
 		if _completed:
+			_badge.text = "★"
 			_badge.add_theme_color_override("font_color", Color(1.0, 0.72, 0.68))
-		elif not _revealed and not _preview_mode:
+		elif _show_question:
 			_badge.text = "?"
 			_badge.add_theme_color_override("font_color", Color(0.72, 0.76, 0.82))
+		elif not _revealed and not _preview_mode:
+			_badge.text = "?"
+			_badge.add_theme_color_override("font_color", Color(0.62, 0.66, 0.72))
 		else:
+			_badge.text = _type_icon
 			_badge.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
 		_name_label.text = _display_name
 		_name_label.add_theme_color_override("font_color", accent if _revealed or _preview_mode else Color(0.68, 0.72, 0.78))
 	else:
 		if _pin_canvas:
 			_pin_canvas.queue_redraw()
+	var interactive := _on_board or _completed
+	if _hit_button:
+		_hit_button.disabled = not interactive
+		_hit_button.mouse_filter = Control.MOUSE_FILTER_STOP if interactive else Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP if interactive else Control.MOUSE_FILTER_IGNORE
 	_start_pulse()
 
 
@@ -305,8 +325,15 @@ func _start_pulse() -> void:
 		_pulse_tween.kill()
 		_pulse_tween = null
 	if _pin_mode:
+		if not _on_board:
+			return
+		if _pin_canvas:
+			set_process(true)
 		return
 	if not _glow:
+		return
+	if not _on_board:
+		_glow.modulate.a = 0.55
 		return
 	_pulse_tween = create_tween()
 	_pulse_tween.set_loops()

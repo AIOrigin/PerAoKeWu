@@ -300,8 +300,17 @@ func _ensure_task_detail() -> void:
 	_task_detail = TaskDetailSheet.new()
 	_task_detail.configure(DETAIL_VIEWPORT, DETAIL_DESIGN, _outpost_display_name)
 	_task_detail.accept_pressed.connect(_on_task_detail_accept)
-	_task_detail.z_index = 120
+	_task_detail.z_index = 240
 	add_child(_task_detail)
+
+
+func _open_task_detail(mission: Dictionary) -> void:
+	_ensure_task_detail()
+	if _task_detail == null or not is_instance_valid(_task_detail):
+		return
+	# 提到最前，避免被据点内容挡住
+	move_child(_task_detail, -1)
+	_task_detail.open(_planet_id, mission.duplicate(true))
 
 
 func _outpost_display_name(location_id: String, fallback: String) -> String:
@@ -318,11 +327,6 @@ func _outpost_display_name(location_id: String, fallback: String) -> String:
 			return "Defense Outpost"
 		_:
 			return fallback if fallback != "" else "Outpost"
-
-
-func _open_task_detail(mission: Dictionary) -> void:
-	_ensure_task_detail()
-	_task_detail.open(_planet_id, mission.duplicate(true))
 
 
 func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: String = "") -> void:
@@ -632,10 +636,14 @@ func _sync_scroll_size() -> void:
 		return
 	var width := _scroll.size.x
 	var height := _scroll.size.y
-	if width > 8.0 and height > 8.0:
-		# 宽度铺满；高度铺满滚动区，由内部 stretch 分配空间
-		_content_margin.custom_minimum_size = Vector2(width, height)
-		_content_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if width <= 8.0 or height <= 8.0:
+		return
+	var next := Vector2(width, height)
+	if _content_margin.custom_minimum_size.is_equal_approx(next):
+		return
+	# 宽度铺满；高度铺满滚动区，由内部 stretch 分配空间
+	_content_margin.custom_minimum_size = next
+	_content_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
 func _rebuild_needs(needs: Array) -> void:

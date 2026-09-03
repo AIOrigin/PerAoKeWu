@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://v2b3g10qdk18"
-path="res://.godot/imported/midground_medical_pod.glb-51244dea2700b4aaafdb5b2fc334abbe.scn"
+path="res://.godot/imported/midground_medical_pod.glb-b9288d67a4a56300acc642a8bb513cc6.scn"
 
 [deps]
 
-source_file="res://assets/maps/route_levels/runner_60s/midground_props/midground_medical_pod.glb"
-dest_files=["res://.godot/imported/midground_medical_pod.glb-51244dea2700b4aaafdb5b2fc334abbe.scn"]
+source_file="res://assets/maps/route_levels/models/environment/midground/midground_medical_pod.glb"
+dest_files=["res://.godot/imported/midground_medical_pod.glb-b9288d67a4a56300acc642a8bb513cc6.scn"]
 
 [params]
 

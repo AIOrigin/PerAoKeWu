@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxpu32a11vx8a"
+uid="uid://vg8dyc2b5wyu"
 path.s3tc="res://.godot/imported/run_01_exosuit_soldier_3d_model_normal.jpg-2bceacf4118ef9992a3bb1672f307c46.s3tc.ctex"
 path.etc2="res://.godot/imported/run_01_exosuit_soldier_3d_model_normal.jpg-2bceacf4118ef9992a3bb1672f307c46.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "d9ad618d88f59c3536d0827c36d34784"
+"md5": "4cbc6ada3567c8a26078ee986398d216"
 }
 
 [deps]
