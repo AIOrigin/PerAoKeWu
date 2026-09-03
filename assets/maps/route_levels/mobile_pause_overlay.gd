@@ -4,7 +4,7 @@ extends Control
 signal resumed
 signal quit_pressed
 
-var quit_text := "返回主界面"
+var quit_text := "Back to Home"
 var show_quit_button := true
 var show_pause_button := true
 
@@ -122,21 +122,21 @@ func _build_ui() -> void:
 	margin.add_child(box)
 
 	var title := Label.new()
-	title.text = "游戏暂停"
+	title.text = GameLocale.pick("游戏暂停", "Paused")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", Color(0.96, 0.86, 0.62))
 	box.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "按 Esc 或暂停键继续"
+	hint.text = GameLocale.pick("按 Esc 或暂停键继续", "Press Esc or Pause to resume")
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 16)
 	hint.add_theme_color_override("font_color", Color(0.72, 0.66, 0.56))
 	box.add_child(hint)
 
 	_bgm_check = CheckButton.new()
-	_bgm_check.text = "背景音乐 BGM"
+	_bgm_check.text = GameLocale.pick("背景音乐 BGM", "Background Music")
 	_bgm_check.focus_mode = Control.FOCUS_NONE
 	_bgm_check.add_theme_font_size_override("font_size", 20)
 	_bgm_check.add_theme_color_override("font_color", Color(0.95, 0.9, 0.78))
@@ -147,7 +147,7 @@ func _build_ui() -> void:
 	bgm_row.add_theme_constant_override("separation", 10)
 	box.add_child(bgm_row)
 	var bgm_lab := Label.new()
-	bgm_lab.text = "BGM 音量"
+	bgm_lab.text = GameLocale.t("settings_bgm_volume")
 	bgm_lab.custom_minimum_size = Vector2(120, 0)
 	bgm_lab.add_theme_font_size_override("font_size", 18)
 	bgm_lab.add_theme_color_override("font_color", Color(0.9, 0.84, 0.7))
@@ -165,7 +165,7 @@ func _build_ui() -> void:
 	sfx_row.add_theme_constant_override("separation", 10)
 	box.add_child(sfx_row)
 	var sfx_lab := Label.new()
-	sfx_lab.text = "音效音量"
+	sfx_lab.text = GameLocale.t("settings_sfx_volume")
 	sfx_lab.custom_minimum_size = Vector2(120, 0)
 	sfx_lab.add_theme_font_size_override("font_size", 18)
 	sfx_lab.add_theme_color_override("font_color", Color(0.9, 0.84, 0.7))
@@ -179,10 +179,16 @@ func _build_ui() -> void:
 	_sfx_slider.value_changed.connect(_on_sfx_volume_changed)
 	sfx_row.add_child(_sfx_slider)
 
-	_resume_button = _make_action_button("继续游戏", Color(0.86, 0.59, 0.27), Color(0.98, 0.82, 0.42))
+	_resume_button = _make_action_button(GameLocale.pick("继续游戏", "Resume"), Color(0.86, 0.59, 0.27), Color(0.98, 0.82, 0.42))
 	_resume_button.pressed.connect(close_pause)
 	box.add_child(_resume_button)
 
+	if quit_text == "返回主界面" or quit_text == "Back to Home":
+		quit_text = GameLocale.pick("返回主界面", "Back to Home")
+	elif quit_text == "返回地图" or quit_text == "Return to Map":
+		quit_text = GameLocale.pick("返回地图", "Return to Map")
+	elif quit_text == "返回编辑器" or quit_text == "Back to Editor":
+		quit_text = GameLocale.pick("返回编辑器", "Back to Editor")
 	_quit_button = _make_action_button(quit_text, Color(0.68, 0.58, 0.42, 0.98), Color(0.28, 0.20, 0.12, 0.96))
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_quit_button.visible = show_quit_button
@@ -190,7 +196,7 @@ func _build_ui() -> void:
 
 	_pause_button = Button.new()
 	_pause_button.name = "PauseShortcutButton"
-	_pause_button.text = "暂停"
+	_pause_button.text = GameLocale.pick("暂停", "Pause")
 	_pause_button.custom_minimum_size = Vector2(96, 48)
 	_pause_button.focus_mode = Control.FOCUS_NONE
 	_pause_button.set_anchors_preset(PRESET_TOP_RIGHT)

@@ -485,7 +485,7 @@ static func _holographic_road() -> StandardMaterial3D:
 
 static func _energy_neon_road() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
-	var tex := _load_tex(["res://assets/maps/route_levels/models/track/textures/energy_neon_runway.png"])
+	var tex := _load_tex(["res://assets/maps/route_levels/models/track/textures/energy_neon_runway.jpg"])
 	if tex:
 		mat.albedo_texture = tex
 		mat.emission_texture = tex

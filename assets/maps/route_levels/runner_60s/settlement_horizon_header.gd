@@ -19,14 +19,14 @@ func _process(_delta: float) -> void:
 	pass
 
 
-func configure(outpost_name: String, failed: bool = false, fail_reason_en: String = "DELIVERY LOST") -> void:
+func configure(outpost_name: String, failed: bool = false, fail_reason_en: String = "DELIVERY LOST", fail_reason_cn: String = "") -> void:
 	outpost_title = outpost_name if outpost_name != "" else "Destination"
 	_is_failure = failed
 	for child in get_children():
 		child.queue_free()
 	_headline = null
 	if failed:
-		_build_failure_labels(fail_reason_en)
+		_build_failure_labels(fail_reason_en, fail_reason_cn)
 	else:
 		_build_success_labels()
 
@@ -87,7 +87,7 @@ func _build_success_labels() -> void:
 	subtitle_row.add_child(secured)
 
 
-func _build_failure_labels(fail_reason_en: String) -> void:
+func _build_failure_labels(fail_reason_en: String, fail_reason_cn: String = "") -> void:
 	_headline = Label.new()
 	_headline.name = "DeliveryFailedHeadline"
 	_headline.text = "DELIVERY FAILED"
@@ -132,3 +132,17 @@ func _build_failure_labels(fail_reason_en: String) -> void:
 	reason.add_theme_constant_override("outline_size", 4)
 	reason.add_theme_constant_override("letter_spacing", 2)
 	subtitle_row.add_child(reason)
+
+	if fail_reason_cn.strip_edges() != "" and GameLocale.is_zh():
+		var cn := Label.new()
+		cn.name = "FailureReasonCN"
+		cn.text = fail_reason_cn
+		cn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cn.add_theme_font_size_override("font_size", 26)
+		cn.add_theme_color_override("font_color", Color("#FFE0F4"))
+		cn.add_theme_color_override("font_outline_color", Color("#060910", 0.8))
+		cn.add_theme_constant_override("outline_size", 5)
+		cn.add_theme_color_override("font_shadow_color", Color("#602080", 0.55))
+		cn.add_theme_constant_override("shadow_offset_x", 0)
+		cn.add_theme_constant_override("shadow_offset_y", 2)
+		add_child(cn)

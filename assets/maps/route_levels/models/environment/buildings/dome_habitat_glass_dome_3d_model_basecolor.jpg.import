@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://clwdg2bjt66wv"
+uid="uid://bncr5vv5kpakh"
 path.s3tc="res://.godot/imported/dome_habitat_glass_dome_3d_model_basecolor.jpg-628490e99eeb234a4e22a09c2b6e638f.s3tc.ctex"
 path.etc2="res://.godot/imported/dome_habitat_glass_dome_3d_model_basecolor.jpg-628490e99eeb234a4e22a09c2b6e638f.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "625d7e1c421895c4979b81702eff328e"
+"md5": "485f7f07a73471f9bab87f40c0f59be7"
 }
 
 [deps]

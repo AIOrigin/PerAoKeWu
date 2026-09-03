@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://b8tfh0i7is66v"
+path.s3tc="res://.godot/imported/wraith_intro_angry_tripo_image_263e47c4-1416-4cbf-995b-8bb16f5e580f_0_3.jpg-8bb429ad1d0849bd0993ff8cf030f586.s3tc.ctex"
+path.etc2="res://.godot/imported/wraith_intro_angry_tripo_image_263e47c4-1416-4cbf-995b-8bb16f5e580f_0_3.jpg-8bb429ad1d0849bd0993ff8cf030f586.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "ae16abdb9bb19f19b442517b686f6ef2"
+}
+
+[deps]
+
+source_file="res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_intro_angry_tripo_image_263e47c4-1416-4cbf-995b-8bb16f5e580f_0_3.jpg"
+dest_files=["res://.godot/imported/wraith_intro_angry_tripo_image_263e47c4-1416-4cbf-995b-8bb16f5e580f_0_3.jpg-8bb429ad1d0849bd0993ff8cf030f586.s3tc.ctex", "res://.godot/imported/wraith_intro_angry_tripo_image_263e47c4-1416-4cbf-995b-8bb16f5e580f_0_3.jpg-8bb429ad1d0849bd0993ff8cf030f586.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_intro_angry_tripo_image_263e47c4-1416-4cbf-995b-8bb16f5e580f_0_3.jpg"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

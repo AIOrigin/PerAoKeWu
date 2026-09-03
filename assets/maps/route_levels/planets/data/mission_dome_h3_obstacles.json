@@ -539,7 +539,7 @@
 			"orb_tint": "purple",
 			"drift_speed": 8.0,
 			"float_speed": 4.3,
-			"float_amp": 0.20
+			"float_amp": 0.2
 		},
 		{
 			"distance": 1176.0,
@@ -587,7 +587,7 @@
 			"orb_tint": "purple",
 			"drift_speed": 6.2,
 			"float_speed": 3.3,
-			"float_amp": 0.30
+			"float_amp": 0.3
 		},
 		{
 			"distance": 1220.0,
@@ -617,7 +617,7 @@
 			"orb_tint": "purple",
 			"drift_speed": 8.1,
 			"float_speed": 4.4,
-			"float_amp": 0.20
+			"float_amp": 0.2
 		},
 		{
 			"distance": 1238.0,
@@ -678,6 +678,26 @@
 			"distance": 712.0,
 			"lane": -1,
 			"layer": 0
+		}
+	],
+	"rain_zones": [
+		{
+			"start": 250,
+			"length": 85,
+			"intensity": 1.0,
+			"label": "中继毒雨"
+		},
+		{
+			"start": 540,
+			"length": 95,
+			"intensity": 1.05,
+			"label": "酸雨走廊"
+		},
+		{
+			"start": 860,
+			"length": 90,
+			"intensity": 0.95,
+			"label": "尾段毒雨"
 		}
 	]
 }

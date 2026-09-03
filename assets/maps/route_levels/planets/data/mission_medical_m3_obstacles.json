@@ -1,18 +1,40 @@
 {
-	"note": "M3 长途毒雾 · 早弯→侧墙→中段单一Y岔（左障碍/右奖励+障碍）→晚弯。不再叠横向bonus分叉。",
+	"note": "M3 Relay · 异能抉择约640m；侧墙300需自己跳跃上墙（删入口弹射坡/前垫）；中段加速垫在墙后420。",
 	"layout_id": "mission_medical_m3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 4,
+	"version": 10,
 	"lava_cross_mode": "side_wall",
 	"track_segments": [
-		{"length": 220.0, "turn": 0.0},
-		{"length": 44.0, "turn": 0.785},
-		{"length": 180.0, "turn": 0.0},
-		{"type": "y_fork", "branch_length": 46.0, "angle_deg": 36.0},
-		{"length": 200.0, "turn": 0.0},
-		{"length": 44.0, "turn": -0.785},
-		{"length": 200.0, "turn": 0.0}
+		{
+			"length": 220.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": 0.785
+		},
+		{
+			"length": 180.0,
+			"turn": 0.0
+		},
+		{
+			"type": "y_fork",
+			"branch_length": 46.0,
+			"angle_deg": 36.0
+		},
+		{
+			"length": 200.0,
+			"turn": 0.0
+		},
+		{
+			"length": 44.0,
+			"turn": -0.785
+		},
+		{
+			"length": 200.0,
+			"turn": 0.0
+		}
 	],
 	"junction_zones": [
 		{
@@ -36,8 +58,7 @@
 			"lateral_offset": 7.0,
 			"layer": 1,
 			"entry_window": 11.0,
-			"speed_mult": 1.04,
-			"blocker_profile": "light"
+			"speed_mult": 1.04
 		}
 	],
 	"sandstorm_zones": [
@@ -59,73 +80,581 @@
 		}
 	],
 	"shield_crystals": [
-		{"distance": 36.0, "lane": 0, "layer": 0},
-		{"distance": 48.0, "lane": 1, "layer": 0},
-		{"distance": 60.0, "lane": -1, "layer": 0},
-		{"distance": 78.0, "lane": 0, "layer": 0},
-		{"distance": 90.0, "lane": 1, "layer": 0},
-		{"distance": 178.0, "lane": -1, "layer": 0},
-		{"distance": 186.0, "lane": 0, "layer": 0},
-		{"distance": 400.0, "lane": 1, "layer": 0},
-		{"distance": 556.0, "lane": 0, "layer": 0},
-		{"distance": 568.0, "lane": 1, "layer": 0}
+		{
+			"distance": 112.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 500.0,
+			"lane": 0,
+			"layer": 0
+		}
 	],
 	"obstacles": [
-		{"distance": 26.0, "lane": -1, "type": "jump"},
-		{"distance": 42.0, "lane": 0, "type": "slide", "low_slide": true},
-		{"distance": 58.0, "lane": 1, "type": "train"},
-		{"distance": 74.0, "lane": 0, "type": "jump"},
-		{"distance": 180.0, "lane": 1, "type": "jump"},
-		{"distance": 192.0, "lane": -1, "type": "orb", "orb_size": "small"},
-		{"distance": 288.0, "lane": 0, "type": "ramp", "layer": 0, "target_layer": 1},
-		{"distance": 400.0, "lane": 0, "type": "jump"},
-		{"distance": 414.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 426.0, "lane": -1, "type": "train"},
-		{"distance": 552.0, "lane": 0, "type": "jump"},
-		{"distance": 566.0, "lane": 1, "type": "train"},
-		{"distance": 584.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 600.0, "lane": 0, "type": "jump"},
-		{"distance": 616.0, "lane": 1, "type": "orb", "orb_size": "small"},
-		{"distance": 632.0, "lane": -1, "type": "train"},
-		{"distance": 648.0, "lane": 0, "type": "jump"},
-		{"distance": 664.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 680.0, "lane": -1, "type": "train_moving"},
-		{"distance": 696.0, "lane": 0, "type": "jump"},
-		{"distance": 712.0, "lane": 1, "type": "meteorite", "span": 2.0, "fall_roll": true},
-		{"distance": 800.0, "lane": 0, "type": "jump"},
-		{"distance": 816.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 832.0, "lane": 1, "type": "train"},
-		{"distance": 848.0, "lane": 0, "type": "jump"},
-		{"distance": 864.0, "lane": 1, "type": "orb", "orb_size": "small"},
-		{"distance": 880.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 896.0, "lane": 0, "type": "train"},
-		{"distance": 912.0, "lane": 1, "type": "jump"},
-		{"distance": 928.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 944.0, "lane": 0, "type": "train_moving"},
-		{"distance": 960.0, "lane": 1, "type": "jump"},
-		{"distance": 1000.0, "lane": 0, "type": "slide", "low_slide": true},
-		{"distance": 1020.0, "lane": -1, "type": "train"},
-		{"distance": 1040.0, "lane": 1, "type": "jump"},
-		{"distance": 1060.0, "lane": 0, "type": "orb", "orb_size": "large"},
-		{"distance": 1080.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 1100.0, "lane": 1, "type": "train"},
-		{"distance": 1120.0, "lane": 0, "type": "jump"},
-		{"distance": 1140.0, "lane": -1, "type": "meteorite", "span": 2.0, "fall_roll": false},
-		{"distance": 1160.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 1180.0, "lane": 0, "type": "train"},
-		{"distance": 1200.0, "lane": -1, "type": "jump"},
-		{"distance": 1220.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 1240.0, "lane": 0, "type": "train_moving"},
-		{"distance": 1260.0, "lane": 1, "type": "jump"},
-		{"distance": 1280.0, "lane": -1, "type": "orb", "orb_size": "small"},
-		{"distance": 1300.0, "lane": 0, "type": "slide", "low_slide": true},
-		{"distance": 1320.0, "lane": 1, "type": "train"},
-		{"distance": 1340.0, "lane": 0, "type": "jump"},
-		{"distance": 1360.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 1380.0, "lane": 1, "type": "train"}
+		{
+			"distance": 26.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 42.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 58.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 74.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 90.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 106.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 122.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 138.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 1.95,
+			"fall_roll": true
+		},
+		{
+			"distance": 154.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 170.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 180.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 192.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 206.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 222.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 238.0,
+			"lane": -1,
+			"type": "train"
+		},
+		{
+			"distance": 254.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 2.0,
+			"fall_roll": false
+		},
+		{
+			"distance": 270.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 312.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 328.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 344.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "medium"
+		},
+		{
+			"distance": 360.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 376.0,
+			"lane": 0,
+			"type": "meteorite",
+			"span": 1.9,
+			"fall_roll": true
+		},
+		{
+			"distance": 552.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 566.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 584.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 600.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 728.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 744.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 760.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 776.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 800.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 816.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 832.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 848.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 864.0,
+			"lane": 1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 880.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 896.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 912.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 928.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 944.0,
+			"lane": 0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 960.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 1000.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1020.0,
+			"lane": -1,
+			"type": "train"
+		},
+		{
+			"distance": 1040.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 1060.0,
+			"lane": 0,
+			"type": "orb",
+			"orb_size": "large"
+		},
+		{
+			"distance": 1080.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1100.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 1120.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 1140.0,
+			"lane": -1,
+			"type": "meteorite",
+			"span": 2.0,
+			"fall_roll": false
+		},
+		{
+			"distance": 1160.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1180.0,
+			"lane": 0,
+			"type": "train"
+		},
+		{
+			"distance": 1200.0,
+			"lane": -1,
+			"type": "jump"
+		},
+		{
+			"distance": 1220.0,
+			"lane": 1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1240.0,
+			"lane": 0,
+			"type": "train_moving"
+		},
+		{
+			"distance": 1260.0,
+			"lane": 1,
+			"type": "jump"
+		},
+		{
+			"distance": 1280.0,
+			"lane": -1,
+			"type": "orb",
+			"orb_size": "small"
+		},
+		{
+			"distance": 1300.0,
+			"lane": 0,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1320.0,
+			"lane": 1,
+			"type": "train"
+		},
+		{
+			"distance": 1340.0,
+			"lane": 0,
+			"type": "jump"
+		},
+		{
+			"distance": 1360.0,
+			"lane": -1,
+			"type": "slide",
+			"low_slide": true
+		},
+		{
+			"distance": 1380.0,
+			"lane": 1,
+			"type": "train"
+		}
 	],
-	"speed_boosts": [],
+	"speed_boosts": [
+		{
+			"distance": 14.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 28.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 36.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 48.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 60.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 78.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 90.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 118.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 120.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 178.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 186.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 248.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 400.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 432.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 474.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 520.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 556.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 568.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 768.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 838.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 902.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 980.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 1026.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 1072.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 1106.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 1210.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 1246.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 1260.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 1272.0,
+			"lane": 1,
+			"layer": 0
+		},
+		{
+			"distance": 1284.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 1296.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 1326.0,
+			"lane": 0,
+			"layer": 0
+		},
+		{
+			"distance": 1344.0,
+			"lane": -1,
+			"layer": 0
+		},
+		{
+			"distance": 1356.0,
+			"lane": 0,
+			"layer": 0
+		}
+	],
 	"finish_sprints": [
-		{"distance": 1390.0, "lane": 0, "width_ratio": 0.58}
+		{
+			"distance": 1310.0,
+			"lane": 0,
+			"width_ratio": 0.58
+		}
+	],
+	"rain_zones": [
+		{
+			"start": 210,
+			"length": 75,
+			"intensity": 1.0,
+			"label": "中继毒雨"
+		},
+		{
+			"start": 400,
+			"length": 90,
+			"intensity": 1.05,
+			"label": "酸雨带"
+		},
+		{
+			"start": 720,
+			"length": 80,
+			"intensity": 0.95,
+			"label": "尾段毒雨"
+		}
+	],
+	"launch_pads": [
+		{
+			"id": "m3_open_speed",
+			"distance": 40.0,
+			"lane": 1,
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
+		},
+		{
+			"id": "m3_mid_speed",
+			"distance": 420.0,
+			"lane": 0,
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
+		},
+		{
+			"id": "m3_late_speed",
+			"distance": 732.0,
+			"lane": 1,
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
+		}
 	]
 }

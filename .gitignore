@@ -44,6 +44,28 @@ addons/gdai-mcp-server-godot/
 
 # Web / 本地导出产物
 /build/
+release/h5_handoff/**/*.zip
+release/h5_handoff/build/
+release/h5_handoff/_*_backup/
+release/h5_handoff/_*_high_backup/
+release/ios_handoff/**/*.zip
+release/ios_handoff/_*_backup/
+release/ios_handoff/_glb_pre_decimate_backup/
+
+# 未引用贴图隔离区（体积大，运行时不依赖）
+assets/maps/route_levels/models/_texture_sidecars/
+
+# 本地临时/备份/视频帧
+_pull_backup_*/
+_inbox_tmp*/
+_video_frames/
+_video_frames_ref/
+_tools/
+**/runner_60s.gd.reconstructed*
+**/relay_final/_dev_reference/
+
+# Tripo 原始收件箱（路径过长，勿入库）
+assets/maps/route_levels/_inbox/
 
 # Capybara Rush 编辑草稿、备份、未进游戏的模型
 assets/maps/route_levels/capybara_rush/_tmp_edit/

@@ -20,14 +20,19 @@ var _is_transitioning := false
 var _stage: Control
 var _art_host: Control
 var _art_rect: TextureRect
-var _caption_panel: PanelContainer
 var _caption_label: Label
 var _title_block: VBoxContainer
+var _title_subtitle: Label
+var _title_main: Label
+var _title_tap_hint: Label
+var _begin_center_btn: Button
 var _bottom_bar: Control
 var _page_dots: HBoxContainer
 var _skip_btn: Button
 var _next_btn: Button
 var _fade_rect: ColorRect
+var _tap_left: Control
+var _tap_right: Control
 var _ken_burns_tween: Tween
 var _auto_tween: Tween
 
@@ -94,62 +99,70 @@ func _build_ui() -> void:
 	vignette.texture = grad_tex
 	_stage.add_child(vignette)
 
-	_caption_panel = PanelContainer.new()
-	_caption_panel.anchor_left = 0.5
-	_caption_panel.anchor_right = 0.5
-	_caption_panel.offset_left = -300.0
-	_caption_panel.offset_right = 300.0
-	_caption_panel.offset_top = 36.0
-	_caption_panel.custom_minimum_size = Vector2(600, 0)
-	var cap_style := StyleBoxFlat.new()
-	cap_style.bg_color = Color(0.96, 0.95, 0.93, 0.96)
-	cap_style.border_color = Color(0.12, 0.12, 0.12, 0.85)
-	cap_style.set_border_width_all(1)
-	cap_style.set_corner_radius_all(8)
-	cap_style.content_margin_left = 18
-	cap_style.content_margin_right = 18
-	cap_style.content_margin_top = 12
-	cap_style.content_margin_bottom = 12
-	_caption_panel.add_theme_stylebox_override("panel", cap_style)
-	_caption_panel.visible = false
-	_stage.add_child(_caption_panel)
-
 	_caption_label = Label.new()
+	_caption_label.set_anchors_preset(PRESET_CENTER)
+	_caption_label.anchor_left = 0.5
+	_caption_label.anchor_top = 0.5
+	_caption_label.anchor_right = 0.5
+	_caption_label.anchor_bottom = 0.5
+	_caption_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_caption_label.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_caption_label.offset_left = -340.0
+	_caption_label.offset_right = 340.0
+	_caption_label.offset_top = -120.0
+	_caption_label.offset_bottom = 120.0
 	_caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_caption_label.add_theme_font_size_override("font_size", 20)
-	_caption_label.add_theme_color_override("font_color", Color(0.10, 0.10, 0.12))
-	_caption_panel.add_child(_caption_label)
+	_caption_label.add_theme_font_size_override("font_size", 32)
+	_caption_label.add_theme_color_override("font_color", Color(0.96, 0.98, 1.0))
+	_caption_label.add_theme_color_override("font_outline_color", Color(0.04, 0.02, 0.08, 0.96))
+	_caption_label.add_theme_constant_override("outline_size", 6)
+	_caption_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_caption_label.visible = false
+	_stage.add_child(_caption_label)
 
 	_title_block = VBoxContainer.new()
 	_title_block.set_anchors_preset(PRESET_CENTER)
 	_title_block.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_title_block.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_title_block.offset_left = -420.0
+	_title_block.offset_right = 420.0
+	_title_block.offset_top = -280.0
+	_title_block.offset_bottom = 280.0
 	_title_block.alignment = BoxContainer.ALIGNMENT_CENTER
-	_title_block.add_theme_constant_override("separation", 14)
+	_title_block.add_theme_constant_override("separation", 22)
 	_stage.add_child(_title_block)
 
-	var subtitle := Label.new()
-	subtitle.text = OpeningStoryScript.title_subtitle()
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 18)
-	subtitle.add_theme_color_override("font_color", Color(0.72, 0.78, 0.88))
-	_title_block.add_child(subtitle)
+	_title_subtitle = Label.new()
+	_title_subtitle.text = OpeningStoryScript.title_subtitle()
+	_title_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_subtitle.add_theme_font_size_override("font_size", 28)
+	_title_subtitle.add_theme_color_override("font_color", Color(0.78, 0.84, 0.94))
+	_title_subtitle.add_theme_constant_override("letter_spacing", 4)
+	_title_block.add_child(_title_subtitle)
 
-	var title := Label.new()
-	title.text = OpeningStoryScript.title_text()
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 34)
-	title.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
-	_title_block.add_child(title)
+	_title_main = Label.new()
+	_title_main.text = OpeningStoryScript.title_text()
+	_title_main.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_main.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_title_main.add_theme_font_size_override("font_size", 56)
+	_title_main.add_theme_color_override("font_color", Color(0.96, 0.98, 1.0))
+	_title_main.add_theme_color_override("font_outline_color", Color(0.05, 0.08, 0.14, 0.9))
+	_title_main.add_theme_constant_override("outline_size", 4)
+	_title_main.add_theme_constant_override("line_spacing", 8)
+	_title_block.add_child(_title_main)
 
-	var tap_hint := Label.new()
-	tap_hint.text = "Tap to begin"
-	tap_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tap_hint.add_theme_font_size_override("font_size", 16)
-	tap_hint.add_theme_color_override("font_color", Color(0.55, 0.62, 0.72))
-	_title_block.add_child(tap_hint)
+	_title_tap_hint = Label.new()
+	_title_tap_hint.text = "Tap Begin to start"
+	_title_tap_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_tap_hint.add_theme_font_size_override("font_size", 18)
+	_title_tap_hint.add_theme_color_override("font_color", Color(0.62, 0.70, 0.80))
+	_title_block.add_child(_title_tap_hint)
+
+	_begin_center_btn = _make_begin_center_button("Begin")
+	_begin_center_btn.pressed.connect(_on_next_pressed)
+	_title_block.add_child(_begin_center_btn)
 
 	_bottom_bar = Control.new()
 	_bottom_bar.set_anchors_preset(PRESET_BOTTOM_WIDE)
@@ -202,25 +215,50 @@ func _build_ui() -> void:
 	_fade_rect.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_fade_rect)
 
-	var tap_left := Control.new()
-	tap_left.name = "TapLeft"
-	tap_left.set_anchors_preset(PRESET_FULL_RECT)
-	tap_left.anchor_right = 0.34
-	tap_left.anchor_bottom = 0.88
-	tap_left.mouse_filter = MOUSE_FILTER_STOP
-	tap_left.gui_input.connect(_on_tap_left)
-	add_child(tap_left)
+	_tap_left = Control.new()
+	_tap_left.name = "TapLeft"
+	_tap_left.set_anchors_preset(PRESET_FULL_RECT)
+	_tap_left.anchor_right = 0.34
+	_tap_left.anchor_bottom = 0.88
+	_tap_left.mouse_filter = MOUSE_FILTER_STOP
+	_tap_left.gui_input.connect(_on_tap_left)
+	add_child(_tap_left)
 
-	var tap_right := Control.new()
-	tap_right.name = "TapRight"
-	tap_right.set_anchors_preset(PRESET_FULL_RECT)
-	tap_right.anchor_left = 0.34
-	tap_right.anchor_bottom = 0.88
-	tap_right.mouse_filter = MOUSE_FILTER_STOP
-	tap_right.gui_input.connect(_on_tap_right)
-	add_child(tap_right)
+	_tap_right = Control.new()
+	_tap_right.name = "TapRight"
+	_tap_right.set_anchors_preset(PRESET_FULL_RECT)
+	_tap_right.anchor_left = 0.34
+	_tap_right.anchor_bottom = 0.88
+	_tap_right.mouse_filter = MOUSE_FILTER_STOP
+	_tap_right.gui_input.connect(_on_tap_right)
+	add_child(_tap_right)
 
 	add_child(_bottom_bar)
+
+
+func _make_begin_center_button(text: String) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.custom_minimum_size = Vector2(280, 64)
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn.add_theme_font_size_override("font_size", 28)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.22, 0.55, 0.82, 0.92)
+	normal.border_color = Color(0.72, 0.92, 1.0, 0.95)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(14)
+	normal.content_margin_left = 28
+	normal.content_margin_right = 28
+	normal.content_margin_top = 12
+	normal.content_margin_bottom = 12
+	var hover := normal.duplicate()
+	hover.bg_color = Color(0.28, 0.62, 0.90, 0.96)
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", hover)
+	btn.add_theme_color_override("font_color", Color(0.98, 0.99, 1.0))
+	return btn
 
 
 func _make_bar_button(text: String) -> Button:
@@ -244,14 +282,22 @@ func _make_bar_button(text: String) -> Button:
 func _show_title_card() -> void:
 	_show_title = _show_title and _panels.size() > 0
 	_title_block.visible = _show_title
-	_bottom_bar.visible = true
-	_caption_panel.visible = false
+	_caption_label.visible = false
 	_art_rect.texture = null
 	_art_host.scale = Vector2.ONE
 	_art_host.position = Vector2.ZERO
-	_skip_btn.visible = _allow_skip
-	_next_btn.text = "Begin"
 	_page_dots.visible = false
+	# 标题页：Begin 在中间文字下；底栏只留 Skip；关掉左右点击层以免挡按钮
+	if _begin_center_btn:
+		_begin_center_btn.visible = _show_title
+	if _title_tap_hint:
+		_title_tap_hint.visible = _show_title
+	_set_side_taps_enabled(not _show_title)
+	_bottom_bar.visible = _allow_skip
+	_skip_btn.visible = _allow_skip
+	_next_btn.visible = false
+	if not _show_title and not _panels.is_empty():
+		_show_panel(0)
 
 
 func _show_panel(index: int) -> void:
@@ -259,7 +305,12 @@ func _show_panel(index: int) -> void:
 		return
 	_page_index = index
 	_title_block.visible = false
+	if _begin_center_btn:
+		_begin_center_btn.visible = false
+	_set_side_taps_enabled(true)
 	_bottom_bar.visible = true
+	_skip_btn.visible = _allow_skip
+	_next_btn.visible = true
 	_page_dots.visible = true
 	_rebuild_page_dots()
 
@@ -279,7 +330,7 @@ func _show_panel(index: int) -> void:
 	_caption_label.text = String(panel.get("caption", ""))
 	if _art_rect.texture == null and _caption_label.text != "":
 		_caption_label.text += "\n\n(Image missing — add PNG to story_intro/)"
-	_caption_panel.visible = _caption_label.text != ""
+	_caption_label.visible = _caption_label.text != ""
 	_update_next_button_label()
 	_start_ken_burns()
 
@@ -292,6 +343,14 @@ func _rebuild_page_dots() -> void:
 		dot.custom_minimum_size = Vector2(10, 10)
 		dot.color = Color(0.55, 0.82, 0.96, 0.95) if i == _page_index else Color(0.35, 0.42, 0.52, 0.75)
 		_page_dots.add_child(dot)
+
+
+func _set_side_taps_enabled(enabled: bool) -> void:
+	var filter := MOUSE_FILTER_STOP if enabled else MOUSE_FILTER_IGNORE
+	if _tap_left:
+		_tap_left.mouse_filter = filter
+	if _tap_right:
+		_tap_right.mouse_filter = filter
 
 
 func _update_next_button_label() -> void:

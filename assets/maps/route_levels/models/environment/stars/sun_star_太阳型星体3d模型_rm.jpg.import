@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqhe0y5npbv75"
+uid="uid://1mtqojoma46s"
 path.s3tc="res://.godot/imported/sun_star_太阳型星体3d模型_rm.jpg-04fe3efc3e99dd625d04d70c2e67214e.s3tc.ctex"
 path.etc2="res://.godot/imported/sun_star_太阳型星体3d模型_rm.jpg-04fe3efc3e99dd625d04d70c2e67214e.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "9820d7b257d4b3700be179e83a167bf3"
+"md5": "a0e6ecdd9e271e8bcacb8a85c65ba468"
 }
 
 [deps]

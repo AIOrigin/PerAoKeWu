@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8qpgyqjjou0g"
+uid="uid://bt2wm5ippafg0"
 path.s3tc="res://.godot/imported/blue_planet_蓝色星球3d模型_normal.jpg-9a8dbc8d4e556fcd912fc56abee8233e.s3tc.ctex"
 path.etc2="res://.godot/imported/blue_planet_蓝色星球3d模型_normal.jpg-9a8dbc8d4e556fcd912fc56abee8233e.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "1cd91147cbfbfe87cfb21367eed7a7e5"
+"md5": "2d50ca6858e159817ae7c7476b3c2490"
 }
 
 [deps]

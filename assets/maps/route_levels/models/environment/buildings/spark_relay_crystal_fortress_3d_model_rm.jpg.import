@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4kk6kmnt4qwy"
+uid="uid://bsnc5qopqg1ws"
 path.s3tc="res://.godot/imported/spark_relay_crystal_fortress_3d_model_rm.jpg-e38fb651ac0d61b3de0db069a9ad56db.s3tc.ctex"
 path.etc2="res://.godot/imported/spark_relay_crystal_fortress_3d_model_rm.jpg-e38fb651ac0d61b3de0db069a9ad56db.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "06c7d4d7b30a8094a7a216a0491ff369"
+"md5": "2bd97fc4fa1c54b95e87b85c4280b7af"
 }
 
 [deps]

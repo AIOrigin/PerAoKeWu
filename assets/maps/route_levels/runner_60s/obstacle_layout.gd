@@ -105,18 +105,28 @@ static func load_side_runway_zones(layout_id: String) -> Array:
 
 
 static func normalize_side_zone(raw: Dictionary) -> Dictionary:
+	var side_raw: Variant = raw.get("side", "outer")
+	var side_str := "outer"
+	match typeof(side_raw):
+		TYPE_STRING:
+			side_str = String(side_raw)
+		TYPE_INT, TYPE_FLOAT:
+			# JSON 数值 side：1 / -1（Godot 4 不能 String(int)）
+			side_str = "right" if int(side_raw) >= 0 else "left"
+		_:
+			side_str = str(side_raw)
 	var zone := {
 		"start": float(raw.get("start", 0.0)),
 		"length": float(raw.get("length", 55.0)),
-		"side": String(raw.get("side", "outer")),
+		"side": side_str,
 		"fallback_side": int(raw.get("fallback_side", 1)),
 		"lateral_offset": float(raw.get("lateral_offset", 6.25)),
 		"layer": int(raw.get("layer", 1)),
-		"entry_window": float(raw.get("entry_window", 10.0)),
+		"entry_window": float(raw.get("entry_window", 16.0)),
 	}
 	if zone["side"] != "outer" and zone["side"] != "left" and zone["side"] != "right":
-		# 兼容数值 side：1 / -1
-		var side_v := int(raw.get("side", zone["fallback_side"]))
+		# 兼容其它写法
+		var side_v := int(raw.get("fallback_side", 1))
 		zone["side"] = "right" if side_v >= 0 else "left"
 		zone["fallback_side"] = 1 if side_v >= 0 else -1
 	elif zone["side"] == "left":
@@ -145,6 +155,35 @@ static func load_sandstorm_zones(layout_id: String) -> Array:
 		if typeof(raw) == TYPE_DICTIONARY:
 			out.append(normalize_sandstorm_zone(raw))
 	return out
+
+
+static func load_rain_zones(layout_id: String) -> Array:
+	var root := load_root(layout_id)
+	var zones: Array = root.get("rain_zones", [])
+	var out: Array = []
+	for raw in zones:
+		if typeof(raw) == TYPE_DICTIONARY:
+			out.append(normalize_rain_zone(raw))
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("start", 0.0)) < float(b.get("start", 0.0))
+	)
+	return out
+
+
+static func normalize_rain_zone(raw: Dictionary) -> Dictionary:
+	var start := float(raw.get("start", 0.0))
+	var length := maxf(float(raw.get("length", 60.0)), 12.0)
+	var intensity := clampf(float(raw.get("intensity", 1.0)), 0.35, 1.6)
+	var label := String(raw.get("label", "毒雨段")).strip_edges()
+	if label == "":
+		label = "毒雨段"
+	return {
+		"start": start,
+		"length": length,
+		"intensity": intensity,
+		"label": label,
+		"rain_kind": String(raw.get("rain_kind", "toxic")).to_lower(),
+	}
 
 
 static func sandstorm_covered_lanes(lane_count: int, lane_anchor: int) -> Array:
@@ -264,7 +303,7 @@ static func side_zone_from_main_block(main_block: Dictionary, side_hint: Diction
 		"fallback_side": fallback,
 		"lateral_offset": float(side_hint.get("lateral_offset", 6.25)),
 		"layer": 1,
-		"entry_window": float(side_hint.get("entry_window", 10.0)),
+		"entry_window": float(side_hint.get("entry_window", 16.0)),
 	})
 
 

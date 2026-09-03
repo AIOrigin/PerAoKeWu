@@ -1,9 +1,11 @@
 extends RefCounted
 class_name MissionDispatch
 
-## 批次解锁 + 3 槽缺口派发（对齐《星火信使机制梳理》）
+## 批次解锁 + 4 槽任务板：两据点各 2 条，交错排列避免连刷同一据点
 
-const BOARD_SLOT_COUNT := 3
+const BOARD_SLOT_COUNT := 4
+const BOARD_OUTPOST_COUNT := 2
+const BOARD_MISSIONS_PER_OUTPOST := 2
 ## 批次未解锁时仍可在 Tasks / 地图详情预览（不进入任务板派发）
 const PREVIEW_LOCATIONS := {
 	"glass_desert": ["relay"],
@@ -11,8 +13,8 @@ const PREVIEW_LOCATIONS := {
 ## 关卡调优：预览据点允许「试玩体验」进跑酷（暂不计入任务板接取）
 const ALLOW_PREVIEW_TRIAL_RUN := true
 const DEFAULT_BATCHES := [
-	{"id": 1, "name": "生存基础", "locations": ["dome", "reservoir"]},
-	{"id": 2, "name": "危机应对", "locations": ["medical", "gate"]},
+	{"id": 1, "name": "净水防线", "locations": ["reservoir", "gate"]},
+	{"id": 2, "name": "家园救援", "locations": ["dome", "medical"]},
 	{"id": 3, "name": "网络核心", "locations": ["relay"]},
 ]
 
@@ -61,8 +63,14 @@ static func get_batch1_location_ids(planet_id: String) -> Array[String]:
 
 
 ## 当前应解锁到第几批：
-## 1 初始开放居民穹顶+水源据点任务；2=批次1任一据点点亮后开放医疗+防御哨站；3=批次1+2平均进度≥85%
+## 1 初始开放水源据点+防御哨站；2=批次1任一据点点亮后开放居民穹顶+医疗据点；3=批次1+2全部据点平均进度≥85% 开放星火中继站
 static func compute_unlocked_batch(planet_id: String) -> int:
+	if Global.is_dev_full_unlock():
+		var batches := get_batches(planet_id)
+		var max_batch := 1
+		for entry in batches:
+			max_batch = maxi(max_batch, int(entry.get("id", 1)))
+		return max_batch
 	var batches := get_batches(planet_id)
 	if batches.is_empty():
 		return 1
@@ -92,6 +100,8 @@ static func compute_unlocked_batch(planet_id: String) -> int:
 
 
 static func is_location_batch_unlocked(planet_id: String, location_id: String, unlocked_batch: int = -1) -> bool:
+	if Global.is_dev_full_unlock():
+		return get_location_batch_id(planet_id, location_id) > 0
 	var batch_id := get_location_batch_id(planet_id, location_id)
 	if batch_id <= 0:
 		return false
@@ -100,6 +110,8 @@ static func is_location_batch_unlocked(planet_id: String, location_id: String, u
 
 
 static func is_preview_location(planet_id: String, location_id: String) -> bool:
+	if Global.is_dev_full_unlock():
+		return false
 	var ids: Array = PREVIEW_LOCATIONS.get(planet_id, [])
 	if not ids.has(location_id):
 		return false
@@ -227,35 +239,92 @@ static func list_mission_board_candidates(planet_id: String, unlocked_batch: int
 	return candidates
 
 
-## 任务面板：未完成、进行中、已完成待领取均展示；已领取且完成的任务隐藏
+static func _append_unique_mission_id(result: Array[String], mission_id: String) -> void:
+	if mission_id != "" and not result.has(mission_id):
+		result.append(mission_id)
+
+
+## 任务面板：总名额固定 4；优先待领奖 / 进行中，再用任务板补齐；开放据点由 4 槽板覆盖
 static func list_tasks_panel_missions(planet_id: String, unlocked_batch: int = -1) -> Array[String]:
 	var cfg := _runner_config(planet_id)
-	if cfg == null or not cfg.has_method("get_location_missions"):
+	if cfg == null or not cfg.has_method("get_mission_by_id"):
 		return []
 	var unlocked := unlocked_batch if unlocked_batch > 0 else compute_unlocked_batch(planet_id)
-	var result: Array[String] = []
-	for raw in cfg.get_location_missions():
-		if typeof(raw) != TYPE_DICTIONARY:
+	var priority: Array[String] = []
+	var board: Array[String] = []
+
+	# 任务板 4 槽（全解锁也走同一名额，避免列表膨胀）
+	for raw in Global.get_mission_board_slots(planet_id):
+		var slot_mission_id := _migrate_slot_to_mission_id(planet_id, String(raw))
+		if slot_mission_id == "":
 			continue
-		var mission: Dictionary = raw
-		var location_id := String(mission.get("location_id", ""))
-		if location_id == "":
+		if Global.is_mission_completed(planet_id, slot_mission_id) \
+				and not Global.is_mission_reward_pending(planet_id, slot_mission_id):
 			continue
-		if not is_location_batch_unlocked(planet_id, location_id, unlocked):
-			if not is_preview_location(planet_id, location_id):
+		_append_unique_mission_id(board, slot_mission_id)
+
+	if cfg.has_method("get_location_missions"):
+		for raw in cfg.get_location_missions():
+			if typeof(raw) != TYPE_DICTIONARY:
 				continue
-		var mission_id: String = Global.mission_key(mission)
-		if mission_id == "":
-			continue
-		if Global.is_mission_completed(planet_id, mission_id) and not Global.is_mission_reward_pending(planet_id, mission_id):
-			continue
-		if not result.has(mission_id):
-			result.append(mission_id)
-	result.sort_custom(func(a: String, b: String) -> bool:
+			var mission: Dictionary = raw
+			var location_id := String(mission.get("location_id", ""))
+			if location_id == "":
+				continue
+			if not Global.is_dev_full_unlock() \
+					and not is_location_batch_unlocked(planet_id, location_id, unlocked):
+				continue
+			var mission_id: String = Global.mission_key(mission)
+			if mission_id == "":
+				continue
+			if Global.is_mission_completed(planet_id, mission_id) \
+					and not Global.is_mission_reward_pending(planet_id, mission_id):
+				continue
+			if Global.is_mission_reward_pending(planet_id, mission_id) \
+					or Global.is_mission_accepted(planet_id, mission_id) \
+					or Global.get_mission_progress(planet_id, mission_id) > 0:
+				_append_unique_mission_id(priority, mission_id)
+
+	priority.sort_custom(func(a: String, b: String) -> bool:
+		var pa: bool = Global.is_mission_reward_pending(planet_id, a)
+		var pb: bool = Global.is_mission_reward_pending(planet_id, b)
+		if pa != pb:
+			return pa
 		var ma: Dictionary = cfg.get_mission_by_id(a) if cfg.has_method("get_mission_by_id") else {}
 		var mb: Dictionary = cfg.get_mission_by_id(b) if cfg.has_method("get_mission_by_id") else {}
 		return int(ma.get("order", 999)) < int(mb.get("order", 999))
 	)
+
+	var result: Array[String] = []
+	for mission_id in priority:
+		_append_unique_mission_id(result, mission_id)
+		if not Global.is_dev_full_unlock() and result.size() >= BOARD_SLOT_COUNT:
+			return result
+	for mission_id in board:
+		_append_unique_mission_id(result, mission_id)
+		if not Global.is_dev_full_unlock() and result.size() >= BOARD_SLOT_COUNT:
+			return result
+	# 全解锁：把其余可玩任务也塞进列表，方便直接点进任意关
+	if Global.is_dev_full_unlock() and cfg.has_method("get_location_missions"):
+		var extras: Array[String] = []
+		for raw in cfg.get_location_missions():
+			if typeof(raw) != TYPE_DICTIONARY:
+				continue
+			var mission: Dictionary = raw
+			var mission_id: String = Global.mission_key(mission)
+			if mission_id == "":
+				continue
+			if Global.is_mission_completed(planet_id, mission_id) \
+					and not Global.is_mission_reward_pending(planet_id, mission_id):
+				continue
+			_append_unique_mission_id(extras, mission_id)
+		extras.sort_custom(func(a: String, b: String) -> bool:
+			var ma: Dictionary = cfg.get_mission_by_id(a) if cfg.has_method("get_mission_by_id") else {}
+			var mb: Dictionary = cfg.get_mission_by_id(b) if cfg.has_method("get_mission_by_id") else {}
+			return int(ma.get("order", 999)) < int(mb.get("order", 999))
+		)
+		for mission_id in extras:
+			_append_unique_mission_id(result, mission_id)
 	return result
 
 
@@ -283,7 +352,102 @@ static func sanitize_mission_board(planet_id: String, board: Array, unlocked_bat
 	return result
 
 
-## 3 槽 mission 任务板；rotate_completed 为刚跑完要从板上轮换下去的 mission_id
+static func _mission_location_id(planet_id: String, mission_id: String) -> String:
+	var cfg := _runner_config(planet_id)
+	if cfg != null and cfg.has_method("get_mission_by_id"):
+		var mission: Dictionary = cfg.get_mission_by_id(mission_id)
+		return String(mission.get("location_id", ""))
+	return ""
+
+
+## 可选据点（未点亮、批次已开），缺口大优先
+static func _list_board_outpost_ids(planet_id: String, unlocked_batch: int) -> Array[String]:
+	return list_board_candidates(planet_id, unlocked_batch)
+
+
+static func _list_open_missions_for_location(planet_id: String, location_id: String, unlocked_batch: int) -> Array[String]:
+	var cfg := _runner_config(planet_id)
+	if cfg == null or not cfg.has_method("get_missions_for_location"):
+		return []
+	var result: Array[String] = []
+	for raw in cfg.get_missions_for_location(location_id):
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var mission: Dictionary = raw
+		if not is_location_batch_unlocked(planet_id, location_id, unlocked_batch):
+			continue
+		var mission_id: String = Global.mission_key(mission)
+		if mission_id == "":
+			continue
+		if Global.is_mission_completed(planet_id, mission_id):
+			continue
+		_append_unique_mission_id(result, mission_id)
+	result.sort_custom(func(a: String, b: String) -> bool:
+		var ma: Dictionary = cfg.get_mission_by_id(a) if cfg.has_method("get_mission_by_id") else {}
+		var mb: Dictionary = cfg.get_mission_by_id(b) if cfg.has_method("get_mission_by_id") else {}
+		return int(ma.get("order", 999)) < int(mb.get("order", 999))
+	)
+	return result
+
+
+## 地图光标：批次已开且仍有未完成运输任务
+static func location_has_open_missions(planet_id: String, location_id: String, unlocked_batch: int = -1) -> bool:
+	if Global.get_completed_runner_locations(planet_id).has(location_id):
+		return false
+	return not _list_open_missions_for_location(planet_id, location_id, unlocked_batch).is_empty()
+
+
+## 地图：该据点当前是否在 4 槽任务板上发放任务
+static func location_has_board_missions(planet_id: String, location_id: String) -> bool:
+	if planet_id == "" or location_id == "":
+		return false
+	for raw in Global.get_mission_board_slots(planet_id):
+		var mission_id := _migrate_slot_to_mission_id(planet_id, String(raw))
+		if mission_id == "":
+			continue
+		if _mission_location_id(planet_id, mission_id) == location_id:
+			return true
+	return false
+
+
+## 地图：据点已点亮（完成仪式/已进 completed 列表）
+static func location_is_lit(planet_id: String, location_id: String) -> bool:
+	if planet_id == "" or location_id == "":
+		return false
+	return Global.get_completed_runner_locations(planet_id).has(location_id)
+
+
+## 地图：据点已有运输修复进度（含已点亮）
+static func location_has_repair_progress(planet_id: String, location_id: String) -> bool:
+	if planet_id == "" or location_id == "":
+		return false
+	if location_is_lit(planet_id, location_id):
+		return true
+	return Global.get_outpost_progress(planet_id, location_id) > 0
+
+
+## 地图：可点开据点详情（任务板发放中，或已点亮）
+static func location_map_can_open_detail(planet_id: String, location_id: String) -> bool:
+	return location_has_board_missions(planet_id, location_id) \
+		or location_is_lit(planet_id, location_id)
+
+
+static func _interleave_mission_pools(pools: Array) -> Array[String]:
+	var result: Array[String] = []
+	var max_len := 0
+	for pool in pools:
+		max_len = maxi(max_len, (pool as Array).size())
+	for i in max_len:
+		for pool in pools:
+			var arr: Array = pool
+			if i < arr.size():
+				_append_unique_mission_id(result, String(arr[i]))
+			if result.size() >= BOARD_SLOT_COUNT:
+				return result
+	return result
+
+
+## 4 槽：优先两据点各 2 条交错；rotate_completed 为刚跑完要从板上轮换下去的 mission_id
 static func fill_mission_board_slots(
 	planet_id: String,
 	board: Array,
@@ -291,21 +455,70 @@ static func fill_mission_board_slots(
 	rotate_completed: String = ""
 ) -> Array[String]:
 	var unlocked := unlocked_batch if unlocked_batch > 0 else compute_unlocked_batch(planet_id)
-	var slots := sanitize_mission_board(planet_id, board, unlocked)
+	var kept := sanitize_mission_board(planet_id, board, unlocked)
 	if rotate_completed != "":
-		var rotate_idx := slots.find(rotate_completed)
+		var rotate_idx := kept.find(rotate_completed)
 		if rotate_idx >= 0:
-			slots.remove_at(rotate_idx)
-	while slots.size() < BOARD_SLOT_COUNT:
-		var added := false
-		for mission_id in list_mission_board_candidates(planet_id, unlocked):
-			if slots.has(mission_id):
+			kept.remove_at(rotate_idx)
+
+	var outpost_ids := _list_board_outpost_ids(planet_id, unlocked)
+	if outpost_ids.is_empty():
+		return []
+
+	# 先保留已在板上的据点顺序，再按缺口补足到两据点
+	var selected_outposts: Array[String] = []
+	for mission_id in kept:
+		var loc := _mission_location_id(planet_id, mission_id)
+		if loc != "" and outpost_ids.has(loc) and not selected_outposts.has(loc):
+			selected_outposts.append(loc)
+		if selected_outposts.size() >= BOARD_OUTPOST_COUNT:
+			break
+	for loc in outpost_ids:
+		if selected_outposts.has(loc):
+			continue
+		selected_outposts.append(loc)
+		if selected_outposts.size() >= BOARD_OUTPOST_COUNT:
+			break
+
+	# 每据点取最多 2 条：优先保留已有槽位，再按 order 补
+	var pools: Array = []
+	for loc in selected_outposts:
+		var pool: Array[String] = []
+		for mission_id in kept:
+			if _mission_location_id(planet_id, mission_id) != loc:
 				continue
-			slots.append(mission_id)
-			added = true
-			break
-		if not added:
-			break
+			_append_unique_mission_id(pool, mission_id)
+			if pool.size() >= BOARD_MISSIONS_PER_OUTPOST:
+				break
+		if pool.size() < BOARD_MISSIONS_PER_OUTPOST:
+			for mission_id in _list_open_missions_for_location(planet_id, loc, unlocked):
+				_append_unique_mission_id(pool, mission_id)
+				if pool.size() >= BOARD_MISSIONS_PER_OUTPOST:
+					break
+		pools.append(pool)
+
+	var slots := _interleave_mission_pools(pools)
+
+	# 若某据点任务不足，用其余未点亮据点补满 4 槽
+	if slots.size() < BOARD_SLOT_COUNT:
+		for loc in outpost_ids:
+			if selected_outposts.has(loc):
+				continue
+			for mission_id in _list_open_missions_for_location(planet_id, loc, unlocked):
+				_append_unique_mission_id(slots, mission_id)
+				if slots.size() >= BOARD_SLOT_COUNT:
+					break
+			if slots.size() >= BOARD_SLOT_COUNT:
+				break
+	if slots.size() < BOARD_SLOT_COUNT:
+		for loc in selected_outposts:
+			for mission_id in _list_open_missions_for_location(planet_id, loc, unlocked):
+				_append_unique_mission_id(slots, mission_id)
+				if slots.size() >= BOARD_SLOT_COUNT:
+					break
+			if slots.size() >= BOARD_SLOT_COUNT:
+				break
+
 	if slots.size() > BOARD_SLOT_COUNT:
 		return slots.slice(0, BOARD_SLOT_COUNT)
 	return slots

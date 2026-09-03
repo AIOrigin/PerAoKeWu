@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ggfd5vk8vyk6"
+uid="uid://6uv60l6qtrw5"
 path.s3tc="res://.godot/imported/jump_land_futuristic_armored_warrior_3d_model_basecolor.jpg-5b3657468a4e42d3f306d92a03678a70.s3tc.ctex"
 path.etc2="res://.godot/imported/jump_land_futuristic_armored_warrior_3d_model_basecolor.jpg-5b3657468a4e42d3f306d92a03678a70.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "f7a03e4b5be38016bedfe2d2a2f3c554"
+"md5": "ccf7b98e28becb9b71ce4fc72fb6e62f"
 }
 
 [deps]

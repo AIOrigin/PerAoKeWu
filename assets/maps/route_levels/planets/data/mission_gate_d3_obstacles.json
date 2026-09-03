@@ -1,9 +1,9 @@
 {
-	"note": "D3 中继/防御+能源 · 长途S弯+分叉+右弹射过熔岩+平台跳+侧墙。90秒约1710m。格挡+点按散热。",
+	"note": "D3 长途巡航 · 右弹射熔岩 / 平台跳 / 侧墙分段；修复岔 + 毒雨热浪。光波门前半盾后半加速。90秒约1720m。",
 	"layout_id": "mission_gate_d3",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 4,
+	"version": 8,
 	"lava_cross_mode": "side_wall",
 	"track_segments": [
 		{"length": 160.0, "turn": 0.0},
@@ -48,17 +48,19 @@
 		{"start": 1420, "length": 40, "dps": 12, "label": "末段热浪", "hazard_kind": "sand", "lane_count": 3}
 	],
 	"open_gaps": [
-		{"start": 348.0, "end": 356.0, "kind": "launch"}
+		{"start": 343.0, "end": 357.0, "kind": "launch"}
 	],
 	"launch_pads": [
 		{
 			"id": "d3_lava_right",
 			"distance": 340.0,
 			"lane": 1,
-			"impulse": 15.8,
+			"impulse": 17.4,
 			"half_depth": 2.2,
 			"lock_air_lane": true,
-			"lock_distance": 22.0,
+			"lock_distance": 24.0,
+			"speed_boost": false,
+			"pad_text": "踩上弹射",
 			"hint": "换到右道踩垫 · 飞过熔岩"
 		},
 		{
@@ -71,7 +73,8 @@
 			"lock_distance": 16.0,
 			"speed_boost": true,
 			"boost_time": 2.4,
-			"hint": "左道弹射加速 · 过热就点按散热"
+			"pad_text": "踩上加速",
+			"hint": "左道弹射加速 · 过热就开防护罩"
 		}
 	],
 	"obstacles": [
@@ -81,16 +84,16 @@
 		{"distance": 94.0, "lane": 0, "type": "jump"},
 		{"distance": 116.0, "lane": -1, "type": "orb", "orb_size": "small"},
 		{"distance": 138.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 168.0, "lane": 0, "type": "train"},
+		{"distance": 196.0, "lane": 1, "type": "meteorite", "span": 1.7, "fall_roll": true, "fall_height": 13.0},
 		{"distance": 216.0, "lane": 0, "type": "jump"},
 		{"distance": 224.0, "lane": -1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 6.5},
-		{"distance": 232.0, "lane": 1, "type": "meteorite", "span": 1.8, "fall_roll": true, "fall_height": 14.0},
 		{"distance": 238.0, "lane": -1, "type": "train"},
 		{"distance": 250.0, "lane": 0, "type": "meteorite_gate", "drop_count": 6, "drop_interval": 0.84},
 		{"distance": 260.0, "lane": 1, "type": "slide", "low_slide": true},
 		{"distance": 282.0, "lane": 0, "type": "jump"},
-		{"distance": 304.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 326.0, "lane": 0, "type": "jump"},
 		{"distance": 372.0, "lane": 0, "type": "jump"},
+		{"distance": 424.0, "half_depth": 14.0, "lane": 0, "layer": 0, "type": "main_block", "cross": "platform"},
 		{"distance": 456.0, "lane": -1, "type": "jump"},
 		{"distance": 468.0, "lane": 1, "type": "train"},
 		{"distance": 590.0, "lane": 0, "type": "slide", "low_slide": true},
@@ -98,18 +101,21 @@
 		{"distance": 634.0, "lane": -1, "type": "train"},
 		{"distance": 656.0, "lane": 0, "type": "orb", "orb_size": "small"},
 		{"distance": 678.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 688.0, "lane": -1, "type": "orb", "orb_size": "small", "orb_tint": "purple", "drift_speed": 7.1},
 		{"distance": 700.0, "lane": 0, "type": "meteorite_gate", "drop_count": 7, "drop_interval": 0.76},
+		{"distance": 712.0, "lane": -1, "type": "train"},
+		{"distance": 738.0, "half_depth": 10.0, "lane": 0, "layer": 0, "type": "main_block", "cross": "platform"},
 		{"distance": 772.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "float_amp": 0.24},
 		{"distance": 780.0, "lane": 0, "type": "jump"},
 		{"distance": 790.0, "lane": -1, "type": "meteorite", "span": 1.5, "fall_roll": true, "fall_height": 11.2},
 		{"distance": 802.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 846.0, "lane": 1, "type": "meteorite", "span": 2.7, "fall_roll": true, "fall_height": 18.0},
-		{"distance": 852.0, "lane": 0, "type": "orb", "orb_size": "medium", "orb_tint": "purple"},
 		{"distance": 838.0, "lane": -1, "type": "jump"},
+		{"distance": 846.0, "lane": 1, "type": "meteorite", "span": 2.7, "fall_roll": true, "fall_height": 18.0},
 		{"distance": 860.0, "lane": 0, "type": "train"},
 		{"distance": 882.0, "lane": 1, "type": "orb", "orb_size": "medium"},
 		{"distance": 920.0, "lane": 0, "type": "main_block", "layer": 0, "half_depth": 18.0, "cross": "platform"},
+		{"distance": 980.0, "lane": -1, "type": "train"},
+		{"distance": 1010.0, "lane": 0, "type": "jump"},
+		{"distance": 1038.0, "half_depth": 10.0, "lane": 0, "layer": 0, "type": "main_block", "cross": "platform"},
 		{"distance": 1080.0, "lane": -1, "type": "jump"},
 		{"distance": 1090.0, "lane": 0, "type": "meteorite", "span": 2.2, "fall_roll": true, "fall_height": 15.0},
 		{"distance": 1102.0, "lane": 0, "type": "slide", "low_slide": true},
@@ -137,22 +143,27 @@
 		{"distance": 1638.0, "lane": 0, "type": "jump"}
 	],
 	"shield_crystals": [
-		{"distance": 198.0, "lane": 0, "layer": 0},
-		{"distance": 210.0, "lane": 1, "layer": 0},
-		{"distance": 400.0, "lane": -1, "layer": 0},
-		{"distance": 760.0, "lane": 0, "layer": 0},
-		{"distance": 900.0, "lane": 1, "layer": 0},
-		{"distance": 1200.0, "lane": 0, "layer": 0},
-		{"distance": 1398.0, "lane": -1, "layer": 0}
+		{"distance": 78.0, "lane": 0, "layer": 0},
+		{"distance": 174.0, "lane": 0, "layer": 0},
+		{"distance": 244.0, "lane": 0, "layer": 0},
+		{"distance": 474.0, "lane": 0, "layer": 0},
+		{"distance": 640.0, "lane": 0, "layer": 0},
+		{"distance": 718.0, "lane": 0, "layer": 0},
+		{"distance": 860.0, "lane": 1, "layer": 0}
 	],
 	"speed_boosts": [
-		{"distance": 44.0, "lane": 0, "layer": 0},
-		{"distance": 280.0, "lane": 1, "layer": 0},
-		{"distance": 600.0, "lane": 0, "layer": 0},
-		{"distance": 1088.0, "lane": 1, "layer": 0},
-		{"distance": 1400.0, "lane": -1, "layer": 0}
+		{"distance": 986.0, "lane": 0, "layer": 0},
+		{"distance": 1130.0, "lane": 0, "layer": 0},
+		{"distance": 1240.0, "lane": 0, "layer": 0},
+		{"distance": 1446.0, "lane": 0, "layer": 0},
+		{"distance": 1556.0, "lane": 0, "layer": 0}
 	],
 	"finish_sprints": [
-		{"distance": 1684.0, "lane": 0, "width_ratio": 0.58}
+		{"distance": 1605.0, "lane": 0, "width_ratio": 0.58}
+	],
+	"rain_zones": [
+		{"start": 320, "length": 100, "intensity": 1.0, "label": "中继毒雨"},
+		{"start": 920, "length": 110, "intensity": 1.08, "label": "酸雨走廊"},
+		{"start": 1550, "length": 100, "intensity": 1.0, "label": "尾段毒雨"}
 	]
 }

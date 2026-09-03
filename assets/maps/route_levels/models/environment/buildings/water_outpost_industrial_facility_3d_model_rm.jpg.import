@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bqt52eag6m8nx"
+uid="uid://bpm4bfxeryead"
 path.s3tc="res://.godot/imported/water_outpost_industrial_facility_3d_model_rm.jpg-caf3771d998b375e5598a324891ba7d3.s3tc.ctex"
 path.etc2="res://.godot/imported/water_outpost_industrial_facility_3d_model_rm.jpg-caf3771d998b375e5598a324891ba7d3.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "0c5e87235ab4a3713e7c73a845966d7e"
+"md5": "fc70d46700e470569431e4bbab50ea6d"
 }
 
 [deps]

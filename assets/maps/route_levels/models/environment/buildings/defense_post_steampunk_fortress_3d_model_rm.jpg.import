@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://r3ejghrfkkb5"
+uid="uid://dlthtqgdbble8"
 path.s3tc="res://.godot/imported/defense_post_steampunk_fortress_3d_model_rm.jpg-eee09093b792f3798c5250b982db1b7f.s3tc.ctex"
 path.etc2="res://.godot/imported/defense_post_steampunk_fortress_3d_model_rm.jpg-eee09093b792f3798c5250b982db1b7f.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "ce872876c5283ddd9f85ec92a0b32421"
+"md5": "c69db2167955dd05e1526f66c89f5863"
 }
 
 [deps]

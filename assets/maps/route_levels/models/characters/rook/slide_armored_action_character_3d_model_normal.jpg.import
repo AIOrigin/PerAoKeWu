@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mvg1b1fyavmq"
+uid="uid://coucd8faldvnn"
 path.s3tc="res://.godot/imported/slide_armored_action_character_3d_model_normal.jpg-b25e442e5fb12dcbc08d91dfa389c6e4.s3tc.ctex"
 path.etc2="res://.godot/imported/slide_armored_action_character_3d_model_normal.jpg-b25e442e5fb12dcbc08d91dfa389c6e4.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "3a046f08884cbb4223fd7142c837c196"
+"md5": "255bc33c345a25b44ce5a9284cc61fee"
 }
 
 [deps]

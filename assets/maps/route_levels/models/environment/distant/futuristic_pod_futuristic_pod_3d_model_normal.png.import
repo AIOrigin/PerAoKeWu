@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vp7jc43g05ag"
+uid="uid://b5i765asbwv5g"
 path.s3tc="res://.godot/imported/futuristic_pod_futuristic_pod_3d_model_normal.png-ff6541563d68f93ea3ee3a782b941b2f.s3tc.ctex"
 path.etc2="res://.godot/imported/futuristic_pod_futuristic_pod_3d_model_normal.png-ff6541563d68f93ea3ee3a782b941b2f.etc2.ctex"
 metadata={
@@ -29,7 +29,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/maps/route_levels/runner_60s/distant_props/futuristic_pod_futuristic_pod_3d_model_normal.png"
+roughness/src_normal="res://assets/maps/route_levels/models/environment/distant/futuristic_pod_futuristic_pod_3d_model_normal.png"
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

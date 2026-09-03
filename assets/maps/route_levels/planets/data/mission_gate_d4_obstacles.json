@@ -1,29 +1,66 @@
 {
-	"note": "D4 紧急/能源包 · 蛇形+右弹射过熔岩+左加速有风险+紫球。40秒约760m。点按冲刺散热。",
+	"note": "D4 紧急限时 · 开局加速垫；熔岩后加速垫；异能怪避开毒雾。40秒约772m。",
 	"layout_id": "mission_gate_d4",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 4,
-	"lava_cross_mode": "side_wall",
+	"version": 19,
+	"lava_cross_mode": "launch",
 	"track_segments": [
 		{"length": 140.0, "turn": 0.0},
 		{"length": 34.0, "turn": 0.70},
-		{"length": 130.0, "turn": 0.0},
+		{"length": 100.0, "turn": 0.0},
 		{"length": 34.0, "turn": -0.70},
-		{"length": 140.0, "turn": 0.0},
+		{"length": 170.0, "turn": 0.0},
 		{"length": 34.0, "turn": 0.62},
 		{"length": 260.0, "turn": 0.0}
 	],
-	"junction_zones": [],
-	"side_runway_zones": [],
+	"junction_zones": [
+		{
+			"distance": 410.0,
+			"length": 78.0,
+			"spread": 16.0,
+			"lane_a": 0,
+			"label_a": "常规提速",
+			"effect_a": "safe",
+			"lane_b": 2,
+			"label_b": "速通冲刺",
+			"effect_b": "fast"
+		}
+	],
+	"side_runway_zones": [
+		{
+			"start": 334.0,
+			"length": 48.0,
+			"side": "outer",
+			"fallback_side": 1,
+			"lateral_offset": 6.8,
+			"layer": 1,
+			"entry_window": 16.0,
+			"speed_mult": 1.08,
+			"blocker_profile": "light"
+		}
+	],
 	"sandstorm_zones": [
-		{"start": 88, "length": 28, "dps": 11, "label": "毒雾", "hazard_kind": "poison", "lane_count": 2, "lane": -1},
+		{"start": 88, "length": 28, "dps": 11, "label": "毒雾", "hazard_kind": "poison", "lane_count": 3},
 		{"start": 520, "length": 26, "dps": 12.5, "label": "浓毒雾", "hazard_kind": "poison", "lane_count": 3}
 	],
 	"open_gaps": [
-		{"start": 292.0, "end": 300.0, "kind": "launch"}
+		{"start": 287.0, "end": 301.0, "kind": "launch"}
 	],
 	"launch_pads": [
+		{
+			"id": "d4_opening_speed",
+			"distance": 52.0,
+			"lane": 1,
+			"impulse": 12.4,
+			"half_depth": 1.7,
+			"lock_air_lane": false,
+			"lock_distance": 12.0,
+			"speed_boost": true,
+			"boost_time": 2.8,
+			"pad_text": "踩上加速",
+			"hint": "开局右道加速 · 抢时间"
+		},
 		{
 			"id": "d4_speed_left",
 			"distance": 118.0,
@@ -33,18 +70,60 @@
 			"lock_air_lane": false,
 			"lock_distance": 14.0,
 			"speed_boost": true,
-			"boost_time": 2.6,
+			"boost_time": 2.8,
+			"pad_text": "踩上加速",
 			"hint": "左道弹射加速 · 落地可能撞球"
 		},
 		{
 			"id": "d4_lava_right",
 			"distance": 284.0,
 			"lane": 1,
-			"impulse": 15.8,
-			"half_depth": 2.1,
+			"impulse": 17.4,
+			"half_depth": 2.2,
 			"lock_air_lane": true,
-			"lock_distance": 20.0,
+			"lock_distance": 24.0,
+			"speed_boost": false,
+			"pad_text": "踩上弹射",
 			"hint": "换到右道踩垫 · 飞过熔岩抢时间"
+		},
+		{
+			"id": "d4_after_lava_speed",
+			"distance": 305.0,
+			"lane": 0,
+			"impulse": 12.5,
+			"half_depth": 1.7,
+			"lock_air_lane": false,
+			"lock_distance": 12.0,
+			"speed_boost": true,
+			"boost_time": 2.9,
+			"pad_text": "踩上加速",
+			"hint": "熔岩落地后 · 中道加速垫冲刺"
+		},
+		{
+			"id": "d4_fork_speed_a",
+			"distance": 422.0,
+			"lane": -1,
+			"impulse": 12.4,
+			"half_depth": 1.7,
+			"lock_air_lane": false,
+			"lock_distance": 12.0,
+			"speed_boost": true,
+			"boost_time": 3.0,
+			"pad_text": "踩上加速",
+			"hint": "常规岔路 · 左道弹射提速"
+		},
+		{
+			"id": "d4_fork_speed_b",
+			"distance": 462.0,
+			"lane": -1,
+			"impulse": 12.8,
+			"half_depth": 1.7,
+			"lock_air_lane": false,
+			"lock_distance": 12.0,
+			"speed_boost": true,
+			"boost_time": 3.0,
+			"pad_text": "踩上加速",
+			"hint": "常规岔路 · 再踩一垫冲刺"
 		}
 	],
 	"obstacles": [
@@ -52,24 +131,22 @@
 		{"distance": 44.0, "lane": 1, "type": "slide", "low_slide": true},
 		{"distance": 64.0, "lane": -1, "type": "train"},
 		{"distance": 86.0, "lane": 0, "type": "jump"},
-		{"distance": 96.0, "lane": -1, "type": "meteorite", "span": 1.55, "fall_roll": true, "fall_height": 12.0},
-		{"distance": 108.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 132.0, "lane": -1, "type": "orb", "orb_size": "small"},
-		{"distance": 188.0, "lane": 0, "type": "jump"},
-		{"distance": 196.0, "lane": 0, "type": "meteorite_gate", "drop_count": 5, "drop_interval": 0.8},
-		{"distance": 208.0, "lane": 1, "type": "train"},
-		{"distance": 228.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 248.0, "lane": 0, "type": "jump"},
-		{"distance": 256.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 7.4},
-		{"distance": 268.0, "lane": -1, "type": "orb", "orb_size": "small"},
-		{"distance": 356.0, "lane": 0, "type": "jump"},
-		{"distance": 376.0, "lane": 1, "type": "slide", "low_slide": true},
-		{"distance": 396.0, "lane": -1, "type": "train"},
-		{"distance": 406.0, "lane": 0, "type": "meteorite_gate", "drop_count": 6, "drop_interval": 0.75},
-		{"distance": 416.0, "lane": 0, "type": "jump"},
-		{"distance": 436.0, "lane": 1, "type": "orb", "orb_size": "small"},
-		{"distance": 456.0, "lane": -1, "type": "slide", "low_slide": true},
-		{"distance": 528.0, "lane": 0, "type": "jump"},
+		{"distance": 144.0, "lane": 1, "type": "slide", "low_slide": true},
+		{"distance": 156.0, "lane": -1, "type": "meteorite", "span": 1.55, "fall_roll": true, "fall_height": 12.0},
+		{"distance": 168.0, "lane": 0, "type": "orb", "orb_size": "small"},
+		{"distance": 188.0, "half_depth": 14.0, "lane": 0, "layer": 0, "type": "main_block", "cross": "platform"},
+		{"distance": 218.0, "lane": 0, "type": "jump"},
+		{"distance": 228.0, "lane": 0, "type": "meteorite_gate", "drop_count": 5, "drop_interval": 0.8},
+		{"distance": 240.0, "lane": 1, "type": "train"},
+		{"distance": 256.0, "lane": 0, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 7.0},
+		{"distance": 268.0, "lane": -1, "type": "slide", "low_slide": true},
+		{"distance": 276.0, "lane": 1, "type": "orb", "orb_size": "tiny", "orb_tint": "purple", "drift_speed": 7.4},
+		{"distance": 320.0, "lane": 0, "type": "ramp", "layer": 0, "target_layer": 1},
+		{"distance": 352.0, "lane": 0, "type": "main_block", "layer": 0, "half_depth": 14.0, "cross": "side_wall"},
+		{"distance": 388.0, "lane": 0, "type": "jump"},
+		{"distance": 400.0, "lane": 1, "type": "train"},
+		{"distance": 506.0, "lane": 0, "type": "meteorite_gate", "drop_count": 6, "drop_interval": 0.75},
+		{"distance": 518.0, "lane": 1, "type": "jump"},
 		{"distance": 536.0, "lane": 1, "type": "train"},
 		{"distance": 548.0, "lane": -1, "type": "meteorite", "span": 2.0, "fall_roll": true, "fall_height": 15.0, "roll_speed": -5.2},
 		{"distance": 566.0, "lane": 1, "type": "meteorite", "span": 2.2, "fall_roll": true, "fall_height": 16.0, "roll_speed": -5.0},
@@ -83,19 +160,30 @@
 	],
 	"shield_crystals": [
 		{"distance": 70.0, "lane": 0, "layer": 0},
-		{"distance": 80.0, "lane": 1, "layer": 0},
-		{"distance": 200.0, "lane": -1, "layer": 0},
-		{"distance": 360.0, "lane": 0, "layer": 0},
-		{"distance": 500.0, "lane": 0, "layer": 0},
-		{"distance": 510.0, "lane": -1, "layer": 0}
+		{"distance": 96.0, "lane": 0, "layer": 0},
+		{"distance": 246.0, "lane": 0, "layer": 0},
+		{"distance": 312.0, "lane": 0, "layer": 0}
 	],
 	"speed_boosts": [
-		{"distance": 36.0, "lane": 0, "layer": 0},
 		{"distance": 160.0, "lane": 1, "layer": 0},
-		{"distance": 380.0, "lane": 1, "layer": 0},
-		{"distance": 500.0, "lane": 0, "layer": 0}
+		{"distance": 212.0, "lane": 0, "layer": 0},
+		{"distance": 256.0, "lane": 0, "layer": 0},
+		{"distance": 386.0, "lane": 0, "layer": 0},
+		{"distance": 408.0, "lane": 0, "layer": 0},
+		{"distance": 438.0, "lane": 1, "layer": 0},
+		{"distance": 468.0, "lane": 0, "layer": 0},
+		{"distance": 486.0, "lane": 0, "layer": 0},
+		{"distance": 510.0, "lane": 0, "layer": 0},
+		{"distance": 528.0, "lane": 0, "layer": 0},
+		{"distance": 546.0, "lane": 0, "layer": 0},
+		{"distance": 572.0, "lane": 0, "layer": 0},
+		{"distance": 604.0, "lane": -1, "layer": 0},
+		{"distance": 628.0, "lane": 0, "layer": 0},
+		{"distance": 664.0, "lane": 0, "layer": 0},
+		{"distance": 688.0, "lane": 1, "layer": 0},
+		{"distance": 712.0, "lane": 0, "layer": 0}
 	],
 	"finish_sprints": [
-		{"distance": 736.0, "lane": 0, "width_ratio": 0.58}
+		{"distance": 660.0, "lane": 0, "width_ratio": 0.58}
 	]
 }

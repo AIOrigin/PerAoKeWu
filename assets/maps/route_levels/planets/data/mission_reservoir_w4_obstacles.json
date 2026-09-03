@@ -1,9 +1,9 @@
 {
-	"note": "W4 紧急限时 · 蛇形弯+晚段奖励分叉（无早段分叉）",
+	"note": "W4 紧急限时 · 蛇形弯+晚段奖励分叉；加速靴约 44m 一档、空档≤48m，空缺段补加速垫",
 	"layout_id": "mission_reservoir_w4",
 	"planet_id": "glass_desert",
 	"road_style": "holographic",
-	"version": 7,
+	"version": 9,
 	"track_segments": [
 		{
 			"length": 240.0,
@@ -397,40 +397,61 @@
 		}
 	],
 	"speed_boosts": [
+		{"distance": 16.0, "lane": 0, "layer": 0},
+		{"distance": 62.0, "lane": 1, "layer": 0},
+		{"distance": 108.0, "lane": -1, "layer": 0},
+		{"distance": 154.0, "lane": 0, "layer": 0},
+		{"distance": 200.0, "lane": 1, "layer": 0},
+		{"distance": 238.0, "lane": -1, "layer": 0},
+		{"distance": 268.0, "lane": 1, "layer": 0},
+		{"distance": 286.0, "lane": 0, "layer": 0},
+		{"distance": 318.0, "lane": -1, "layer": 0},
+		{"distance": 364.0, "lane": 0, "layer": 0},
+		{"distance": 402.0, "lane": -1, "layer": 0},
+		{"distance": 452.0, "lane": -1, "layer": 0},
+		{"distance": 498.0, "lane": 0, "layer": 0},
+		{"distance": 544.0, "lane": 1, "layer": 0},
+		{"distance": 590.0, "lane": -1, "layer": 0},
+		{"distance": 636.0, "lane": 0, "layer": 0},
+		{"distance": 706.0, "lane": -1, "layer": 0},
+		{"distance": 718.0, "lane": 0, "layer": 0}
+	],
+	"launch_pads": [
 		{
-			"distance": 118.0,
+			"id": "w4_open_speed",
+			"distance": 50.0,
 			"lane": 1,
-			"layer": 0
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
 		},
 		{
-			"distance": 260.0,
-			"lane": -1,
-			"layer": 0
-		},
-		{
-			"distance": 358.0,
+			"id": "w4_gap_speed_a",
+			"distance": 276.0,
 			"lane": 1,
-			"layer": 0
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
 		},
 		{
-			"distance": 430.0,
+			"id": "w4_gap_speed_b",
+			"distance": 388.0,
 			"lane": 0,
-			"layer": 0
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
 		},
 		{
-			"distance": 508.0,
-			"lane": -1,
-			"layer": 0
-		},
-		{
-			"distance": 580.0,
+			"id": "w4_late_speed",
+			"distance": 630.0,
 			"lane": 1,
-			"layer": 0
-		},
-		{
-			"distance": 640.0,
-			"lane": 0,
-			"layer": 0
+			"speed_boost": true,
+			"half_depth": 1.45,
+			"lock_air_lane": false,
+			"boost_time": 2.8
 		}
 	],
 	"finish_sprints": [

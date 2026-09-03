@@ -106,6 +106,7 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Iris",
 		"manager_title": "医疗主管",
 		"manager_quote": "每一份药剂，都是把一个人拉回黎明。",
+		"manager_portrait": "res://assets/maps/route_levels/planet_explore/portraits/iris_fullbody.png",
 		"reward_coins": 300,
 		"repair_total": 400,
 		"needs": [
@@ -132,6 +133,7 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Kane",
 		"manager_title": "防线指挥官",
 		"manager_quote": "防线还在，家园就不会失守。",
+		"manager_portrait": "res://assets/maps/route_levels/planet_explore/portraits/kane_fullbody.png",
 		"reward_coins": 300,
 		"repair_total": 400,
 		"needs": [
@@ -158,6 +160,7 @@ const EXPLORE_LOCATIONS := [
 		"manager_name": "Nova",
 		"manager_title": "中继站信号员",
 		"manager_quote": "只要信号抵达，希望就不会熄灭。",
+		"manager_portrait": "res://assets/maps/route_levels/planet_explore/portraits/nova_fullbody.png",
 		"reward_coins": 1000,
 		"repair_total": 400,
 		"needs": [
@@ -168,8 +171,8 @@ const EXPLORE_LOCATIONS := [
 ]
 
 const MISSION_BATCHES := [
-	{"id": 1, "name": "生存基础", "locations": ["dome", "reservoir"]},
-	{"id": 2, "name": "危机应对", "locations": ["medical", "gate"]},
+	{"id": 1, "name": "净水防线", "locations": ["reservoir", "gate"]},
+	{"id": 2, "name": "家园救援", "locations": ["dome", "medical"]},
 	{"id": 3, "name": "网络核心", "locations": ["relay"]},
 ]
 
@@ -201,7 +204,12 @@ const MEDICAL_M4_SKY_PANORAMA := RUNNER_SKY_PANORAMA
 const RUNNER_GROUND_TEXTURE := "res://assets/maps/route_levels/runner_60s/backgrounds/textures/glass_desert_w1_ground_albedo.jpg"
 ## 星火中继站最终关素材（桌面「最后关卡物体」）
 const RELAY_FINAL_ROOT := "res://assets/maps/route_levels/runner_60s/relay_final/"
-const RELAY_SKY_PANORAMA := RELAY_FINAL_ROOT + "panorama_relay_reference.png"
+const RELAY_PANO_ROOT := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/"
+const RELAY_E1_SKY_PANORAMA := RELAY_PANO_ROOT + "relay_e1_scene_sky.png"
+const RELAY_E2_SKY_PANORAMA := RELAY_PANO_ROOT + "relay_e2_scene_sky.png"
+const RELAY_E3_SKY_PANORAMA := RELAY_PANO_ROOT + "relay_e3_scene_sky.png"
+const RELAY_E4_SKY_PANORAMA := RELAY_PANO_ROOT + "relay_e4_scene_sky.png"
+const RELAY_SKY_PANORAMA := RELAY_E1_SKY_PANORAMA
 const RELAY_SKY_NEAR_1 := RELAY_FINAL_ROOT + "sky_near_1.webp"
 const RELAY_SKY_NEAR_2 := RELAY_FINAL_ROOT + "sky_near_2.webp"
 const RELAY_GROUND_TEXTURE := RELAY_FINAL_ROOT + "ground_path.webp"
@@ -210,6 +218,52 @@ const RELAY_MIDGROUND_DRONE := RELAY_FINAL_ROOT + "midground_drone.glb"
 const RELAY_DISTANT_TOWER := RELAY_FINAL_ROOT + "distant_tower_futuristic.glb"
 const RELAY_DISTANT_RUIN := RELAY_FINAL_ROOT + "distant_ruin_scifi.glb"
 const RELAY_DISTANT_TURBINE := RELAY_FINAL_ROOT + "distant_turbine_steampunk.glb"
+const RELAY_MID_NEON := "res://assets/maps/route_levels/models/environment/midground/neon_sign_prop.glb"
+const RELAY_MID_SPHERE := "res://assets/maps/route_levels/models/environment/midground/cracked_sphere_robot.glb"
+const RELAY_MID_METEOR := "res://assets/maps/route_levels/models/environment/midground/glowing_energy_meteorite.glb"
+const RELAY_MID_CORAL := "res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral.glb"
+const RELAY_MID_EXCAVATOR := "res://assets/maps/route_levels/models/environment/midground/midground_excavator_robot.glb"
+const RELAY_MID_PURIFIER := "res://assets/maps/route_levels/models/environment/midground/midground_water_purifier.glb"
+const RELAY_DIST_SIGNAL := "res://assets/maps/route_levels/models/environment/distant/distant_signal_tower.glb"
+const RELAY_DIST_CRYSTAL_1 := "res://assets/maps/route_levels/models/environment/distant/giant_energy_crystal_pillar_1.glb"
+const RELAY_DIST_CRYSTAL_2 := "res://assets/maps/route_levels/models/environment/distant/giant_energy_crystal_pillar_2.glb"
+const RELAY_DIST_FANTASY := "res://assets/maps/route_levels/models/environment/distant/fantasy_crystal_tower.glb"
+const RELAY_DIST_POD := "res://assets/maps/route_levels/models/environment/distant/futuristic_pod.glb"
+const RELAY_DIST_SHIP := "res://assets/maps/route_levels/models/environment/distant/futuristic_spaceship.glb"
+## 中继站共用装饰池：拉开种类，避免喇叭塔/涡轮成排复读
+const RELAY_MID_POOL := [
+	RELAY_MIDGROUND_DRONE,
+	RELAY_MID_NEON,
+	RELAY_MID_SPHERE,
+	RELAY_MID_METEOR,
+	RELAY_MID_CORAL,
+	RELAY_MID_EXCAVATOR,
+]
+const RELAY_NEAR_POOL := [
+	RELAY_MID_SPHERE,
+	RELAY_MID_NEON,
+	RELAY_MID_METEOR,
+	RELAY_MID_CORAL,
+	RELAY_MID_PURIFIER,
+]
+const RELAY_DISTANT_TOWER_POOL := [
+	RELAY_DISTANT_TOWER,
+	RELAY_DISTANT_TURBINE,
+	RELAY_DISTANT_RUIN,
+	RELAY_DIST_SIGNAL,
+	RELAY_DIST_CRYSTAL_1,
+	RELAY_DIST_CRYSTAL_2,
+]
+const RELAY_DISTANT_ACCENT_POOL := [
+	RELAY_DIST_FANTASY,
+	RELAY_DIST_POD,
+	RELAY_DIST_CRYSTAL_1,
+	RELAY_DISTANT_RUIN,
+]
+const RELAY_DISTANT_SHIP_POOL := [
+	RELAY_DIST_SHIP,
+	RELAY_DIST_POD,
+]
 const RUNNER_SKY_ACCENTS := {
 	"energy_gates": true,
 	"aurora": false,
@@ -240,21 +294,26 @@ const RUNNER_SKY_YAW := {
 	"mission_medical_m2": 0.18,
 	"mission_medical_m3": -0.28,
 	"mission_medical_m4": 2.88,
-	"mission_relay_e1": 2.12,
-	"mission_relay_e2": 2.58,
-	"mission_relay_e3": 3.06,
-	"mission_relay_e4": 3.52,
-	"mission_relay_01": 2.12,
+	"mission_relay_e1": 0.0,
+	"mission_relay_e2": 0.0,
+	"mission_relay_e3": 0.0,
+	"mission_relay_e4": 0.0,
+	"mission_relay_01": 0.0,
 	"mission_gate_d1": 5.18,
 	"mission_gate_d2": 5.31,
 	"mission_gate_d3": 5.44,
 	"mission_gate_d4": 5.57,
-	"mission_gate_lab": 5.05,
 }
 ## 同张全景：第四关对准地平线剪影带，不要对着太阳核也不要抬头进天顶
 const RUNNER_SKY_PITCH := {
 	"mission_reservoir_03": 0.0,
 	"mission_reservoir_04": 0.0,
+	# 对准浓缩全景：光带 + 地平微光同时入镜
+	"mission_relay_e1": -0.08,
+	"mission_relay_e2": -0.06,
+	"mission_relay_e3": -0.07,
+	"mission_relay_e4": -0.05,
+	"mission_relay_01": -0.08,
 }
 
 const RUNNER_PROP_ROOT := "res://assets/maps/route_levels/runner_60s/"
@@ -371,6 +430,56 @@ const MEDICAL_M4_ENVIRONMENT := {
 	"adjustment_saturation": 0.94,
 }
 
+## 星火中继站：全景天空 + 居民穹顶 H1 同款分层雾（勿开近空 billboard）
+const RELAY_VISUAL_SCENE := {
+	"dark_ground": true,
+	"near_far_light_split": true,
+}
+const RELAY_E1_ENVIRONMENT := {
+	# 对齐全景天空的冷青紫环境光；地面棕靠 desert 材质，勿用暖土 ambient 洗脏天空
+	"panorama_energy": 1.52,
+	"fog_color": Color(0.34, 0.32, 0.42),
+	"fog_density": 0.00042,
+	"fog_aerial_perspective": 0.085,
+	"ambient": Color(0.48, 0.46, 0.54),
+	"ambient_energy": 0.72,
+	"sun_color": Color(0.86, 0.84, 0.94),
+	"sun_energy": 1.68,
+	"tonemap_exposure": 1.06,
+}
+const RELAY_E2_ENVIRONMENT := {
+	"panorama_energy": 1.50,
+	"fog_color": Color(0.34, 0.32, 0.42),
+	"fog_density": 0.00042,
+	"fog_aerial_perspective": 0.085,
+	"ambient": Color(0.48, 0.46, 0.54),
+	"ambient_energy": 0.72,
+	"sun_color": Color(0.94, 0.82, 0.80),
+	"sun_energy": 1.70,
+	"tonemap_exposure": 1.06,
+}
+const RELAY_E3_ENVIRONMENT := {
+	"panorama_energy": 1.54,
+	"fog_color": Color(0.28, 0.36, 0.36),
+	"fog_density": 0.00042,
+	"fog_aerial_perspective": 0.085,
+	"ambient": Color(0.44, 0.50, 0.50),
+	"ambient_energy": 0.74,
+	"sun_color": Color(0.82, 0.92, 0.88),
+	"sun_energy": 1.72,
+	"tonemap_exposure": 1.06,
+}
+const RELAY_E4_ENVIRONMENT := {
+	"panorama_energy": 1.50,
+	"fog_color": Color(0.34, 0.32, 0.42),
+	"fog_density": 0.00042,
+	"fog_aerial_perspective": 0.085,
+	"ambient": Color(0.48, 0.46, 0.54),
+	"ambient_energy": 0.72,
+	"sun_color": Color(0.82, 0.88, 0.98),
+	"sun_energy": 1.74,
+	"tonemap_exposure": 1.06,
+}
 const DOME_LIGHTWEIGHT_JUMP := [
 	RUNNER_OBS_LIGHT + "jump_crumbling_ruined_wall.glb",
 	"res://assets/maps/route_levels/runner_60s/obstacles_2_5d/obstacle_energy_orb_grumpy_2_5d.png",
@@ -479,21 +588,28 @@ const LOCATION_MISSIONS := [
 		"cargo_name_en": "Defense Pack",
 		"cargo_icon": "防御",
 		"cargo_load": 92,
-		"cargo_trait": "主动防御 · 减损",
+		"cargo_fragility": 0.7,
+		"cargo_trait": "主动防御 · 碰撞减损 · 开局盾25 · 身后异能体",
 		"obstacle_density": 1.05,
 		"fork_bias": false,
 		"source_hearth": "Crystal Wastes",
 		"target_hearth": "居民穹顶",
 		"task_type": "Repair Run",
+		"enable_chaser": true,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 14.0,
+		"chaser_creep_mult": 0.58,
 		"duration": 65.0,
 		"order": 12,
 		"difficulty": 2,
 		"base_reward": 60,
-		"runner_rhythm": "防御包可主动格挡：激活后免疫伤害，但速度 -10% 且消耗耐力。",
+		"mechanics_hint": "异能体初现：身后零潮压迫较轻；受击加压，加速靴减压，开罩可扛碰撞。",
+		"runner_rhythm": "防御包可主动格挡：激活后免疫伤害，但速度 -10% 且消耗耐力。留意身后异能体，多踩加速靴拉开距离。",
 		"environment_factor": "侧墙绕坑与抬升支路，广告牌与屏障交替出现。",
 		"unlock_ids": [],
 		"unlocks": [],
-		"story": "防御组件需抢修送达，加固穹顶外墙。",
+		"story": "防御组件需抢修送达；零潮异能体已在荒原边缘嗅到动静。",
 	},
 	{
 		"mission_id": "mission_dome_h3",
@@ -885,6 +1001,16 @@ const LOCATION_MISSIONS := [
 			"res://assets/maps/route_levels/models/environment/midground/midground_medical_pod.glb",
 			"res://assets/maps/route_levels/models/environment/midground/midground_medical_crate.glb",
 		],
+		"near_runway_props": [
+			"res://assets/maps/route_levels/models/environment/midground/midground_medical_pod.glb",
+			"res://assets/maps/route_levels/models/environment/midground/midground_medical_crate.glb",
+			"res://assets/maps/route_levels/models/environment/midground/midground_water_purifier.glb",
+			"res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral.glb",
+		],
+		"distant_accent_props": [
+			"res://assets/maps/route_levels/models/environment/midground/midground_water_purifier.glb",
+			"res://assets/maps/route_levels/models/environment/midground/midground_medical_pod.glb",
+		],
 		"environment": MEDICAL_M3_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "净水包",
@@ -962,50 +1088,50 @@ const LOCATION_MISSIONS := [
 		"location_id": "relay",
 		"layout_id": "layout_set_relay_1",
 		"road_style": "holographic",
-		"panorama": RELAY_SKY_PANORAMA,
-		"ground_texture": RELAY_GROUND_TEXTURE,
+		"ground_texture": RUNNER_GROUND_TEXTURE,
 		"textured_ground": true,
+		"visual_scene": RELAY_VISUAL_SCENE,
 		"sky_accents": {
-			"energy_gates": true,
+			"energy_gates": false,
 			"energy_vortex": false,
-			"aurora": true,
+			"aurora": false,
 			"panorama_billboards": false,
-			"distant_density": 1.32,
+			"distant_density": 1.22,
 		},
-		"midground_props": [RELAY_MIDGROUND_DRONE],
-		"distant_tower_props": [RELAY_DISTANT_TURBINE, RELAY_DISTANT_TOWER],
-		"distant_spaceship_props": [],
+		"environment_pack_v2_mix": 0.0,
+		"midground_props": RELAY_MID_POOL,
+		"near_runway_props": RELAY_NEAR_POOL,
+		"near_sky_textures": [],
+		"distant_tower_props": RELAY_DISTANT_TOWER_POOL,
+		"distant_accent_props": RELAY_DISTANT_ACCENT_POOL,
+		"distant_spaceship_props": RELAY_DISTANT_SHIP_POOL,
 		"distant_hearth_props": [],
 		"jump_obstacles": [RELAY_OBSTACLE],
 		"slide_obstacles": [RELAY_OBSTACLE],
-		"environment": {
-			"panorama_energy": 1.10,
-			"fog_color": Color(0.46, 0.42, 0.58),
-			"fog_density": 0.00014,
-			"fog_aerial_perspective": 0.04,
-			"ambient": Color(0.52, 0.56, 0.72),
-			"ambient_energy": 0.86,
-		},
+		"environment": RELAY_E1_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "星火核心",
 		"cargo_name_en": "Ember Core",
 		"cargo_icon": "星火核心",
 		"cargo_load": 95,
-		"cargo_trait": "点火核心 · 零潮追击",
+		"cargo_trait": "点火核心 · 身后零潮异能体",
 		"obstacle_density": 1.05,
 		"fork_bias": false,
 		"source_hearth": "居民穹顶",
 		"target_hearth": "星火中继站",
 		"task_type": "Ignition Run",
 		"enable_chaser": true,
-		"chaser_creep_mult": 0.88,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 20.0,
+		"chaser_creep_mult": 0.72,
 		"duration": 75.0,
 		"order": 40,
 		"difficulty": 1,
 		"base_reward": 100,
-		"mechanics_hint": "危机降临：首次护送星火核心，沙暴+地裂封堵，身后零潮追上即失败。",
-		"runner_rhythm": "高机动入门：早段强制沙暴，主路地裂需侧道绕行，零潮自后方紧追。",
-		"environment_factor": "紫晶中继侧景，三段沙暴压迫能见度。",
+		"mechanics_hint": "危机降临：护送星火核心；身后异能量前沿按压迫值迫近，受击加压，加速靴（稳定器）减压。",
+		"runner_rhythm": "入门追击：多加速靴 + 短侧墙加速，保持身后距离。",
+		"environment_factor": "紫极光夜：保留原天空，远景稀疏只留剪影塔影。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "星火中继站首次接收星火核心——危机沙暴中，零潮已嗅到核心的气息。",
@@ -1015,34 +1141,46 @@ const LOCATION_MISSIONS := [
 		"location_id": "relay",
 		"layout_id": "layout_set_relay_2",
 		"road_style": "holographic",
-		"panorama": RELAY_SKY_PANORAMA,
-		"ground_texture": RELAY_GROUND_TEXTURE,
+		"ground_texture": RUNNER_GROUND_TEXTURE,
 		"textured_ground": true,
+		"visual_scene": RELAY_VISUAL_SCENE,
 		"sky_accents": {
-			"energy_gates": true,
+			"energy_gates": false,
 			"energy_vortex": false,
-			"aurora": true,
+			"aurora": false,
 			"panorama_billboards": false,
-			"distant_density": 1.38,
+			"distant_density": 1.26,
 		},
-		"midground_props": [RELAY_MIDGROUND_DRONE],
-		"distant_tower_props": [
-			RELAY_DISTANT_TURBINE,
-			RELAY_DISTANT_TOWER,
-			RELAY_DISTANT_RUIN,
+		"environment_pack_v2_mix": 0.0,
+		"midground_props": [
+			RELAY_MIDGROUND_DRONE,
+			RELAY_MID_NEON,
+			RELAY_MID_SPHERE,
+			RELAY_MID_EXCAVATOR,
+			RELAY_MID_CORAL,
+			RELAY_MID_METEOR,
 		],
-		"distant_spaceship_props": [],
+		"near_runway_props": [
+			RELAY_MID_SPHERE,
+			RELAY_MID_NEON,
+			RELAY_MID_CORAL,
+			RELAY_MID_PURIFIER,
+		],
+		"near_sky_textures": [],
+		"distant_tower_props": [
+			RELAY_DISTANT_RUIN,
+			RELAY_DIST_SIGNAL,
+			RELAY_DISTANT_TOWER,
+			RELAY_DIST_CRYSTAL_2,
+			RELAY_DISTANT_TURBINE,
+			RELAY_DIST_CRYSTAL_1,
+		],
+		"distant_accent_props": RELAY_DISTANT_ACCENT_POOL,
+		"distant_spaceship_props": RELAY_DISTANT_SHIP_POOL,
 		"distant_hearth_props": [],
 		"jump_obstacles": [RELAY_OBSTACLE],
 		"slide_obstacles": [RELAY_OBSTACLE],
-		"environment": {
-			"panorama_energy": 1.12,
-			"fog_color": Color(0.52, 0.36, 0.42),
-			"fog_density": 0.00016,
-			"fog_aerial_perspective": 0.04,
-			"ambient": Color(0.58, 0.48, 0.56),
-			"ambient_energy": 0.88,
-		},
+		"environment": RELAY_E2_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "能源包",
 		"cargo_name_en": "Energy Pack",
@@ -1056,14 +1194,17 @@ const LOCATION_MISSIONS := [
 		"target_hearth": "星火中继站",
 		"task_type": "Relay Run",
 		"enable_chaser": true,
-		"chaser_creep_mult": 1.0,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 24.0,
+		"chaser_creep_mult": 0.82,
 		"duration": 85.0,
 		"order": 41,
 		"difficulty": 2,
 		"base_reward": 70,
-		"mechanics_hint": "炼狱迷宫：全图最长路线，极端高温区需分叉散热，零潮随机追击。",
-		"runner_rhythm": "长途中继：多分叉选路，高温与毒雾交替，体力与防护罩管理是关键。",
-		"environment_factor": "熔砂高温贯穿全程，侧墙支路可短暂脱离主路灼烧。",
+		"mechanics_hint": "炼狱迷宫：长途多分叉；身后异能量前沿压迫追击，加速靴减压，无失误可持续甩开。",
+		"runner_rhythm": "长途追击：多段加速靴、多次短侧墙上墙，注意吃 buff 甩开身后异能体。",
+		"environment_factor": "赤潮夜幕：酒红云海压境，粉红流光掠过地平线。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "能源包需穿越炼狱迷宫才能维持中继站温控——这是荒原上最漫长的补给线。",
@@ -1073,30 +1214,46 @@ const LOCATION_MISSIONS := [
 		"location_id": "relay",
 		"layout_id": "layout_set_relay_3",
 		"road_style": "holographic",
-		"panorama": RELAY_SKY_PANORAMA,
-		"ground_texture": RELAY_GROUND_TEXTURE,
+		"ground_texture": RUNNER_GROUND_TEXTURE,
 		"textured_ground": true,
+		"visual_scene": RELAY_VISUAL_SCENE,
 		"sky_accents": {
-			"energy_gates": true,
+			"energy_gates": false,
 			"energy_vortex": false,
 			"aurora": false,
 			"panorama_billboards": false,
-			"distant_density": 1.28,
+			"distant_density": 1.24,
 		},
-		"midground_props": [RELAY_MIDGROUND_DRONE],
-		"distant_tower_props": [RELAY_DISTANT_TURBINE, RELAY_DISTANT_RUIN],
-		"distant_spaceship_props": [],
+		"environment_pack_v2_mix": 0.0,
+		"midground_props": [
+			RELAY_MIDGROUND_DRONE,
+			RELAY_MID_METEOR,
+			RELAY_MID_NEON,
+			RELAY_MID_CORAL,
+			RELAY_MID_SPHERE,
+			RELAY_MID_EXCAVATOR,
+		],
+		"near_runway_props": [
+			RELAY_MID_METEOR,
+			RELAY_MID_NEON,
+			RELAY_MID_CORAL,
+			RELAY_MID_PURIFIER,
+		],
+		"near_sky_textures": [],
+		"distant_tower_props": [
+			RELAY_DISTANT_TURBINE,
+			RELAY_DISTANT_RUIN,
+			RELAY_DIST_CRYSTAL_1,
+			RELAY_DIST_SIGNAL,
+			RELAY_DISTANT_TOWER,
+			RELAY_DIST_CRYSTAL_2,
+		],
+		"distant_accent_props": RELAY_DISTANT_ACCENT_POOL,
+		"distant_spaceship_props": RELAY_DISTANT_SHIP_POOL,
 		"distant_hearth_props": [],
 		"jump_obstacles": [RELAY_OBSTACLE],
 		"slide_obstacles": [RELAY_OBSTACLE],
-		"environment": {
-			"panorama_energy": 1.08,
-			"fog_color": Color(0.44, 0.46, 0.62),
-			"fog_density": 0.00012,
-			"fog_aerial_perspective": 0.035,
-			"ambient": Color(0.50, 0.54, 0.70),
-			"ambient_energy": 0.84,
-		},
+		"environment": RELAY_E3_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "能源包",
 		"cargo_name_en": "Energy Pack",
@@ -1108,14 +1265,17 @@ const LOCATION_MISSIONS := [
 		"target_hearth": "星火中继站",
 		"task_type": "Emergency Run",
 		"enable_chaser": true,
-		"chaser_creep_mult": 0.95,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 26.0,
+		"chaser_creep_mult": 0.78,
 		"duration": 40.0,
 		"order": 42,
 		"difficulty": 3,
 		"base_reward": 80,
-		"mechanics_hint": "40 秒限时：障碍极密，零潮紧追，剩余时间越高奖励倍率越高。",
-		"runner_rhythm": "紧急冲刺：短程高密度换道，末段落石与加速靴抢时间。",
-		"environment_factor": "两段沙暴压缩视野，落石封锁末段直道。",
+		"mechanics_hint": "40 秒限时：障碍极密，压迫追击开启；多踩稳定器减压，剩余时间越高奖励越高。",
+		"runner_rhythm": "紧急冲刺：短程高密度换道，加速靴甩开身后异能体，末段落石变速。",
+		"environment_factor": "碧极光幕：青绿极光垂落，雾面映出冷翠反光。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "医疗据点紧急调拨能源包——中继站信号塔必须在四十秒内重新通电。",
@@ -1125,40 +1285,33 @@ const LOCATION_MISSIONS := [
 		"location_id": "relay",
 		"layout_id": "layout_set_relay_4",
 		"road_style": "holographic",
-		"panorama": RELAY_SKY_PANORAMA,
-		"ground_texture": RELAY_GROUND_TEXTURE,
+		"ground_texture": RUNNER_GROUND_TEXTURE,
 		"textured_ground": true,
+		"visual_scene": RELAY_VISUAL_SCENE,
 		"sky_accents": {
-			"energy_gates": true,
+			"energy_gates": false,
 			"energy_vortex": false,
-			"aurora": true,
+			"aurora": false,
 			"panorama_billboards": false,
-			"distant_density": 1.42,
+			"distant_density": 1.28,
 		},
-		"midground_props": [RELAY_MIDGROUND_DRONE],
-		"distant_tower_props": [
-			RELAY_DISTANT_TURBINE,
-			RELAY_DISTANT_TOWER,
-			RELAY_DISTANT_RUIN,
-		],
-		"distant_spaceship_props": [],
+		"environment_pack_v2_mix": 0.0,
+		"midground_props": RELAY_MID_POOL,
+		"near_runway_props": RELAY_NEAR_POOL,
+		"near_sky_textures": [],
+		"distant_tower_props": RELAY_DISTANT_TOWER_POOL,
+		"distant_accent_props": RELAY_DISTANT_ACCENT_POOL,
+		"distant_spaceship_props": RELAY_DISTANT_SHIP_POOL,
 		"distant_hearth_props": [],
 		"jump_obstacles": [RELAY_OBSTACLE],
 		"slide_obstacles": [RELAY_OBSTACLE],
-		"environment": {
-			"panorama_energy": 1.14,
-			"fog_color": Color(0.40, 0.34, 0.52),
-			"fog_density": 0.00018,
-			"fog_aerial_perspective": 0.045,
-			"ambient": Color(0.54, 0.50, 0.68),
-			"ambient_energy": 0.90,
-		},
+		"environment": RELAY_E4_ENVIRONMENT,
 		"runner_code": "Elsa",
 		"cargo_name": "星火核心",
 		"cargo_name_en": "Ember Core",
 		"cargo_icon": "星火核心",
 		"cargo_load": 98,
-		"cargo_trait": "点火核心 · 零潮追击",
+		"cargo_trait": "点火核心 · 身后零潮异能体",
 		"obstacle_density": 1.22,
 		"fork_bias": false,
 		"sandstorm_dps_mult": 1.16,
@@ -1166,57 +1319,20 @@ const LOCATION_MISSIONS := [
 		"target_hearth": "星火中继站",
 		"task_type": "Ignition Run",
 		"enable_chaser": true,
-		"chaser_creep_mult": 1.38,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 32.0,
+		"chaser_creep_mult": 1.05,
 		"duration": 80.0,
 		"order": 43,
 		"difficulty": 4,
 		"base_reward": 100,
-		"mechanics_hint": "黎明线：全图最高难综合试炼，风暴眼+地裂+落石+毒雾，最快零潮追击。",
-		"runner_rhythm": "终极点火：交替环境危害与复合障碍，零潮速度全游戏最快，容不得失误。",
-		"environment_factor": "风暴眼穿越、双段地裂、落石滚压与毒雾交替，侧墙支路可避险。",
+		"mechanics_hint": "黎明线：风暴眼+熔岩+落石；异能量前沿压迫最高，需频繁稳定器减压避免被吞没。",
+		"runner_rhythm": "终极点火：多段加速靴与短侧墙，交替危害中保持身后距离。",
+		"environment_fix": "青白能量风暴夜 · 远景塔群最密。",
 		"unlock_ids": [],
 		"unlocks": [],
 		"story": "黎明线——携带星火核心穿越风暴眼，点亮中继站最后的信号链路。",
-	},
-	{
-		"mission_id": "mission_gate_lab",
-		"location_id": "gate",
-		"layout_id": "mission_gate_lab",
-		"environment_pack_v2_mix": 0.0,
-		"midground_props": [
-			"res://assets/maps/route_levels/models/environment/distant/distant_signal_tower.glb",
-			"res://assets/maps/route_levels/models/environment/midground/midground_excavator_robot.glb",
-			"res://assets/maps/route_levels/models/environment/midground/neon_sign_prop.glb",
-		],
-		"environment": {
-			"panorama_energy": 1.56,
-			"fog_color": Color(0.44, 0.30, 0.28),
-			"fog_density": 0.00058,
-			"fog_aerial_perspective": 0.12,
-			"ambient": Color(0.52, 0.38, 0.36),
-			"ambient_energy": 0.78,
-		},
-		"runner_code": "Elsa",
-		"cargo_name": "试玩包",
-		"cargo_name_en": "Lab Pack",
-		"cargo_icon": "建设",
-		"cargo_load": 72,
-		"cargo_trait": "机制试玩 · 轻装",
-		"obstacle_density": 0.55,
-		"fork_bias": false,
-		"source_hearth": "居民穹顶",
-		"target_hearth": "防御哨站",
-		"task_type": "Supply Run",
-		"duration": 60.0,
-		"order": 50,
-		"difficulty": 1,
-		"base_reward": 40,
-		"mechanics_hint": "弹射垫 → 平台跳跃 → 缓坡 → 窄梁 → 高架 U 弯。倒置/半管/身后坍塌未开放。",
-		"runner_rhythm": "机制试玩：先踩弹射飞坑，再跳静态平台过熔岩，跟着缓坡爬升，走中间窄梁，最后弹射上高架水平掉头。",
-		"environment_factor": "防御哨站工坊跑道，专供体验新高度机制。",
-		"unlock_ids": [],
-		"unlocks": [],
-		"story": "哨站工坊开放试跑：把弹射、踏板、缓坡和窄梁串成一条可跑完的教学线。",
 	},
 	{
 		"mission_id": "mission_gate_d1",
@@ -1246,7 +1362,8 @@ const LOCATION_MISSIONS := [
 		"cargo_name_en": "Defense Pack",
 		"cargo_icon": "防御",
 		"cargo_load": 108,
-		"cargo_trait": "主动防御 · 减损",
+		"cargo_fragility": 0.7,
+		"cargo_trait": "主动防御 · 碰撞减损 · 开局盾25",
 		"obstacle_density": 1.0,
 		"fork_bias": false,
 		"sandstorm_dps_mult": 1.18,
@@ -1279,12 +1396,12 @@ const LOCATION_MISSIONS := [
 		],
 		"environment_pack_v2_mix": 0.0,
 		"jump_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/带刺障碍（跳跃）.glb",
-			"res://mvp素材第二批/障碍物/0803/荆棘丛（跳跃）.glb",
+			"res://assets/maps/route_levels/models/obstacles/jump/spiky_barrier.glb",
+			"res://assets/maps/route_levels/models/obstacles/jump/thorn_bush.glb",
 		],
 		"slide_obstacles": [
-			"res://mvp素材第二批/障碍物/0803/能量屏障（滑铲）.glb",
-			"res://mvp素材第二批/障碍物/0803/废旧广告牌（滑铲）.glb",
+			"res://assets/maps/route_levels/models/obstacles/slide/energy_barrier.glb",
+			"res://assets/maps/route_levels/models/obstacles/slide/ruined_billboard.glb",
 		],
 		"environment": {
 			"panorama_energy": 1.54,
@@ -1309,7 +1426,7 @@ const LOCATION_MISSIONS := [
 		"order": 52,
 		"difficulty": 2,
 		"base_reward": 60,
-		"runner_rhythm": "超重建包：单击短跳、双击满跳。左道弹射可加速但落地有车；熔岩走侧墙，不要在空中再跳。",
+		"runner_rhythm": "超重建包：单击短跳、双击满跳。左道弹射飞过短熔岩，落地注意障碍；后段熔岩走侧墙，不要在空中再跳。",
 		"environment_factor": "工地侧景：挖掘机、琥珀晶、陨石近景。",
 		"unlock_ids": [],
 		"unlocks": [],
@@ -1343,7 +1460,8 @@ const LOCATION_MISSIONS := [
 		"cargo_name_en": "Defense Pack",
 		"cargo_icon": "防御",
 		"cargo_load": 112,
-		"cargo_trait": "主动防御 · 减损",
+		"cargo_fragility": 0.7,
+		"cargo_trait": "主动防御 · 碰撞减损 · 开局盾25 · 身后异能体",
 		"cargo_secondary": "能源包",
 		"obstacle_density": 1.08,
 		"fork_bias": true,
@@ -1351,15 +1469,21 @@ const LOCATION_MISSIONS := [
 		"source_hearth": "居民穹顶",
 		"target_hearth": "防御哨站",
 		"task_type": "Relay Run",
+		"enable_chaser": true,
+		"pressure_chaser": true,
+		"chaser_mode": "pressure",
+		"chaser_initial_pressure": 18.0,
+		"chaser_creep_mult": 0.64,
 		"duration": 90.0,
 		"order": 53,
 		"difficulty": 3,
 		"base_reward": 70,
-		"runner_rhythm": "长途双货：热浪里点按散热，受击开防护罩。右道弹射过熔岩，后段平台跳再上侧墙。",
+		"mechanics_hint": "哨站追击：长途双货护送，身后异能体持续压迫；加速靴减压，受击开罩。",
+		"runner_rhythm": "长途双货：热浪里点按散热，受击开防护罩。右道弹射过熔岩，后段平台跳再上侧墙；留意身后距离。",
 		"environment_factor": "补给车队近景（净化器/药箱）+ 信号塔天际线。",
 		"unlock_ids": [],
 		"unlocks": [],
-		"story": "防御与能源中继运输：为哨站提供持续防线与能源。",
+		"story": "防御与能源中继运输途中，零潮异能体沿防线尾随而来。",
 	},
 	{
 		"mission_id": "mission_gate_d4",
@@ -1400,8 +1524,8 @@ const LOCATION_MISSIONS := [
 		"order": 54,
 		"difficulty": 4,
 		"base_reward": 80,
-		"mechanics_hint": "40 秒限时：点按散热。左道弹射抢速但可能撞球，右道弹射飞熔岩。",
-		"runner_rhythm": "限时能源：过热就点按。左弹射加速有风险，右弹射过熔岩抢时间，末段紫球换道或高跳。",
+		"mechanics_hint": "40 秒限时：点按散热。右道弹射飞熔岩；常规岔路左道双弹射提速；末段多加速。",
+		"runner_rhythm": "限时能源：过热就点按。右弹射过熔岩，常规岔路踩双垫抢速，末段加速 buff 冲刺。",
 		"environment_factor": "赤雾 + 近景破球/霓虹/陨石，末段紫球。",
 		"unlock_ids": [],
 		"unlocks": [],
@@ -1411,7 +1535,7 @@ const LOCATION_MISSIONS := [
 
 const EMBER_COIN_VALUE := 15
 const CARGO_DAMAGE_PER_HIT := 12.0
-const CHASER_NAME := "零潮追猎"
+const CHASER_NAME := "Nulltide Wraith"
 
 const THEME := {
 	"background": Color(0.14, 0.09, 0.05),
@@ -1663,17 +1787,19 @@ const MVP_LOCATIONS := {
 	"medical": {
 		"preview_2d": MAPS_2D_ROOT + "医疗据点2d.webp",
 		"model_3d": BUILDINGS_ROOT + "medical_outpost.glb",
-		"finish_silhouette": MAPS_2D_ROOT + "医疗据点2d.webp",
+		"finish_silhouette": "res://assets/maps/route_levels/runner_60s/settlement/medical_settlement_silhouette.png",
 	},
 	"relay": {
 		"preview_2d": MAPS_2D_ROOT + "星火中继站2d.webp",
 		"model_3d": BUILDINGS_ROOT + "spark_relay.glb",
-		"finish_silhouette": MAPS_2D_ROOT + "星火中继站2d.webp",
+		# 终点用彩色正面/据点抠图；结算剪影另见 relay_settlement_silhouette（地平线对齐）
+		"finish_silhouette": "res://assets/maps/route_levels/runner_60s/settlement/spark_relay_cutout.png",
+		"settlement_silhouette": "res://assets/maps/route_levels/runner_60s/settlement/relay_settlement_silhouette.png",
 	},
 	"gate": {
 		"preview_2d": MAPS_2D_ROOT + "防御哨站2d.webp",
 		"model_3d": BUILDINGS_ROOT + "defense_post.glb",
-		"finish_silhouette": MAPS_2D_ROOT + "防御哨站2d.webp",
+		"finish_silhouette": "res://assets/maps/route_levels/runner_60s/settlement/defense_settlement_silhouette.png",
 	},
 }
 
@@ -1867,10 +1993,25 @@ static func apply_runner_background(mission: Dictionary) -> Dictionary:
 	var pitch := float(RUNNER_SKY_PITCH.get(mission_id, 0.0))
 	if mission_id.begins_with("mission_relay"):
 		if String(out.get("ground_texture", "")).strip_edges() == "":
-			out["ground_texture"] = RELAY_GROUND_TEXTURE
+			out["ground_texture"] = RUNNER_GROUND_TEXTURE
 		out["textured_ground"] = true
 		if String(out.get("panorama", "")).strip_edges() == "":
-			out["panorama"] = RELAY_SKY_PANORAMA
+			match mission_id:
+				"mission_relay_e2":
+					out["panorama"] = RELAY_E2_SKY_PANORAMA
+				"mission_relay_e3":
+					out["panorama"] = RELAY_E3_SKY_PANORAMA
+				"mission_relay_e4":
+					out["panorama"] = RELAY_E4_SKY_PANORAMA
+				_:
+					out["panorama"] = RELAY_E1_SKY_PANORAMA
+		var relay_scene = out.get("visual_scene", {})
+		if typeof(relay_scene) != TYPE_DICTIONARY:
+			relay_scene = {}
+		var merged_scene: Dictionary = RELAY_VISUAL_SCENE.duplicate(true)
+		for key in relay_scene:
+			merged_scene[key] = relay_scene[key]
+		out["visual_scene"] = merged_scene
 	elif mission_id.begins_with("mission_medical"):
 		if String(out.get("panorama", "")).strip_edges() == "":
 			out["panorama"] = MEDICAL_SKY_PANORAMA
@@ -1903,13 +2044,21 @@ static func apply_runner_background(mission: Dictionary) -> Dictionary:
 		env = MEDICAL_M3_ENVIRONMENT.duplicate(true)
 	elif mission_id == "mission_medical_m4":
 		env = MEDICAL_M4_ENVIRONMENT.duplicate(true)
+	elif mission_id in ["mission_relay_e1", "mission_relay_01"]:
+		env = RELAY_E1_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_relay_e2":
+		env = RELAY_E2_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_relay_e3":
+		env = RELAY_E3_ENVIRONMENT.duplicate(true)
+	elif mission_id == "mission_relay_e4":
+		env = RELAY_E4_ENVIRONMENT.duplicate(true)
 	var existing = out.get("environment", {})
 	if typeof(existing) == TYPE_DICTIONARY:
 		for key in existing:
 			env[key] = existing[key]
 	if absf(yaw) > 0.001:
 		env["sky_rotation_y"] = yaw
-	if absf(pitch) > 0.001 or mission_id in ["mission_reservoir_03", "mission_reservoir_04"]:
+	if absf(pitch) > 0.001 or mission_id in ["mission_reservoir_03", "mission_reservoir_04"] or mission_id.begins_with("mission_relay"):
 		env["sky_rotation_x"] = pitch
 	out["environment"] = _sanitize_runner_environment(env, mission_id)
 	return apply_visual_kit(out)
@@ -1918,9 +2067,9 @@ static func apply_runner_background(mission: Dictionary) -> Dictionary:
 static func _sanitize_runner_environment(env: Dictionary, mission_id: String = "") -> Dictionary:
 	var out: Dictionary = env.duplicate(true)
 	if mission_id.begins_with("mission_relay"):
-		# 中继站：轻雾、暖色地平线，避免紫雾洗屏挡障碍
-		out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.04)), 0.05)
-		out["fog_density"] = minf(float(out.get("fog_density", 0.00014)), 0.00020)
+		# 对齐水源一：薄雾上限，避免 aerial fog 把角色/建筑染成天空色
+		out["fog_aerial_perspective"] = minf(float(out.get("fog_aerial_perspective", 0.045)), 0.06)
+		out["fog_density"] = minf(float(out.get("fog_density", 0.00028)), 0.00036)
 		return out
 	if mission_id.begins_with("mission_medical"):
 		# 跟水源第一关同一套薄雾上限，保住全景里的云层明暗
@@ -2253,6 +2402,7 @@ static func phase_at(distance: float) -> Dictionary:
 
 
 static func integrity_grade(integrity: float) -> String:
+	# 仅用于结算奖励/进度区间换算；跑酷失败不走此函数（须完整度真实为 0）
 	if integrity >= 95.0:
 		return "Perfect"
 	if integrity >= 80.0:
@@ -2322,10 +2472,20 @@ static func get_location_finish_silhouette(location_id: String) -> String:
 	return ""
 
 
+static func get_location_settlement_silhouette(location_id: String) -> String:
+	var entry: Dictionary = MVP_LOCATIONS.get(location_id, {})
+	var silhouette := String(entry.get("settlement_silhouette", "")).strip_edges()
+	if silhouette == "":
+		silhouette = String(entry.get("finish_silhouette", "")).strip_edges()
+	if silhouette != "" and _finish_silhouette_resource_exists(silhouette):
+		return silhouette
+	return ""
+
+
 static func _finish_silhouette_resource_exists(path: String) -> bool:
 	if path.strip_edges() == "":
 		return false
-	if FileAccess.file_exists(path):
+	if FileAccess.file_exists(path) or FileAccess.file_exists(ProjectSettings.globalize_path(path)):
 		return true
 	if not ResourceLoader.exists(path):
 		return false
@@ -2430,7 +2590,7 @@ static func get_manager_accent(location_id: String) -> Color:
 		"gate":
 			return Color(0.62, 0.46, 0.34)
 		"relay":
-			return Color(0.52, 0.40, 0.82)
+			return Color(0.28, 0.68, 0.96)
 		_:
 			return Color(0.35, 0.50, 0.68)
 
@@ -2507,7 +2667,8 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 	var outpost := get_outpost_meta(location_id)
 	if outpost.is_empty():
 		return {}
-	var show_missions := revealed or preview
+	# 仅批次真正解锁（revealed）才列出运输任务；preview 可看据点，不展示任务卡
+	var show_missions := revealed
 	var mission: Dictionary = get_mission_for_location(location_id) if show_missions else {}
 	var repair_total := maxi(1, int(outpost.get("repair_total", 400)))
 	var repair_current := 0
@@ -2545,20 +2706,21 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 			transport_missions.append(loc_mission)
 			mission_index += 1
 	var copy_en := _detail_copy_en(location_id)
+	var batch_id := MissionDispatch.get_location_batch_id(PLANET_ID, location_id)
 	var status_text := ""
 	if completed:
 		status_text = "Status: Lit"
 	elif revealed:
 		status_text = "Status: Transport Repair"
 	elif preview:
-		status_text = "Status: Preview · Batch 3 locked"
+		status_text = "Status: Preview · Batch %d locked" % maxi(batch_id, 1)
 	else:
 		status_text = "Status: Locked"
 	var locked_hint := ""
 	if not revealed and not preview:
 		locked_hint = "\nMain Rewards: Runner ??? · Ember Coins ???"
 	elif preview and not revealed:
-		locked_hint = "\nPreview only · missions not on dispatch board yet"
+		locked_hint = "\nPreview only · transport missions unlock with this batch"
 	var meta_state := ""
 	if completed:
 		meta_state = "Lit"
@@ -2571,6 +2733,7 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 	var type_en := String(copy_en.get("type_en", String(outpost.get("name_en", "Outpost"))))
 	var tagline_en := String(copy_en.get("tagline_en", ""))
 	var goal_en := String(copy_en.get("goal_en", ""))
+	var show_manager: bool = revealed or completed or Global.is_dev_full_unlock()
 	var manager_payload := {
 		"name": "???",
 		"title": "Unknown",
@@ -2578,7 +2741,7 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 		"portrait_path": "",
 		"show_identity": false,
 	}
-	if completed:
+	if show_manager:
 		var title_en := String(outpost.get("manager_title_en", copy_en.get("manager_title_en", "")))
 		var quote_en := String(outpost.get("manager_quote_en", copy_en.get("manager_quote_en", "")))
 		manager_payload = {
@@ -2614,7 +2777,7 @@ static func build_detail_payload(location_id: String, revealed: bool, completed:
 			"unlock_character": String(outpost.get("unlock_character", "")),
 		},
 		"cargo_icon_path": get_cargo_icon_path(mission) if not mission.is_empty() else "",
-		"revealed": revealed or preview,
+		"revealed": revealed,
 		"preview": preview,
 		"completed": completed,
 		"locked_hint": locked_hint,

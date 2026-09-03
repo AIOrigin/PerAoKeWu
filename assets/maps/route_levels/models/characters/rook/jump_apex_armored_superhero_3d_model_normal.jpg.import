@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bkx6qvjd3o4ac"
+uid="uid://pltdq2q3gwtt"
 path.s3tc="res://.godot/imported/jump_apex_armored_superhero_3d_model_normal.jpg-a82f496d8904a9b43b95b7ea65bbc44d.s3tc.ctex"
 path.etc2="res://.godot/imported/jump_apex_armored_superhero_3d_model_normal.jpg-a82f496d8904a9b43b95b7ea65bbc44d.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "f33356dee1fe87ac2a1b2e27ce6234cb"
+"md5": "09bc0fb453d9bb5a6f6a75a8ab29e2c4"
 }
 
 [deps]

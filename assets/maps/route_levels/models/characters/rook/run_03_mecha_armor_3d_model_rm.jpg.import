@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://blslogppfpqmv"
+uid="uid://dgta8ukrye0kr"
 path.s3tc="res://.godot/imported/run_03_mecha_armor_3d_model_rm.jpg-9b2f71e7c35a2a3699678f0706c61c77.s3tc.ctex"
 path.etc2="res://.godot/imported/run_03_mecha_armor_3d_model_rm.jpg-9b2f71e7c35a2a3699678f0706c61c77.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "3eac77212fadca1030d50623baf607bb"
+"md5": "bc817cdf4cc902a2e2fde39cec03516a"
 }
 
 [deps]

@@ -34,6 +34,12 @@ const STAT_LABELS := {
 	STAT_MOBILITY: "机动响应",
 }
 
+const STAT_LABELS_EN := {
+	STAT_CARGO_GUARD: "Cargo Guard",
+	STAT_COIN_BONUS: "Coin Yield",
+	STAT_MOBILITY: "Mobility",
+}
+
 const UPGRADE_COSTS := {
 	STAT_CARGO_GUARD: [80, 120, 180, 260, 360],
 	STAT_COIN_BONUS: [80, 120, 180, 260, 360],
@@ -41,11 +47,11 @@ const UPGRADE_COSTS := {
 }
 
 const TITLE_BY_LEVEL := [
-	{"min_level": 1, "title": "见习信使"},
-	{"min_level": 5, "title": "边境信使"},
-	{"min_level": 10, "title": "星火信使"},
-	{"min_level": 18, "title": "黎明线信使"},
-	{"min_level": 25, "title": "零潮行者"},
+	{"min_level": 1, "title": "见习信使", "title_en": "Apprentice Courier"},
+	{"min_level": 5, "title": "边境信使", "title_en": "Frontier Courier"},
+	{"min_level": 10, "title": "星火信使", "title_en": "Ember Runner"},
+	{"min_level": 18, "title": "黎明线信使", "title_en": "Dawnline Courier"},
+	{"min_level": 25, "title": "零潮行者", "title_en": "Nulltide Walker"},
 ]
 
 
@@ -78,11 +84,18 @@ static func xp_into_current_level(xp: int) -> int:
 
 
 static func title_for_level(level: int) -> String:
-	var result := "见习信使"
+	var result := GameLocale.pick("见习信使", "Apprentice Courier")
 	for entry in TITLE_BY_LEVEL:
 		if level >= int(entry["min_level"]):
-			result = String(entry["title"])
+			result = GameLocale.pick(String(entry["title"]), String(entry.get("title_en", entry["title"])))
 	return result
+
+
+static func stat_label(stat_id: String) -> String:
+	return GameLocale.pick(
+		String(STAT_LABELS.get(stat_id, stat_id)),
+		String(STAT_LABELS_EN.get(stat_id, STAT_LABELS.get(stat_id, stat_id)))
+	)
 
 
 static func runner_xp_reward(grade: String, difficulty: int, first_clear: bool) -> int:
@@ -124,7 +137,10 @@ static func mobility_grade_text(mobility_level: int) -> String:
 	var lane := _grade_letter(mobility_level + 1)
 	var jump := _grade_letter(mobility_level)
 	var slide := _grade_letter(mobility_level + 1)
-	return "换道 %s · 跳跃 %s · 滑铲 %s" % [lane, jump, slide]
+	return GameLocale.pick(
+		"换道 %s · 跳跃 %s · 滑铲 %s" % [lane, jump, slide],
+		"Lane %s · Jump %s · Slide %s" % [lane, jump, slide]
+	)
 
 
 static func upgrade_cost(stat_id: String, current_level: int) -> int:

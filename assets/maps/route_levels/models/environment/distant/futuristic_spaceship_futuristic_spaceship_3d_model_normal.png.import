@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hq2kqkd7xqg"
+uid="uid://8o6w2mgr0bt8"
 path.s3tc="res://.godot/imported/futuristic_spaceship_futuristic_spaceship_3d_model_normal.png-937583ff66cbffacbe7e8a0fd44baa3a.s3tc.ctex"
 path.etc2="res://.godot/imported/futuristic_spaceship_futuristic_spaceship_3d_model_normal.png-937583ff66cbffacbe7e8a0fd44baa3a.etc2.ctex"
 metadata={
@@ -29,7 +29,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/maps/route_levels/runner_60s/distant_props/futuristic_spaceship_futuristic_spaceship_3d_model_normal.png"
+roughness/src_normal="res://assets/maps/route_levels/models/environment/distant/futuristic_spaceship_futuristic_spaceship_3d_model_normal.png"
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

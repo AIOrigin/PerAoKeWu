@@ -14,6 +14,7 @@ const CHARACTERS := {
 		"name_en": "ELSA",
 		"badge": "E",
 		"title": "黎明线信使",
+		"title_en": "Dawnline Courier",
 		"unlock_story_id": "",
 		"unlock_banner": "",
 		"story_lock_hint": "",
@@ -26,9 +27,13 @@ const CHARACTERS := {
 		"section_background": "BACKGROUND",
 		"quote_in_art": true,
 		"trait_name": "疾风 - II",
+		"trait_name_en": "Gale - II",
 		"trait_gear": "轻型外骨骼",
+		"trait_gear_en": "Light Exoskeleton",
 		"trait_desc": "短冲刺后速度提升，擅长低负重与精准闪避。",
+		"trait_desc_en": "Speed rises after a short dash; strong at light loads and precise dodges.",
 		"trait_tag": "被动特性 · 战术机动",
+		"trait_tag_en": "Passive · Tactical Mobility",
 		"hub_stats": [
 			{"icon": "sp", "label": "SPEED", "value": "100", "pct": 78},
 			{"icon": "hp", "label": "HP", "value": "100", "pct": 60},
@@ -65,11 +70,11 @@ const CHARACTERS := {
 			},
 		],
 		"stats": [
-			{"id": "hp", "label": "生命", "value": "105", "fill": 0.72},
-			{"id": "stamina", "label": "耐力", "value": "100", "fill": 0.68},
-			{"id": "speed", "label": "速度", "value": "100%", "fill": 0.85},
-			{"id": "load", "label": "载重", "value": "100", "fill": 0.55},
-			{"id": "cargo", "label": "货物稳定", "value": "100", "fill": 0.78},
+			{"id": "hp", "label": "生命", "label_en": "HP", "value": "105", "fill": 0.72},
+			{"id": "stamina", "label": "耐力", "label_en": "Stamina", "value": "100", "fill": 0.68},
+			{"id": "speed", "label": "速度", "label_en": "Speed", "value": "100%", "fill": 0.85},
+			{"id": "load", "label": "载重", "label_en": "Load", "value": "100", "fill": 0.55},
+			{"id": "cargo", "label": "货物稳定", "label_en": "Cargo Stability", "value": "100", "fill": 0.78},
 		],
 		"story_paragraphs": [
 			"七岁那年，Elsa所在的地下掩体因净化系统故障，面临全灭的绝境。在掩体大门即将永久封死的那一刻，一个浑身是血的星火信使倒在了门外，手里紧紧攥着那枚救命的维修零件。",
@@ -94,6 +99,7 @@ const CHARACTERS := {
 		"name_en": "ROOK",
 		"badge": "R",
 		"title": "穹顶守护者",
+		"title_en": "Dome Guardian",
 		"unlock_story_id": "dome_resident",
 		"unlock_banner": "LIGHT UP HABITAT DOME TO UNLOCK",
 		"story_lock_hint": "Complete the story of Habitat Dome to read this archive.",
@@ -106,33 +112,66 @@ const CHARACTERS := {
 		"section_background": "BACKGROUND",
 		"quote_in_art": true,
 		"trait_name": "堡垒 - IV",
+		"trait_name_en": "Bastion - IV",
 		"trait_gear": "重装战甲",
+		"trait_gear_en": "Heavy Armor",
 		"trait_desc": "高防御与护货优先，冲刺短但抗压强，适合危险路段护航。",
+		"trait_desc_en": "High defense and cargo protection; short dashes but strong under pressure — escort for dangerous stretches.",
 		"trait_tag": "被动特性 · 重装护卫",
+		"trait_tag_en": "Passive · Heavy Escort",
 		"hub_stats": [
 			{"icon": "sp", "label": "SPEED", "value": "85", "pct": 50},
 			{"icon": "hp", "label": "HP", "value": "130", "pct": 72},
 			{"icon": "en", "label": "STAMINA", "value": "120", "pct": 65},
 		],
 		"level_bonus_pct": "+5%",
+		# 解锁后与 Elsa 共用同一套装备展示（暂无独立装备系统）
 		"gear": [
-			{"slot": "BOOTS", "icon_key": "boots", "locked": true},
-			{"slot": "CORE", "icon_key": "core", "locked": true},
-			{"slot": "SHIELD", "icon_key": "shield", "locked": true},
+			{
+				"slot": "BOOTS",
+				"icon_key": "boots",
+				"equipped": true,
+				"name": "Swiftstride Boots",
+				"rarity": "rare",
+				"rarity_label": "RARE",
+				"fx": "+12% SPEED",
+			},
+			{
+				"slot": "CORE",
+				"icon_key": "core",
+				"equipped": true,
+				"name": "Power Reactor Core",
+				"rarity": "epic",
+				"rarity_label": "EPIC",
+				"fx": "+20% HP",
+			},
+			{
+				"slot": "SHIELD",
+				"icon_key": "shield",
+				"equipped": true,
+				"name": "Impact Shield",
+				"rarity": "rare",
+				"rarity_label": "RARE",
+				"fx": "+15% IMPACT RESIST",
+			},
 		],
 		"stats": [
-			{"id": "hp", "label": "生命", "value": "140", "fill": 0.90},
-			{"id": "stamina", "label": "耐力", "value": "90", "fill": 0.58},
-			{"id": "speed", "label": "速度", "value": "78%", "fill": 0.45},
-			{"id": "load", "label": "载重", "value": "130", "fill": 0.88},
-			{"id": "cargo", "label": "货物稳定", "value": "120", "fill": 0.92},
+			{"id": "hp", "label": "生命", "label_en": "HP", "value": "140", "fill": 0.90},
+			{"id": "stamina", "label": "耐力", "label_en": "Stamina", "value": "90", "fill": 0.58},
+			{"id": "speed", "label": "速度", "label_en": "Speed", "value": "78%", "fill": 0.45},
+			{"id": "load", "label": "载重", "label_en": "Load", "value": "130", "fill": 0.88},
+			{"id": "cargo", "label": "货物稳定", "label_en": "Cargo Stability", "value": "120", "fill": 0.92},
 		],
 		"story_paragraphs": [
 			"零潮爆发时，Rook 曾是最强的重装防暴军官，驾驶「堡垒-IV」保护幸存者撤离。但那一天，他没能救下自己的妹妹。废墟中，他伸出的机械臂只抓住了妹妹留下的发带。",
 			"从此，他封存战甲，成为居民穹顶里的维修工。直到一天，一个年轻女孩带着受损的运输包冲进穹顶。面对逼近的变异机械，她没有逃跑，而是死死护住货物。那双倔强的眼睛，让 Rook 想起了曾经没能保护的妹妹。",
 			"他终于明白，自己无法改变过去，但可以守护未来。于是，他重新启动「堡垒-IV」。这一次，他不是为了战斗。而是为了成为那个女孩身后，永远不会倒下的盾牌。",
 		],
-		"story_paragraphs_en": [],
+		"story_paragraphs_en": [
+			"When the Nulltide struck, Rook was an elite heavy-riot officer piloting Bastion-IV to evacuate survivors. That day he failed to save his sister — in the ruins, his mechanical arm caught only the ribbon she left behind.",
+			"He sealed the armor and became a repair tech in the Habitat Dome. One day a young runner stormed in with a damaged cargo pack. Facing closing mutant machines, she refused to flee and guarded the goods. Those stubborn eyes reminded Rook of the sister he could not protect.",
+			"He could not rewrite the past — but he could guard the future. He restarted Bastion-IV. This time not to wage war, but to be the shield that never falls behind that girl.",
+		],
 	},
 }
 
@@ -181,10 +220,34 @@ static func prev_unlocked_id(current_id: String, unlocked_stories: Array) -> Str
 
 
 static func story_paragraphs_for_ui(character: Dictionary) -> Array:
-	var en: Array = character.get("story_paragraphs_en", [])
-	if not en.is_empty():
-		return en
+	if GameLocale.is_en():
+		var en: Array = character.get("story_paragraphs_en", [])
+		if not en.is_empty():
+			return en
 	return character.get("story_paragraphs", [])
+
+
+static func quote_for_ui(character: Dictionary) -> String:
+	return GameLocale.pick(
+		String(character.get("quote_zh", character.get("quote", ""))),
+		String(character.get("quote", character.get("quote_zh", "")))
+	)
+
+
+static func title_for_ui(character: Dictionary) -> String:
+	return GameLocale.field(character, "title", "title_en")
+
+
+static func trait_desc_for_ui(character: Dictionary) -> String:
+	return GameLocale.field(character, "trait_desc", "trait_desc_en")
+
+
+static func trait_tag_for_ui(character: Dictionary) -> String:
+	return GameLocale.field(character, "trait_tag", "trait_tag_en")
+
+
+static func stat_label_for_ui(stat: Dictionary) -> String:
+	return GameLocale.field(stat, "label", "label_en")
 
 
 static func _step_unlocked_id(current_id: String, unlocked_stories: Array, step: int) -> String:

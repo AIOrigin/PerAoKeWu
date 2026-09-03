@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dsx3xfcto01op"
+uid="uid://byxlev0d2o1f5"
 path.s3tc="res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_normal.png-5eae43932365aae74e34a8652adf123b.s3tc.ctex"
 path.etc2="res://.godot/imported/giant_energy_crystal_pillar_1_crystal_tower_3d_model_normal.png-5eae43932365aae74e34a8652adf123b.etc2.ctex"
 metadata={
@@ -29,7 +29,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/maps/route_levels/runner_60s/distant_props/giant_energy_crystal_pillar_1_crystal_tower_3d_model_normal.png"
+roughness/src_normal="res://assets/maps/route_levels/models/environment/distant/giant_energy_crystal_pillar_1_crystal_tower_3d_model_normal.png"
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

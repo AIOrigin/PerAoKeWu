@@ -70,6 +70,13 @@ const HOME_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_home/"
 const HOME_BG_PATH := HOME_UI_ROOT + "background_dawnline.webp"
 const HOME_AVATAR_PATH := HOME_UI_ROOT + "avatar_default.png"
 const HOME_MISSION_THUMB_PATH := HOME_UI_ROOT + "mission_thumb_water_station.webp"
+const HOME_MISSION_THUMB_BY_LOCATION := {
+	"dome": HOME_UI_ROOT + "mission_thumb_dome.jpg",
+	"reservoir": HOME_UI_ROOT + "mission_thumb_water_station.webp",
+	"medical": HOME_UI_ROOT + "mission_thumb_medical.jpg",
+	"gate": HOME_UI_ROOT + "mission_thumb_gate.jpg",
+	"relay": HOME_UI_ROOT + "mission_thumb_relay.jpg",
+}
 const HOME_CIRCULAR_AVATAR_SHADER := HOME_UI_ROOT + "circular_avatar.gdshader"
 const FINAL_UI_ROOT := "res://assets/maps/route_levels/mobile_home/ui_final/"
 const FINAL_TOPBAR := FINAL_UI_ROOT + "ui_topbar_container.png"
@@ -127,7 +134,7 @@ const GUIDE_STEPS := [
 	{
 		"tab": TAB_MAP,
 		"title": "从这里开始",
-		"body": "点击下方 MAP 进入据点地图。\n也可从 TASKS 接取运输任务；批次会逐步解锁。",
+		"body": "点击 MAP，选择一个地图，查看各个据点和相关运输任务。也可以直接在 TASKS 里接取运输任务。",
 		"next": "知道了",
 	},
 ]
@@ -155,6 +162,8 @@ var _story_overlay: Control
 var _story_canvas: CanvasLayer
 var _story_intro_replay := false
 var _guide_overlay: Control
+var _guide_layer: CanvasLayer
+var _transport_intro_layer: CanvasLayer
 var _character_story_overlay: Control
 var _character_story_layer: CanvasLayer
 var _selected_character_id: String = CharacterRoster.CHAR_ELSA
@@ -180,15 +189,17 @@ var _page_scrim: ColorRect
 var _bg_bottom_fade: ColorRect
 var _bg_bottom_deep: ColorRect
 var _home_title_box: Control
+var _dawnline_hit: Control
+var _dawnline_glow: Control
+var _dawnline_finger: Control
+var _dawnline_hint_tween: Tween
 var _selected_tab := TAB_HOME
 var _selected_planet_id := "glass_desert"
 var _guide_step := -1
 var _pause_overlay: MobilePauseOverlay
 var _settings_overlay: Control
-var _settings_tutorial_check: CheckButton
-var _settings_bgm_check: CheckButton
 var _settings_bgm_slider: HSlider
-var _settings_sfx_slider: HSlider
+var _settings_language_option: OptionButton
 var _energy_tick := 0.0
 var _task_detail: Control
 var _tasks_sub_tab := "missions"
@@ -196,6 +207,11 @@ var _tasks_missions_box: VBoxContainer
 var _tasks_daily_box: VBoxContainer
 var _tasks_tab_missions_btn: Button
 var _tasks_tab_daily_btn: Button
+var _tasks_daily_red_dot: Control
+var _tasks_ritual_footer: PanelContainer
+var _tasks_completed_btn: Button
+var _tasks_completed_overlay: Control
+var _tasks_completed_list_box: VBoxContainer
 
 
 func _ready() -> void:
@@ -214,10 +230,13 @@ func _ready() -> void:
 	_show_tab(_selected_tab)
 	_refresh_status_bar()
 	Global.play_home_bgm()
+	# 首次：不自动播漫画，等玩家点 DAWNLINE 光点；看完漫画后再走首页引导
 	if not Global.opening_comic_seen:
-		call_deferred("_show_story_intro")
+		call_deferred("_refresh_dawnline_comic_hint")
 	elif not Global.home_guide_seen:
 		_start_home_guide()
+	else:
+		_refresh_dawnline_comic_hint()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -231,6 +250,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _task_detail != null and _task_detail.visible:
 		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
 			_task_detail.close()
+			get_viewport().set_input_as_handled()
+		return
+	if _tasks_completed_overlay != null and _tasks_completed_overlay.visible:
+		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+			_close_tasks_completed_overlay()
 			get_viewport().set_input_as_handled()
 		return
 	if _story_overlay != null and is_instance_valid(_story_overlay):
@@ -306,9 +330,10 @@ func _apply_mobile_layout() -> void:
 		var top_inset := _home_spec_h(112)
 		var bottom_inset := _home_spec_h(1228 - 1110)
 		if _selected_tab == TAB_CHARACTER:
-			h_margin = 0
-			top_inset = _home_spec_h(96)
-			bottom_inset = _home_spec_h(1228 - 1110)
+			# 四周留缝：左右边距 + 底栏上方小间隙（小缝即可，避免再出现大块露底）
+			h_margin = side_margin
+			top_inset = _home_spec_h(104)
+			bottom_inset = _home_spec_h(20)
 		_content_host.offset_left = h_margin
 		_content_host.offset_right = -h_margin
 		_content_host.offset_top = top_inset + top_margin
@@ -466,7 +491,7 @@ func _build_ui() -> void:
 	_home_title_box = _build_home_title_overlay()
 	_home_title_box.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_home_title_box.offset_top = float(_home_spec_h(140))
-	_home_title_box.offset_bottom = float(_home_spec_h(345))
+	_home_title_box.offset_bottom = float(_home_spec_h(420))
 	_home_overlay.add_child(_home_title_box)
 
 	_home_mission_host = Control.new()
@@ -555,6 +580,7 @@ func _build_home_title_overlay() -> Control:
 	l1.add_theme_constant_override("shadow_offset_y", 0)
 	l1.add_theme_constant_override("shadow_outline_size", 10)
 	l1.add_theme_constant_override("letter_spacing", _home_spec_em(86, 0.04))
+	l1.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(l1)
 
 	var l2 := Label.new()
@@ -567,22 +593,56 @@ func _build_home_title_overlay() -> Control:
 	l2.add_theme_constant_override("shadow_offset_y", 0)
 	l2.add_theme_constant_override("shadow_outline_size", 10)
 	l2.add_theme_constant_override("letter_spacing", _home_spec_em(86, 0.04))
+	l2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(l2)
 
+	var dawn_wrap := Control.new()
+	dawn_wrap.name = "DawnlineHit"
+	dawn_wrap.custom_minimum_size = Vector2(0, _home_spec_h(72))
+	dawn_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dawn_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
+	box.add_child(dawn_wrap)
+	_dawnline_hit = dawn_wrap
+
+	var glow := PanelContainer.new()
+	glow.name = "DawnlineGlow"
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.set_anchors_preset(Control.PRESET_CENTER)
+	glow.offset_left = -_home_spec_w(168)
+	glow.offset_right = _home_spec_w(168)
+	glow.offset_top = -_home_spec_h(22)
+	glow.offset_bottom = _home_spec_h(28)
+	var glow_style := StyleBoxFlat.new()
+	glow_style.bg_color = Color(0.35, 0.85, 1.0, 0.22)
+	glow_style.border_color = Color(0.75, 0.95, 1.0, 0.85)
+	glow_style.set_border_width_all(2)
+	glow_style.set_corner_radius_all(_home_spec_w(18))
+	glow_style.shadow_color = Color(0.45, 0.9, 1.0, 0.55)
+	glow_style.shadow_size = 18
+	glow.add_theme_stylebox_override("panel", glow_style)
+	glow.visible = false
+	dawn_wrap.add_child(glow)
+	_dawnline_glow = glow
+
 	var sub_row := HBoxContainer.new()
+	sub_row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sub_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	sub_row.add_theme_constant_override("separation", _home_spec_w(18))
-	box.add_child(sub_row)
+	sub_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dawn_wrap.add_child(sub_row)
 
 	var line_l := ColorRect.new()
 	line_l.custom_minimum_size = Vector2(_home_spec_w(82), 1)
 	line_l.color = Color(0.624, 0.847, 0.961, 0.85)
 	line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub_row.add_child(line_l)
 
 	var subtitle := Label.new()
+	subtitle.name = "DawnlineLabel"
 	subtitle.text = "DAWNLINE"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	subtitle.add_theme_font_size_override("font_size", _home_spec_fs(40))
 	subtitle.add_theme_color_override("font_color", Color(0.894, 0.969, 0.996))
 	subtitle.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.65))
@@ -590,21 +650,193 @@ func _build_home_title_overlay() -> Control:
 	subtitle.add_theme_constant_override("shadow_offset_y", 0)
 	subtitle.add_theme_constant_override("shadow_outline_size", 6)
 	subtitle.add_theme_constant_override("letter_spacing", _home_spec_em(40, 0.62))
+	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub_row.add_child(subtitle)
 
 	var line_r := ColorRect.new()
 	line_r.custom_minimum_size = Vector2(_home_spec_w(82), 1)
 	line_r.color = Color(0.624, 0.847, 0.961, 0.85)
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub_row.add_child(line_r)
 
+	# 指引箭头：居中放在 DAWNLINE 正下方（单独 host，便于对称动画）
+	var arrow_wrap := VBoxContainer.new()
+	arrow_wrap.name = "DawnlineFinger"
+	arrow_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+	arrow_wrap.add_theme_constant_override("separation", _home_spec_h(2))
+	arrow_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow_wrap.visible = false
+	arrow_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	arrow_wrap.custom_minimum_size = Vector2(0, _home_spec_h(70))
+	box.add_child(arrow_wrap)
+	_dawnline_finger = arrow_wrap
+
+	var arrow_host := Control.new()
+	arrow_host.name = "GuideArrowHost"
+	arrow_host.custom_minimum_size = Vector2(0, _home_spec_h(48))
+	arrow_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	arrow_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow_wrap.add_child(arrow_host)
+
+	var arrow := Label.new()
+	arrow.name = "GuideArrow"
+	arrow.text = "▲"
+	arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	arrow.add_theme_font_size_override("font_size", _home_spec_fs(48))
+	arrow.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35, 1.0))
+	arrow.add_theme_color_override("font_outline_color", Color(0.05, 0.1, 0.16, 1.0))
+	arrow.add_theme_constant_override("outline_size", 10)
+	arrow.add_theme_color_override("font_shadow_color", Color(0.4, 0.9, 1.0, 0.75))
+	arrow.add_theme_constant_override("shadow_offset_x", 0)
+	arrow.add_theme_constant_override("shadow_offset_y", 0)
+	arrow.add_theme_constant_override("shadow_outline_size", 12)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow_host.add_child(arrow)
+
+	var tap_lbl := Label.new()
+	tap_lbl.name = "GuideTapLabel"
+	tap_lbl.text = GameLocale.pick("从这里开始", "Start from here")
+	tap_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tap_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tap_lbl.add_theme_font_size_override("font_size", _home_spec_fs(20))
+	tap_lbl.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0, 1.0))
+	tap_lbl.add_theme_color_override("font_outline_color", Color(0.05, 0.08, 0.12, 0.95))
+	tap_lbl.add_theme_constant_override("outline_size", 5)
+	tap_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow_wrap.add_child(tap_lbl)
+
 	var chev := Label.new()
+	chev.name = "DawnlineChevron"
 	chev.text = "▽"
 	chev.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	chev.add_theme_font_size_override("font_size", _home_spec_fs(22))
 	chev.add_theme_color_override("font_color", Color(0.710, 0.941, 1.0, 0.75))
+	chev.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(chev)
+
+	dawn_wrap.gui_input.connect(_on_dawnline_input)
 	return box
+
+
+func _on_dawnline_input(event: InputEvent) -> void:
+	if Global.opening_comic_seen:
+		return
+	if _story_overlay != null and is_instance_valid(_story_overlay):
+		return
+	var tapped := false
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		tapped = true
+	elif event is InputEventScreenTouch and event.pressed:
+		tapped = true
+	if not tapped:
+		return
+	get_viewport().set_input_as_handled()
+	_on_dawnline_comic_pressed()
+
+
+func _on_dawnline_comic_pressed() -> void:
+	if Global.opening_comic_seen:
+		_refresh_dawnline_comic_hint()
+		return
+	_hide_dawnline_comic_hint()
+	_show_story_intro(false)
+
+
+func _should_show_dawnline_comic_hint() -> bool:
+	return not Global.opening_comic_seen \
+		and _selected_tab == TAB_HOME \
+		and (_story_overlay == null or not is_instance_valid(_story_overlay)) \
+		and (_guide_overlay == null or not is_instance_valid(_guide_overlay))
+
+
+func _refresh_dawnline_comic_hint() -> void:
+	if _should_show_dawnline_comic_hint():
+		_show_dawnline_comic_hint()
+	else:
+		_hide_dawnline_comic_hint()
+
+
+func _show_dawnline_comic_hint() -> void:
+	if _dawnline_glow:
+		_dawnline_glow.visible = true
+	if _dawnline_finger:
+		_dawnline_finger.visible = true
+		var tap_lbl := _dawnline_finger.get_node_or_null("GuideTapLabel") as Label
+		if tap_lbl:
+			tap_lbl.text = GameLocale.pick("从这里开始", "Start from here")
+	if _dawnline_hit:
+		_dawnline_hit.mouse_filter = Control.MOUSE_FILTER_STOP
+	var chev := _home_title_box.get_node_or_null("DawnlineChevron") as Control if _home_title_box else null
+	if chev:
+		chev.visible = false
+	_start_dawnline_hint_tween()
+
+
+func _hide_dawnline_comic_hint() -> void:
+	if _dawnline_hint_tween != null and is_instance_valid(_dawnline_hint_tween):
+		_dawnline_hint_tween.kill()
+		_dawnline_hint_tween = null
+	if _dawnline_glow:
+		_dawnline_glow.visible = false
+		_dawnline_glow.modulate = Color(1, 1, 1, 1)
+	if _dawnline_finger:
+		_dawnline_finger.visible = false
+		_dawnline_finger.modulate = Color(1, 1, 1, 1)
+	var chev := _home_title_box.get_node_or_null("DawnlineChevron") as Control if _home_title_box else null
+	if chev:
+		chev.visible = true
+	if _dawnline_hit and Global.opening_comic_seen:
+		_dawnline_hit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+func _start_dawnline_hint_tween() -> void:
+	if _dawnline_glow == null or _dawnline_finger == null:
+		return
+	if _dawnline_hint_tween != null and is_instance_valid(_dawnline_hint_tween):
+		_dawnline_hint_tween.kill()
+		_dawnline_hint_tween = null
+	_dawnline_glow.modulate = Color(1, 1, 1, 0.55)
+	_dawnline_finger.modulate = Color(1, 1, 1, 1)
+	# 等布局完成后再居中 pivot，避免缩放看起来左右偏滑
+	call_deferred("_play_dawnline_arrow_tween")
+
+
+func _play_dawnline_arrow_tween() -> void:
+	if _dawnline_glow == null or _dawnline_finger == null:
+		return
+	if not _dawnline_finger.visible:
+		return
+	if _dawnline_hint_tween != null and is_instance_valid(_dawnline_hint_tween):
+		_dawnline_hint_tween.kill()
+	var host := _dawnline_finger.get_node_or_null("GuideArrowHost") as Control
+	var arrow := _dawnline_finger.get_node_or_null("GuideArrowHost/GuideArrow") as Control
+	if arrow == null:
+		arrow = _dawnline_finger.get_node_or_null("GuideArrow") as Control
+	var base_y := 0.0
+	var bob := float(_home_spec_h(8))
+	if arrow != null and host != null:
+		arrow.reset_size()
+		# 水平居中于 DAWNLINE 标题轴
+		var ax := (host.size.x - arrow.size.x) * 0.5
+		var ay := (host.size.y - arrow.size.y) * 0.5
+		arrow.position = Vector2(ax, ay)
+		arrow.pivot_offset = arrow.size * 0.5
+		arrow.scale = Vector2.ONE
+		base_y = ay
+	_dawnline_hint_tween = create_tween()
+	_dawnline_hint_tween.set_loops()
+	_dawnline_hint_tween.tween_property(_dawnline_glow, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_dawnline_hint_tween.parallel().tween_property(_dawnline_finger, "modulate:a", 1.0, 0.55)
+	if arrow != null:
+		_dawnline_hint_tween.parallel().tween_property(arrow, "scale", Vector2(1.12, 1.12), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_dawnline_hint_tween.parallel().tween_property(arrow, "position:y", base_y - bob, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_dawnline_hint_tween.tween_property(_dawnline_glow, "modulate:a", 0.5, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_dawnline_hint_tween.parallel().tween_property(_dawnline_finger, "modulate:a", 0.75, 0.55)
+	if arrow != null:
+		_dawnline_hint_tween.parallel().tween_property(arrow, "scale", Vector2.ONE, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_dawnline_hint_tween.parallel().tween_property(arrow, "position:y", base_y, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _on_avatar_input(event: InputEvent) -> void:
@@ -762,20 +994,6 @@ func _build_status_bar() -> Control:
 	_status_ember_label.add_theme_color_override("font_color", UI_TEXT)
 	_status_ember_label.add_theme_constant_override("letter_spacing", 2)
 	credits_wrap.add_child(_status_ember_label)
-
-	if OS.has_feature("editor"):
-		var editor_dev_btn := Button.new()
-		editor_dev_btn.text = "EDITOR"
-		editor_dev_btn.focus_mode = Control.FOCUS_NONE
-		editor_dev_btn.custom_minimum_size = Vector2(_home_spec_w(108), _home_spec_h(44))
-		editor_dev_btn.add_theme_font_size_override("font_size", _home_spec_fs(18))
-		editor_dev_btn.add_theme_color_override("font_color", Color(0.55, 0.95, 1.0))
-		editor_dev_btn.add_theme_stylebox_override("normal", _style(Color(0.04, 0.14, 0.22, 0.88), Color(0.45, 0.82, 0.95, 0.65), 1, _home_spec_w(10)))
-		editor_dev_btn.add_theme_stylebox_override("hover", _style(Color(0.06, 0.18, 0.28, 0.95), Color(0.55, 0.9, 1.0, 0.85), 1, _home_spec_w(10)))
-		editor_dev_btn.add_theme_stylebox_override("pressed", _style(Color(0.02, 0.1, 0.16, 0.95), Color(0.35, 0.72, 0.88, 0.75), 1, _home_spec_w(10)))
-		editor_dev_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-		editor_dev_btn.pressed.connect(_on_settings_open_level_editor)
-		row.add_child(editor_dev_btn)
 
 	var settings_button := Button.new()
 	settings_button.focus_mode = Control.FOCUS_NONE
@@ -988,6 +1206,7 @@ func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -
 		_home_overlay.visible = is_home
 	if _home_title_box:
 		_home_title_box.visible = is_home
+	_refresh_dawnline_comic_hint()
 	if _map_overlay:
 		_map_overlay.visible = is_map
 	if _page_scroll:
@@ -1014,10 +1233,12 @@ func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -
 			_page_title.text = ""
 			_page_subtitle.text = ""
 			_build_map_page()
+			call_deferred("_maybe_show_transport_intro")
 		TAB_TASKS:
 			_page_title.text = ""
 			_page_subtitle.text = ""
 			_build_tasks_page()
+			call_deferred("_maybe_show_transport_intro")
 		TAB_CHARACTER:
 			_page_title.text = ""
 			_page_subtitle.text = ""
@@ -1030,6 +1251,9 @@ func _show_tab(tab_id: String, force: bool = false, keep_scroll: bool = false) -
 	_page_subtitle.visible = _page_subtitle.text != ""
 	_update_nav_buttons()
 	_refresh_status_bar()
+	_apply_mobile_layout()
+	if is_runner:
+		call_deferred("_refit_runner_page_host")
 	if keep_scroll and not is_home:
 		_restore_page_scroll(saved_scroll)
 
@@ -1202,39 +1426,41 @@ func _mount_home_start_button(text: String, callback: Callable) -> void:
 
 func _home_map_display_name(planet_id: String) -> String:
 	var meta: Dictionary = PlanetDatabase.get_planet_meta(planet_id)
-	var name := String(meta.get("name", ""))
-	# 设计稿显示名；配置 MAP_NAME 为「无尽晶砂漠」
 	if planet_id == "glass_desert":
-		return "Crystal Waste"
-	return name if name != "" else "Unknown Map"
+		return GameLocale.pick("无尽晶砂漠", "Crystal Waste")
+	var localized := GameLocale.field(meta, "name", "name_en")
+	return localized if localized != "" else "Unknown Map"
 
 
 func _home_outpost_display_name(location_id: String, fallback: String) -> String:
 	match location_id:
 		"dome":
-			return "Residential Dome"
+			return GameLocale.pick("居民穹顶", "Habitat Dome")
 		"reservoir":
-			return "Water Station"
+			return GameLocale.pick("水源据点", "Water Station")
 		"medical":
-			return "Medical Station"
+			return GameLocale.pick("医疗据点", "Medical Station")
 		"relay":
-			return "Relay Station"
+			return GameLocale.pick("星火中继站", "Ember Relay Station")
 		"gate":
-			return "Defense Outpost"
+			return GameLocale.pick("防御哨站", "Defense Outpost")
 		_:
-			return fallback if fallback != "" else "Outpost"
+			return fallback if fallback != "" else GameLocale.pick("据点", "Outpost")
 
 
 func _home_outpost_status(planet_id: String, location_id: String) -> Dictionary:
 	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
 	if cfg == null or not cfg.has_method("build_detail_payload"):
-		return {"title": location_id, "status_short": "未知"}
+		return {"title": location_id, "status_short": GameLocale.pick("未知", "Unknown")}
 	var completed := Global.get_completed_runner_locations(planet_id).has(location_id)
 	var revealed := Global.get_revealed_exploration_locations(planet_id, ["dome"]).has(location_id)
 	var payload: Dictionary = cfg.build_detail_payload(location_id, revealed, completed)
-	var status_short := "已点亮" if completed else ("运输修复中" if revealed else "未开放")
+	var status_short := GameLocale.pick("已点亮", "Lit") if completed else (GameLocale.pick("运输修复中", "Repairing") if revealed else GameLocale.pick("未开放", "Locked"))
+	var title := GameLocale.field(payload, "title", "title_en")
+	if title == "":
+		title = Global.get_outpost_display_name(planet_id, location_id)
 	return {
-		"title": String(payload.get("title", location_id)),
+		"title": title if title != "" else location_id,
 		"status_short": status_short,
 		"repair_current": int(payload.get("repair_current", 0)),
 		"repair_total": int(payload.get("repair_total", 1)),
@@ -1257,18 +1483,19 @@ func _home_all_missions_complete(planet_id: String) -> bool:
 func _home_mission_short_title(mission: Dictionary, location_id: String) -> String:
 	match location_id:
 		"dome", "reservoir":
-			return "净水救援"
+			return GameLocale.pick("净水救援", "Water Rescue")
 		"medical":
-			return "医疗驰援"
+			return GameLocale.pick("医疗驰援", "Medical Aid")
 		"relay":
-			return "星火中继"
+			return GameLocale.pick("星火中继", "Ember Relay")
 		"gate":
-			return "防线加固"
+			return GameLocale.pick("防线加固", "Defense Reinforce")
 		_:
 			var task_type := String(mission.get("task_type", ""))
 			if task_type != "":
 				return task_type
-			return String(mission.get("cargo_name", "运输任务"))
+			var cargo := GameLocale.field(mission, "cargo_name", "cargo_name_en")
+			return cargo if cargo != "" else GameLocale.pick("运输任务", "Transport")
 
 
 func _home_repair_progress(planet_id: String, location_id: String) -> Dictionary:
@@ -1281,8 +1508,10 @@ func _home_repair_progress(planet_id: String, location_id: String) -> Dictionary
 
 
 func _home_mission_thumb(location_id: String) -> Texture2D:
-	if location_id in ["dome", "reservoir", "medical", "relay", "gate"]:
-		return _load_header_texture(HOME_MISSION_THUMB_PATH)
+	var path := String(HOME_MISSION_THUMB_BY_LOCATION.get(location_id, HOME_MISSION_THUMB_PATH))
+	var tex := _load_header_texture(path)
+	if tex != null:
+		return tex
 	return _load_header_texture(HOME_MISSION_THUMB_PATH)
 
 
@@ -1395,8 +1624,8 @@ func _add_home_road_style_picker(parent: Control) -> void:
 	box.add_theme_constant_override("separation", 10)
 	margin.add_child(box)
 
-	box.add_child(_build_runner_style_dropdown_row("跑道外观", true))
-	box.add_child(_build_runner_style_dropdown_row("场景背景", false))
+	box.add_child(_build_runner_style_dropdown_row(GameLocale.pick("跑道外观", "Track Look"), true))
+	box.add_child(_build_runner_style_dropdown_row(GameLocale.pick("场景背景", "Backdrop"), false))
 
 
 func _build_runner_style_dropdown_row(title_text: String, is_road: bool) -> Control:
@@ -1420,14 +1649,14 @@ func _build_runner_style_dropdown_row(title_text: String, is_road: bool) -> Cont
 		option.item_selected.connect(func(index: int) -> void:
 			if index >= 0 and index < Global.RUNNER_ROAD_STYLE_ORDER.size():
 				Global.set_runner_road_style(Global.RUNNER_ROAD_STYLE_ORDER[index])
-				_show_toast("跑道：%s" % Global.get_runner_road_style_label())
+				_show_toast(GameLocale.pick("跑道：%s" % Global.get_runner_road_style_label(), "Track: %s" % Global.get_runner_road_style_label()))
 		)
 	else:
 		Global.populate_runner_background_style_option(option)
 		option.item_selected.connect(func(index: int) -> void:
 			if index >= 0 and index < Global.RUNNER_BACKGROUND_STYLE_ORDER.size():
 				Global.set_runner_background_style(Global.RUNNER_BACKGROUND_STYLE_ORDER[index])
-				_show_toast("背景：%s" % Global.get_runner_background_style_label())
+				_show_toast(GameLocale.pick("背景：%s" % Global.get_runner_background_style_label(), "Backdrop: %s" % Global.get_runner_background_style_label()))
 		)
 	_style_home_option_button(option)
 	row.add_child(option)
@@ -1659,6 +1888,8 @@ func _add_map_archive_header() -> void:
 	sub_line_r.color = Color(0.561, 0.663, 0.753, 0.85)
 	sub_line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	sub_row.add_child(sub_line_r)
+
+	_attach_transport_help_button(_map_title_host)
 
 
 func _add_map_archive_card(data: Dictionary) -> void:
@@ -1932,23 +2163,32 @@ func _build_tasks_page() -> void:
 	_build_tasks_sub_tabs()
 	_tasks_missions_box = VBoxContainer.new()
 	_tasks_missions_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_missions_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tasks_missions_box.add_theme_constant_override("separation", _tasks_spec_h(10))
 	_page_box.add_child(_tasks_missions_box)
 	_tasks_daily_box = VBoxContainer.new()
 	_tasks_daily_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_daily_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tasks_daily_box.add_theme_constant_override("separation", _tasks_spec_h(12))
 	_tasks_daily_box.visible = false
 	_page_box.add_child(_tasks_daily_box)
+	_build_tasks_ritual_footer()
 	_populate_tasks_missions(planet_id)
 	_populate_tasks_daily(planet_id)
 	_refresh_tasks_sub_tab_visibility()
 
 
 func _build_tasks_page_header() -> void:
-	var wrap := VBoxContainer.new()
+	var wrap := Control.new()
 	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wrap.add_theme_constant_override("separation", _tasks_spec_h(6))
+	wrap.custom_minimum_size = Vector2(0, _tasks_spec_h(72))
 	_page_box.add_child(wrap)
+
+	var col := VBoxContainer.new()
+	col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	col.add_theme_constant_override("separation", _tasks_spec_h(6))
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(col)
 
 	var title := Label.new()
 	title.text = "TASKS"
@@ -1960,12 +2200,14 @@ func _build_tasks_page_header() -> void:
 	title_ls.shadow_size = 10
 	title.label_settings = title_ls
 	title.add_theme_constant_override("letter_spacing", _tasks_spec_em(30, 0.24))
-	wrap.add_child(title)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(title)
 
 	var divider := Control.new()
 	divider.custom_minimum_size = Vector2(0, _tasks_spec_h(14))
 	divider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wrap.add_child(divider)
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(divider)
 	var line := ColorRect.new()
 	line.color = Color(0.627, 0.863, 0.98, 0.55)
 	line.set_anchors_preset(Control.PRESET_CENTER)
@@ -1973,6 +2215,7 @@ func _build_tasks_page_header() -> void:
 	line.offset_right = int(_tasks_spec_w(120))
 	line.offset_top = -1
 	line.offset_bottom = 1
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	divider.add_child(line)
 	var diamond := ColorRect.new()
 	diamond.color = Color(0.95, 0.98, 1.0)
@@ -1983,7 +2226,363 @@ func _build_tasks_page_header() -> void:
 	diamond.offset_right = int(_tasks_spec_w(4))
 	diamond.offset_top = -int(_tasks_spec_w(4))
 	diamond.offset_bottom = int(_tasks_spec_w(4))
+	diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	divider.add_child(diamond)
+
+	_attach_transport_help_button(wrap)
+
+
+func _build_tasks_ritual_footer() -> void:
+	_tasks_ritual_footer = PanelContainer.new()
+	_tasks_ritual_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_ritual_footer.size_flags_vertical = Control.SIZE_SHRINK_END
+	_tasks_ritual_footer.mouse_filter = Control.MOUSE_FILTER_STOP
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.016, 0.035, 0.062, 0.52)
+	panel_style.border_color = Color(0.667, 0.902, 1.0, 0.26)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(_tasks_spec_w(14))
+	panel_style.content_margin_left = _tasks_spec_w(18)
+	panel_style.content_margin_right = _tasks_spec_w(12)
+	panel_style.content_margin_top = _tasks_spec_h(10)
+	panel_style.content_margin_bottom = _tasks_spec_h(16)
+	panel_style.shadow_color = Color(0.557, 0.882, 0.969, 0.12)
+	panel_style.shadow_size = 8
+	_tasks_ritual_footer.add_theme_stylebox_override("panel", panel_style)
+	_page_box.add_child(_tasks_ritual_footer)
+
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", _tasks_spec_h(8))
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tasks_ritual_footer.add_child(col)
+
+	var tab_row := HBoxContainer.new()
+	tab_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(tab_row)
+	var tab_spacer := Control.new()
+	tab_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab_row.add_child(tab_spacer)
+
+	_tasks_completed_btn = Button.new()
+	_tasks_completed_btn.text = GameLocale.t("tasks_completed_btn")
+	_tasks_completed_btn.focus_mode = Control.FOCUS_NONE
+	_tasks_completed_btn.custom_minimum_size = Vector2(_tasks_spec_w(96), _tasks_spec_h(28))
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.024, 0.055, 0.098, 0.9)
+	btn_style.border_color = Color(0.627, 0.863, 0.98, 0.45)
+	btn_style.set_border_width_all(1)
+	btn_style.set_corner_radius_all(_tasks_spec_w(8))
+	btn_style.content_margin_left = _tasks_spec_w(10)
+	btn_style.content_margin_right = _tasks_spec_w(10)
+	btn_style.content_margin_top = _tasks_spec_h(4)
+	btn_style.content_margin_bottom = _tasks_spec_h(4)
+	_tasks_completed_btn.add_theme_stylebox_override("normal", btn_style)
+	_tasks_completed_btn.add_theme_stylebox_override("hover", btn_style)
+	_tasks_completed_btn.add_theme_stylebox_override("pressed", btn_style)
+	_tasks_completed_btn.add_theme_font_size_override("font_size", _tasks_spec_fs(11))
+	_tasks_completed_btn.add_theme_color_override("font_color", Color(0.627, 0.863, 0.98, 0.92))
+	_tasks_completed_btn.pressed.connect(_open_tasks_completed_overlay)
+	tab_row.add_child(_tasks_completed_btn)
+
+	col.add_child(_make_tasks_ritual_divider())
+
+	var title := Label.new()
+	title.text = GameLocale.t("tasks_ritual_title")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", _tasks_spec_fs(15))
+	title.add_theme_color_override("font_color", UI_CYAN_SOFT)
+	title.add_theme_constant_override("letter_spacing", _tasks_spec_em(15, 0.42))
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(title)
+
+	var lead := Label.new()
+	lead.text = GameLocale.t("tasks_ritual_lead")
+	lead.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lead.add_theme_font_size_override("font_size", _tasks_spec_fs(17))
+	lead.add_theme_color_override("font_color", UI_ICE)
+	lead.add_theme_color_override("font_shadow_color", Color(0.557, 0.882, 0.969, 0.35))
+	lead.add_theme_constant_override("shadow_outline_size", 6)
+	lead.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(lead)
+
+	var body := Label.new()
+	body.text = GameLocale.t("tasks_ritual_body")
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_font_size_override("font_size", _tasks_spec_fs(13))
+	body.add_theme_color_override("font_color", UI_MUTED)
+	body.add_theme_constant_override("line_spacing", _tasks_spec_h(4))
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(body)
+
+	col.add_child(_make_tasks_ritual_divider())
+
+	var seal := Label.new()
+	seal.text = GameLocale.t("tasks_ritual_seal")
+	seal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	seal.add_theme_font_size_override("font_size", _tasks_spec_fs(12))
+	seal.add_theme_color_override("font_color", Color(0.627, 0.863, 0.98, 0.78))
+	seal.add_theme_constant_override("letter_spacing", _tasks_spec_em(12, 0.18))
+	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(seal)
+
+
+func _make_tasks_ritual_divider() -> Control:
+	var wrap := Control.new()
+	wrap.custom_minimum_size = Vector2(0, _tasks_spec_h(12))
+	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := ColorRect.new()
+	line.color = Color(0.627, 0.863, 0.98, 0.42)
+	line.set_anchors_preset(Control.PRESET_CENTER)
+	line.offset_left = -int(_tasks_spec_w(88))
+	line.offset_right = int(_tasks_spec_w(88))
+	line.offset_top = -1
+	line.offset_bottom = 1
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(line)
+	var diamond := Label.new()
+	diamond.text = "◆"
+	diamond.set_anchors_preset(Control.PRESET_CENTER)
+	diamond.offset_left = -int(_tasks_spec_w(8))
+	diamond.offset_right = int(_tasks_spec_w(8))
+	diamond.offset_top = -int(_tasks_spec_h(8))
+	diamond.offset_bottom = int(_tasks_spec_h(8))
+	diamond.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	diamond.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	diamond.add_theme_font_size_override("font_size", _tasks_spec_fs(9))
+	diamond.add_theme_color_override("font_color", UI_CYAN)
+	diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(diamond)
+	return wrap
+
+
+func _collect_archived_completed_missions(planet_id: String) -> Array:
+	var cfg: Script = PlanetDatabase.get_runner_config(planet_id)
+	if cfg == null or not cfg.has_method("get_mission_by_id"):
+		return []
+	var done_raw: Array = Global.completed_missions_by_planet.get(planet_id, [])
+	var missions: Array = []
+	for raw in done_raw:
+		var mission_id := String(raw)
+		if mission_id == "":
+			continue
+		if Global.is_mission_reward_pending(planet_id, mission_id):
+			continue
+		var mission: Dictionary = cfg.get_mission_by_id(mission_id)
+		if mission.is_empty():
+			continue
+		missions.append(mission)
+	missions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.get("order", 999)) < int(b.get("order", 999))
+	)
+	return missions
+
+
+func _ensure_tasks_completed_overlay() -> void:
+	if _tasks_completed_overlay != null:
+		return
+	_tasks_completed_overlay = Control.new()
+	_tasks_completed_overlay.name = "TasksCompletedOverlay"
+	_tasks_completed_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_tasks_completed_overlay.visible = false
+	_tasks_completed_overlay.z_index = 235
+	_tasks_completed_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_ui_root.add_child(_tasks_completed_overlay)
+
+	var mask := ColorRect.new()
+	mask.color = Color(0.008, 0.02, 0.039, 0.62)
+	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mask.mouse_filter = Control.MOUSE_FILTER_STOP
+	mask.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed:
+			_close_tasks_completed_overlay()
+		elif event is InputEventScreenTouch and event.pressed:
+			_close_tasks_completed_overlay()
+	)
+	_tasks_completed_overlay.add_child(mask)
+
+	var sheet := PanelContainer.new()
+	sheet.set_anchors_preset(Control.PRESET_CENTER)
+	sheet.offset_left = -int(_tasks_spec_w(300))
+	sheet.offset_right = int(_tasks_spec_w(300))
+	sheet.offset_top = -int(_tasks_spec_h(280))
+	sheet.offset_bottom = int(_tasks_spec_h(280))
+	sheet.mouse_filter = Control.MOUSE_FILTER_STOP
+	var sheet_style := StyleBoxFlat.new()
+	sheet_style.bg_color = Color(0.031, 0.067, 0.118, 0.96)
+	sheet_style.border_color = Color(0.667, 0.902, 1.0, 0.42)
+	sheet_style.set_border_width_all(1)
+	sheet_style.set_corner_radius_all(_tasks_spec_w(16))
+	sheet_style.content_margin_left = _tasks_spec_w(14)
+	sheet_style.content_margin_right = _tasks_spec_w(14)
+	sheet_style.content_margin_top = _tasks_spec_h(12)
+	sheet_style.content_margin_bottom = _tasks_spec_h(12)
+	sheet.add_theme_stylebox_override("panel", sheet_style)
+	_tasks_completed_overlay.add_child(sheet)
+
+	var root := VBoxContainer.new()
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", _tasks_spec_h(10))
+	sheet.add_child(root)
+
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", _tasks_spec_w(8))
+	root.add_child(title_row)
+	var title := Label.new()
+	title.text = GameLocale.t("tasks_completed_title")
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
+	title.add_theme_color_override("font_color", UI_ICE)
+	title_row.add_child(title)
+	var close_btn := Button.new()
+	close_btn.text = "✕"
+	close_btn.focus_mode = Control.FOCUS_NONE
+	close_btn.custom_minimum_size = Vector2(_tasks_spec_w(34), _tasks_spec_w(34))
+	var close_style := StyleBoxFlat.new()
+	close_style.bg_color = Color(0.08, 0.14, 0.22, 0.72)
+	close_style.border_color = Color(0.627, 0.863, 0.98, 0.35)
+	close_style.set_border_width_all(1)
+	close_style.set_corner_radius_all(_tasks_spec_w(8))
+	close_btn.add_theme_stylebox_override("normal", close_style)
+	close_btn.add_theme_stylebox_override("hover", close_style)
+	close_btn.add_theme_stylebox_override("pressed", close_style)
+	close_btn.add_theme_color_override("font_color", UI_MUTED)
+	close_btn.pressed.connect(_close_tasks_completed_overlay)
+	title_row.add_child(close_btn)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(scroll)
+
+	_tasks_completed_list_box = VBoxContainer.new()
+	_tasks_completed_list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tasks_completed_list_box.add_theme_constant_override("separation", _tasks_spec_h(6))
+	scroll.add_child(_tasks_completed_list_box)
+
+
+func _populate_tasks_completed_list(planet_id: String = "glass_desert") -> void:
+	if _tasks_completed_list_box == null:
+		return
+	for child in _tasks_completed_list_box.get_children():
+		child.queue_free()
+	var missions: Array = _collect_archived_completed_missions(planet_id)
+	if missions.is_empty():
+		_add_muted_label(_tasks_completed_list_box, GameLocale.t("tasks_completed_empty"))
+		return
+	for mission in missions:
+		if mission is Dictionary:
+			_add_tasks_completed_row(planet_id, mission as Dictionary)
+
+
+func _add_tasks_completed_row(_planet_id: String, mission: Dictionary) -> void:
+	var profile: Dictionary = MissionTypes.resolve(mission)
+	var location_id := String(mission.get("location_id", "dome"))
+	var type_en := String(mission.get("task_type", profile.get("task_type", "Supply Run"))).to_upper()
+	if not type_en.ends_with(" RUN") and "RUN" not in type_en:
+		type_en = "%s RUN" % type_en.replace(" RUN", "")
+	var outpost := _home_outpost_display_name(
+		location_id,
+		String(mission.get("target_hearth", mission.get("source_hearth", location_id)))
+	)
+	var reward := int(mission.get("base_reward", profile.get("base_reward", 50)))
+	var accent := _mission_type_accent(String(mission.get("task_type", "")))
+
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.custom_minimum_size = Vector2(0, _tasks_spec_h(52))
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.027, 0.063, 0.114, 0.5)
+	panel_style.border_color = Color(UI_MISSION_DONE.r, UI_MISSION_DONE.g, UI_MISSION_DONE.b, 0.28)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(_tasks_spec_w(10))
+	panel_style.content_margin_left = _tasks_spec_w(10)
+	panel_style.content_margin_right = _tasks_spec_w(10)
+	panel_style.content_margin_top = _tasks_spec_h(6)
+	panel_style.content_margin_bottom = _tasks_spec_h(6)
+	panel.add_theme_stylebox_override("panel", panel_style)
+	panel.modulate = Color(0.9, 0.92, 0.95, 0.86)
+	_tasks_completed_list_box.add_child(panel)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", _tasks_spec_w(8))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(row)
+
+	var icon_lbl := Label.new()
+	icon_lbl.text = _mission_type_icon_char(String(mission.get("task_type", "")))
+	icon_lbl.custom_minimum_size = Vector2(_tasks_spec_w(28), _tasks_spec_w(28))
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(16))
+	icon_lbl.add_theme_color_override("font_color", accent)
+	row.add_child(icon_lbl)
+
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", _tasks_spec_h(2))
+	row.add_child(body)
+	var name_lbl := Label.new()
+	name_lbl.text = type_en
+	name_lbl.clip_text = true
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(15))
+	name_lbl.add_theme_color_override("font_color", UI_TEXT)
+	body.add_child(name_lbl)
+	var sub_lbl := Label.new()
+	sub_lbl.text = outpost
+	sub_lbl.clip_text = true
+	sub_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	sub_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(12))
+	sub_lbl.add_theme_color_override("font_color", UI_MUTED)
+	body.add_child(sub_lbl)
+
+	var right := HBoxContainer.new()
+	right.add_theme_constant_override("separation", _tasks_spec_w(6))
+	right.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(right)
+	var reward_lbl := Label.new()
+	reward_lbl.text = "★ %d" % reward
+	reward_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(13))
+	reward_lbl.add_theme_color_override("font_color", UI_CYAN_SOFT)
+	right.add_child(reward_lbl)
+	var done_lbl := Label.new()
+	done_lbl.text = "DONE"
+	done_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(12))
+	done_lbl.add_theme_color_override("font_color", UI_MISSION_DONE)
+	right.add_child(done_lbl)
+
+
+func _open_tasks_completed_overlay() -> void:
+	_ensure_tasks_completed_overlay()
+	_populate_tasks_completed_list("glass_desert")
+	if _bottom_nav_root:
+		_bottom_nav_root.visible = false
+	if _page_scrim:
+		_page_scrim.visible = true
+		_page_scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	if _ui_root and _tasks_completed_overlay.get_parent() == _ui_root:
+		_ui_root.move_child(_tasks_completed_overlay, -1)
+	_tasks_completed_overlay.visible = true
+
+
+func _close_tasks_completed_overlay() -> void:
+	if _tasks_completed_overlay:
+		_tasks_completed_overlay.visible = false
+	if _bottom_nav_root:
+		_bottom_nav_root.visible = true
+	if _page_scrim:
+		_page_scrim.visible = _selected_tab != TAB_HOME and _selected_tab != TAB_MAP
+		_page_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _build_tasks_sub_tabs() -> void:
@@ -2015,9 +2614,12 @@ func _build_tasks_sub_tabs() -> void:
 	_tasks_tab_daily_btn.text = "DAILY"
 	_tasks_tab_daily_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tasks_tab_daily_btn.focus_mode = Control.FOCUS_NONE
+	_tasks_tab_daily_btn.clip_contents = false
 	_tasks_tab_daily_btn.pressed.connect(_switch_tasks_sub_tab.bind("daily"))
 	tabs.add_child(_tasks_tab_daily_btn)
+	_ensure_daily_tab_red_dot()
 	_style_tasks_sub_tab_buttons()
+	_refresh_daily_tab_red_dot()
 
 
 func _style_tasks_sub_tab_buttons() -> void:
@@ -2064,6 +2666,8 @@ func _refresh_tasks_sub_tab_visibility() -> void:
 		_tasks_missions_box.visible = _tasks_sub_tab == "missions"
 	if _tasks_daily_box:
 		_tasks_daily_box.visible = _tasks_sub_tab == "daily"
+	if _tasks_ritual_footer:
+		_tasks_ritual_footer.visible = _tasks_sub_tab == "missions"
 
 
 func _refresh_tasks_mission_cards(planet_id: String = "glass_desert") -> void:
@@ -2086,27 +2690,38 @@ func _populate_tasks_missions(planet_id: String) -> void:
 	var mission_ids: Array[String] = MissionDispatch.list_tasks_panel_missions(planet_id)
 	var active := Global.get_active_mission(planet_id)
 	var active_mission_id := String(active.get("mission_id", ""))
-	if active_mission_id != "" and not mission_ids.has(active_mission_id):
+	var full_unlock := Global.is_dev_full_unlock()
+	if active_mission_id != "" and not mission_ids.has(active_mission_id) \
+			and (full_unlock or mission_ids.size() < MissionDispatch.BOARD_SLOT_COUNT):
 		mission_ids.insert(0, active_mission_id)
+	if not full_unlock and mission_ids.size() > MissionDispatch.BOARD_SLOT_COUNT:
+		mission_ids = mission_ids.slice(0, MissionDispatch.BOARD_SLOT_COUNT)
 	var shown := 0
 	for mission_id in mission_ids:
+		if not full_unlock and shown >= MissionDispatch.BOARD_SLOT_COUNT:
+			break
 		if cfg == null or not cfg.has_method("get_mission_by_id"):
 			continue
 		var mission: Dictionary = cfg.get_mission_by_id(mission_id)
 		if mission.is_empty():
 			continue
+		if Global.is_mission_completed(planet_id, mission_id) \
+				and not Global.is_mission_reward_pending(planet_id, mission_id):
+			continue
 		_add_tasks_mission_card(planet_id, mission)
 		shown += 1
 	if shown == 0 and active_mission_id != "" and cfg != null and cfg.has_method("get_mission_by_id"):
 		var active_mission: Dictionary = cfg.get_mission_by_id(active_mission_id)
-		if not active_mission.is_empty():
+		if not active_mission.is_empty() \
+				and not (Global.is_mission_completed(planet_id, active_mission_id) \
+				and not Global.is_mission_reward_pending(planet_id, active_mission_id)):
 			_add_tasks_mission_card(planet_id, active_mission)
 			shown += 1
 	var pending_light := Global.list_pending_light_ceremonies(planet_id)
 	if shown == 0 and pending_light.is_empty():
 		_add_muted_label(
 			_tasks_missions_box,
-			"暂无可接取任务。完成运输推进各任务进度（每项 100），四项合计点亮据点后将解锁下一批。"
+			GameLocale.t("tasks_empty")
 		)
 
 
@@ -2152,14 +2767,14 @@ func _add_tasks_light_ceremony_card(planet_id: String, location_id: String) -> v
 	body.add_theme_constant_override("separation", _tasks_spec_h(3))
 	row.add_child(body)
 	var name_lbl := Label.new()
-	name_lbl.text = "点亮%s" % outpost_name
+	name_lbl.text = GameLocale.pick("点亮%s" % outpost_name, "Light %s" % outpost_name)
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
 	name_lbl.add_theme_color_override("font_color", UI_TEXT)
 	body.add_child(name_lbl)
 	var obj_lbl := Label.new()
-	obj_lbl.text = "运输进度已满 · 前往地图点亮据点"
+	obj_lbl.text = GameLocale.pick("运输进度已满 · 前往地图点亮据点", "Transport complete · light the outpost on Map")
 	obj_lbl.clip_text = true
 	obj_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	obj_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(14))
@@ -2187,7 +2802,7 @@ func _add_tasks_light_ceremony_card(planet_id: String, location_id: String) -> v
 
 func _on_tasks_light_ceremony_pressed(planet_id: String, location_id: String) -> void:
 	if not Global.is_map_light_ceremony_pending(planet_id, location_id):
-		_show_toast("该据点已点亮或尚未完成运输")
+		_show_toast(GameLocale.pick("该据点已点亮或尚未完成运输", "Outpost already lit or transport incomplete"))
 		_refresh_tasks_mission_cards(planet_id)
 		return
 	Global.pending_map_light_focus = location_id
@@ -2208,6 +2823,57 @@ func _populate_tasks_daily(planet_id: String) -> void:
 	refresh.add_theme_font_size_override("font_size", _tasks_spec_fs(15))
 	refresh.add_theme_color_override("font_color", UI_MUTED)
 	_tasks_daily_box.add_child(refresh)
+	_refresh_daily_tab_red_dot()
+
+
+func _has_pending_daily_rewards() -> bool:
+	Global.ensure_daily_tasks_fresh()
+	for entry in _daily_task_defs():
+		var task_id := String(entry.get("id", ""))
+		var target := int(entry.get("target", 1))
+		if task_id != "" and Global.is_daily_task_reward_pending(task_id, target):
+			return true
+	return false
+
+
+func _ensure_daily_tab_red_dot() -> void:
+	if _tasks_tab_daily_btn == null:
+		return
+	if _tasks_daily_red_dot != null and is_instance_valid(_tasks_daily_red_dot):
+		return
+	var existing := _tasks_tab_daily_btn.get_node_or_null("DailyRedDot") as Control
+	if existing != null:
+		_tasks_daily_red_dot = existing
+		return
+	var dot := Panel.new()
+	dot.name = "DailyRedDot"
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dot.custom_minimum_size = Vector2(_tasks_spec_w(14), _tasks_spec_w(14))
+	dot.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	dot.anchor_left = 1.0
+	dot.anchor_right = 1.0
+	dot.anchor_top = 0.0
+	dot.anchor_bottom = 0.0
+	dot.offset_left = -_tasks_spec_w(22)
+	dot.offset_right = -_tasks_spec_w(8)
+	dot.offset_top = _tasks_spec_h(6)
+	dot.offset_bottom = _tasks_spec_h(20)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.94, 0.22, 0.28, 1.0)
+	style.border_color = Color(1.0, 0.85, 0.88, 0.9)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(999)
+	dot.add_theme_stylebox_override("panel", style)
+	dot.visible = false
+	_tasks_tab_daily_btn.add_child(dot)
+	_tasks_daily_red_dot = dot
+
+
+func _refresh_daily_tab_red_dot() -> void:
+	_ensure_daily_tab_red_dot()
+	if _tasks_daily_red_dot == null:
+		return
+	_tasks_daily_red_dot.visible = _has_pending_daily_rewards()
 
 
 func _daily_task_defs() -> Array:
@@ -2403,9 +3069,9 @@ func _add_tasks_daily_row(entry: Dictionary) -> void:
 
 func _on_claim_daily_task_reward(task_id: String, reward: int, target: int) -> void:
 	if not Global.claim_daily_task_reward(task_id, reward, target):
-		_show_toast("暂无可领取奖励")
+		_show_toast(GameLocale.pick("暂无可领取奖励", "No reward to claim"))
 		return
-	_show_toast("每日奖励 · 星火币 +%d" % reward)
+	_show_toast(GameLocale.pick("每日奖励 · 星火币 +%d" % reward, "Daily reward · Ember Coins +%d" % reward))
 	_refresh_status_bar()
 	call_deferred("_refresh_tasks_daily")
 
@@ -2425,7 +3091,9 @@ func _mission_type_accent(task_type: String) -> Color:
 
 
 func _mission_card_summary(mission: Dictionary, profile: Dictionary, outpost_name: String) -> String:
-	var cargo := String(mission.get("cargo_name_en", mission.get("cargo_name", "Cargo")))
+	var cargo := GameLocale.field(mission, "cargo_name", "cargo_name_en")
+	if cargo == "":
+		cargo = "Cargo"
 	var duration_s := int(mission.get("duration", profile.get("duration", 60)))
 	var timed := bool(profile.get("timed_fail", false))
 	var time_text := "%ds LIMIT" % duration_s if timed else "%d-%ds" % [maxi(duration_s - 10, 30), duration_s]
@@ -2433,7 +3101,9 @@ func _mission_card_summary(mission: Dictionary, profile: Dictionary, outpost_nam
 
 
 func _mission_card_meta_bbcode(mission: Dictionary, profile: Dictionary, outpost_name: String) -> String:
-	var cargo := String(mission.get("cargo_name_en", mission.get("cargo_name", "Cargo")))
+	var cargo := GameLocale.field(mission, "cargo_name", "cargo_name_en")
+	if cargo == "":
+		cargo = "Cargo"
 	var duration_s := int(mission.get("duration", profile.get("duration", 60)))
 	var timed := bool(profile.get("timed_fail", false))
 	if timed:
@@ -2487,28 +3157,27 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 
 	var panel := _make_tasks_mission_card_shell(accent, is_done, reward_pending)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_on_tasks_mission_action(planet_id, mission.duplicate(true))
-		elif event is InputEventScreenTouch and event.pressed:
-			_on_tasks_mission_action(planet_id, mission.duplicate(true))
-	)
-	_tasks_missions_box.add_child(panel)
-
 	var open_detail := func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_open_task_detail(planet_id, mission.duplicate(true))
+		elif event is InputEventScreenTouch and event.pressed:
+			_open_task_detail(planet_id, mission.duplicate(true))
+	# 点卡片本体 → 任务详情；只有右侧 ACCEPT/RUN 才接取或开跑
+	panel.gui_input.connect(open_detail)
+	_tasks_missions_box.add_child(panel)
 
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", _tasks_spec_w(8))
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(row)
 
 	var accent_bar := ColorRect.new()
 	accent_bar.custom_minimum_size = Vector2(_tasks_spec_w(4), _tasks_spec_h(52))
 	accent_bar.color = accent
 	accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	accent_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(accent_bar)
 
 	var icon_wrap := PanelContainer.new()
@@ -2528,8 +3197,8 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	icon_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	icon_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
 	icon_lbl.add_theme_color_override("font_color", accent)
-	icon_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-	icon_lbl.gui_input.connect(open_detail)
+	icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_wrap.add_child(icon_lbl)
 
 	var body := VBoxContainer.new()
@@ -2544,8 +3213,7 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(20))
 	name_lbl.add_theme_color_override("font_color", UI_TEXT)
-	name_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-	name_lbl.gui_input.connect(open_detail)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(name_lbl)
 	var obj_lbl := RichTextLabel.new()
 	obj_lbl.bbcode_enabled = true
@@ -2556,8 +3224,7 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	obj_lbl.custom_minimum_size = Vector2(0, _tasks_spec_fs(18))
 	obj_lbl.add_theme_font_size_override("normal_font_size", _tasks_spec_fs(14))
 	obj_lbl.add_theme_color_override("default_color", UI_MUTED)
-	obj_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-	obj_lbl.gui_input.connect(open_detail)
+	obj_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(obj_lbl)
 	if not is_done and progress_now > 0:
 		var prog_lbl := Label.new()
@@ -2572,26 +3239,31 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	right.alignment = BoxContainer.ALIGNMENT_CENTER
 	right.add_theme_constant_override("separation", _tasks_spec_h(6))
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(right)
 	var reward_row := HBoxContainer.new()
 	reward_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	reward_row.add_theme_constant_override("separation", _tasks_spec_w(4))
+	reward_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	right.add_child(reward_row)
 	var star_lbl := Label.new()
 	star_lbl.text = "★"
 	star_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(16))
 	star_lbl.add_theme_color_override("font_color", UI_CYAN)
+	star_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reward_row.add_child(star_lbl)
 	var reward_lbl := Label.new()
 	reward_lbl.text = str(reward)
 	reward_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(18))
 	reward_lbl.add_theme_color_override("font_color", UI_ICE)
+	reward_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reward_row.add_child(reward_lbl)
 
 	if is_done and reward_pending:
 		var claim_btn := Button.new()
 		claim_btn.focus_mode = Control.FOCUS_NONE
 		claim_btn.text = "CLAIM"
+		claim_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		claim_btn.custom_minimum_size = Vector2(_tasks_spec_w(88), _tasks_spec_h(34))
 		_apply_mission_reward_claim_style(claim_btn)
 		claim_btn.pressed.connect(_on_claim_mission_reward.bind(planet_id, mission_id, reward))
@@ -2601,12 +3273,14 @@ func _add_tasks_mission_card(planet_id: String, mission: Dictionary) -> void:
 		done_lbl.text = "DONE"
 		done_lbl.add_theme_font_size_override("font_size", _tasks_spec_fs(14))
 		done_lbl.add_theme_color_override("font_color", UI_MISSION_DONE)
+		done_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		right.add_child(done_lbl)
 	else:
 		var action_btn := Button.new()
 		action_btn.focus_mode = Control.FOCUS_NONE
+		action_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		if is_preview:
-			action_btn.text = "试玩" if MissionDispatch.can_preview_trial_run(planet_id, location_id) else "PREVIEW"
+			action_btn.text = GameLocale.pick("试玩", "TRIAL") if MissionDispatch.can_preview_trial_run(planet_id, location_id) else "PREVIEW"
 		else:
 			action_btn.text = "RUN" if accepted else "ACCEPT"
 		action_btn.custom_minimum_size = Vector2(_tasks_spec_w(88), _tasks_spec_h(34))
@@ -2689,9 +3363,9 @@ func _apply_mission_reward_claim_style(button: Button) -> void:
 
 func _on_claim_mission_reward(planet_id: String, mission_id: String, reward: int) -> void:
 	if not Global.claim_mission_reward(planet_id, mission_id, reward):
-		_show_toast("暂无可领取奖励")
+		_show_toast(GameLocale.pick("暂无可领取奖励", "No reward to claim"))
 		return
-	_show_toast("领取成功 · 星火币 +%d" % reward)
+	_show_toast(GameLocale.pick("领取成功 · 星火币 +%d" % reward, "Claimed · Ember Coins +%d" % reward))
 	_refresh_status_bar()
 	call_deferred("_refresh_tasks_mission_cards", planet_id)
 
@@ -2706,7 +3380,7 @@ func _on_tasks_mission_action(planet_id: String, mission: Dictionary, action_but
 			_start_runner_for_mission(planet_id, mission, true)
 		else:
 			_open_task_detail(planet_id, mission)
-			_show_toast("预览任务 · 解锁后可接取出发")
+			_show_toast(GameLocale.pick("预览任务 · 解锁后可接取出发", "Preview · unlock batch to accept and run"))
 		return
 	if Global.is_mission_completed(planet_id, mission_id):
 		if Global.is_mission_reward_pending(planet_id, mission_id):
@@ -2717,10 +3391,10 @@ func _on_tasks_mission_action(planet_id: String, mission: Dictionary, action_but
 		_start_runner_for_mission(planet_id, mission)
 		return
 	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
-		_show_toast("该批次任务尚未解锁")
+		_show_toast(GameLocale.pick("该批次任务尚未解锁", "This mission batch is still locked"))
 		return
 	Global.accept_mission(planet_id, mission_id)
-	_show_toast("已接取 · 点击 RUN 出发")
+	_show_toast(GameLocale.pick("已接取 · 点击 RUN 出发", "Accepted · tap RUN to start"))
 	if action_button != null and is_instance_valid(action_button):
 		action_button.text = "RUN"
 		_apply_mission_action_button_style(action_button, true)
@@ -2729,16 +3403,19 @@ func _on_tasks_mission_action(planet_id: String, mission: Dictionary, action_but
 
 func _start_runner_for_mission(planet_id: String, mission: Dictionary, trial_run: bool = false) -> void:
 	var location_id := String(mission.get("location_id", "dome"))
+	var is_trial := trial_run and MissionDispatch.can_preview_trial_run(planet_id, location_id)
 	if MissionDispatch.is_preview_location(planet_id, location_id):
-		if trial_run and MissionDispatch.can_preview_trial_run(planet_id, location_id):
-			_show_toast("调优试玩 · 进度暂不计入任务板")
+		if is_trial:
+			_show_toast(GameLocale.pick("调优试玩 · 进度暂不计入任务板", "Trial run · progress does not count toward the board"))
 		else:
-			_show_toast("该批次任务尚未解锁")
+			_show_toast(GameLocale.pick("该批次任务尚未解锁", "This mission batch is still locked"))
 			return
 	var mission_id := Global.mission_key(mission)
 	_sync_selected_character_from_global()
 	_selected_planet_id = planet_id
-	Global.set_active_mission(planet_id, location_id, mission_id)
+	Global.runner_trial_run = is_trial
+	if not is_trial:
+		Global.set_active_mission(planet_id, location_id, mission_id)
 	Global.mobile_home_tab = TAB_HOME
 	Global.exploration_planet_id = planet_id
 	Global.runner_planet_id = planet_id
@@ -2791,12 +3468,28 @@ func _build_character_page() -> void:
 	if _selected_character_id == "":
 		_selected_character_id = Global.get_selected_character_id()
 
+	# 强制占满滚动视口高度，否则装备栏拿不到「底部空余」可扩展
+	var view_h := 0.0
+	var view_w := 0.0
+	if _page_scroll:
+		view_h = _page_scroll.size.y
+		view_w = _page_scroll.size.x
+	if view_h <= 1.0 and _content_host:
+		view_h = _content_host.size.y
+		view_w = maxf(view_w, _content_host.size.x)
+	if _page_box and view_h > 1.0:
+		_page_box.custom_minimum_size = Vector2(view_w, view_h)
+		_page_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 	var host := Control.new()
 	host.name = "RunnerPageHost"
-	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	host.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	host.custom_minimum_size = Vector2.ZERO
+	host.clip_contents = false
+	if view_h > 1.0:
+		host.custom_minimum_size = Vector2(view_w, view_h)
+	else:
+		host.custom_minimum_size = Vector2.ZERO
 	_page_box.add_child(host)
 
 	var ctx := {
@@ -2809,16 +3502,54 @@ func _build_character_page() -> void:
 		"on_story": _show_character_story,
 	}
 	CharacterPageUI.build(host, ctx)
+	# 下一帧视口尺寸更稳，再触发布局增高
+	call_deferred("_refit_runner_page_host")
+
+
+func _refit_runner_page_host() -> void:
+	if _selected_tab != TAB_CHARACTER:
+		return
+	if _page_scroll == null or _page_box == null:
+		return
+	# 等一帧：切换 Elsa/Rook 重建后 Scroll 尺寸才稳定，避免用中间态把整页缩没
+	await get_tree().process_frame
+	if _selected_tab != TAB_CHARACTER or _page_scroll == null or _page_box == null:
+		return
+	var view_h := _page_scroll.size.y
+	var view_w := _page_scroll.size.x
+	if view_h <= 8.0 or view_w <= 8.0:
+		return
+	_page_box.custom_minimum_size = Vector2(view_w, view_h)
+	_page_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var host := _page_box.get_node_or_null("RunnerPageHost") as Control
+	if host:
+		host.custom_minimum_size = Vector2(view_w, view_h)
+		host.size = Vector2(view_w, view_h)
+		host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var shell := host.get_node_or_null("RunnerPageShell")
+		if shell != null and shell.has_method("_fit_canvas"):
+			shell.call("_fit_canvas")
+	await get_tree().process_frame
+	if _selected_tab != TAB_CHARACTER or _page_scroll == null:
+		return
+	view_h = _page_scroll.size.y
+	view_w = _page_scroll.size.x
+	if view_h <= 8.0 or view_w <= 8.0:
+		return
+	host = _page_box.get_node_or_null("RunnerPageHost") as Control
+	if host:
+		host.custom_minimum_size = Vector2(view_w, view_h)
+		host.size = Vector2(view_w, view_h)
+		var shell2 := host.get_node_or_null("RunnerPageShell")
+		if shell2 != null and shell2.has_method("_fit_canvas"):
+			shell2.call("_fit_canvas")
 
 
 func _select_character_id(character_id: String) -> void:
+	# 仅切换浏览角色；出战角色由 SWITCH / _switch_active_character 决定
 	if character_id == _selected_character_id:
 		return
 	_selected_character_id = character_id
-	var snapshot: Dictionary = Global.get_messenger_snapshot()
-	var unlocked: Array = snapshot.get("unlocked_stories", [])
-	if CharacterRoster.is_unlocked(character_id, unlocked):
-		Global.set_selected_character(character_id)
 	_show_tab(TAB_CHARACTER, true)
 
 
@@ -2883,7 +3614,7 @@ func _add_character_profile_card(character: Dictionary, snapshot: Dictionary) ->
 	root.add_child(tag)
 
 	var switch_hint := Label.new()
-	switch_hint.text = "左右切换"
+	switch_hint.text = GameLocale.pick("左右切换", "Swipe L/R")
 	switch_hint.anchor_left = 1.0
 	switch_hint.anchor_right = 1.0
 	switch_hint.offset_left = -160
@@ -2903,7 +3634,7 @@ func _add_character_profile_card(character: Dictionary, snapshot: Dictionary) ->
 	var unlock_hint := Label.new()
 	var unlocked: Array = snapshot.get("unlocked_stories", [])
 	var rook_unlocked := CharacterRoster.is_unlocked(CharacterRoster.CHAR_ROOK, unlocked)
-	unlock_hint.text = "可切换 Elsa / Rook" if rook_unlocked else "完成居民穹顶后解锁 Rook"
+	unlock_hint.text = GameLocale.pick("可切换 Elsa / Rook", "Switch Elsa / Rook") if rook_unlocked else GameLocale.pick("完成居民穹顶后解锁 Rook", "Unlock Rook after Habitat Dome")
 	unlock_hint.anchor_top = 1.0
 	unlock_hint.anchor_bottom = 1.0
 	unlock_hint.anchor_right = 1.0
@@ -2970,7 +3701,9 @@ func _add_character_identity_block(character: Dictionary, snapshot: Dictionary) 
 	left.add_child(name_label)
 
 	var title := Label.new()
-	title.text = String(character.get("title", snapshot.get("title", "信使")))
+	title.text = CharacterRoster.title_for_ui(character)
+	if title.text == "":
+		title.text = String(snapshot.get("title", GameLocale.pick("信使", "Courier")))
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", Color(0.90, 0.74, 0.42))
 	left.add_child(title)
@@ -3034,7 +3767,7 @@ func _add_character_story_entry(character: Dictionary) -> void:
 	row.add_child(pad_l)
 
 	var title := Label.new()
-	title.text = "📖  角色故事"
+	title.text = GameLocale.pick("📖  角色故事", "📖  Character Story")
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", Color(0.96, 0.94, 0.90))
@@ -3042,7 +3775,7 @@ func _add_character_story_entry(character: Dictionary) -> void:
 	row.add_child(title)
 
 	var action := Label.new()
-	action.text = "阅读档案  ›"
+	action.text = GameLocale.pick("阅读档案  ›", "Read dossier  ›")
 	action.add_theme_font_size_override("font_size", 18)
 	action.add_theme_color_override("font_color", Color(0.90, 0.76, 0.46))
 	action.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3059,21 +3792,24 @@ func _add_character_performance(character: Dictionary, snapshot: Dictionary) -> 
 	_page_box.add_child(header)
 
 	var title := Label.new()
-	title.text = "性能概览"
+	title.text = GameLocale.pick("性能概览", "Performance")
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", UI_TEXT)
 	header.add_child(title)
 
 	var bonus := Label.new()
-	bonus.text = "等级加成 · 星火币 %s" % String(snapshot.get("coin_bonus_text", "+0%"))
+	bonus.text = GameLocale.pick(
+		"等级加成 · 星火币 %s" % String(snapshot.get("coin_bonus_text", "+0%")),
+		"Level bonus · Coins %s" % String(snapshot.get("coin_bonus_text", "+0%"))
+	)
 	bonus.add_theme_font_size_override("font_size", 14)
 	bonus.add_theme_color_override("font_color", Color(0.90, 0.76, 0.42))
 	header.add_child(bonus)
 
 	var stats: Array = character.get("stats", [])
 	for stat in stats:
-		_add_character_stat_row(String(stat.get("label", "")), String(stat.get("value", "")), float(stat.get("fill", 0.5)))
+		_add_character_stat_row(CharacterRoster.stat_label_for_ui(stat), String(stat.get("value", "")), float(stat.get("fill", 0.5)))
 
 
 func _add_character_stat_row(label_text: String, value_text: String, fill_ratio: float) -> void:
@@ -3153,26 +3889,30 @@ func _add_character_trait_card(character: Dictionary) -> void:
 	row.add_child(text)
 
 	var title := Label.new()
-	title.text = "%s · %s" % [String(character.get("trait_name", "")), String(character.get("trait_gear", ""))]
+	title.text = "%s · %s" % [
+		GameLocale.field(character, "trait_name", "trait_name_en"),
+		GameLocale.field(character, "trait_gear", "trait_gear_en"),
+	]
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", UI_TEXT)
 	text.add_child(title)
 
 	var desc := Label.new()
-	desc.text = String(character.get("trait_desc", ""))
+	desc.text = CharacterRoster.trait_desc_for_ui(character)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_size_override("font_size", 15)
 	desc.add_theme_color_override("font_color", UI_MUTED)
 	text.add_child(desc)
 
 	var tag := Label.new()
-	tag.text = String(character.get("trait_tag", ""))
+	tag.text = CharacterRoster.trait_tag_for_ui(character)
 	tag.add_theme_font_size_override("font_size", 13)
 	tag.add_theme_color_override("font_color", Color(0.56, 0.78, 0.82))
 	text.add_child(tag)
 
 
 func _cycle_character(direction: int = 1) -> void:
+	# 左右浏览不改出战角色；点 SWITCH 才设为 IN USE
 	var next_id := (
 		CharacterRoster.next_id(_selected_character_id)
 		if direction >= 0
@@ -3181,12 +3921,6 @@ func _cycle_character(direction: int = 1) -> void:
 	if next_id == _selected_character_id:
 		return
 	_selected_character_id = next_id
-	var snapshot: Dictionary = Global.get_messenger_snapshot()
-	var unlocked: Array = snapshot.get("unlocked_stories", [])
-	if CharacterRoster.is_unlocked(next_id, unlocked):
-		Global.set_selected_character(next_id)
-		var name := String(CharacterRoster.get_character(next_id).get("name_en", next_id))
-		_show_toast("Now running as %s" % name)
 	_show_tab(TAB_CHARACTER, true)
 
 
@@ -3197,7 +3931,6 @@ func _show_character_story(character_id: String) -> void:
 		_character_story_overlay = null
 
 	_selected_character_id = character_id
-	Global.set_selected_character(_selected_character_id)
 	var character: Dictionary = CharacterRoster.get_character(character_id)
 	var snapshot: Dictionary = Global.get_messenger_snapshot()
 
@@ -3494,9 +4227,7 @@ func _add_story_text_panel(parent: Control, character: Dictionary) -> void:
 	box.add_theme_constant_override("separation", 16)
 	margin.add_child(box)
 
-	var paragraphs: Array = character.get("story_paragraphs_en", [])
-	if paragraphs.is_empty():
-		paragraphs = character.get("story_paragraphs", [])
+	var paragraphs: Array = CharacterRoster.story_paragraphs_for_ui(character)
 	for paragraph in paragraphs:
 		var label := Label.new()
 		label.text = String(paragraph)
@@ -3520,34 +4251,39 @@ func _close_character_story() -> void:
 
 
 func _add_stat_upgrade_card(stat_id: String, current_level: int) -> void:
-	var label := String(CharacterProgression.STAT_LABELS.get(stat_id, stat_id))
+	var label := CharacterProgression.stat_label(stat_id)
 	var effect := CharacterProgression.stat_percent_text(stat_id, current_level)
-	var body := "%s · 当前 Lv.%d / %d · 效果 %s" % [
-		label,
-		current_level,
-		CharacterProgression.MAX_STAT_LEVEL,
-		effect,
-	]
+	var body := GameLocale.pick(
+		"%s · 当前 Lv.%d / %d · 效果 %s" % [label, current_level, CharacterProgression.MAX_STAT_LEVEL, effect],
+		"%s · Lv.%d / %d · Effect %s" % [label, current_level, CharacterProgression.MAX_STAT_LEVEL, effect]
+	)
 	var card := _add_card(label, body)
 	if current_level >= CharacterProgression.MAX_STAT_LEVEL:
-		_add_muted_label(card, "已满级")
+		_add_muted_label(card, GameLocale.pick("已满级", "Maxed"))
 		return
 	var cost := CharacterProgression.upgrade_cost(stat_id, current_level)
 	if cost < 0:
 		return
 	var can_buy := Global.ember_coins >= cost
-	var button := _add_primary_button(card, "升级（%d 星火币）" % cost, _upgrade_messenger_stat.bind(stat_id))
+	var button := _add_primary_button(
+		card,
+		GameLocale.pick("升级（%d 星火币）" % cost, "Upgrade (%d coins)" % cost),
+		_upgrade_messenger_stat.bind(stat_id)
+	)
 	button.disabled = not can_buy
 	if not can_buy:
-		_add_muted_label(card, "星火币不足，完成运输可获得更多")
+		_add_muted_label(card, GameLocale.pick("星火币不足，完成运输可获得更多", "Not enough coins — finish runs to earn more"))
 
 
 func _upgrade_messenger_stat(stat_id: String) -> void:
 	if Global.try_upgrade_messenger_stat(stat_id):
-		_show_toast("%s 升级成功" % String(CharacterProgression.STAT_LABELS.get(stat_id, stat_id)))
+		_show_toast(GameLocale.pick(
+			"%s 升级成功" % CharacterProgression.stat_label(stat_id),
+			"%s upgraded" % CharacterProgression.stat_label(stat_id)
+		))
 		_show_tab(TAB_CHARACTER, true, true)
 		return
-	_show_toast("星火币不足，无法升级")
+	_show_toast(GameLocale.pick("星火币不足，无法升级", "Not enough coins to upgrade"))
 
 
 func _ensure_task_detail() -> void:
@@ -3598,7 +4334,7 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 				_task_detail.close()
 			_start_runner_for_mission(planet_id, mission, true)
 		else:
-			_show_toast("预览任务 · 网络核心批次解锁后可接取出发")
+			_show_toast(GameLocale.pick("预览任务 · 网络核心批次解锁后可接取出发", "Preview · accept after Network Core batch unlocks"))
 		return
 	var mission_done := Global.is_mission_completed(planet_id, mission_id)
 	var reward_pending := Global.is_mission_reward_pending(planet_id, mission_id)
@@ -3607,7 +4343,7 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 	if reward_pending:
 		var payout := Global.get_mission_reward_amount(planet_id, mission_id)
 		if Global.claim_mission_reward(planet_id, mission_id, payout):
-			_show_toast("领取成功 · 星火币 +%d" % payout)
+			_show_toast(GameLocale.pick("领取成功 · 星火币 +%d" % payout, "Claimed · Ember Coins +%d" % payout))
 			_refresh_status_bar()
 			_open_task_detail(planet_id, mission)
 			_refresh_tasks_mission_cards(planet_id)
@@ -3618,10 +4354,10 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 		_start_runner_for_mission(planet_id, mission)
 		return
 	if not MissionDispatch.is_location_batch_unlocked(planet_id, location_id):
-		_show_toast("该批次任务尚未解锁")
+		_show_toast(GameLocale.pick("该批次任务尚未解锁", "This mission batch is still locked"))
 		return
 	Global.accept_mission(planet_id, mission_id)
-	_show_toast("已接取 · 点击 RUN 出发")
+	_show_toast(GameLocale.pick("已接取 · 点击 RUN 出发", "Accepted · tap RUN to start"))
 	_open_task_detail(planet_id, mission)
 	_refresh_tasks_mission_cards(planet_id)
 
@@ -3638,7 +4374,7 @@ func _add_mission_card(
 	var batch_unlocked := MissionDispatch.is_location_batch_unlocked(planet_id, location_id)
 	var is_active := Global.is_active_mission(planet_id, location_id)
 	var on_board := from_board or Global.is_mission_on_board(planet_id, Global.mission_key(mission))
-	var status := "已完成" if completed else ("进行中" if is_active else ("任务板上" if on_board else ("可接取" if batch_unlocked else "待解锁")))
+	var status := GameLocale.pick("已完成", "Done") if completed else (GameLocale.pick("进行中", "Active") if is_active else (GameLocale.pick("任务板上", "On board") if on_board else (GameLocale.pick("可接取", "Available") if batch_unlocked else GameLocale.pick("待解锁", "Locked"))))
 	var border_color := UI_GREEN if completed else (UI_ORANGE if is_active else (Color(0.96, 0.58, 0.22) if on_board or batch_unlocked else UI_PANEL_BORDER))
 
 	var panel := PanelContainer.new()
@@ -3686,16 +4422,20 @@ func _add_mission_card(
 
 	var type_label := Label.new()
 	var profile: Dictionary = MissionTypes.resolve(mission)
-	var type_zh := String(mission.get("task_type_zh", profile.get("name_zh", "补给")))
+	var type_name := GameLocale.field(mission, "task_type_zh", "task_type")
+	if type_name == "":
+		type_name = GameLocale.pick(String(profile.get("name_zh", "补给")), String(profile.get("task_type", "Supply")))
 	var duration_s := int(mission.get("duration", profile.get("duration", 60)))
-	type_label.text = "%s · %ds" % [type_zh, duration_s]
+	type_label.text = "%s · %ds" % [type_name, duration_s]
 	if slot_index > 0:
-		type_label.text = "槽位 %d · %s" % [slot_index, type_label.text]
+		type_label.text = GameLocale.pick("槽位 %d · %s" % [slot_index, type_label.text], "Slot %d · %s" % [slot_index, type_label.text])
 	type_label.add_theme_font_size_override("font_size", 15)
 	type_label.add_theme_color_override("font_color", UI_TEXT)
 	text_box.add_child(type_label)
 
-	var hint_text := String(mission.get("task_hint", profile.get("hint", "")))
+	var hint_text := GameLocale.field(mission, "task_hint", "task_hint_en")
+	if hint_text == "":
+		hint_text = GameLocale.field(profile, "hint", "hint_en")
 	if hint_text != "":
 		var hint_label := Label.new()
 		hint_label.text = hint_text
@@ -3705,21 +4445,28 @@ func _add_mission_card(
 		text_box.add_child(hint_label)
 
 	var route_label := Label.new()
-	route_label.text = "%s → %s" % [
-		String(mission.get("source_hearth", String(planet["name"]))),
-		String(mission.get("target_hearth", "据点")),
-	]
+	var source_label := GameLocale.field(mission, "source_hearth", "source_hearth_en")
+	if source_label == "":
+		source_label = String(mission.get("source_hearth", String(planet["name"])))
+	var target_label := Global.get_outpost_display_name(String(planet.get("id", _selected_planet_id)), String(mission.get("location_id", "")))
+	if target_label == "":
+		target_label = GameLocale.field(mission, "target_hearth", "target_hearth_en")
+	if target_label == "":
+		target_label = GameLocale.pick("据点", "Outpost")
+	route_label.text = "%s → %s" % [source_label, target_label]
 	route_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	route_label.add_theme_font_size_override("font_size", 18)
 	route_label.add_theme_color_override("font_color", UI_CYAN)
 	text_box.add_child(route_label)
 
 	var cargo_label := Label.new()
-	cargo_label.text = "%s × %d · 难度 %d" % [
-		String(mission.get("cargo_name", "物资")),
-		int(mission.get("cargo_load", 1)),
-		int(mission.get("difficulty", 1)),
-	]
+	var cargo_name := GameLocale.field(mission, "cargo_name", "cargo_name_en")
+	if cargo_name == "":
+		cargo_name = GameLocale.pick("物资", "Cargo")
+	cargo_label.text = GameLocale.pick(
+		"%s × %d · 难度 %d" % [cargo_name, int(mission.get("cargo_load", 1)), int(mission.get("difficulty", 1))],
+		"%s × %d · Diff %d" % [cargo_name, int(mission.get("cargo_load", 1)), int(mission.get("difficulty", 1))]
+	)
 	cargo_label.add_theme_font_size_override("font_size", 14)
 	cargo_label.add_theme_color_override("font_color", UI_MUTED)
 	text_box.add_child(cargo_label)
@@ -3903,19 +4650,27 @@ func _add_recommended_task_card(mission: Dictionary, planet_id: String, location
 	text_box.add_theme_constant_override("separation", 4)
 	row.add_child(text_box)
 	var tag := Label.new()
-	tag.text = "推荐任务"
+	tag.text = GameLocale.pick("推荐任务", "Recommended")
 	tag.add_theme_font_size_override("font_size", 13)
 	tag.add_theme_color_override("font_color", UI_STATUS)
 	text_box.add_child(tag)
 	var line1 := Label.new()
-	var type_zh := String(mission.get("task_type_zh", MissionTypes.short_label(mission)))
+	var type_name := String(mission.get("task_type", MissionTypes.short_label(mission))) if GameLocale.is_en() else String(mission.get("task_type_zh", MissionTypes.short_label(mission)))
 	var duration_s := int(mission.get("duration", MissionTypes.resolve(mission).get("duration", 60)))
-	line1.text = "%s · %ds · %s" % [type_zh, duration_s, String(mission.get("target_hearth", "据点"))]
+	var target_name := GameLocale.field(mission, "target_hearth", "target_hearth_en")
+	if target_name == "":
+		target_name = Global.get_outpost_display_name(planet_id, location_id)
+	if target_name == "":
+		target_name = GameLocale.pick("据点", "Outpost")
+	line1.text = "%s · %ds · %s" % [type_name, duration_s, target_name]
 	line1.add_theme_font_size_override("font_size", 18)
 	line1.add_theme_color_override("font_color", UI_TEXT)
 	text_box.add_child(line1)
 	var line2 := Label.new()
-	line2.text = "%s × %d" % [String(mission.get("cargo_name", "物资")), int(mission.get("cargo_load", 1))]
+	var cargo_name := GameLocale.field(mission, "cargo_name", "cargo_name_en")
+	if cargo_name == "":
+		cargo_name = GameLocale.pick("物资", "Cargo")
+	line2.text = "%s × %d" % [cargo_name, int(mission.get("cargo_load", 1))]
 	line2.add_theme_font_size_override("font_size", 15)
 	line2.add_theme_color_override("font_color", UI_MUTED)
 	text_box.add_child(line2)
@@ -4261,20 +5016,23 @@ func _build_settings_overlay() -> void:
 	var shade := ColorRect.new()
 	shade.color = Color(0.02, 0.04, 0.08, 0.78)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	shade.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_close_settings()
 	)
 	_settings_overlay.add_child(shade)
 
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# IGNORE：空白处点击落到遮罩可关闭；面板本身 STOP 仍可点
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_settings_overlay.add_child(center)
 
 	var panel := PanelContainer.new()
 	var panel_w := _settings_spec_w(560)
-	var panel_h := mini(_settings_spec_h(980), maxf(420.0, _ui_root.size.y * 0.82))
+	# 正式版只保留语言 / BGM / 回看剧情，面板不必再做很高
+	var panel_h := mini(_settings_spec_h(520), maxf(360.0, _ui_root.size.y * 0.62))
 	panel.custom_minimum_size = Vector2(panel_w, panel_h)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.add_theme_stylebox_override("panel", _style(UI_FRAME, UI_FRAME_BORDER, 2, _settings_spec_w(14)))
@@ -4296,14 +5054,14 @@ func _build_settings_overlay() -> void:
 	margin.add_child(root)
 
 	var title := Label.new()
-	title.text = "设置"
+	title.text = GameLocale.t("settings_title")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", _settings_spec_fs(32))
 	title.add_theme_color_override("font_color", UI_TEXT)
 	root.add_child(title)
 
 	var tip := Label.new()
-	tip.text = "跑酷新手引导会在首次遇到跳跃、滑铲、防护罩、分叉、沙尘、侧墙时提示。"
+	tip.text = GameLocale.t("settings_tip")
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tip.custom_minimum_size = Vector2(_settings_spec_w(480), 0)
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -4311,34 +5069,36 @@ func _build_settings_overlay() -> void:
 	tip.add_theme_color_override("font_color", UI_MUTED)
 	root.add_child(tip)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	root.add_child(scroll)
-
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", _settings_spec_h(14))
-	scroll.add_child(box)
+	root.add_child(box)
 
-	_settings_tutorial_check = CheckButton.new()
-	_settings_tutorial_check.text = "开启跑酷新手引导"
-	_settings_tutorial_check.focus_mode = Control.FOCUS_NONE
-	_settings_tutorial_check.custom_minimum_size = Vector2(0, _settings_spec_h(52))
-	_settings_tutorial_check.add_theme_font_size_override("font_size", _settings_spec_fs(20))
-	_settings_tutorial_check.add_theme_color_override("font_color", UI_TEXT)
-	_settings_tutorial_check.toggled.connect(_on_settings_tutorial_toggled)
-	box.add_child(_settings_tutorial_check)
-
-	_settings_bgm_check = null
+	var lang_row := HBoxContainer.new()
+	lang_row.add_theme_constant_override("separation", _settings_spec_w(12))
+	box.add_child(lang_row)
+	var lang_label := Label.new()
+	lang_label.text = GameLocale.t("settings_language")
+	lang_label.custom_minimum_size = Vector2(_settings_spec_w(140), 0)
+	lang_label.add_theme_font_size_override("font_size", _settings_spec_fs(18))
+	lang_label.add_theme_color_override("font_color", UI_TEXT)
+	lang_row.add_child(lang_label)
+	_settings_language_option = OptionButton.new()
+	_settings_language_option.focus_mode = Control.FOCUS_NONE
+	_settings_language_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_settings_language_option.custom_minimum_size = Vector2(0, _settings_spec_h(44))
+	_settings_language_option.add_theme_font_size_override("font_size", _settings_spec_fs(18))
+	_settings_language_option.add_item(GameLocale.t("settings_lang_zh"), 0)
+	_settings_language_option.add_item(GameLocale.t("settings_lang_en"), 1)
+	_settings_language_option.item_selected.connect(_on_settings_language_selected)
+	lang_row.add_child(_settings_language_option)
 
 	var bgm_vol_row := HBoxContainer.new()
 	bgm_vol_row.add_theme_constant_override("separation", _settings_spec_w(12))
 	box.add_child(bgm_vol_row)
 	var bgm_vol_label := Label.new()
-	bgm_vol_label.text = "BGM 音量"
+	bgm_vol_label.text = GameLocale.t("settings_bgm_volume")
 	bgm_vol_label.custom_minimum_size = Vector2(_settings_spec_w(140), 0)
 	bgm_vol_label.add_theme_font_size_override("font_size", _settings_spec_fs(18))
 	bgm_vol_label.add_theme_color_override("font_color", UI_TEXT)
@@ -4352,121 +5112,169 @@ func _build_settings_overlay() -> void:
 	_settings_bgm_slider.value_changed.connect(_on_settings_bgm_volume_changed)
 	bgm_vol_row.add_child(_settings_bgm_slider)
 
-	var sfx_vol_row := HBoxContainer.new()
-	sfx_vol_row.add_theme_constant_override("separation", _settings_spec_w(12))
-	box.add_child(sfx_vol_row)
-	var sfx_vol_label := Label.new()
-	sfx_vol_label.text = "音效音量"
-	sfx_vol_label.custom_minimum_size = Vector2(_settings_spec_w(140), 0)
-	sfx_vol_label.add_theme_font_size_override("font_size", _settings_spec_fs(18))
-	sfx_vol_label.add_theme_color_override("font_color", UI_TEXT)
-	sfx_vol_row.add_child(sfx_vol_label)
-	_settings_sfx_slider = HSlider.new()
-	_settings_sfx_slider.min_value = 0.0
-	_settings_sfx_slider.max_value = 1.0
-	_settings_sfx_slider.step = 0.01
-	_settings_sfx_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_settings_sfx_slider.custom_minimum_size = Vector2(0, _settings_spec_h(36))
-	_settings_sfx_slider.value_changed.connect(_on_settings_sfx_volume_changed)
-	sfx_vol_row.add_child(_settings_sfx_slider)
-
-	var reset_mission_btn := _make_settings_flat_button("重置运输任务进度（从批次1开始）")
-	reset_mission_btn.pressed.connect(_on_settings_reset_mission_progress)
-	box.add_child(reset_mission_btn)
-
-	var reset_map_btn := _make_settings_flat_button("重置地图点亮效果（可重测雾散）")
-	reset_map_btn.pressed.connect(_on_settings_reset_map_light)
-	box.add_child(reset_map_btn)
-
-	var reset_btn := _make_settings_flat_button("重置跑酷教学进度")
-	reset_btn.pressed.connect(_on_settings_reset_tutorials)
-	box.add_child(reset_btn)
-
-	var home_guide_btn := _make_settings_flat_button("重新播放主页引导")
-	home_guide_btn.pressed.connect(_on_settings_replay_home_guide)
-	box.add_child(home_guide_btn)
-
-	var story_review_btn := _make_settings_flat_button("Story Review · 剧情回顾")
+	var story_review_btn := _make_settings_flat_button(GameLocale.t("settings_story_review"))
 	story_review_btn.pressed.connect(_on_settings_story_review)
 	box.add_child(story_review_btn)
 
-	var reset_comic_btn := _make_settings_flat_button("Reset opening comic auto-play")
-	reset_comic_btn.pressed.connect(_on_settings_reset_opening_comic)
-	box.add_child(reset_comic_btn)
-
-	if OS.has_feature("editor"):
-		var level_editor_btn := _make_settings_flat_button("跑道关卡编辑器（开发）")
-		level_editor_btn.pressed.connect(_on_settings_open_level_editor)
-		box.add_child(level_editor_btn)
-
-	var close_btn := _make_settings_gold_button("关闭")
+	var close_btn := _make_settings_gold_button(GameLocale.t("settings_close"))
 	close_btn.pressed.connect(_close_settings)
 	root.add_child(close_btn)
 
 
 func _refresh_settings_ui() -> void:
-	if _settings_tutorial_check != null:
-		_settings_tutorial_check.set_pressed_no_signal(Global.is_runner_tutorial_enabled())
+	if _settings_language_option != null:
+		_settings_language_option.set_block_signals(true)
+		_settings_language_option.select(1 if Global.is_ui_english() else 0)
+		_settings_language_option.set_block_signals(false)
 	if _settings_bgm_slider != null:
 		_settings_bgm_slider.set_value_no_signal(Global.bgm_volume)
 		_settings_bgm_slider.editable = true
-	if _settings_sfx_slider != null:
-		_settings_sfx_slider.set_value_no_signal(Global.sfx_volume)
 
 
-func _on_settings_tutorial_toggled(pressed: bool) -> void:
-	Global.set_runner_tutorial_enabled(pressed)
-	_show_toast("跑酷新手引导已%s" % ("开启" if pressed else "关闭"))
-
-
-func _on_settings_bgm_toggled(pressed: bool) -> void:
-	Global.set_bgm_enabled(pressed)
-	if _settings_bgm_slider != null:
-		_settings_bgm_slider.editable = pressed
-	_show_toast("背景音乐已%s" % ("开启" if pressed else "关闭"))
+func _on_settings_language_selected(index: int) -> void:
+	var next := "en" if index == 1 else "zh"
+	if Global.get_ui_locale() == next:
+		return
+	GameLocale.set_locale(next)
+	_show_toast(GameLocale.t("toast_lang_en" if next == "en" else "toast_lang_zh"))
+	# 重建设置页与当前主页 Tab，立即应用文案
+	_open_settings()
+	_show_tab(_selected_tab, true)
 
 
 func _on_settings_bgm_volume_changed(value: float) -> void:
 	Global.set_bgm_volume(value)
-	# 去掉 BGM 开关后：音量>0 自动开启，=0 视为关闭
+	# 音量>0 自动开启，=0 视为关闭
 	if value > 0.001 and not Global.bgm_enabled:
 		Global.set_bgm_enabled(true)
 	elif value <= 0.001 and Global.bgm_enabled:
 		Global.set_bgm_enabled(false)
 
 
-func _on_settings_sfx_volume_changed(value: float) -> void:
-	Global.set_sfx_volume(value)
+func _attach_transport_help_button(parent: Control) -> void:
+	if parent == null:
+		return
+	if parent.get_node_or_null("TransportHelpBtn") != null:
+		return
+	var btn := Button.new()
+	btn.name = "TransportHelpBtn"
+	btn.text = "?"
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.custom_minimum_size = Vector2(_home_spec_w(44), _home_spec_w(44))
+	btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	btn.anchor_left = 1.0
+	btn.anchor_right = 1.0
+	btn.anchor_top = 0.0
+	btn.anchor_bottom = 0.0
+	btn.offset_left = -_home_spec_w(52)
+	btn.offset_right = -_home_spec_w(8)
+	btn.offset_top = _home_spec_h(4)
+	btn.offset_bottom = _home_spec_h(48)
+	btn.add_theme_font_size_override("font_size", _home_spec_fs(24))
+	var normal := _style(Color(0.05, 0.10, 0.16, 0.88), UI_CYAN, 1, 999)
+	var hover := _style(Color(0.10, 0.20, 0.30, 0.94), UI_CYAN_SOFT, 1, 999)
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", hover)
+	btn.add_theme_color_override("font_color", UI_ICE)
+	btn.pressed.connect(_show_transport_intro.bind(true))
+	parent.add_child(btn)
+	parent.move_child(btn, -1)
 
-func _on_settings_reset_mission_progress() -> void:
-	Global.reset_planet_mission_progress("glass_desert")
-	_close_settings()
-	_show_toast("已重置运输任务，从居民穹顶+水源据点重新开始")
-	if _selected_tab == TAB_TASKS:
-		_show_tab(TAB_TASKS, true)
+
+func _maybe_show_transport_intro() -> void:
+	if Global.transport_intro_seen:
+		return
+	if _selected_tab != TAB_MAP and _selected_tab != TAB_TASKS:
+		return
+	if _guide_step >= 0:
+		return
+	if _guide_layer != null and is_instance_valid(_guide_layer):
+		return
+	if _transport_intro_layer != null and is_instance_valid(_transport_intro_layer):
+		return
+	if _story_canvas != null and is_instance_valid(_story_canvas):
+		return
+	_show_transport_intro(false)
 
 
-func _on_settings_reset_map_light() -> void:
-	Global.reset_map_light_progress("glass_desert")
-	_close_settings()
-	_show_toast("已重置地图点亮效果，可在 Tasks 再次点亮测雾散")
-	if _selected_tab == TAB_TASKS:
-		_show_tab(TAB_TASKS, true)
+func _show_transport_intro(force: bool = false) -> void:
+	if not force and Global.transport_intro_seen:
+		return
+	if _transport_intro_layer != null and is_instance_valid(_transport_intro_layer):
+		_transport_intro_layer.queue_free()
+	_transport_intro_layer = CanvasLayer.new()
+	_transport_intro_layer.name = "TransportIntroLayer"
+	_transport_intro_layer.layer = 65
+	add_child(_transport_intro_layer)
+
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	_transport_intro_layer.add_child(root)
+
+	var shade := ColorRect.new()
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.02, 0.04, 0.08, 0.78)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(shade)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(minf(get_viewport_rect().size.x - 48.0, 640.0), 0)
+	panel.add_theme_stylebox_override("panel", _style(Color(0.035, 0.07, 0.12, 0.98), UI_FRAME_BORDER, 2, 18))
+	center.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 26)
+	margin.add_theme_constant_override("margin_bottom", 24)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 18)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.text = GameLocale.t("transport_intro_title")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_size_override("font_size", 30)
+	title.add_theme_color_override("font_color", UI_CYAN_SOFT)
+	box.add_child(title)
+
+	var body := Label.new()
+	body.text = GameLocale.t("transport_intro_body")
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_font_size_override("font_size", 20)
+	body.add_theme_color_override("font_color", Color(0.90, 0.94, 0.98))
+	body.add_theme_constant_override("line_spacing", 8)
+	box.add_child(body)
+
+	var ok := Button.new()
+	ok.text = GameLocale.t("transport_intro_ok")
+	ok.focus_mode = Control.FOCUS_NONE
+	ok.custom_minimum_size = Vector2(0, 56)
+	ok.add_theme_font_size_override("font_size", 22)
+	ok.add_theme_stylebox_override("normal", _style(UI_GOLD, UI_GOLD_BORDER, 2, 12))
+	ok.add_theme_stylebox_override("hover", _style(UI_GOLD.lightened(0.05), UI_GOLD_BORDER.lightened(0.04), 2, 12))
+	ok.add_theme_stylebox_override("pressed", _style(UI_GOLD.darkened(0.08), UI_GOLD_BORDER.darkened(0.04), 2, 12))
+	ok.add_theme_color_override("font_color", Color(0.08, 0.05, 0.02))
+	ok.pressed.connect(_close_transport_intro)
+	box.add_child(ok)
 
 
-func _on_settings_reset_tutorials() -> void:
-	Global.reset_runner_tutorials()
-	_show_toast("已重置跑酷教学，下次开跑会重新提示")
-
-
-func _on_settings_replay_home_guide() -> void:
-	Global.home_guide_seen = false
-	Global.save_mobile_progress()
-	_close_settings()
-	if _guide_overlay != null and is_instance_valid(_guide_overlay):
-		_guide_overlay.queue_free()
-		_guide_overlay = null
-	_start_home_guide()
+func _close_transport_intro() -> void:
+	if not Global.transport_intro_seen:
+		Global.mark_transport_intro_seen()
+	if _transport_intro_layer != null and is_instance_valid(_transport_intro_layer):
+		_transport_intro_layer.queue_free()
+	_transport_intro_layer = null
 
 
 func _position_toast() -> void:
@@ -4498,12 +5306,18 @@ func _add_xp_card(snapshot: Dictionary) -> void:
 	bar.show_percentage = false
 	_apply_progress_bar_theme(bar, 16)
 	card.add_child(bar)
-	_add_muted_label(card, "经验 %d / %d" % [int(snapshot["xp_into_level"]), xp_to_next])
+	_add_muted_label(card, GameLocale.pick(
+		"经验 %d / %d" % [int(snapshot["xp_into_level"]), xp_to_next],
+		"XP %d / %d" % [int(snapshot["xp_into_level"]), xp_to_next]
+	))
 
 
 func _add_progress_card(title: String, completed: int, total: int, revealed: int, percent_override: int = -1) -> void:
 	var percent := percent_override if percent_override >= 0 else int(round(float(completed) / float(maxi(total, 1)) * 100.0))
-	var card := _add_card(title, "已完成 %d / %d 条运输 · 已点亮 %d 处据点 · 净化度 %d%%" % [completed, total, revealed, percent])
+	var card := _add_card(title, GameLocale.pick(
+		"已完成 %d / %d 条运输 · 已点亮 %d 处据点 · 净化度 %d%%" % [completed, total, revealed, percent],
+		"%d / %d runs done · %d outposts lit · Purify %d%%" % [completed, total, revealed, percent]
+	))
 	var bar := ProgressBar.new()
 	bar.custom_minimum_size = Vector2(0, 14)
 	bar.max_value = 100.0
@@ -4692,22 +5506,10 @@ func _on_settings_story_review() -> void:
 	_show_story_intro(true)
 
 
-func _on_settings_reset_opening_comic() -> void:
-	Global.opening_comic_seen = false
-	Global.save_mobile_progress()
-	_close_settings()
-	_show_toast("Opening comic will auto-play on next home visit")
-
-
-func _on_settings_open_level_editor() -> void:
-	_close_settings()
-	Global.runner_return_scene = PlanetDatabase.MOBILE_HOME_SCENE
-	Global.change_game_scene(PlanetDatabase.LEVEL_EDITOR_SCENE)
-
-
 func _show_story_intro(replay: bool = false) -> void:
 	if _story_overlay != null and is_instance_valid(_story_overlay):
 		return
+	_hide_dawnline_comic_hint()
 	_story_intro_replay = replay
 	if _story_canvas == null or not is_instance_valid(_story_canvas):
 		_story_canvas = CanvasLayer.new()
@@ -4740,6 +5542,7 @@ func _close_story_intro(mark_seen: bool) -> void:
 	_story_intro_replay = false
 	if mark_seen:
 		Global.mark_opening_comic_seen()
+	_refresh_dawnline_comic_hint()
 
 
 func _on_story_intro_finished() -> void:
@@ -4762,24 +5565,37 @@ func _finish_story_intro() -> void:
 
 
 func _start_home_guide() -> void:
-	if _guide_overlay != null or Global.home_guide_seen:
+	if Global.home_guide_seen:
 		return
+	if _guide_layer != null and is_instance_valid(_guide_layer):
+		return
+	_hide_dawnline_comic_hint()
 	_guide_step = 0
 	_build_guide_overlay()
 	_show_guide_step(0)
 
 
 func _build_guide_overlay() -> void:
+	if _guide_layer != null and is_instance_valid(_guide_layer):
+		_guide_layer.queue_free()
+	_guide_layer = CanvasLayer.new()
+	_guide_layer.name = "HomeGuideLayer"
+	_guide_layer.layer = 60
+	add_child(_guide_layer)
+
 	_guide_overlay = Control.new()
 	_guide_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_guide_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	_guide_overlay.clip_contents = false
-	_ui_root.add_child(_guide_overlay)
+	_guide_layer.add_child(_guide_overlay)
 
 	var shade := ColorRect.new()
 	shade.name = "GuideShade"
 	shade.color = Color(0.02, 0.04, 0.08, 0.72)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# 底栏上方才遮罩，让 MAP / TASKS 保持可见
+	shade.anchor_bottom = 0.9055
+	shade.offset_bottom = 0.0
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_guide_overlay.add_child(shade)
 
@@ -4789,15 +5605,16 @@ func _build_guide_overlay() -> void:
 	_guide_highlight.clip_contents = false
 	_guide_highlight.add_theme_stylebox_override(
 		"panel",
-		_style(Color(0.42, 0.86, 0.98, 0.14), UI_CYAN, 2, 14)
+		_style(Color(0.42, 0.86, 0.98, 0.18), UI_CYAN, 2, 14)
 	)
 	_guide_overlay.add_child(_guide_highlight)
 
 	_guide_callout = PanelContainer.new()
 	_guide_callout.name = "GuideCallout"
+	_guide_callout.mouse_filter = Control.MOUSE_FILTER_STOP
 	_guide_callout.clip_contents = false
-	_guide_callout.custom_minimum_size = Vector2(520, 0)
-	var callout_style := _style(Color(0.035, 0.07, 0.12, 0.96), UI_FRAME_BORDER, 2, 16)
+	_guide_callout.custom_minimum_size = Vector2(560, 0)
+	var callout_style := _style(Color(0.035, 0.07, 0.12, 0.97), UI_FRAME_BORDER, 2, 18)
 	callout_style.content_margin_left = 0
 	callout_style.content_margin_right = 0
 	callout_style.content_margin_top = 0
@@ -4806,20 +5623,20 @@ func _build_guide_overlay() -> void:
 	_guide_overlay.add_child(_guide_callout)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 26)
-	margin.add_theme_constant_override("margin_bottom", 24)
+	margin.add_theme_constant_override("margin_left", 32)
+	margin.add_theme_constant_override("margin_right", 32)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_bottom", 28)
 	_guide_callout.add_child(margin)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
+	box.add_theme_constant_override("separation", 20)
 	margin.add_child(box)
 
 	_guide_title_label = Label.new()
 	_guide_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_guide_title_label.clip_text = false
-	_guide_title_label.add_theme_font_size_override("font_size", 26)
+	_guide_title_label.add_theme_font_size_override("font_size", 34)
 	_guide_title_label.add_theme_color_override("font_color", UI_CYAN_SOFT)
 	_guide_title_label.add_theme_constant_override("line_spacing", 4)
 	box.add_child(_guide_title_label)
@@ -4829,20 +5646,20 @@ func _build_guide_overlay() -> void:
 	_guide_body_label.clip_text = false
 	_guide_body_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_guide_body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_guide_body_label.add_theme_font_size_override("font_size", 18)
-	_guide_body_label.add_theme_color_override("font_color", UI_MUTED)
-	_guide_body_label.add_theme_constant_override("line_spacing", 6)
+	_guide_body_label.add_theme_font_size_override("font_size", 26)
+	_guide_body_label.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
+	_guide_body_label.add_theme_constant_override("line_spacing", 10)
 	box.add_child(_guide_body_label)
 
 	_guide_next_button = Button.new()
 	_guide_next_button.focus_mode = Control.FOCUS_NONE
-	_guide_next_button.custom_minimum_size = Vector2(0, 52)
-	_guide_next_button.add_theme_font_size_override("font_size", 18)
+	_guide_next_button.custom_minimum_size = Vector2(0, 60)
+	_guide_next_button.add_theme_font_size_override("font_size", 24)
 	_guide_next_button.add_theme_stylebox_override("normal", _style(UI_GOLD, UI_GOLD_BORDER, 2, 12))
 	_guide_next_button.add_theme_stylebox_override("hover", _style(UI_GOLD.lightened(0.05), UI_GOLD_BORDER.lightened(0.04), 2, 12))
 	_guide_next_button.add_theme_stylebox_override("pressed", _style(UI_GOLD.darkened(0.08), UI_GOLD_BORDER.darkened(0.04), 2, 12))
 	_guide_next_button.add_theme_color_override("font_color", Color(0.08, 0.05, 0.02))
-	_guide_next_button.pressed.connect(_advance_home_guide)
+	_guide_next_button.pressed.connect(_on_guide_got_it_pressed)
 	box.add_child(_guide_next_button)
 
 	_set_nav_interactive(false)
@@ -4855,11 +5672,18 @@ func _show_guide_step(step_index: int) -> void:
 	var step: Dictionary = GUIDE_STEPS[step_index]
 	var tab_id := String(step["tab"])
 	_show_tab(tab_id, true)
-	_guide_title_label.text = String(step["title"])
-	_guide_body_label.text = String(step["body"])
-	_guide_next_button.text = String(step["next"])
+	_guide_title_label.text = GameLocale.pick("从这里开始", "Start from here")
+	_guide_body_label.text = GameLocale.pick(
+		"点击 MAP，选择一个地图，查看各个据点和相关运输任务。也可以直接在 TASKS 里接取运输任务。",
+		"Tap MAP, choose a region, then view outposts and transport missions. You can also accept missions directly in TASKS."
+	)
+	_guide_next_button.text = GameLocale.pick("知道了", "Got it")
 	_update_guide_layout()
 	call_deferred("_update_guide_layout")
+
+
+func _on_guide_got_it_pressed() -> void:
+	_finish_home_guide()
 
 
 func _advance_home_guide() -> void:
@@ -4879,14 +5703,15 @@ func _finish_home_guide() -> void:
 func _clear_home_guide() -> void:
 	_guide_step = -1
 	_set_nav_interactive(true)
-	if _guide_overlay:
-		_guide_overlay.queue_free()
-		_guide_overlay = null
-		_guide_highlight = null
-		_guide_callout = null
-		_guide_title_label = null
-		_guide_body_label = null
-		_guide_next_button = null
+	_guide_highlight = null
+	_guide_callout = null
+	_guide_title_label = null
+	_guide_body_label = null
+	_guide_next_button = null
+	_guide_overlay = null
+	if _guide_layer != null and is_instance_valid(_guide_layer):
+		_guide_layer.queue_free()
+	_guide_layer = null
 
 
 func _set_nav_interactive(enabled: bool) -> void:
@@ -4899,39 +5724,42 @@ func _update_guide_layout() -> void:
 		return
 	if _guide_callout == null or _guide_highlight == null:
 		return
-	var tab_id := String(GUIDE_STEPS[_guide_step]["tab"])
-	var button: Control = _nav_buttons.get(tab_id)
-	if button == null:
+	var map_btn: Control = _nav_buttons.get(TAB_MAP)
+	var tasks_btn: Control = _nav_buttons.get(TAB_TASKS)
+	if map_btn == null:
 		return
-	var button_rect := button.get_global_rect()
-	_guide_highlight.global_position = button_rect.position - Vector2(8, 8)
-	_guide_highlight.size = button_rect.size + Vector2(16, 16)
 
-	var overlay_rect := _guide_overlay.get_global_rect()
-	var side_pad := 36.0
-	var callout_width := minf(overlay_rect.size.x - side_pad * 2.0, 560.0)
+	# 高亮覆盖 MAP + TASKS
+	var highlight_rect := map_btn.get_global_rect()
+	if tasks_btn != null:
+		highlight_rect = highlight_rect.merge(tasks_btn.get_global_rect())
+	_guide_highlight.global_position = highlight_rect.position - Vector2(10, 10)
+	_guide_highlight.size = highlight_rect.size + Vector2(20, 20)
+
+	var viewport_size := get_viewport_rect().size
+	var side_pad := 28.0
+	var callout_width := minf(viewport_size.x - side_pad * 2.0, 640.0)
 	_guide_callout.custom_minimum_size = Vector2(callout_width, 0)
 	if _guide_body_label != null:
-		_guide_body_label.custom_minimum_size = Vector2(maxi(callout_width - 56.0, 200.0), 0)
-	# 先按内容最小尺寸定高，再定位，避免高度为 0 时叠在底栏上
+		_guide_body_label.custom_minimum_size = Vector2(maxi(callout_width - 64.0, 220.0), 0)
 	_guide_callout.reset_size()
 	var callout_size := _guide_callout.get_combined_minimum_size()
 	callout_size.x = callout_width
-	callout_size.y = maxf(callout_size.y, 160.0)
+	callout_size.y = maxf(callout_size.y, 180.0)
 	_guide_callout.size = callout_size
 
-	var callout_x := overlay_rect.position.x + (overlay_rect.size.x - callout_width) * 0.5
-	var gap := 24.0
-	var nav_top := button_rect.position.y
+	var nav_top := highlight_rect.position.y
 	if _bottom_nav_root != null:
 		nav_top = mini(nav_top, _bottom_nav_root.get_global_rect().position.y)
+	var gap := 16.0
+	# 贴在底栏 MAP / TASKS 正上方
+	var callout_x := (viewport_size.x - callout_width) * 0.5
 	var callout_y := nav_top - callout_size.y - gap
-	var top_limit := overlay_rect.position.y + 96.0
+	var top_limit := 96.0
 	if callout_y < top_limit:
 		callout_y = top_limit
-	# 绝不压住底栏
-	if callout_y + callout_size.y > nav_top - 12.0:
-		callout_y = nav_top - callout_size.y - gap
+		callout_size.y = maxf(140.0, nav_top - gap - callout_y)
+		_guide_callout.size = callout_size
 	_guide_callout.global_position = Vector2(callout_x, callout_y)
 
 

@@ -1,0 +1,23 @@
+---
+description: 水源/居民穹顶主路不得大段空障
+globs: assets/maps/route_levels/**/*{reservoir,dome}*
+alwaysApply: false
+---
+
+# 水源 / 居民穹顶：禁止大段空路
+
+这些据点用 JSON 布局，但 **sparse 补障对 beat-sync JSON 关无效**。空档必须靠运行时 `_inject_reservoir_dome_coverage_pass()`。
+
+## 死线
+
+1. 主路可跑段空档 **≤18m**（程序扫描补障，不必手填密 JSON）。
+2. 弯道也要有轻障碍（球/跳/铲），不能整段 S 弯只剩金币。
+3. 侧墙入口、熔岩坑、分叉中段、弹射垫旁仍留空（遵循 `no-obstacle-overlap`）。
+4. 改 JSON 后仍依赖 coverage；不要以为「JSON 里写了几个障碍」整关就密了。
+5. 弯道补障必须打 `outpost_turn`，且类型仅 orb/jump/slide（否则 `_register_obstacle` 会丢弃）。
+6. 落点前查主路地面、侧墙走廊、门旁、同道间距；注入后仍跑 overlap purge。
+
+## 实现
+
+- `runner_60s.gd` → `_inject_reservoir_dome_coverage_pass`
+- 在障碍注入/清理之后调用，再 `_purge_overlapping_runway_obstacles`

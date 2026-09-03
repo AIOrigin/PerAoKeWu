@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cdldh37o15543"
+uid="uid://c7538g6klcoll"
 path.s3tc="res://.godot/imported/idle_futuristic_soldier_3d_model_basecolor.jpg-e6523e1758d0787d0f53a2372b8bbd9c.s3tc.ctex"
 path.etc2="res://.godot/imported/idle_futuristic_soldier_3d_model_basecolor.jpg-e6523e1758d0787d0f53a2372b8bbd9c.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "21a267f1a0c975cd468d197ac2e47d41"
+"md5": "fc6e4962b3932ed953bafb9850a96e41"
 }
 
 [deps]

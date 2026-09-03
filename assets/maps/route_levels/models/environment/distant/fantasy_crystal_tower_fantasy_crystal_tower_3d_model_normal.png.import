@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cymvdr0i07su5"
+uid="uid://bvm2cficcots"
 path.s3tc="res://.godot/imported/fantasy_crystal_tower_fantasy_crystal_tower_3d_model_normal.png-6367aa45816ef14e20b11b70c10ef699.s3tc.ctex"
 path.etc2="res://.godot/imported/fantasy_crystal_tower_fantasy_crystal_tower_3d_model_normal.png-6367aa45816ef14e20b11b70c10ef699.etc2.ctex"
 metadata={
@@ -29,7 +29,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/maps/route_levels/runner_60s/distant_props/fantasy_crystal_tower_fantasy_crystal_tower_3d_model_normal.png"
+roughness/src_normal="res://assets/maps/route_levels/models/environment/distant/fantasy_crystal_tower_fantasy_crystal_tower_3d_model_normal.png"
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

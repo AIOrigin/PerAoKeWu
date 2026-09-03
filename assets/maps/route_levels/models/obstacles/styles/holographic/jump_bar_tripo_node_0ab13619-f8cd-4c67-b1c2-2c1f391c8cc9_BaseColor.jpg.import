@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dto6bntxblf3x"
+uid="uid://psq46huxxx7h"
 path.s3tc="res://.godot/imported/jump_bar_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_BaseColor.jpg-693e187a9a52be2d88201cc74fcbcf70.s3tc.ctex"
 path.etc2="res://.godot/imported/jump_bar_tripo_node_0ab13619-f8cd-4c67-b1c2-2c1f391c8cc9_BaseColor.jpg-693e187a9a52be2d88201cc74fcbcf70.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "d471d472eece06ed82989ddd9ebd603e"
+"md5": "6f9236ffb99f2a27ab64a981ad2ef514"
 }
 
 [deps]

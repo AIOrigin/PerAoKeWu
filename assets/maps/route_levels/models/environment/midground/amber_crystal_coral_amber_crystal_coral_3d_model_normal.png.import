@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cpjcrpah4ri3f"
+uid="uid://5jphi4k4m0cf"
 path.s3tc="res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-752555615000aac13b5da78884ee6ed5.s3tc.ctex"
 path.etc2="res://.godot/imported/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png-752555615000aac13b5da78884ee6ed5.etc2.ctex"
 metadata={
@@ -29,7 +29,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/maps/route_levels/runner_60s/midground_props/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png"
+roughness/src_normal="res://assets/maps/route_levels/models/environment/midground/amber_crystal_coral_amber_crystal_coral_3d_model_normal.png"
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

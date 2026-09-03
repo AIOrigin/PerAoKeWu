@@ -121,6 +121,10 @@ static func resolve(mission: Dictionary = {}) -> Dictionary:
 		profile["enable_chaser"] = bool(mission["enable_chaser"])
 	if mission.has("chaser_creep_mult"):
 		profile["chaser_creep_mult"] = clampf(float(mission["chaser_creep_mult"]), 0.5, 2.0)
+	if mission.has("pressure_chaser"):
+		profile["pressure_chaser"] = bool(mission["pressure_chaser"])
+	if mission.has("chaser_mode"):
+		profile["chaser_mode"] = String(mission["chaser_mode"])
 	return profile
 
 
@@ -184,6 +188,24 @@ static func is_overweight_cargo(mission: Dictionary) -> bool:
 	if en == "construction kit":
 		return true
 	if String(mission.get("cargo_name", "")) == "建设包":
+		return true
+	return false
+
+
+## 防御包：任意据点/关卡通用。碰撞掉损更低，开局自带防护罩能量。
+static func is_defense_cargo(mission: Dictionary) -> bool:
+	if mission.is_empty():
+		return false
+	if String(mission.get("cargo_mechanic", "")) == "defense":
+		return true
+	if String(mission.get("cargo_icon", "")).strip_edges() == "防御":
+		return true
+	var name := String(mission.get("cargo_name", ""))
+	if "防御包" in name:
+		return true
+	if "defense pack" in String(mission.get("cargo_name_en", "")).strip_edges().to_lower():
+		return true
+	if "防御包" in String(mission.get("cargo_secondary", "")):
 		return true
 	return false
 

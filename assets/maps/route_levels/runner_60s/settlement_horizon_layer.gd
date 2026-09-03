@@ -3,10 +3,16 @@ class_name SettlementHorizonLayer
 
 ## 样例结算页：青蓝天空 + 建筑剪影 + 紫白同心环 + 跃起小人
 
-const PlanetGlassDesert = preload("res://assets/maps/route_levels/planets/planet_glass_desert.gd")
 const BUILDING_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png"
 const FIGURE_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/elsa_jump_silhouette.png"
 const FIGURE_FAILURE_SILHOUETTE_PATH := "res://assets/maps/route_levels/runner_60s/settlement/elsa_failure_dejected_silhouette.png"
+const SETTLEMENT_SILHOUETTE := {
+	"dome": "res://assets/maps/route_levels/runner_60s/settlement/habitat_dome_silhouette.jpg",
+	"reservoir": "res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png",
+	"medical": "res://assets/maps/route_levels/runner_60s/settlement/medical_settlement_silhouette.png",
+	"gate": "res://assets/maps/route_levels/runner_60s/settlement/defense_settlement_silhouette.png",
+	"relay": "res://assets/maps/route_levels/runner_60s/settlement/relay_settlement_silhouette.png",
+}
 
 const SKY_TOP := Color(0.52, 0.58, 0.66)
 const SKY_MID := Color(0.30, 0.36, 0.46)
@@ -27,11 +33,14 @@ const FAIL_RING_INNER := Color("#F0B0FF")
 const FAIL_RING_MID := Color("#C868E8")
 const FAIL_RING_OUTER := Color("#8848B8")
 const FAIL_HORIZON_CORE := Color("#FFD0F8")
-const FAIL_BODY := Color("#050508")
-const FAIL_RIM := Color("#8AD8FF")
+const FAIL_BODY := Color("#101820")
+const FAIL_RIM := Color("#B8F0FF")
+const FAIL_RIM_SOFT := Color("#78C8F0")
+const FAIL_GLOW := Color("#D8A8FF")
 
 var outpost_title := "Water Station"
 var horizon_ratio := 0.42
+var _location_id := ""
 
 var _is_failure := false
 var _ring_center := Vector2.ZERO
@@ -186,28 +195,49 @@ func _make_figure_glow_rect(node_name: String, tint: Color, z: int) -> TextureRe
 
 func configure(outpost_name: String, location_id: String, _hearth_scene_path: String, failed: bool = false) -> void:
 	outpost_title = outpost_name if outpost_name != "" else "Destination"
+	_location_id = location_id
 	_is_failure = failed
 	var silhouette_path := _resolve_silhouette_path(location_id)
 	if _building != null:
 		if failed:
 			_building.texture = _load_building_tex_failure(silhouette_path)
 		else:
-			_building.texture = _load_station_silhouette_tex(silhouette_path)
+			# 中继专用剪影走直读路径，避免再处理裁边
+			_building.texture = _load_building_tex(silhouette_path)
 		_building.modulate = Color(0.72, 0.76, 0.82, 0.78) if failed else Color(0.94, 0.98, 1.0, 1.0)
 	if _figure != null:
 		var figure_path := FIGURE_FAILURE_SILHOUETTE_PATH if failed else FIGURE_SILHOUETTE_PATH
 		var fig_tex := _load_failure_figure_tex(figure_path) if failed else _load_black_figure_tex(FIGURE_SILHOUETTE_PATH)
 		_figure.texture = fig_tex
+		_figure.modulate = Color(1.0, 1.0, 1.0, 1.0)
 		if _figure_glow_outer != null:
-			_figure_glow_outer.visible = not failed
+			_figure_glow_outer.texture = fig_tex
+			_figure_glow_outer.modulate = Color(FAIL_GLOW.r, FAIL_GLOW.g, FAIL_GLOW.b, 0.42) if failed else Color(0.72, 0.58, 0.96, 0.14)
+			_figure_glow_outer.visible = failed and fig_tex != null
 		if _figure_glow_inner != null:
-			_figure_glow_inner.visible = not failed
+			_figure_glow_inner.texture = fig_tex
+			_figure_glow_inner.modulate = Color(FAIL_RIM.r, FAIL_RIM.g, FAIL_RIM.b, 0.55) if failed else Color(1.0, 1.0, 1.0, 0.22)
+			_figure_glow_inner.visible = failed and fig_tex != null
+		if _figure_halo != null:
+			_figure_halo.visible = failed
 	call_deferred("_sync_layout")
 
 
+func _normalized_location_id() -> String:
+	var loc := _location_id
+	if loc == "medbay":
+		return "medical"
+	if loc == "outpost":
+		return "gate"
+	return loc
+
+
 func _load_tex(path: String) -> Texture2D:
-	if FileAccess.file_exists(path):
-		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+	if path.strip_edges() == "":
+		return null
+	var abs_path := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(path) or FileAccess.file_exists(abs_path):
+		var img := Image.load_from_file(abs_path)
 		if img != null and not img.is_empty():
 			return ImageTexture.create_from_image(img)
 	if ResourceLoader.exists(path):
@@ -217,40 +247,66 @@ func _load_tex(path: String) -> Texture2D:
 	return null
 
 
+func _silhouette_resource_exists(path: String) -> bool:
+	if path.strip_edges() == "":
+		return false
+	if FileAccess.file_exists(path) or FileAccess.file_exists(ProjectSettings.globalize_path(path)):
+		return true
+	return ResourceLoader.exists(path)
+
+
 func _resolve_silhouette_path(location_id: String) -> String:
+	var loc := location_id
+	if loc == "medbay":
+		loc = "medical"
+	elif loc == "outpost":
+		loc = "gate"
 	var candidates: Array[String] = []
-	var primary := PlanetGlassDesert.get_location_finish_silhouette(location_id).strip_edges()
-	if primary != "":
-		candidates.append(primary)
-	match location_id:
+	# 中继结算：用地平线对齐剪影（由 spark_relay_cutout 烘焙）
+	if loc == "relay":
+		candidates.append("res://assets/maps/route_levels/runner_60s/settlement/relay_settlement_silhouette.png")
+	if SETTLEMENT_SILHOUETTE.has(loc):
+		candidates.append(String(SETTLEMENT_SILHOUETTE[loc]))
+	match loc:
 		"dome":
-			candidates.append_array([
-				"res://assets/maps/route_levels/runner_60s/settlement/habitat_dome_silhouette.jpg",
-				"res://mvp素材第一批/居民穹顶2d展示图.webp",
-			])
+			candidates.append("res://mvp素材第一批/居民穹顶2d展示图.webp")
 		"reservoir":
-			candidates.append_array([
-				"res://assets/maps/route_levels/runner_60s/settlement/water_station_silhouette.png",
-				"res://mvp素材第一批/水源据点2d.webp",
-			])
-		"medbay":
-			candidates.append("res://mvp素材第一批/医疗据点2d.webp")
-		"relay":
-			candidates.append("res://mvp素材第一批/星火中继站2d.webp")
-		"outpost":
-			candidates.append("res://mvp素材第一批/防御哨站2d.webp")
+			candidates.append("res://mvp素材第一批/水源据点2d.webp")
 	if not candidates.has(BUILDING_SILHOUETTE_PATH):
 		candidates.append(BUILDING_SILHOUETTE_PATH)
 	for path in candidates:
-		if path != "" and (ResourceLoader.exists(path) or FileAccess.file_exists(path)):
+		if _silhouette_resource_exists(path):
 			return path
 	return BUILDING_SILHOUETTE_PATH
-
 
 func _load_building_tex(path: String, failed: bool = false) -> Texture2D:
 	if failed:
 		return _load_building_tex_failure(path)
+	var lower := path.to_lower()
+	# 中继结算剪影：彩色插画，扣黑底后直接用
+	if "relay_settlement_silhouette" in lower:
+		var tex := _load_tex(path)
+		if tex != null:
+			return _punch_black_background_tex(tex)
 	return _load_station_silhouette_tex(path)
+
+
+func _punch_black_background_tex(source: Texture2D) -> Texture2D:
+	var img := source.get_image()
+	if img == null or img.is_empty():
+		return source
+	img = img.duplicate()
+	img.convert(Image.FORMAT_RGBA8)
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			var luma := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+			if luma < 0.07 and c.a > 0.01:
+				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			elif luma < 0.12:
+				c.a *= clampf((luma - 0.04) / 0.08, 0.0, 1.0)
+				img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
 
 
 func _load_building_tex_failure(path: String) -> Texture2D:
@@ -326,9 +382,11 @@ func _prepare_settlement_building_tex(source: Texture2D, path: String) -> Textur
 			if luma > 0.58 and sat < 0.12:
 				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
 				continue
-			# 保留源图里的青蓝线框（水源据点同款）
-			if c.b > c.r + 0.06 and c.b > 0.32 and luma > 0.22:
-				var line_a := clampf(maxf(c.a, 0.78) + (luma - 0.22) * 0.35, 0.0, 1.0)
+			# 青蓝或品红线框都收成结算页同一套青线，保持现有色调
+			var is_cyan_line := c.b > c.r + 0.06 and c.b > 0.32 and luma > 0.22
+			var is_purple_line := c.b > 0.26 and c.r > 0.16 and (c.r + c.b) > c.g * 1.85 and luma > 0.16 and sat > 0.10
+			if is_cyan_line or is_purple_line:
+				var line_a := clampf(maxf(c.a, 0.78) + (luma - 0.16) * 0.35, 0.0, 1.0)
 				img.set_pixel(x, y, Color(SILHOUETTE_LINE.r, SILHOUETTE_LINE.g, SILHOUETTE_LINE.b, line_a))
 				continue
 			if luma < 0.34:
@@ -369,20 +427,60 @@ func _load_failure_figure_tex(path: String) -> Texture2D:
 	if img == null or img.is_empty():
 		return tex
 	img.convert(Image.FORMAT_RGBA8)
-	for y in img.get_height():
-		for x in img.get_width():
+	var w := img.get_width()
+	var h := img.get_height()
+	# 先按亮度抽出主体 alpha，再描亮边，避免失败剪影融进暗色地面
+	var mask: Array = []
+	mask.resize(w * h)
+	for y in h:
+		for x in w:
 			var c := img.get_pixel(x, y)
-			if c.a < 0.08:
+			var luma := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+			var solid := c.a > 0.10 and luma < 0.86
+			mask[y * w + x] = solid
+	for y in h:
+		for x in w:
+			var idx := y * w + x
+			if not bool(mask[idx]):
 				img.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
 				continue
-			var luma := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
-			if luma < 0.72:
-				c = Color(FAIL_BODY.r, FAIL_BODY.g, FAIL_BODY.b, maxf(c.a, 0.99))
+			var edge := false
+			for oy in range(-1, 2):
+				for ox in range(-1, 2):
+					if ox == 0 and oy == 0:
+						continue
+					var nx := x + ox
+					var ny := y + oy
+					if nx < 0 or ny < 0 or nx >= w or ny >= h or not bool(mask[ny * w + nx]):
+						edge = true
+						break
+				if edge:
+					break
+			if edge:
+				img.set_pixel(x, y, Color(FAIL_RIM.r, FAIL_RIM.g, FAIL_RIM.b, 1.0))
 			else:
-				c = FAIL_RIM.lerp(HORIZON_CORE, 0.22)
-				c.a = maxf(c.a, 0.88)
-			img.set_pixel(x, y, c)
-	return ImageTexture.create_from_image(img)
+				img.set_pixel(x, y, Color(FAIL_BODY.r, FAIL_BODY.g, FAIL_BODY.b, 1.0))
+	# 再扩一圈软边，增强轮廓可读性
+	var rim_img := img.duplicate()
+	for y in h:
+		for x in w:
+			if bool(mask[y * w + x]):
+				continue
+			var near_edge := false
+			for oy in range(-2, 3):
+				for ox in range(-2, 3):
+					var nx := x + ox
+					var ny := y + oy
+					if nx < 0 or ny < 0 or nx >= w or ny >= h:
+						continue
+					if bool(mask[ny * w + nx]):
+						near_edge = true
+						break
+				if near_edge:
+					break
+			if near_edge:
+				rim_img.set_pixel(x, y, Color(FAIL_RIM_SOFT.r, FAIL_RIM_SOFT.g, FAIL_RIM_SOFT.b, 0.55))
+	return ImageTexture.create_from_image(rim_img)
 
 
 func _make_soft_flare_texture(size: int) -> Texture2D:
@@ -430,18 +528,29 @@ func _sync_layout() -> void:
 
 		var tex := _building.texture.get_size()
 		var target := _building_clip.size
-		var fit := maxf((target.x * 1.38) / maxf(tex.x, 1.0), (target.y * 1.02) / maxf(tex.y, 1.0))
+		var loc := _normalized_location_id()
+		var fit: float
+		if loc == "relay":
+			# 新彩色中继插画偏宽：略放大并完整入画
+			var fit_w := (target.x * 1.12) / maxf(tex.x, 1.0)
+			var fit_h := (target.y * 0.98) / maxf(tex.y, 1.0)
+			fit = minf(fit_w, fit_h)
+		else:
+			# 其他据点：略放大宽度，底边贴齐地平线
+			fit = maxf((target.x * 1.28) / maxf(tex.x, 1.0), (target.y * 0.92) / maxf(tex.y, 1.0))
 		var b_w := tex.x * fit
 		var b_h := tex.y * fit
 		_building.size = Vector2(b_w, b_h)
-		_building.position = Vector2((target.x - b_w) * 0.5, horizon_y - b_h * 0.98)
+		_building.rotation = 0.0
+		_building.pivot_offset = Vector2(b_w * 0.5, b_h)
+		_building.position = Vector2((target.x - b_w) * 0.5, horizon_y - b_h)
 
 	if _fx != null:
 		_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_fx.queue_redraw()
 
 	if _figure != null:
-		var fig_h := sz.y * (0.26 if _is_failure else 0.24)
+		var fig_h := sz.y * (0.30 if _is_failure else 0.24)
 		var fig_aspect := 0.72
 		if _figure.texture != null:
 			var ft := _figure.texture.get_size()
@@ -462,10 +571,26 @@ func _sync_layout() -> void:
 			_figure_reflect.scale = Vector2(1.0, -1.0)
 			_figure_reflect.position = Vector2(fig_pos.x, feet_y + sz.y * 0.004)
 			_figure_reflect.visible = _figure.visible and not _is_failure
-		if _figure_glow_outer != null:
-			_figure_glow_outer.visible = false
-		if _figure_glow_inner != null:
-			_figure_glow_inner.visible = false
+		if _figure_glow_outer != null and _figure.texture != null:
+			var ow := fig_w * 1.28
+			var oh := fig_h * 1.28
+			_figure_glow_outer.texture = _figure.texture
+			_figure_glow_outer.size = Vector2(ow, oh)
+			_figure_glow_outer.position = Vector2(fig_pos.x - (ow - fig_w) * 0.5, fig_pos.y - (oh - fig_h) * 0.42)
+			_figure_glow_outer.visible = _is_failure and _figure.visible
+		if _figure_glow_inner != null and _figure.texture != null:
+			var iw := fig_w * 1.12
+			var ih := fig_h * 1.12
+			_figure_glow_inner.texture = _figure.texture
+			_figure_glow_inner.size = Vector2(iw, ih)
+			_figure_glow_inner.position = Vector2(fig_pos.x - (iw - fig_w) * 0.5, fig_pos.y - (ih - fig_h) * 0.35)
+			_figure_glow_inner.visible = _is_failure and _figure.visible
+		if _figure_halo != null:
+			_figure_halo.visible = _is_failure and _figure.visible
+			if _figure_halo.visible:
+				_figure_halo.position = fig_pos + Vector2(fig_w * 0.5 - 56.0, fig_h * 0.18 - 56.0)
+				_figure_halo.custom_minimum_size = Vector2(112, 112)
+				_figure_halo.size = Vector2(112, 112)
 	if _fx != null:
 		_fx.queue_redraw()
 

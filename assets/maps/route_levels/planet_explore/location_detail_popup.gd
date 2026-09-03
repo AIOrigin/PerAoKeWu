@@ -65,6 +65,7 @@ var _upper_block: VBoxContainer
 var _missions_panel: PanelContainer
 var _task_detail: Control
 var _revealed := false
+var _is_preview := false
 var _missions_cache: Array = []
 
 
@@ -92,7 +93,8 @@ func _apply_payload(payload: Dictionary) -> void:
 	_planet_id = String(payload.get("planet_id", Global.exploration_planet_id))
 	_selected_mission_id = ""
 	_revealed = bool(payload.get("revealed", false))
-	var preview := bool(payload.get("preview", false))
+	_is_preview = bool(payload.get("preview", false))
+	var preview := _is_preview
 	_icon_label.text = String(payload.get("type_icon", "◎"))
 	_title_label.text = String(payload.get("title", "Outpost Detail"))
 	_title_en_label.visible = false
@@ -123,7 +125,7 @@ func _apply_payload(payload: Dictionary) -> void:
 		int(payload.get("repair_total", 0)),
 	]
 	_rebuild_needs(payload.get("needs", []))
-	_rebuild_missions(payload.get("transport_missions", []), _revealed)
+	_rebuild_missions(payload.get("transport_missions", []), _revealed, preview)
 	var manager: Dictionary = payload.get("manager", {})
 	var show_identity := bool(manager.get("show_identity", bool(payload.get("completed", false))))
 	if show_identity:
@@ -298,8 +300,17 @@ func _ensure_task_detail() -> void:
 	_task_detail = TaskDetailSheet.new()
 	_task_detail.configure(DETAIL_VIEWPORT, DETAIL_DESIGN, _outpost_display_name)
 	_task_detail.accept_pressed.connect(_on_task_detail_accept)
-	_task_detail.z_index = 120
+	_task_detail.z_index = 240
 	add_child(_task_detail)
+
+
+func _open_task_detail(mission: Dictionary) -> void:
+	_ensure_task_detail()
+	if _task_detail == null or not is_instance_valid(_task_detail):
+		return
+	# 提到最前，避免被据点内容挡住
+	move_child(_task_detail, -1)
+	_task_detail.open(_planet_id, mission.duplicate(true))
 
 
 func _outpost_display_name(location_id: String, fallback: String) -> String:
@@ -316,11 +327,6 @@ func _outpost_display_name(location_id: String, fallback: String) -> String:
 			return "Defense Outpost"
 		_:
 			return fallback if fallback != "" else "Outpost"
-
-
-func _open_task_detail(mission: Dictionary) -> void:
-	_ensure_task_detail()
-	_task_detail.open(_planet_id, mission.duplicate(true))
 
 
 func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: String = "") -> void:
@@ -349,7 +355,7 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 		var payout := Global.get_mission_reward_amount(planet_id, mission_id)
 		if Global.claim_mission_reward(planet_id, mission_id, payout):
 			_open_task_detail(mission)
-			_rebuild_missions(_missions_cache, _revealed)
+			_rebuild_missions(_missions_cache, _revealed, _is_preview)
 		return
 	if mission_done or location_lit or accepted:
 		if _task_detail:
@@ -359,7 +365,7 @@ func _on_task_detail_accept(planet_id: String, location_id: String, mission_id: 
 		return
 	Global.accept_mission(planet_id, mission_id)
 	_open_task_detail(mission)
-	_rebuild_missions(_missions_cache, _revealed)
+	_rebuild_missions(_missions_cache, _revealed, _is_preview)
 
 
 func _find_mission(mission_id: String) -> Dictionary:
@@ -630,10 +636,14 @@ func _sync_scroll_size() -> void:
 		return
 	var width := _scroll.size.x
 	var height := _scroll.size.y
-	if width > 8.0 and height > 8.0:
-		# 宽度铺满；高度铺满滚动区，由内部 stretch 分配空间
-		_content_margin.custom_minimum_size = Vector2(width, height)
-		_content_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if width <= 8.0 or height <= 8.0:
+		return
+	var next := Vector2(width, height)
+	if _content_margin.custom_minimum_size.is_equal_approx(next):
+		return
+	# 宽度铺满；高度铺满滚动区，由内部 stretch 分配空间
+	_content_margin.custom_minimum_size = next
+	_content_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
 func _rebuild_needs(needs: Array) -> void:
@@ -705,7 +715,7 @@ func _build_need_card(need: Dictionary) -> Control:
 	return card
 
 
-func _rebuild_missions(missions: Array, revealed: bool) -> void:
+func _rebuild_missions(missions: Array, revealed: bool, preview: bool = false) -> void:
 	_mission_card_refs.clear()
 	_selected_mission_id = ""
 	var source: Array = []
@@ -716,7 +726,14 @@ func _rebuild_missions(missions: Array, revealed: bool) -> void:
 	for child in _missions_box.get_children():
 		child.queue_free()
 	if not revealed or _missions_cache.is_empty():
-		_missions_box.add_child(_make_label("Unlock after adjacent outpost missions", 16, MUTED))
+		var empty_msg := GameLocale.pick(
+			"该批次解锁后才会开放运输任务",
+			"Transport missions unlock when this batch opens"
+		) if preview else GameLocale.pick(
+			"完成相邻据点任务后解锁",
+			"Unlock after adjacent outpost missions"
+		)
+		_missions_box.add_child(_make_label(empty_msg, 20, MUTED))
 		return
 	for i in _missions_cache.size():
 		var mission: Dictionary = _missions_cache[i]

@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2fmcf1s2esd6"
+uid="uid://c57kf5xc36yss"
 path.s3tc="res://.godot/imported/planet_3d_三维星球模型_rm.jpg-3305d0593061cad9f21f3b848c4d8669.s3tc.ctex"
 path.etc2="res://.godot/imported/planet_3d_三维星球模型_rm.jpg-3305d0593061cad9f21f3b848c4d8669.etc2.ctex"
 metadata={
@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "402601f145ba77b8c307c48256482bdd"
+"md5": "de5ac6e7482ada5bdde5ac78d39be65d"
 }
 
 [deps]
