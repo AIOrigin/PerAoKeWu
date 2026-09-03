@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "ae16abdb9bb19f19b442517b686f6ef2"
+"md5": "b591b3a9781db52a5e4d010f89a8538d"
 }
 
 [deps]
@@ -23,6 +23,8 @@ dest_files=["res://.godot/imported/wraith_run_tripo_image_345b4078-fdf2-4c24-b19
 compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=1
 compress/channel_pack=0
@@ -30,6 +32,10 @@ mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
 roughness/src_normal="res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_run_tripo_image_345b4078-fdf2-4c24-b19f-96b53a8c8203_0_3.jpg"
+process/channel_remap/red=0
+process/channel_remap/green=1
+process/channel_remap/blue=2
+process/channel_remap/alpha=3
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

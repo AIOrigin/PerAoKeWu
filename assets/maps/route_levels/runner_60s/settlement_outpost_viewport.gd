@@ -34,7 +34,9 @@ func setup(hearth_scene_path: String) -> void:
 	_clear_world()
 	if hearth_scene_path == "":
 		return
-	var packed: PackedScene = load(hearth_scene_path) as PackedScene
+	var packed: PackedScene = EmberCdn.load_packed(hearth_scene_path)
+	if packed == null:
+		packed = load(hearth_scene_path) as PackedScene
 	if packed == null:
 		return
 	if _viewport == null:

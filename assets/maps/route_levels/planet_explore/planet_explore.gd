@@ -102,6 +102,8 @@ func _ready() -> void:
 	)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	Global.play_home_bgm()
+	if EmberCdn.is_enabled():
+		await EmberCdn.preload_manifest_group("explore")
 	_load_map_texture()
 	_build_location_data()
 	_load_revealed_location_state()
@@ -250,10 +252,10 @@ func _load_map_texture() -> void:
 	var cfg: Script = PlanetDatabase.get_runner_config(Global.exploration_planet_id)
 	if cfg.has_method("get_explore_map_path"):
 		map_path = String(cfg.get_explore_map_path())
-	var loaded_texture: Texture2D = load(map_path) as Texture2D
+	var loaded_texture: Texture2D = EmberCdn.load_texture(map_path)
 	if loaded_texture == null:
 		push_error("Failed to load planet map texture: %s" % map_path)
-		loaded_texture = load(MAP_TEXTURE_FALLBACK) as Texture2D
+		loaded_texture = EmberCdn.load_texture(MAP_TEXTURE_FALLBACK)
 	if loaded_texture == null:
 		return
 	_map_image_texture = loaded_texture
@@ -1230,6 +1232,9 @@ func _start_runner_with_transition() -> void:
 
 
 func _warm_runner_assets() -> void:
+	# Web 版 GLB 在进关时按关下载，探索地图不要预热整包角色模型
+	if OS.has_feature("web"):
+		return
 	for path in RUNNER_PRELOAD_PATHS:
 		if ResourceLoader.exists(path):
 			ResourceLoader.load_threaded_request(path)

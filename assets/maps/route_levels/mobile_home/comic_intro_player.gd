@@ -319,7 +319,7 @@ func _show_panel(index: int) -> void:
 	if tex == null:
 		var path := String(panel.get("image_path", ""))
 		if path != "":
-			tex = load(path) as Texture2D
+			tex = EmberCdn.load_texture(path)
 	if tex != null:
 		_art_rect.texture = tex
 		_art_rect.modulate = Color.WHITE

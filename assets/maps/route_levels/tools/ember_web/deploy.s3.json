@@ -1,0 +1,8 @@
+{
+  "gameId": "ember-runner",
+  "target": "games",
+  "env": "prod",
+  "title": "Ember Runners: Dawnline",
+  "sourceDir": "build/ember_runner_web",
+  "entryUrl": "https://assets.elseland.elser.ai/games/ember-runner/index.html"
+}

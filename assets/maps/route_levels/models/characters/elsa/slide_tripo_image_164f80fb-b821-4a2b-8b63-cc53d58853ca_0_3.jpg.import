@@ -10,7 +10,7 @@ metadata={
 "vram_texture": true
 }
 generator_parameters={
-"md5": "d5474d7452f2fb9543248bf6bdcc133a"
+"md5": "e8a5a14d2ddb5be6915b36ad45f5c778"
 }
 
 [deps]
@@ -23,6 +23,8 @@ dest_files=["res://.godot/imported/slide_tripo_image_164f80fb-b821-4a2b-8b63-cc5
 compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=1
 compress/channel_pack=0
@@ -30,6 +32,10 @@ mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
 roughness/src_normal="res://assets/maps/route_levels/models/characters/elsa/slide_tripo_image_164f80fb-b821-4a2b-8b63-cc53d58853ca_0_3.jpg"
+process/channel_remap/red=0
+process/channel_remap/green=1
+process/channel_remap/blue=2
+process/channel_remap/alpha=3
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

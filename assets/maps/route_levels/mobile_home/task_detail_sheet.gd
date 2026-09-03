@@ -656,10 +656,13 @@ func _cargo_icon_path(planet_id: String, mission: Dictionary) -> String:
 func _load_cargo_icon_texture(path: String) -> Texture2D:
 	if path == "":
 		return null
+	var tex := EmberCdn.load_texture(path)
+	if tex != null:
+		return tex
 	if ResourceLoader.exists(path):
-		var tex: Variant = load(path)
-		if tex is Texture2D:
-			return tex as Texture2D
+		var imported: Variant = load(path)
+		if imported is Texture2D:
+			return imported as Texture2D
 	var fs_path := ProjectSettings.globalize_path(path)
 	if FileAccess.file_exists(fs_path):
 		var img := Image.load_from_file(fs_path)

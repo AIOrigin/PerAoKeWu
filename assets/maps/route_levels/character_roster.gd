@@ -267,6 +267,9 @@ static func _step_unlocked_id(current_id: String, unlocked_stories: Array, step:
 static func load_texture(path: String) -> Texture2D:
 	if path == "":
 		return null
+	var cdn_tex := EmberCdn.load_texture(path)
+	if cdn_tex:
+		return cdn_tex
 	if ResourceLoader.exists(path):
 		var tex := load(path) as Texture2D
 		if tex:

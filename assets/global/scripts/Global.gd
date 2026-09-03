@@ -2340,14 +2340,7 @@ func get_random_resource(folder_path: String, allowed_types: Array = []) -> Reso
 				var full_path := folder_path.path_join(file_name)
 				# 检查文件扩展名是否是资源类型
 				if ResourceLoader.exists(full_path):
-					# 如果指定了类型限制，则检查类型
-					if allowed_types.is_empty():
-						valid_resources.append(full_path)
-					else:
-						var rfl := ResourceFormatLoader.new()
-						var resource_type := rfl._get_resource_type(full_path) # buggggggg
-						if resource_type in allowed_types:
-							valid_resources.append(full_path)
+					valid_resources.append(full_path)
 			file_name = dir.get_next()
 	else:
 		push_error("Failed to open directory: " + folder_path)

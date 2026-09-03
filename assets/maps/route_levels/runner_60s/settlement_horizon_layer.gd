@@ -235,6 +235,9 @@ func _normalized_location_id() -> String:
 func _load_tex(path: String) -> Texture2D:
 	if path.strip_edges() == "":
 		return null
+	var cdn_tex := EmberCdn.load_texture(path)
+	if cdn_tex != null:
+		return cdn_tex
 	var abs_path := ProjectSettings.globalize_path(path)
 	if FileAccess.file_exists(path) or FileAccess.file_exists(abs_path):
 		var img := Image.load_from_file(abs_path)
@@ -251,6 +254,8 @@ func _silhouette_resource_exists(path: String) -> bool:
 	if path.strip_edges() == "":
 		return false
 	if FileAccess.file_exists(path) or FileAccess.file_exists(ProjectSettings.globalize_path(path)):
+		return true
+	if EmberCdn.texture_available(path):
 		return true
 	return ResourceLoader.exists(path)
 

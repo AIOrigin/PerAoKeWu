@@ -472,6 +472,9 @@ func _add_pose_model(pose: VisualPose, path: String, fallback_path: String = "")
 func _instantiate_glb(path: String) -> Node3D:
 	if path == "":
 		return null
+	var cdn_node := EmberCdn.instantiate_glb(path)
+	if cdn_node != null:
+		return cdn_node
 	if ResourceLoader.exists(path):
 		var packed := load(path) as PackedScene
 		if packed != null:

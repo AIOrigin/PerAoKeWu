@@ -19,18 +19,18 @@ const RESERVOIR_W2_SKY_SHADER = preload("res://assets/maps/route_levels/runner_6
 const MEDICAL_SUNRISE_SKY_SHADER = preload("res://assets/maps/route_levels/runner_60s/medical_sunrise_sky.gdshader")
 const W1_SKY_AURORA_SHADER = preload("res://assets/maps/route_levels/runner_60s/w1_sky_aurora.gdshader")
 const RESERVOIR_SKY_DOME_SHADER = preload("res://assets/maps/route_levels/runner_60s/reservoir_sky_dome.gdshader")
-const RESERVOIR_W1_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w1_scene_sky.png")
-const RESERVOIR_W2_PINK_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w2_pink_sky.png")
-const MEDICAL_M2_DUSK_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w2_scene_sky.png")
-const MEDICAL_SUNRISE_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png")
-const RELAY_E1_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e1_scene_sky.png")
-const RELAY_E2_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e2_scene_sky.png")
-const RELAY_E3_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e3_scene_sky.png")
-const RELAY_E4_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e4_scene_sky.png")
-const RESERVOIR_W3_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w3_scene_sky.png")
-const RESERVOIR_W4_SKY_PANORAMA = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w4_scene_sky.png")
-const RESERVOIR_W3_SKY_PLATE = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w3_sky_plate.png")
-const RESERVOIR_W4_SKY_PLATE = preload("res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w4_sky_plate.png")
+const RESERVOIR_W1_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w1_scene_sky.png"
+const RESERVOIR_W2_PINK_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w2_pink_sky.png"
+const MEDICAL_M2_DUSK_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w2_scene_sky.png"
+const MEDICAL_SUNRISE_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/medical_sunrise_scene_sky.png"
+const RELAY_E1_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e1_scene_sky.png"
+const RELAY_E2_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e2_scene_sky.png"
+const RELAY_E3_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e3_scene_sky.png"
+const RELAY_E4_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/relay_e4_scene_sky.png"
+const RESERVOIR_W3_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w3_scene_sky.png"
+const RESERVOIR_W4_SKY_PANORAMA_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w4_scene_sky.png"
+const RESERVOIR_W3_SKY_PLATE_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w3_sky_plate.png"
+const RESERVOIR_W4_SKY_PLATE_PATH := "res://assets/maps/route_levels/runner_60s/backgrounds/panoramas/glass_desert_w4_sky_plate.png"
 const SHIELD_ENERGY_SHADER = preload("res://assets/maps/route_levels/runner_60s/shield_energy.gdshader")
 const FINISH_OUTPOST_SILHOUETTE_SHADER = preload("res://assets/maps/route_levels/runner_60s/finish_outpost_silhouette.gdshader")
 const FINISH_OUTPOST_SKY_SHADER = preload("res://assets/maps/route_levels/runner_60s/finish_outpost_sky.gdshader")
@@ -1194,7 +1194,11 @@ func _apply_mission_type_profile() -> void:
 	current_speed = _base_run_speed()
 
 func _bootstrap_runner_world() -> void:
+	await _preload_run_models_from_cdn()
 	_load_planet_assets()
+	var slide_path := _slide_obstacle_paths[0] if not _slide_obstacle_paths.is_empty() else ""
+	if slide_path != "":
+		_slide_obstacle_scene = _load_runner_scene(slide_path, false)
 	_build_world()
 	await get_tree().process_frame
 	_build_runner()
@@ -1230,6 +1234,99 @@ func _bootstrap_runner_world() -> void:
 	# 	_spawn_holographic_edge_particles()
 	_update_hud()
 	_world_ready = true
+
+
+func _preload_run_models_from_cdn() -> void:
+	if not EmberCdn.is_enabled():
+		return
+	if not EmberCdn.preload_progress.is_connected(_on_ember_cdn_progress):
+		EmberCdn.preload_progress.connect(_on_ember_cdn_progress)
+	var paths := _collect_run_glb_paths()
+	if intro_title != null:
+		intro_title.text = "Preparing Route..."
+	await EmberCdn.preload_paths_queued(paths)
+	await EmberCdn.preload_manifest_group("runner")
+
+
+func _on_ember_cdn_progress(done: int, total: int, _path: String) -> void:
+	if intro_body == null:
+		return
+	intro_body.text = GameLocale.pick(
+		"正在下载资源 %d/%d…" % [done, total],
+		"Downloading assets %d/%d…" % [done, total]
+	)
+
+
+func _add_glb_path(out: Array[String], raw: Variant) -> void:
+	if raw is Array:
+		for item in raw:
+			_add_glb_path(out, item)
+		return
+	if raw is Dictionary:
+		for item in (raw as Dictionary).values():
+			_add_glb_path(out, item)
+		return
+	var path := String(raw)
+	if not path.ends_with(".glb"):
+		return
+	if path in out:
+		return
+	out.append(path)
+
+
+func _collect_run_glb_paths() -> Array[String]:
+	var out: Array[String] = []
+	for bag in [
+		_jump_obstacle_paths,
+		_slide_obstacle_paths,
+		_side_prop_paths,
+		_midground_prop_paths,
+		_landmark_prop_paths,
+		_distant_tower_paths,
+		_distant_pod_paths,
+		_distant_spaceship_paths,
+		_distant_hearth_paths,
+		_distant_accent_prop_paths,
+		_near_runway_prop_paths,
+		_environment_pack_v2_paths,
+	]:
+		_add_glb_path(out, bag)
+	_add_glb_path(out, _hearth_scene_path)
+	_add_glb_path(out, _player_scene_paths)
+	_add_glb_path(out, mission)
+	for extra in [
+		PLAYER_MODEL_SCENE_PATH,
+		PLAYER_RUN_LEFT_SCENE_PATH,
+		PLAYER_RUN_RIGHT_SCENE_PATH,
+		PLAYER_JUMP_START_SCENE_PATH,
+		PLAYER_JUMP_PEAK_SCENE_PATH,
+		PLAYER_LANDING_SCENE_PATH,
+		PLAYER_SLIDE_SCENE_PATH,
+		ENERGY_RING_SCENE_PATHS,
+		TRAIN_GATE_SCENE_PATH,
+		RUNNER_OBS_LIGHT_JUMP,
+		RUNNER_OBS_LIGHT_SLIDE_PIPELINE,
+		RUNNER_OBS_LIGHT_SLIDE_SPIKE,
+		OBSTACLE_PROP_MEDICAL_POD,
+		OBSTACLE_PROP_MEDICAL_CRATE,
+		OBSTACLE_PROP_BROKEN_DRONE,
+		OBSTACLE_PROP_RELAY_DRONE,
+		OBSTACLE_PROP_METEORITE,
+		OBSTACLE_PROP_EXCAVATOR,
+		RESERVOIR_SLIDE_BILLBOARD,
+		RESERVOIR_CRYSTAL_TOWER,
+		RESERVOIR_CRYSTAL_PILLAR_1,
+		WRAITH_BLOCK_GLB,
+		WRAITH_BLOCK_GLB_FALLBACK,
+		WRAITH_HEART_GLB,
+		"res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_base.glb",
+		"res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_intro_angry.glb",
+		"res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_run.glb",
+		"res://assets/maps/route_levels/runner_60s/relay_final/wraith/wraith_capture_heart.glb",
+	]:
+		_add_glb_path(out, extra)
+	return out
+
 
 func _setup_hit_feedback() -> void:
 	if _hit_feedback != null:
@@ -5253,7 +5350,7 @@ func _uses_reservoir_baked_sky() -> bool:
 func _reservoir_photo_sky_texture() -> Texture2D:
 	# 水源三四关：用第一关已验证全景。医疗关不要走这条（会开 REALTIME cubemap 平均成一片粉）
 	if _mission_id_str() in ["mission_reservoir_03", "mission_reservoir_04"]:
-		return RESERVOIR_W1_SKY_PANORAMA
+		return EmberCdn.load_texture(RESERVOIR_W1_SKY_PANORAMA_PATH)
 	return null
 
 
@@ -12473,13 +12570,9 @@ func _load_panorama_texture(path: String) -> Texture2D:
 		return null
 	if _is_relay_mission():
 		return _load_panorama_texture_raw(path)
-	var imported: Variant = load(path)
-	if imported is Texture2D:
-		return imported as Texture2D
-	var img := Image.load_from_file(ProjectSettings.globalize_path(path))
-	if img != null and not img.is_empty():
-		push_warning("Panorama import missing, loaded raw image: %s" % path)
-		return ImageTexture.create_from_image(img)
+	var imported := EmberCdn.load_texture(path)
+	if imported != null:
+		return imported
 	push_error("Failed to load panorama: %s" % path)
 	return null
 
@@ -12488,15 +12581,9 @@ func _load_panorama_texture_raw(path: String) -> Texture2D:
 	var res_path := path.strip_edges()
 	if res_path == "":
 		return null
-	var imported: Variant = load(res_path)
-	if imported is Texture2D:
-		return imported as Texture2D
-	var global_path := ProjectSettings.globalize_path(res_path)
-	var img := Image.load_from_file(global_path)
-	if img != null and not img.is_empty():
-		if img.is_compressed():
-			img.decompress()
-		return ImageTexture.create_from_image(img)
+	var imported := EmberCdn.load_texture(res_path)
+	if imported != null:
+		return imported
 	push_error("Failed to load relay panorama: %s" % res_path)
 	return null
 
@@ -12506,18 +12593,18 @@ func _load_planet_assets() -> void:
 	var default_pano := String(assets.get("panorama", "res://assets/maps/route_levels/models/backgrounds/panoramas/triptych.png")).strip_edges()
 	if _mission_id_str() == "mission_reservoir_02":
 		# 水源第二关：第一关云层全景，色调偏粉紫
-		_world_panorama = RESERVOIR_W2_PINK_SKY_PANORAMA
+		_world_panorama = EmberCdn.load_texture(RESERVOIR_W2_PINK_SKY_PANORAMA_PATH)
 	elif _mission_id_str() == "mission_medical_m2":
 		# 医疗第二关：第一关云层 + 暮色光感，不用假极光帘
-		_world_panorama = MEDICAL_M2_DUSK_SKY_PANORAMA
+		_world_panorama = EmberCdn.load_texture(MEDICAL_M2_DUSK_SKY_PANORAMA_PATH)
 	elif _uses_medical_sunrise_sky():
 		# 医疗：直接用水源第一关已验证全景，不再走单独导入的医疗图
-		_world_panorama = RESERVOIR_W1_SKY_PANORAMA
+		_world_panorama = EmberCdn.load_texture(RESERVOIR_W1_SKY_PANORAMA_PATH)
 	elif _is_relay_mission():
 		if mission_pano != "":
 			_world_panorama = _load_panorama_texture(mission_pano)
 		else:
-			_world_panorama = RELAY_E1_SKY_PANORAMA
+			_world_panorama = EmberCdn.load_texture(RELAY_E1_SKY_PANORAMA_PATH)
 	elif mission_pano != "":
 		_world_panorama = _load_panorama_texture(mission_pano)
 		if _world_panorama == null and default_pano != "":
@@ -12592,8 +12679,6 @@ func _load_planet_assets() -> void:
 		for path in near_src:
 			_near_runway_prop_paths.append(String(path))
 	_apply_location_distant_props()
-	var slide_path := _slide_obstacle_paths[0] if not _slide_obstacle_paths.is_empty() else String(assets.get("slide_obstacle", "res://assets/maps/route_levels/models/obstacles/slide/barrier_01.glb"))
-	_slide_obstacle_scene = _load_runner_scene(slide_path, false)
 	_hearth_scene_path = LevelConfig.get_location_hearth_model(Global.runner_location_id) if LevelConfig.has_method("get_location_hearth_model") else String(assets.get("hearth", "res://assets/maps/route_levels/models/environment/buildings/dome_habitat_legacy.glb"))
 	_player_scene_paths = _resolve_player_scene_paths(assets)
 	_apply_environment_pack_v2_mix(mission)
@@ -12601,7 +12686,11 @@ func _load_planet_assets() -> void:
 func _default_environment_pack_v2_paths() -> Array[String]:
 	var out: Array[String] = []
 	for path in ENVIRONMENT_PACK_V2_PATHS:
-		if ResourceLoader.exists(path) or FileAccess.file_exists(ProjectSettings.globalize_path(path)):
+		if (
+			ResourceLoader.exists(path)
+			or FileAccess.file_exists(ProjectSettings.globalize_path(path))
+			or EmberCdn.is_cdn_model(path)
+		):
 			out.append(path)
 	return out
 
@@ -13100,13 +13189,13 @@ func _relay_mission_sky_pano() -> Texture2D:
 		return _world_panorama
 	match _mission_id_str():
 		"mission_relay_e2":
-			return RELAY_E2_SKY_PANORAMA
+			return EmberCdn.load_texture(RELAY_E2_SKY_PANORAMA_PATH)
 		"mission_relay_e3":
-			return RELAY_E3_SKY_PANORAMA
+			return EmberCdn.load_texture(RELAY_E3_SKY_PANORAMA_PATH)
 		"mission_relay_e4":
-			return RELAY_E4_SKY_PANORAMA
+			return EmberCdn.load_texture(RELAY_E4_SKY_PANORAMA_PATH)
 		_:
-			return RELAY_E1_SKY_PANORAMA
+			return EmberCdn.load_texture(RELAY_E1_SKY_PANORAMA_PATH)
 
 
 func _apply_relay_graded_sky(mat: ShaderMaterial, phase: float) -> void:
@@ -13361,9 +13450,9 @@ func _sky_fbm(p: Vector2) -> float:
 
 
 func _bake_reservoir_mission_sky() -> Texture2D:
-	var src_tex: Texture2D = _world_panorama if _world_panorama != null else RESERVOIR_W1_SKY_PANORAMA
+	var src_tex: Texture2D = _world_panorama if _world_panorama != null else EmberCdn.load_texture(RESERVOIR_W1_SKY_PANORAMA_PATH)
 	if src_tex == null:
-		return RESERVOIR_W1_SKY_PANORAMA
+		return EmberCdn.load_texture(RESERVOIR_W1_SKY_PANORAMA_PATH)
 	var img := src_tex.get_image()
 	if img == null:
 		return src_tex
@@ -13470,7 +13559,7 @@ func _w4_sky_pixel(u: float, v: float, luma: float, x: int, y: int) -> Color:
 func _apply_reservoir_graded_sky(mat: ShaderMaterial, phase: float) -> void:
 	if mat == null or mat.shader == null:
 		return
-	var pano: Texture2D = _world_panorama if _world_panorama != null else RESERVOIR_W1_SKY_PANORAMA
+	var pano: Texture2D = _world_panorama if _world_panorama != null else EmberCdn.load_texture(RESERVOIR_W1_SKY_PANORAMA_PATH)
 	mat.set_shader_parameter("source_pano", pano)
 	var pulse := 0.5 + 0.5 * sin(phase * 0.42)
 	var cloud_speed := 0.014
@@ -13557,7 +13646,7 @@ func _apply_reservoir_w2_sky(mat: ShaderMaterial, phase: float) -> void:
 func _apply_medical_sunrise_sky(mat: ShaderMaterial, _phase: float) -> void:
 	if mat == null or mat.shader == null:
 		return
-	mat.set_shader_parameter("source_pano", MEDICAL_SUNRISE_SKY_PANORAMA)
+	mat.set_shader_parameter("source_pano", EmberCdn.load_texture(MEDICAL_SUNRISE_SKY_PANORAMA_PATH))
 	var energy := 1.18
 	var mission_env = mission.get("environment", {})
 	if typeof(mission_env) == TYPE_DICTIONARY:
@@ -19994,9 +20083,9 @@ func _ensure_reservoir_sky_dome() -> void:
 	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 	if _mission_id_str() == "mission_reservoir_04":
-		mat.albedo_texture = RESERVOIR_W4_SKY_PLATE
+		mat.albedo_texture = EmberCdn.load_texture(RESERVOIR_W4_SKY_PLATE_PATH)
 	else:
-		mat.albedo_texture = RESERVOIR_W3_SKY_PLATE
+		mat.albedo_texture = EmberCdn.load_texture(RESERVOIR_W3_SKY_PLATE_PATH)
 	plate.material_override = mat
 	camera.add_child(plate)
 	_reservoir_sky_dome = plate
@@ -22050,6 +22139,12 @@ func _load_runner_scene(path: String, warn_if_missing: bool = true) -> PackedSce
 			return cached as PackedScene
 		_scene_cache.erase(path)
 
+	if path.ends_with(".glb"):
+		var cdn_packed := EmberCdn.load_packed(path)
+		if cdn_packed != null:
+			_scene_cache[path] = cdn_packed
+			return cdn_packed
+
 	var scene := ResourceLoader.load(path) as PackedScene
 	if scene == null and ResourceLoader.exists(path):
 		# UID 缓存失效时偶发 load 失败：清缓存再试一次
@@ -22086,8 +22181,8 @@ func _get_or_create_sprite_obstacle_scene(path: String, warn_if_missing: bool = 
 		var img := Image.new()
 		if img.load(abs_path) == OK:
 			tex = ImageTexture.create_from_image(img)
-	if tex == null and ResourceLoader.exists(path):
-		tex = load(path) as Texture2D
+	if tex == null:
+		tex = EmberCdn.load_texture(path)
 	if tex == null:
 		if warn_if_missing:
 			push_warning("Runner sprite obstacle missing: %s" % path)
@@ -22542,6 +22637,9 @@ func _build_train(root: Node3D, item: Dictionary, moving: bool) -> void:
 func _load_runner_glb(path: String) -> Node3D:
 	if path == "":
 		return null
+	var cdn_node := EmberCdn.instantiate_glb(path)
+	if cdn_node != null:
+		return cdn_node
 	if ResourceLoader.exists(path):
 		var packed := load(path) as PackedScene
 		if packed != null:

@@ -223,6 +223,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	if Global.mobile_home_tab != "":
 		_selected_tab = Global.mobile_home_tab
+	await _preload_home_images_from_cdn()
 	_build_ui()
 	_setup_pause_overlay()
 	Global.ensure_mission_dispatch_ready("glass_desert")
@@ -237,6 +238,46 @@ func _ready() -> void:
 		_start_home_guide()
 	else:
 		_refresh_dawnline_comic_hint()
+
+
+func _preload_home_images_from_cdn() -> void:
+	if not EmberCdn.is_enabled():
+		return
+	var hint := _make_cdn_boot_hint()
+	if not EmberCdn.preload_progress.is_connected(_on_home_cdn_progress):
+		EmberCdn.preload_progress.connect(_on_home_cdn_progress)
+	await EmberCdn.preload_manifest_group("home")
+	if is_instance_valid(hint):
+		hint.queue_free()
+
+
+func _make_cdn_boot_hint() -> Label:
+	var dim := ColorRect.new()
+	dim.name = "CdnBootDim"
+	dim.color = Color(0.016, 0.027, 0.051, 1)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(dim)
+	var hint := Label.new()
+	hint.name = "CdnBootHint"
+	hint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 28)
+	hint.add_theme_color_override("font_color", Color(0.86, 0.90, 0.96))
+	hint.text = GameLocale.pick("正在下载界面…", "Downloading interface…")
+	dim.add_child(hint)
+	return hint
+
+
+func _on_home_cdn_progress(done: int, total: int, _path: String) -> void:
+	var hint := get_node_or_null("CdnBootDim/CdnBootHint") as Label
+	if hint == null:
+		return
+	hint.text = GameLocale.pick(
+		"正在下载界面 %d/%d…" % [done, total],
+		"Downloading interface %d/%d…" % [done, total]
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1039,9 +1080,7 @@ func _load_header_texture(path: String) -> Texture2D:
 		return _header_textures[path] as Texture2D
 	if path == "":
 		return null
-	if not ResourceLoader.exists(path) and not FileAccess.file_exists(ProjectSettings.globalize_path(path)):
-		return null
-	var tex := load(path) as Texture2D
+	var tex := EmberCdn.load_texture(path)
 	if tex:
 		_header_textures[path] = tex
 	return tex
@@ -1958,11 +1997,11 @@ func _add_map_archive_card(data: Dictionary) -> void:
 	thumb_wrap.add_child(thumb_inner)
 
 	var preview_path := String(data.get("preview", ""))
-	if preview_path == "" or not ResourceLoader.exists(preview_path):
+	if preview_path == "" or not EmberCdn.texture_available(preview_path):
 		preview_path = MAPLIST_PREVIEW_01
-	if ResourceLoader.exists(preview_path):
+	if EmberCdn.texture_available(preview_path):
 		var image := TextureRect.new()
-		image.texture = load(preview_path) as Texture2D
+		image.texture = EmberCdn.load_texture(preview_path)
 		image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
@@ -4548,7 +4587,7 @@ func _add_home_hero(purify_pct: int) -> void:
 	var cfg: Script = PlanetDatabase.get_runner_config("glass_desert")
 	if cfg.has_method("get_home_map_preview_path"):
 		map_path = String(cfg.get_home_map_preview_path())
-	var texture: Texture2D = load(map_path) as Texture2D
+	var texture: Texture2D = EmberCdn.load_texture(map_path)
 
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _style(UI_PANEL, UI_FRAME_BORDER, 2, 10))
@@ -4693,7 +4732,7 @@ func _add_map_preview() -> void:
 	var cfg: Script = PlanetDatabase.get_runner_config("glass_desert")
 	if cfg.has_method("get_home_map_preview_path"):
 		map_path = String(cfg.get_home_map_preview_path())
-	var texture: Texture2D = load(map_path)
+	var texture: Texture2D = EmberCdn.load_texture(map_path)
 	if texture == null:
 		return
 	var panel := PanelContainer.new()
@@ -4753,9 +4792,9 @@ func _load_mission_cargo_icon(planet_id: String, mission: Dictionary) -> Texture
 	if not cfg.has_method("get_cargo_icon_path"):
 		return null
 	var icon_path := String(cfg.get_cargo_icon_path(mission))
-	if icon_path == "" or not ResourceLoader.exists(icon_path):
+	if icon_path == "" or not EmberCdn.texture_available(icon_path):
 		return null
-	return load(icon_path) as Texture2D
+	return EmberCdn.load_texture(icon_path)
 
 
 func _load_runner_portrait(planet_id: String) -> Texture2D:
@@ -5511,6 +5550,8 @@ func _show_story_intro(replay: bool = false) -> void:
 		return
 	_hide_dawnline_comic_hint()
 	_story_intro_replay = replay
+	if EmberCdn.is_enabled():
+		await EmberCdn.preload_manifest_group("story")
 	if _story_canvas == null or not is_instance_valid(_story_canvas):
 		_story_canvas = CanvasLayer.new()
 		_story_canvas.name = "StoryCanvas"

@@ -111,9 +111,13 @@ func _apply_payload(payload: Dictionary) -> void:
 		_desc_label.text = "This outpost is not open yet.%s" % String(payload.get("locked_hint", ""))
 	_set_stars(int(payload.get("danger_stars", 3)))
 	var preview_path := String(payload.get("preview_path", ""))
-	if preview_path != "" and ResourceLoader.exists(preview_path):
-		_preview.texture = load(preview_path) as Texture2D
-		_preview.visible = true
+	if preview_path != "":
+		var preview_tex := EmberCdn.load_texture(preview_path)
+		if preview_tex != null:
+			_preview.texture = preview_tex
+			_preview.visible = true
+		else:
+			_preview.visible = false
 	else:
 		_preview.visible = false
 	var repair_percent := int(payload.get("repair_percent", 0))
@@ -684,8 +688,8 @@ func _build_need_card(need: Dictionary) -> Control:
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	var icon_path := String(need.get("icon_path", ""))
-	if icon_path != "" and ResourceLoader.exists(icon_path):
-		icon.texture = load(icon_path) as Texture2D
+	if icon_path != "":
+		icon.texture = EmberCdn.load_texture(icon_path)
 	icon_wrap.add_child(icon)
 	if icon.texture == null:
 		var fallback := Label.new()
@@ -925,10 +929,15 @@ func _apply_manager_portrait(manager: Dictionary, accent: Color, show_identity: 
 	_manager_portrait_fallback.text = name.substr(0, 1) if name != "" else "?"
 	_manager_portrait_fallback.add_theme_color_override("font_color", accent.lightened(0.35))
 	var portrait_path := String(manager.get("portrait_path", ""))
-	if portrait_path != "" and ResourceLoader.exists(portrait_path):
-		_manager_portrait_icon.texture = load(portrait_path) as Texture2D
-		_manager_portrait_icon.visible = true
-		_manager_portrait_fallback.visible = false
+	if portrait_path != "":
+		var portrait_tex := EmberCdn.load_texture(portrait_path)
+		if portrait_tex != null:
+			_manager_portrait_icon.texture = portrait_tex
+			_manager_portrait_icon.visible = true
+			_manager_portrait_fallback.visible = false
+		else:
+			_manager_portrait_icon.visible = false
+			_manager_portrait_fallback.visible = true
 	else:
 		_manager_portrait_icon.visible = false
 		_manager_portrait_fallback.visible = true

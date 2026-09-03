@@ -61,6 +61,7 @@ func _ready() -> void:
 	runner_button.pressed.connect(_on_runner_pressed)
 	ship_select.item_selected.connect(_on_ship_selected)
 	Global.play_home_bgm()
+	await _preload_galaxy_models_from_cdn()
 	_build_starfield()
 	_build_systems()
 	_build_ship_selector()
@@ -98,6 +99,23 @@ func _unhandled_input(event: InputEvent) -> void:
 			_on_runner_pressed()
 		elif event.pressed:
 			_try_pick_planet(event.position)
+
+
+func _preload_galaxy_models_from_cdn() -> void:
+	if not EmberCdn.is_enabled():
+		return
+	var paths: Array[String] = [PlanetDatabase.STAR_MODEL]
+	for system in PlanetDatabase.STAR_SYSTEMS:
+		for planet in system.get("planets", []):
+			if planet is Dictionary:
+				var model_path := PlanetDatabase.get_planet_model_path(planet)
+				if model_path != "" and model_path not in paths:
+					paths.append(model_path)
+	for ship in PlanetDatabase.SHIPS:
+		var ship_path := String(ship.get("path", PlanetDatabase.DEFAULT_SHIP_MODEL))
+		if ship_path != "" and ship_path not in paths:
+			paths.append(ship_path)
+	await EmberCdn.preload_paths_queued(paths)
 
 
 func _build_starfield() -> void:
@@ -697,6 +715,9 @@ func _refresh_ship_preview() -> void:
 func _load_gltf_model(path: String) -> Node3D:
 	if path.is_empty():
 		return null
+	var cdn_node := EmberCdn.instantiate_glb(path)
+	if cdn_node != null:
+		return _ensure_node3d(cdn_node)
 	if ResourceLoader.exists(path):
 		var resource := ResourceLoader.load(path)
 		if resource is PackedScene:

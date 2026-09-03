@@ -1,0 +1,20 @@
+{
+  "id": "ember-runner",
+  "name": "Ember Runners: Dawnline",
+  "title": "Ember Runners: Dawnline",
+  "description": "3D courier runner — jump, slide, and deliver supplies across the dawnline",
+  "type": "html-game",
+  "entry": "index.html",
+  "platforms": ["mobile"],
+  "orientation": "portrait",
+  "cover": "cover.png",
+  "tags": ["runner", "action", "casual"],
+  "sdkVersion": "1.0",
+  "permissions": [
+    "save",
+    "user.read",
+    "exit",
+    "analytics",
+    "room"
+  ]
+}

@@ -2485,11 +2485,7 @@ static func get_location_settlement_silhouette(location_id: String) -> String:
 static func _finish_silhouette_resource_exists(path: String) -> bool:
 	if path.strip_edges() == "":
 		return false
-	if FileAccess.file_exists(path) or FileAccess.file_exists(ProjectSettings.globalize_path(path)):
-		return true
-	if not ResourceLoader.exists(path):
-		return false
-	return ResourceLoader.load(path) is Texture2D
+	return EmberCdn.texture_available(path)
 
 
 static func get_cargo_icon_path(mission: Dictionary) -> String:

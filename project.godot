@@ -18,7 +18,7 @@ config/name="HYPERLUNATIC"
 config/version="v0.1.0-dev.2"
 config/tags=PackedStringArray("master")
 run/main_scene="res://assets/maps/route_levels/mobile_home/mobile_home.tscn"
-config/features=PackedStringArray("4.4", "Forward Plus", "Mobile")
+config/features=PackedStringArray("4.6", "Forward Plus", "Mobile")
 config/icon="res://icon.svg"
 
 [audio]
@@ -30,6 +30,7 @@ driver/output_latency=60
 
 FreezeTickManager="*res://assets/global/scripts/FreezeTickManager.gd"
 Global="*res://assets/global/global.tscn"
+EmberCdn="*res://assets/maps/route_levels/ember_web/ember_cdn.gd"
 
 [debug]
 
@@ -344,3 +345,4 @@ textures/vram_compression/import_etc2_astc=true
 textures/decals/filter=4
 textures/light_projectors/filter=4
 occlusion_culling/use_occlusion_culling=true
+occlusion_culling/use_occlusion_culling.web=false
