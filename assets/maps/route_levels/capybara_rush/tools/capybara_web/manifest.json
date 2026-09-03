@@ -1,0 +1,14 @@
+{
+  "id": "capybara-rush",
+  "name": "Capybara Rush",
+  "title": "Capybara Rush",
+  "description": "Capybara stack runner",
+  "type": "html-game",
+  "entry": "index.html",
+  "platforms": ["mobile"],
+  "orientation": "portrait",
+  "cover": "cover.png",
+  "tags": ["runner", "casual"],
+  "sdkVersion": "1.0",
+  "permissions": ["save", "analytics", "exit"]
+}

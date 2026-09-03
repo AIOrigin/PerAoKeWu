@@ -7,8 +7,8 @@ extends RefCounted
 const MeshUtil := preload("res://assets/maps/route_levels/capybara_rush/capybara_mesh_util.gd")
 
 const LANE_COUNT := 3
-const LANE_WIDTH := 1.08
-const ROAD_HALF_W := 2.05
+const LANE_WIDTH := 1.52
+const ROAD_HALF_W := LANE_WIDTH * 1.5
 const ROAD_THICKNESS := 0.18
 const ROAD_SURFACE_Y := ROAD_THICKNESS * 0.5
 const RUN_SPEED := 12.0
@@ -46,7 +46,13 @@ const CROSS_ROTATOR_ARM_Y := 0.52
 const CROSS_ROTATOR_HUB_R := 0.28
 const CROSS_ROTATOR_ANG_SPEED := 1.35
 const TRAMPOLINE_APPROACH_MARGIN := 24.0
-const PICKUP_RADIUS_X := 1.15
+const PICKUP_RADIUS_X := 0.72
+## 骰子贴满车道；冰块等柱略小，避免和卡皮身体糊成一块
+const STACK_CELL := 1.02
+## 圆角骰子平面比外框窄 2×圆角半径，略加宽 XZ 并减小圆角，避免列间露缝
+const DICE_LANE_BLEED := 0.10
+const DICE_CORNER_R := 0.038
+const PLAYER_HIT_HALF_W := 0.42
 
 var items: Array[Dictionary] = []
 var _host: Node
@@ -558,6 +564,9 @@ func _spawn_mixed_hazard_beat(z: float, i: int, max_rows: int, rng: RandomNumber
 func _spawn_center_rotators() -> void:
 	## 圆形平台：倒 L 双锤 / 四立柱交替出现
 	_host._rotator_arenas.clear()
+	var want := bool(_host._level_cfg.get("center_rotators", _level_difficulty() >= 4))
+	if not want:
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(_host._level_cfg.get("hazard_seed", 1)) + 80331
 	var spd := float(_host._level_cfg.get("rotator_speed", ROTATOR_ANG_SPEED))
@@ -581,8 +590,8 @@ func _spawn_center_rotators() -> void:
 
 
 func _block_lane_cell_w() -> float:
-	## 一列占满车道宽，相邻列只留 BLOCK_GAP，视觉贴合
-	return LANE_WIDTH - BLOCK_GAP
+	## 冰块等柱小于车道宽，列间留缝，避免和卡皮身体「连体」
+	return STACK_CELL
 
 
 func _spawn_stair_hazard_row(
@@ -774,7 +783,13 @@ func _spawn_extra_stair_hazards(rng: RandomNumberGenerator) -> void:
 	## 在主 pattern 空隙补少量阶梯组（不再散落单件）
 	var pattern := String(_host._level_cfg.get("hazard_pattern", ""))
 	# 已是密集阶梯的 pattern 不再追加，避免过挤
-	if pattern in ["tutorial", "stair_intro", "dice_weave", "dice_wall", "sakura_tall", "volcano_intro", "ice_stair", "frost_mix", "sweeper_gauntlet", "difficulty_mix", "showcase", "test_all", "segmented"]:
+	if pattern in [
+		"tutorial", "stair_intro", "dice_weave", "dice_wall", "sakura_tall",
+		"volcano_intro", "ice_stair", "frost_mix", "sweeper_gauntlet",
+		"difficulty_mix", "showcase", "test_all", "segmented",
+		"pasture_weave", "pasture_dense", "neon_dense", "volcano_gauntlet",
+		"intro_cliff", "full_row_low", "stripe_weave",
+	]:
 		return
 	var track_len: float = _host._track_len()
 	var max_rows := int(_host._level_cfg.get("max_stair_rows", 3))
@@ -1352,13 +1367,13 @@ func _level_difficulty() -> int:
 	if _host._level_cfg.has("difficulty"):
 		return clampi(int(_host._level_cfg.get("difficulty", 1)), 1, 5)
 	var id := int(_host._level_cfg.get("id", 1))
-	if id <= 6:
+	if id <= 2:
 		return 1
-	if id <= 12:
+	if id <= 4:
 		return 2
-	if id <= 18:
+	if id <= 6:
 		return 3
-	if id <= 24:
+	if id <= 8:
 		return 4
 	return 5
 
@@ -2395,7 +2410,7 @@ func _spawn_carrot_stack_column(
 		"lane": lane,
 		"dist": dist,
 		"lateral": lateral,
-		"half_lat": LANE_WIDTH * 0.48,
+		"half_lat": STACK_CELL * 0.5,
 		"half_len": 0.55,
 		"clear_y": hit_h - 0.15,
 		"hit_top": hit_h,
@@ -2412,11 +2427,11 @@ func _spawn_ice_stack_column(
 	rows: int,
 	rng: RandomNumberGenerator
 ) -> void:
-	## 冰块阶梯柱：冰砖紧密堆叠
+	## 冰块阶梯柱：冰块小于车道，柱间留缝
 	rows = clampi(rows, 1, 6)
-	var cell := LANE_WIDTH - 0.06
+	var cell := STACK_CELL
 	var block_h := cell
-	var overlap := 0.04
+	var gap := 0.08
 	var lateral: float = _host._lane_to_x(lane)
 	var holder := Node3D.new()
 	holder.name = "IceStack"
@@ -2424,11 +2439,11 @@ func _spawn_ice_stack_column(
 	_host._path_place(holder, dist, lateral, ROAD_SURFACE_Y, 0.0)
 	for i in rows:
 		var ice := _make_ice_block(cell, rng, true)
-		ice.position = Vector3(0.0, block_h * 0.5 + float(i) * (block_h - overlap), 0.0)
+		ice.position = Vector3(0.0, block_h * 0.5 + float(i) * (block_h + gap), 0.0)
 		ice.rotation = Vector3(0.0, deg_to_rad(rng.randf_range(-6.0, 6.0)), 0.0)
 		holder.add_child(ice)
 	_host._disable_subtree_shadows(holder)
-	var hit_h := block_h * 0.5 + float(rows - 1) * (block_h - overlap) + block_h * 0.5 + ROAD_SURFACE_Y
+	var hit_h := block_h * 0.5 + float(rows - 1) * (block_h + gap) + block_h * 0.5 + ROAD_SURFACE_Y
 	items.append({
 		"node": holder,
 		"lane": lane,
@@ -2601,11 +2616,12 @@ func _spawn_dice_stack_column(
 	rows: int,
 	rng: RandomNumberGenerator
 ) -> void:
-	## 正方体骰子竖叠：边长贴近车道宽，三列几乎无缝
+	## 正方体骰子竖叠：边长贴满车道，三列横排无缝
 	rows = clampi(rows, 1, 6)
-	var cell := LANE_WIDTH - 0.06
+	var cell := LANE_WIDTH
+	var dice_size := Vector3(cell + DICE_LANE_BLEED, cell, cell + DICE_LANE_BLEED)
 	var block_h := cell
-	var overlap := 0.02
+	var overlap := DICE_CORNER_R * 2.0 + 0.04
 	var lateral: float = _host._lane_to_x(lane)
 	var holder := Node3D.new()
 	holder.name = "DiceStack"
@@ -2613,7 +2629,7 @@ func _spawn_dice_stack_column(
 	_host._path_place(holder, dist, lateral, ROAD_SURFACE_Y, 0.0)
 	for i in rows:
 		var face_up := ((i + lane + int(dist)) % 6) + 1
-		var dice := _make_dice_obstacle(face_up, Vector3(cell, cell, cell), true, false, i > 0)
+		var dice := _make_dice_obstacle(face_up, dice_size, true, false, i > 0)
 		dice.position = Vector3(0.0, block_h * 0.5 + float(i) * (block_h - overlap), 0.0)
 		dice.rotation = Vector3(0.0, deg_to_rad(float((i + lane) % 4) * 90.0), 0.0)
 		holder.add_child(dice)
@@ -2624,7 +2640,7 @@ func _spawn_dice_stack_column(
 		"lane": lane,
 		"dist": dist,
 		"lateral": lateral,
-		"half_lat": cell * 0.5 + 0.02,
+		"half_lat": dice_size.x * 0.5 + 0.02,
 		"half_len": cell * 0.52,
 		"clear_y": hit_h - 0.1,
 		"hit_top": hit_h,
@@ -2660,31 +2676,34 @@ func _make_dice_obstacle(
 	skip_top_pips: bool = false,
 	skip_bottom_pips: bool = false
 ) -> Node3D:
-	## 可靠可见的🎲：奶油色立方体 + 黑球点数（不用逐面贴图，避免生成失败/卡死）
+	## 常见骰子：象牙色圆角立方 + 贴面黑点（薄圆片，不凸出分离）
 	var root := Node3D.new()
 	root.name = "Dice"
-	var s := 0.95
+	var size := Vector3(0.95, 0.95, 0.95)
 	if extents != Vector3.ZERO:
-		s = mini(extents.x, mini(extents.y, extents.z))
-	var half := s * 0.5
+		size = extents
+	var half := size * 0.5
+	var corner_r := DICE_CORNER_R
+	if _tight:
+		corner_r = minf(corner_r, minf(size.x, minf(size.y, size.z)) * 0.05)
 
-	var body_col := Color(1.0, 0.92, 0.78)
+	var body_col := Color(0.97, 0.95, 0.91)
 	var theme_body := CapybaraLevelCatalog.color3(_host._theme_cfg.get("dice_albedo"), body_col)
 	if theme_body.get_luminance() < 0.93:
-		body_col = theme_body
-	var pip_col := Color(0.06, 0.05, 0.07)
+		body_col = theme_body.lerp(Color(0.97, 0.95, 0.91), 0.35)
+	var pip_col := Color(0.16, 0.14, 0.15)
 
 	var body := MeshInstance3D.new()
-	body.mesh = _rbox(Vector3.ONE * s, s * 0.14)
+	body.mesh = _rbox(size, corner_r)
 	var bm := StandardMaterial3D.new()
 	bm.albedo_color = body_col
-	bm.roughness = 0.5
+	bm.roughness = 0.42
 	body.material_override = bm
 	root.add_child(body)
 
 	var pip_mat := StandardMaterial3D.new()
 	pip_mat.albedo_color = pip_col
-	pip_mat.roughness = 0.55
+	pip_mat.roughness = 0.45
 
 	var top := clampi(face_up, 1, 6)
 	var bottom := 7 - top
@@ -2702,19 +2721,19 @@ func _make_dice_obstacle(
 	var back := 7 - front
 	var left := 7 - right
 
-	var pip_r := s * 0.09
+	var pip_r := minf(size.x, minf(size.y, size.z)) * 0.085
 	if not skip_top_pips:
-		_add_dice_sphere_pips(root, Vector3(0, half, 0), Vector3.RIGHT, Vector3.FORWARD, top, half, pip_mat, pip_r)
+		_add_dice_disc_pips(root, Vector3(0, half.y, 0), Vector3.RIGHT, Vector3.FORWARD, top, half.y, pip_mat, pip_r)
 	if not skip_bottom_pips:
-		_add_dice_sphere_pips(root, Vector3(0, -half, 0), Vector3.RIGHT, Vector3.BACK, bottom, half, pip_mat, pip_r)
-	_add_dice_sphere_pips(root, Vector3(0, 0, half), Vector3.RIGHT, Vector3.UP, front, half, pip_mat, pip_r)
-	_add_dice_sphere_pips(root, Vector3(0, 0, -half), Vector3.LEFT, Vector3.UP, back, half, pip_mat, pip_r)
-	_add_dice_sphere_pips(root, Vector3(half, 0, 0), Vector3.BACK, Vector3.UP, right, half, pip_mat, pip_r)
-	_add_dice_sphere_pips(root, Vector3(-half, 0, 0), Vector3.FORWARD, Vector3.UP, left, half, pip_mat, pip_r)
+		_add_dice_disc_pips(root, Vector3(0, -half.y, 0), Vector3.RIGHT, Vector3.BACK, bottom, half.y, pip_mat, pip_r)
+	_add_dice_disc_pips(root, Vector3(0, 0, half.z), Vector3.RIGHT, Vector3.UP, front, half.z, pip_mat, pip_r)
+	_add_dice_disc_pips(root, Vector3(0, 0, -half.z), Vector3.LEFT, Vector3.UP, back, half.z, pip_mat, pip_r)
+	_add_dice_disc_pips(root, Vector3(half.x, 0, 0), Vector3.BACK, Vector3.UP, right, half.x, pip_mat, pip_r)
+	_add_dice_disc_pips(root, Vector3(-half.x, 0, 0), Vector3.FORWARD, Vector3.UP, left, half.x, pip_mat, pip_r)
 	return root
 
 
-func _add_dice_sphere_pips(
+func _add_dice_disc_pips(
 	root: Node3D,
 	center: Vector3,
 	axis_u: Vector3,
@@ -2729,18 +2748,28 @@ func _add_dice_sphere_pips(
 	var n := center.normalized()
 	if center.length_squared() < 0.0001:
 		n = Vector3.UP
-	var span := half * 0.55
+	var span := half * 0.52
+	var thick := maxf(r * 0.22, 0.012)
 	for uv in _dice_pip_uvs(pips):
 		var pip := MeshInstance3D.new()
-		var sph := SphereMesh.new()
-		sph.radius = r
-		sph.height = r * 2.0
-		sph.radial_segments = 12
-		sph.rings = 6
-		pip.mesh = sph
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = r
+		cyl.bottom_radius = r
+		cyl.height = thick
+		cyl.radial_segments = 16
+		pip.mesh = cyl
 		pip.material_override = mat
-		# 点数半埋进表面，清晰可见又不大幅撑开层缝
-		pip.position = center + u * (uv.x * span) + v * (uv.y * span) + n * (r * 0.45)
+		pip.position = center + u * (uv.x * span) + v * (uv.y * span) + n * (thick * 0.48)
+		var y_axis := n
+		var x_axis := u
+		if absf(y_axis.dot(x_axis)) > 0.92:
+			x_axis = v
+		var z_axis := y_axis.cross(x_axis)
+		if z_axis.length_squared() < 0.0001:
+			z_axis = y_axis.cross(Vector3.RIGHT)
+		z_axis = z_axis.normalized()
+		x_axis = z_axis.cross(y_axis).normalized()
+		pip.basis = Basis(x_axis, y_axis, z_axis)
 		root.add_child(pip)
 
 

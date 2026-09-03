@@ -1,32 +1,25 @@
 {
   "id": 10,
-  "name": "暮色起跑",
-  "theme_id": "dusk_neon",
-  "track_length": 336.0,
-  "run_speed": 14.0,
+  "name": "火山冲刺",
+  "theme_id": "onsen_volcano",
+  "track_length": 396.0,
+  "run_speed": 16.5,
   "time_limit_sec": 0,
-  "cliffs": 0,
+  "cliffs": 2,
   "cliff_gap_len": 11.0,
-  "hazard_seed": 4323,
-  "hazard_pattern": "difficulty_mix",
+  "hazard_seed": 4493,
+  "hazard_pattern": "volcano_gauntlet",
   "max_stair_rows": 4,
   "allow_full_row_blocks": true,
-  "full_row_max_rows": 1,
-  "pickup_spacing": [
-    9,
-    13
-  ],
-  "fruit_spacing": [
-    14,
-    18
-  ],
+  "full_row_max_rows": 2,
+  "center_rotators": true,
+  "pickup_spacing": [11, 15],
+  "fruit_spacing": [18, 24],
+  "pacing_beat_sec_min": 1.1,
+  "pacing_beat_sec_max": 1.38,
   "finish_stairs": true,
-  "dice_hazards": true,
-  "dice_spacing": [
-    14,
-    20
-  ],
   "stair_kind": "dice",
-  "difficulty": 4,
-  "sweeper_speed": 2.4
+  "dice_hazards": true,
+  "difficulty": 5,
+  "sweeper_speed": 2.6
 }

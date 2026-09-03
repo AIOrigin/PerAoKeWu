@@ -3,7 +3,7 @@ extends RefCounted
 
 ## 编辑器预览：setpiece / 三连跳 / 断崖 的简易标记
 
-const LANE_WIDTH := 1.08
+const LANE_WIDTH := 1.52
 const LANE_COUNT := 3
 const ROAD_SURFACE_Y := 0.09
 

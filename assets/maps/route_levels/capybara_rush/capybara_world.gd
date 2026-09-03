@@ -9,9 +9,9 @@ const MeshUtil := preload("res://assets/maps/route_levels/capybara_rush/capybara
 const CapybaraLevelCatalog = LevelCatalogScript
 
 const LANE_COUNT := 3
-const LANE_WIDTH := 1.08
+const LANE_WIDTH := 1.52
 const ROAD_SURFACE_Y := 0.09
-const ROAD_HALF_W := 2.05
+const ROAD_HALF_W := LANE_WIDTH * 1.5
 const GRAVITY := 24.0
 const JUMP_SPEED := 8.2
 const RUN_SPEED := 12.0
@@ -229,7 +229,7 @@ func _update_jump(delta: float) -> void:
 		if _host._game_mode == MODE_STACK:
 			_begin_cliff_tip_rescue()
 		else:
-			_host._fail_game("掉下断崖，游戏失败")
+			_host._fail_game("Fell off a cliff — game over")
 		return
 	if _host._vel_y <= 0.0 and _host._air_y <= floor_y + 0.02 and floor_y > -1.0:
 		_host._air_y = floor_y
@@ -271,7 +271,7 @@ func _begin_cliff_tip_rescue() -> void:
 	if _host._cliff_rescuing or _host._finished:
 		return
 	if _host._stack.is_empty():
-		_host._fail_game("掉下断崖，游戏失败")
+		_host._fail_game("Fell off a cliff — game over")
 		return
 	_host._cliff_rescuing = true
 	_host._cliff_from_trampoline = false
@@ -300,7 +300,7 @@ func _cliff_drop_bottom_and_land(land_dist: float) -> void:
 	if _host._stack.is_empty():
 		_host._cliff_rescuing = false
 		_host._cliff_tip_pitch = 0.0
-		_host._fail_game("掉下断崖，游戏失败")
+		_host._fail_game("Fell off a cliff — game over")
 		return
 	_host._progress = land_dist
 	_host._air_y = ROAD_SURFACE_Y + 0.4
@@ -319,7 +319,7 @@ func _finish_cliff_tip_rescue() -> void:
 	_host._on_platform = false
 	_host._stack_sys.refresh_stack_layer_anims()
 	if _host._hud_tip != null and _host._playing and not _host._finished:
-		_host._hud_tip.text = "没踩跳跳床摔过去了 · 底下掉了几只 · 下次换有床的道飞"
+		_host._hud_tip.text = "Missed the trampoline · Lost some stack · Next time take the pad lane"
 
 
 func _in_cliff_gap() -> bool:
@@ -542,16 +542,16 @@ func _make_fruit_visual(kind: String) -> Node3D:
 		return _make_crystal_visual()
 	var model_path := _fruit_model_path(kind)
 	if not model_path.is_empty():
-		var target_h := 0.62
+		var target_h := 0.84
 		match kind:
 			"pineapple":
-				target_h = 0.78
+				target_h = 1.02
 			"durian":
-				target_h = 0.7
+				target_h = 0.92
 			"banana":
-				target_h = 0.58
+				target_h = 0.78
 			"watermelon":
-				target_h = 0.72
+				target_h = 0.96
 		var fitted: Node3D = _host._instance_fitted(model_path, target_h, 0.0)
 		if fitted != null:
 			fitted.name = "Fruit_%s" % kind
@@ -783,7 +783,7 @@ func _try_collect_fruits() -> void:
 		var node: Node3D = f.get("node")
 		if node == null or not is_instance_valid(node):
 			continue
-		if not _host._along_overlap(float(f.get("dist", -999.0)), float(f.get("lateral", 0.0)), 1.1, 1.05):
+		if not _host._along_overlap(float(f.get("dist", -999.0)), float(f.get("lateral", 0.0)), 1.05, 0.68):
 			continue
 		f["taken"] = true
 		var coins := int(f.get("coins", 5))
@@ -1622,7 +1622,7 @@ func _try_collect_speed_orbs() -> void:
 		var lateral: float = float(o.get("lateral", 0.0))
 		var bob_y := 0.55 + sin(t * 4.0 + phase) * 0.12
 		_host._track_sys.path_place(node, dist, lateral, bob_y, t * 1.8 + phase)
-		if not _host._along_overlap(dist, lateral, 1.15, 1.05):
+		if not _host._along_overlap(dist, lateral, 1.05, 0.68):
 			continue
 		o["taken"] = true
 		node.visible = false

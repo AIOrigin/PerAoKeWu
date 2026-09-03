@@ -13,8 +13,8 @@ MAIN_SCENE='res://assets/maps/route_levels/capybara_rush/capybara_rush.tscn'
 PROJECT_GODOT="$ROOT/project.godot"
 
 if [[ ! -x "$GODOT" ]]; then
-	echo "找不到 Godot：$GODOT"
-	echo "请设置 GODOT=/path/to/Godot"
+	echo "Godot not found: $GODOT"
+	echo "Set GODOT=/path/to/Godot"
 	exit 1
 fi
 
@@ -36,11 +36,11 @@ text = path.read_text()
 old = 'run/main_scene="res://assets/maps/route_levels/mobile_home/mobile_home.tscn"'
 new = f'run/main_scene="{scene}"'
 if old not in text:
-    raise SystemExit("project.godot 未找到默认 main_scene，拒绝改写")
+    raise SystemExit("project.godot: default main_scene not found; refusing rewrite")
 path.write_text(text.replace(old, new, 1))
 PY
 
 "$GODOT" --headless --path "$ROOT" --export-release "$PRESET" "$OUT_HTML"
 
-echo "导出完成：$OUT_DIR"
+echo "Export done: $OUT_DIR"
 du -sh "$OUT_DIR"/* 2>/dev/null | sort -hr || true

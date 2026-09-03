@@ -7,10 +7,10 @@ const CapybaraRushPaths := preload("res://assets/maps/route_levels/capybara_rush
 
 const LANE_COUNT := 3
 const ROAD_SURFACE_Y := 0.09
-const STACK_STEP_Y := 0.88
-const TARGET_CAPY_HEIGHT := 0.92
-const PICKUP_RADIUS_X := 1.15
-const PICKUP_RADIUS_Z := 1.4
+const STACK_STEP_Y := 1.18
+const TARGET_CAPY_HEIGHT := 1.24
+const PICKUP_RADIUS_X := 0.72
+const PICKUP_RADIUS_Z := 1.15
 const PICKUP_LOOK_RANGE := 22.0
 const PICKUP_LOOK_MAX := 2.45
 const PICKUP_LOOK_HALF_FACE := 2.2
@@ -321,24 +321,33 @@ func _try_drop_layers(delta: float) -> void:
 
 
 func _force_drop_from_hazard(h: Dictionary = {}) -> void:
-	# 撞障碍：重叠几层掉几只；会清空整塔或只剩 0 → 失败
-	# 注意：拾取动画中不要直接 return 吞掉伤害——由 _try_hit_hazards 排队，结束后再结算
+	_drop_stack_by_count(_hazard_drop_count(h))
+
+
+func _hazard_drop_count(h: Dictionary) -> int:
+	## 骰子/胡萝卜/冰块：几颗就掉几只（竖叠 rows；并排各算一次碰撞）
+	var rows := int(h.get("rows", 0))
+	if rows > 0:
+		return rows
+	var kind := String(h.get("kind", ""))
+	if kind in ["dice", "carrot", "ice", "blocks"]:
+		return maxi(1, int(round(CapybaraHazards.hit_top(h) / (BLOCK_SIZE + BLOCK_GAP))))
+	return 1
+
+
+func _drop_stack_by_count(n: int) -> void:
 	if _host._stack.size() <= 1:
-		_host._fail_game("撞到障碍，游戏失败")
+		_host._fail_game("Hit an obstacle — game over")
 		return
-	var idxs := _hit_stack_layer_indices(h)
-	if idxs.is_empty():
-		idxs = [0]
-	if idxs.size() >= _host._stack.size():
-		_host._fail_game("撞到障碍，游戏失败")
+	n = maxi(n, 1)
+	if n >= _host._stack.size():
+		_host._fail_game("Hit an obstacle — game over")
 		return
-	# 从高下标到低剔除，避免 remove 后下标错位
-	idxs.sort()
-	idxs.reverse()
-	for idx in idxs:
-		_drop_layer_at(int(idx), true)
+	# 从塔顶甩出，飞出只数 = 掉队只数；剩余层本来就在正确高度
+	for _i in n:
+		_drop_layer_at(_host._stack.size() - 1, true)
 	_host._drop_cd = _drop_cooldown()
-	_host._sway = minf(_host._sway + 1.2 + float(idxs.size()) * 0.15, 3.0)
+	_host._sway = minf(_host._sway + 1.2 + float(n) * 0.15, 3.0)
 
 
 func _hit_stack_layer_indices(h: Dictionary) -> Array[int]:
@@ -526,7 +535,7 @@ func _update_pickup_bob(delta: float) -> void:
 		# 延后一帧应用，压过 AnimationPlayer
 		_apply_pickup_head_yaw(p, cur)
 	# 再 deferred 盖一次，确保渲染前是回头姿势
-	_host.call_deferred("_stack_sys._apply_all_pickup_looks")
+	_host.call_deferred("_apply_all_pickup_looks")
 
 
 func _apply_all_pickup_looks() -> void:
@@ -828,27 +837,27 @@ func _ensure_mesh_skeleton(root: Node, skel: Skeleton3D) -> void:
 func _character_display_name() -> String:
 	match _host._character_id:
 		CHAR_QINGQING:
-			return "青青"
+			return "Qingqing"
 		CHAR_LITTLE_MONSTER:
-			return "小怪兽"
+			return "Little Monster"
 		CHAR_LITTLE_RABBIT:
-			return "小兔子"
+			return "Bunny"
 		CHAR_SHIBA:
-			return "柴犬"
+			return "Shiba"
 		CHAR_BIRD:
-			return "小鸟"
+			return "Birdie"
 		CHAR_MOUSE:
-			return "小老鼠"
+			return "Mouse"
 		CHAR_SLOTH:
-			return "树懒"
+			return "Sloth"
 		CHAR_TINY_PLANET:
-			return "小行星"
+			return "Tiny Planet"
 		CHAR_BEAR:
-			return "小熊"
+			return "Bear"
 		CHAR_COW:
-			return "牛来"
+			return "Cow"
 		_:
-			return "卡皮巴拉"
+			return "Capybara"
 
 
 func _pick_rigged_or_base(rigged: String, base: String) -> String:
@@ -969,7 +978,7 @@ func _start_ready_spin() -> void:
 	_host._grounded = true
 	if _host._hud_tip:
 		_host._hud_tip.visible = true
-		_host._hud_tip.text = "%s 准备出发 · 点屏幕开跑" % _character_display_name()
+		_host._hud_tip.text = "%s ready · Tap to run" % _character_display_name()
 	if _host._tower == null or _host._stack.is_empty():
 		_host._begin_gameplay()
 		return
@@ -986,7 +995,7 @@ func _start_ready_spin() -> void:
 	_host.call_deferred("_resnap_then_ready_idle", layer)
 	_host._race_sys.update_camera()
 	if _host._hud_tip:
-		_host._hud_tip.text = "%s 准备出发 · 点屏幕开跑" % _character_display_name()
+		_host._hud_tip.text = "%s ready · Tap to run" % _character_display_name()
 	_host._ui_sys.show_ready_chrome()
 
 
@@ -1535,7 +1544,9 @@ func _instance_fitted(path: String, target_height: float, yaw: float = 0.0, star
 		load_path = _host._cdn_sys.resolve_model_path(path)
 	# 新入库的 .glb 可能尚未进 ResourceLoader 缓存，仍允许 FileAccess 直读
 	if not ResourceLoader.exists(load_path) and not FileAccess.file_exists(load_path):
-		push_warning("Missing model: %s" % load_path)
+		# Web 选角时 CDN 还没下完，灰球占位，不算资源缺失
+		if _host._cdn_sys == null or not _host._cdn_sys.is_enabled():
+			push_warning("Missing model: %s" % load_path)
 		return null
 	var packed: PackedScene = _load_model_packed(load_path)
 	if packed == null:
@@ -1696,15 +1707,12 @@ func _make_sealed_material(tex: Texture2D) -> StandardMaterial3D:
 func _apply_preview_albedo(root: Node, model_path: String) -> void:
 	var tex := _preview_tex_for(model_path)
 	if tex == null:
-		push_warning("capy sealed albedo missing path=%s" % model_path)
 		return
 	var mat := _make_sealed_material(tex)
-	var mesh_n := 0
 	for node in _find_meshes(root):
 		var mi := node as MeshInstance3D
 		if mi == null or mi.mesh == null:
 			continue
-		mesh_n += 1
 		mi.transparency = 0.0
 		mi.material_overlay = null
 		mi.material_override = mat
@@ -1713,7 +1721,6 @@ func _apply_preview_albedo(root: Node, model_path: String) -> void:
 				mi.set_surface_override_material(i, null)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	push_warning("capy sealed albedo meshes=%s path=%s" % [mesh_n, model_path])
 
 
 func _is_capy_model_path(path: String) -> bool:

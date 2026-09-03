@@ -11,8 +11,8 @@ const CapybaraWebConfig := preload("res://assets/maps/route_levels/capybara_rush
 const CapybaraLevelCatalog = LevelCatalogScript
 
 const LANE_COUNT := 3
-const LANE_WIDTH := 1.08
-const ROAD_HALF_W := 2.05
+const LANE_WIDTH := 1.52
+const ROAD_HALF_W := LANE_WIDTH * 1.5
 const ROAD_THICKNESS := 0.18
 const ROAD_SURFACE_Y := ROAD_THICKNESS * 0.5
 const START_LINE_PROGRESS := 8.5
@@ -192,9 +192,10 @@ func _setup_environment() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.88, 0.86, 0.92)
 	env.ambient_light_energy = 0.55
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 0.92
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.tonemap_exposure = 1.0
 	env.glow_enabled = false
+	env.fog_enabled = false
 	_host._world_env = WorldEnvironment.new()
 	_host._world_env.environment = env
 	_host.add_child(_host._world_env)
@@ -208,7 +209,7 @@ func _setup_environment() -> void:
 	_host._sun_light.shadow_bias = 0.06
 	_host._sun_light.shadow_normal_bias = 1.5
 	_host._sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	_host._sun_light.shadow_blur = 0.6
+	_host._sun_light.shadow_blur = 0.25
 	_host.add_child(_host._sun_light)
 
 

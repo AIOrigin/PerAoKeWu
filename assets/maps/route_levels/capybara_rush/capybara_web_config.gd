@@ -12,6 +12,8 @@ const CDN_BASE_URL := "https://de0csn75w3vhy.cloudfront.net/games/capybara-rush/
 
 ## Web 导出时在 exclude_filter 中排除 models/，运行时从此 CDN 拉取
 const CACHE_ROOT := "user://capybara_cdn/models/"
+## 网页包缓存戳：只给 index.js / index.pck 加 ?v=，不要给 42MB wasm 加
+const ASSET_VERSION := "20260901-9"
 
 
 static func cdn_enabled() -> bool:

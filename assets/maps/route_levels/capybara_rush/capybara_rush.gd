@@ -15,11 +15,11 @@ const CapybaraRaceScript := preload("res://assets/maps/route_levels/capybara_rus
 const CapybaraCdnScript := preload("res://assets/maps/route_levels/capybara_rush/capybara_cdn.gd")
 
 const LANE_COUNT := 3
-## 车道中心间距：略大于障碍边长，三列几乎贴紧
-const LANE_WIDTH := 1.08
-const ROAD_HALF_W := 2.05
-const TRACK_LATERAL_SPEED := 5.5
-const TRACK_LATERAL_MARGIN := 0.68
+## 三车道贴满跑道：3 × 车道宽 = 跑道全宽；加宽后邻道不再误吸
+const LANE_WIDTH := 1.52
+const ROAD_HALF_W := LANE_WIDTH * 1.5
+const TRACK_LATERAL_SPEED := 7.2
+const TRACK_LATERAL_MARGIN := 0.52
 const ROTATOR_LATERAL_MARGIN := 0.95
 const ROTATOR_ARENA_RADIUS := 3.2
 const ROTATOR_ANG_SPEED := 1.05
@@ -39,9 +39,9 @@ const BOB_FREQ := 9.0
 const FRUIT_SPIN_SPEED := 2.0
 const SPEED_ORB_SPIN_SPEED := 2.4
 ## 深棕站立卡皮巴拉：目标高度与叠层间距（接近身高，只留一点嵌合）
-const TARGET_CAPY_HEIGHT := 0.92
+const TARGET_CAPY_HEIGHT := 1.24
 const TARGET_PILOT_HEIGHT := 1.55
-const STACK_STEP_Y := 0.88
+const STACK_STEP_Y := 1.18
 ## 网格最长轴在局部 X；-PI/2 使鼻朝跑道前进方向
 const CAPY_FORWARD_YAW := -PI * 0.5
 const QINGQING_FORWARD_YAW := -PI * 0.5
@@ -86,8 +86,9 @@ const CHAR_SOFT_SKIN_IDS: Array[String] = [
 ]
 const MODE_STACK := "stack"
 const MODE_RACE := "race"
-const PICKUP_RADIUS_X := 1.15
-const PICKUP_RADIUS_Z := 1.4
+## 拾取半径小于半车道，避免邻道苹果/卡皮自动吸附
+const PICKUP_RADIUS_X := 0.72
+const PICKUP_RADIUS_Z := 1.15
 ## 竞速：碰飞船冲锋 5s；冲锋中撞障 -1s；加速包 +0.5s
 const BOOST_DURATION := 5.0
 const BOOST_HIT_PENALTY := 1.0
@@ -290,10 +291,15 @@ func _ready() -> void:
 	_cdn_sys.name = "CapybaraCdn"
 	add_child(_cdn_sys)
 	_cdn_sys.preload_progress.connect(_ui_sys.on_cdn_preload_progress)
+	_cdn_sys.model_cached.connect(_ui_sys.on_cdn_model_cached)
+	_apply_render_sharpness()
 	_track_sys.setup_environment()
 	_race_sys.setup_camera()
 	_ui_sys.setup_hud()
 	_race_sys.setup_audio()
+	# 网页上 HTTPRequest 在 _ready 里直接 await 会卡死，封面停在 0/18
+	await get_tree().process_frame
+	await get_tree().process_frame
 	if CapybaraUi.pending_custom_level_id != "":
 		_character_id = _normalize_character_id(CapybaraUi.pending_character_id)
 		var custom_id := CapybaraUi.pending_custom_level_id
@@ -303,6 +309,7 @@ func _ready() -> void:
 		_track_sys.load_custom_level_bundle(custom_id)
 		await _prepare_level_assets()
 		_rebuild_level_world()
+		_ui_sys.hide_cdn_loading()
 		_start_stack_game()
 	elif CapybaraUi.pending_level_id > 0:
 		_character_id = _normalize_character_id(CapybaraUi.pending_character_id)
@@ -313,21 +320,63 @@ func _ready() -> void:
 		_track_sys.load_level_bundle(_level_id)
 		await _prepare_level_assets()
 		_rebuild_level_world()
+		_ui_sys.hide_cdn_loading()
 		_start_stack_game()
 	else:
 		_track_sys.load_level_bundle(1)
-		await _prepare_level_assets()
-		_rebuild_level_world()
 		if CapybaraUi.pending_open_level_select:
 			_character_id = _normalize_character_id(CapybaraUi.pending_character_id)
 			CapybaraUi.pending_open_level_select = false
 			CapybaraUi.pending_character_id = ""
 			_ui_sys.setup_level_select()
 		else:
-			await _prepare_character_assets()
 			_ui_sys.setup_character_select()
+			# 不挡选角；模型在后台拉，缺预览也能点进去
+			_cdn_sys.preload_all_characters()
 	_lane_x = _lane_to_x(_lane)
 
+
+
+func _apply_render_sharpness() -> void:
+	## 网页 Compatibility/WebGL 开 MSAA 或超分会卡在第一帧，封面不关
+	var vp := get_viewport()
+	if vp == null:
+		return
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.use_taa = false
+	vp.use_occlusion_culling = false
+	if OS.has_feature("web"):
+		vp.msaa_3d = Viewport.MSAA_DISABLED
+		if not vp.size_changed.is_connected(_apply_web_render_scale):
+			vp.size_changed.connect(_apply_web_render_scale)
+		call_deferred("_apply_web_render_scale")
+		return
+	vp.msaa_3d = Viewport.MSAA_2X
+	vp.anisotropic_filtering_level = Viewport.ANISOTROPY_8X
+
+
+func _apply_web_render_scale() -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	vp.msaa_3d = Viewport.MSAA_DISABLED
+	var ua := ""
+	var raw_ua: Variant = JavaScriptBridge.eval("navigator.userAgent || ''", true)
+	if typeof(raw_ua) == TYPE_STRING:
+		ua = String(raw_ua)
+	var is_ios := ua.contains("iPhone") or ua.contains("iPad") or ua.contains("iPod")
+	if is_ios:
+		vp.scaling_3d_scale = 1.0
+		return
+	var dpr := 1.0
+	var raw: Variant = JavaScriptBridge.eval("window.devicePixelRatio || 1", true)
+	if typeof(raw) == TYPE_FLOAT or typeof(raw) == TYPE_INT:
+		dpr = float(raw)
+	var short_side := mini(vp.size.x, vp.size.y)
+	if dpr > 1.25 and short_side < 900:
+		vp.scaling_3d_scale = 1.25
+	else:
+		vp.scaling_3d_scale = 1.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -343,7 +392,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _playing or _waiting_to_start:
 			_ui_sys.pause_game()
 			return
-		get_tree().reload_current_scene()
 		return
 	if _ui_sys.is_menu_blocking():
 		return
@@ -597,6 +645,10 @@ func _update_lateral_move(delta: float) -> void:
 
 
 func _on_character_chosen(char_id: String) -> void:
+	if CapybaraUi.pending_level_id > 0:
+		return
+	if _ui_sys.level_ui != null:
+		return
 	_character_id = _normalize_character_id(char_id)
 	_ui_sys.dismiss_character_select()
 	_ui_sys.setup_level_select()
@@ -611,6 +663,9 @@ func _normalize_character_id(char_id: String) -> String:
 
 func _start_stack_game() -> void:
 	_game_mode = MODE_STACK
+	_finished = false
+	_playing = false
+	_waiting_to_start = false
 	_cliff_rescuing = false
 	_cliff_tip_pitch = 0.0
 	_cliff_from_trampoline = false
@@ -620,7 +675,7 @@ func _start_stack_game() -> void:
 	_air_y = ROAD_SURFACE_Y
 	_grounded = true
 	_vel_y = 0.0
-	_ui_sys.dismiss_mode_select()
+	_ui_sys.dismiss_all_menus()
 	_world_sys.spawn_cliffs()
 	_hazard_sys.clear()
 	_hazard_sys.spawn_center_rotators()
@@ -676,8 +731,8 @@ func _begin_gameplay() -> void:
 		var tip_extra := ""
 		var jumps: Variant = _level_cfg.get("jump_challenges", [])
 		if typeof(jumps) == TYPE_ARRAY and not (jumps as Array).is_empty():
-			tip_extra = " · 水池三连跳"
-		_hud_tip.text = "左右换道 · 点跳跃躲障%s" % tip_extra
+			tip_extra = " · Triple jump pool"
+		_hud_tip.text = "Swipe lanes · Tap jump to dodge%s" % tip_extra
 	_ui_sys.show_playing_chrome()
 	_race_sys.update_camera()
 	_race_sys.update_hud()
@@ -720,11 +775,14 @@ func _rebuild_level_world() -> void:
 
 
 func _on_level_chosen(level_id: int) -> void:
-	_ui_sys.dismiss_level_select()
-	_track_sys.load_level_bundle(level_id)
-	await _prepare_level_assets()
-	_rebuild_level_world()
-	_start_stack_game()
+	if CapybaraUi.pending_level_id > 0:
+		return
+	CapybaraUi.pending_level_id = level_id
+	CapybaraUi.pending_character_id = _character_id
+	CapybaraUi.pending_custom_level_id = ""
+	CapybaraUi.pending_open_level_select = false
+	_ui_sys.dismiss_all_menus()
+	_ui_sys.reload_rush_scene()
 
 
 func _prepare_level_assets() -> void:
@@ -732,15 +790,13 @@ func _prepare_level_assets() -> void:
 		return
 	_ui_sys.show_cdn_loading()
 	await _cdn_sys.preload_for_theme(_theme_cfg, _character_id)
-	_ui_sys.hide_cdn_loading()
 
 
 func _prepare_character_assets() -> void:
 	if _cdn_sys == null or not _cdn_sys.is_enabled():
 		return
-	_ui_sys.show_cdn_loading("正在下载角色模型…")
+	_ui_sys.show_cdn_loading("Downloading character models…")
 	await _cdn_sys.preload_all_characters()
-	_ui_sys.hide_cdn_loading()
 
 func _is_race() -> bool:
 	return _race_sys.is_race()
@@ -820,6 +876,14 @@ func _is_frost_theme() -> bool:
 
 func _resnap_character_feet(visual: Node3D, measure_keys: Array = ["run", "idle"]) -> void:
 	_stack_sys._resnap_character_feet(visual, measure_keys)
+
+
+func _resnap_then_ready_idle(visual: Node3D) -> void:
+	_stack_sys._resnap_then_ready_idle(visual)
+
+
+func _apply_all_pickup_looks() -> void:
+	_stack_sys._apply_all_pickup_looks()
 
 
 func _finish_pickup_under_anim(incoming: Node3D, old_layers: Array[Node3D]) -> void:

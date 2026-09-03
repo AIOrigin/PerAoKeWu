@@ -7,18 +7,18 @@ const CapybaraRushPaths := preload("res://assets/maps/route_levels/capybara_rush
 const MeshUtil := preload("res://assets/maps/route_levels/capybara_rush/capybara_mesh_util.gd")
 
 const LANE_COUNT := 3
-const STACK_STEP_Y := 0.88
+const STACK_STEP_Y := 1.18
 const FINISH_STEP_COUNT := 18
-const FINISH_STEP_RISE := 0.98
+const FINISH_STEP_RISE := 1.22
 const FINISH_STEP_DEPTH := 2.25
-const FINISH_STEP_WIDTH := 7.0
-const FINISH_PATH_WIDTH := 1.7
+const FINISH_STEP_WIDTH := 8.8
+const FINISH_PATH_WIDTH := 2.15
 const FINISH_MELON_SCALE := 1.25
 const FINISH_PATH_SURFACE_Y := 0.05
 const FINISH_STEP_FOOT_EXTRA := 0.05
 const FINISH_MAX_PER_STEP := 1
-const FINISH_CLIMB_SEC_PER_STEP := 0.26
-const FINISH_CLIMB_ARC := 0.18
+const FINISH_CLIMB_SEC_PER_STEP := 0.38
+const FINISH_CLIMB_ARC := 0.34
 const FINISH_TURN_SEC := 0.55
 const FINISH_DANCE_HOLD_SEC := 2.8
 const FINISH_LEAN_AMP := 0.18
@@ -30,6 +30,7 @@ var ceremony_active := false
 var focus_step := 0
 var climb_left_upto := -1
 var dancers: Array[Dictionary] = []
+var _repack_from_y: Array[float] = []
 var _host: Node
 
 
@@ -345,9 +346,9 @@ func _start_finish_ceremony() -> void:
 	dancers.clear()
 	if _host._hud_tip:
 		_host._hud_tip.visible = true
-		_host._hud_tip.text = "叠叠乐往上跳 · 每阶留下一只吃西瓜！"
+		_host._hud_tip.text = "Climb up · Leave one on each step for watermelon!"
 	if _host._hud_label:
-		_host._hud_label.text = "终点！"
+		_host._hud_label.text = "Finish!"
 	_run_finish_stairs_sequence()
 
 
@@ -427,11 +428,14 @@ func _finish_climb_tower_along(t: float, points: Array[Vector3], climbs: int) ->
 		frac = 1.0
 	var a: Vector3 = points[seg]
 	var b: Vector3 = points[seg + 1]
-	var pos := a.lerp(b, frac)
-	# 连续轻微弧线，避免落地停顿感
+	var frac_eased := _smooth01(frac)
+	var pos := a.lerp(b, frac_eased)
+	# 连续弧线：用时间 frac 保证每阶中段最高，起落更圆
 	pos.y += sin(PI * frac) * FINISH_CLIMB_ARC
 	_host._tower.global_position = pos
 	focus_step = seg
+	_lerp_tower_step_yaw(seg, frac_eased)
+	_apply_finish_stack_repack(frac_eased)
 
 	# 到达某一阶落点时留下一只（只触发一次）
 	while climb_left_upto + 1 < climbs and capped + 0.0001 >= float(climb_left_upto + 1):
@@ -441,15 +445,44 @@ func _finish_climb_tower_along(t: float, points: Array[Vector3], climbs: int) ->
 			break
 		var step: Dictionary = steps[si]
 		var step_yaw: float = float(step["yaw"])
-		_host._tower.rotation = Vector3(0.0, step_yaw, 0.0)
 		_try_eat_finish_melon(step, _host._lane, _host._tower)
 		_leave_one_on_finish_step(si, step_yaw)
+
+
+func _smooth01(t: float) -> float:
+	var x := clampf(t, 0.0, 1.0)
+	return 0.5 - 0.5 * cos(PI * x)
+
+
+func _lerp_tower_step_yaw(seg: int, frac: float) -> void:
+	if _host._tower == null or not is_instance_valid(_host._tower) or steps.is_empty():
+		return
+	var i0 := clampi(seg, 0, steps.size() - 1)
+	var i1 := clampi(seg + 1, 0, steps.size() - 1)
+	var yaw0 := float(steps[i0]["yaw"])
+	var yaw1 := float(steps[i1]["yaw"])
+	_host._tower.rotation = Vector3(0.0, lerp_angle(yaw0, yaw1, frac), 0.0)
+
+
+func _apply_finish_stack_repack(k: float) -> void:
+	if _repack_from_y.size() != _host._stack.size():
+		return
+	for i in _host._stack.size():
+		var layer: Node3D = _host._stack[i]
+		if layer == null or not is_instance_valid(layer):
+			continue
+		layer.position.x = 0.0
+		layer.position.z = 0.0
+		layer.position.y = lerpf(_repack_from_y[i], float(i) * STACK_STEP_Y, k)
+	if k >= 0.995:
+		_repack_from_y.clear()
 
 
 func _finish_climb_tower_finalize(climbs: int, points: Array[Vector3]) -> void:
 	## 补齐末尾可能因浮点没触发的落阶
 	if _host._tower != null and is_instance_valid(_host._tower) and points.size() > climbs:
 		_host._tower.global_position = points[climbs]
+	_apply_finish_stack_repack(1.0)
 	while climb_left_upto + 1 < climbs:
 		var si := climb_left_upto + 1
 		climb_left_upto = si
@@ -526,7 +559,7 @@ func _finish_climb_actor_along(t: float, actor: Node3D, points: Array[Vector3], 
 	if capped >= float(climbs):
 		seg = climbs - 1
 		frac = 1.0
-	var pos: Vector3 = points[seg].lerp(points[seg + 1], frac)
+	var pos: Vector3 = points[seg].lerp(points[seg + 1], _smooth01(frac))
 	pos.y += sin(PI * frac) * FINISH_CLIMB_ARC
 	actor.global_position = pos
 	focus_step = seg
@@ -569,7 +602,13 @@ func _leave_one_on_finish_step(step_i: int, step_yaw: float) -> void:
 	_place_actor_on_finish_land(layer, land, floor_y)
 	_host._stack_sys.park_stack_rider(layer)
 	_register_finish_dancer(layer, step_yaw, floor_y, step_i)
-	_host._repack_stack_heights()
+	_repack_from_y.clear()
+	for i in _host._stack.size():
+		var remain: Node3D = _host._stack[i]
+		if remain != null and is_instance_valid(remain):
+			_repack_from_y.append(remain.position.y)
+		else:
+			_repack_from_y.append(float(i) * STACK_STEP_Y)
 
 
 func _finish_step_dancer_count(step_i: int) -> int:
@@ -750,7 +789,7 @@ func _prepare_finish_actor(actor: Node3D, _land: Vector3, step_yaw: float, step_
 	_host._play_capy_clip(actor, ["jump"], false)
 
 
-func _try_eat_finish_melon(step: Dictionary, finish_lane: int, actor: Node3D) -> void:
+func _try_eat_finish_melon(step: Dictionary, finish_lane: int, _actor: Node3D) -> void:
 	if bool(step.get("eaten", false)):
 		return
 	var melon_lane := int(step.get("melon_lane", -1))
@@ -766,16 +805,12 @@ func _try_eat_finish_melon(step: Dictionary, finish_lane: int, actor: Node3D) ->
 	_host._play_sfx_fruit()
 	var eat_tw := _host.create_tween()
 	eat_tw.tween_property(melon, "scale", Vector3.ZERO, 0.22).set_trans(Tween.TRANS_BACK)
-	if actor != null and is_instance_valid(actor):
-		var base := actor.global_position
-		eat_tw.parallel().tween_property(actor, "global_position", base + Vector3(0.0, 0.22, 0.0), 0.12)
-		eat_tw.chain().tween_property(actor, "global_position", base, 0.14)
 	eat_tw.tween_callback(func() -> void:
 		if is_instance_valid(melon):
 			melon.visible = false
 	)
 	if _host._hud_label:
-		_host._hud_label.text = "西瓜 x%d · 金币 %d" % [_host._watermelon_count, _host._coin_score]
+		_host._hud_label.text = "Watermelon x%d · Coins %d" % [_host._watermelon_count, _host._coin_score]
 
 
 func _update_finish_camera(delta: float) -> void:
@@ -789,13 +824,13 @@ func _update_finish_camera(delta: float) -> void:
 	# 剩余叠塔高度：爬得越高 / 塔越高，镜头越往后拉
 	var tower_h := float(_host._stack.size()) * STACK_STEP_Y
 	var climb_t := float(focus_i) / maxf(float(steps.size() - 1), 1.0)
-	var back := 11.5 + tower_h * 1.25 + climb_t * 5.5
-	var height := 5.2 + tower_h * 0.65 + climb_t * 3.2
+	var back := 8.2 + tower_h * 0.85 + climb_t * 3.4
+	var height := 3.8 + tower_h * 0.48 + climb_t * 2.1
 	var desired := land - tangent * back - right * 1.8 + Vector3(0.0, height, 0.0)
 	var look := land + tangent * 1.2 + Vector3(0.0, 0.9 + tower_h * 0.42, 0.0)
 	var k := 1.0 - exp(-5.5 * delta) # 跟阶更快，减少镜头追赶造成的顿挫
 	_host._cam.global_position = _host._cam.global_position.lerp(desired, k)
-	_host._cam.look_at(look, Vector3.UP)
+	_host._cam.look_at_from_position(_host._cam.global_position, look, Vector3.UP)
 	var want_fov := lerpf(44.0, 36.0, climb_t)
 	_host._cam.fov = lerpf(_host._cam.fov, want_fov, k)
 

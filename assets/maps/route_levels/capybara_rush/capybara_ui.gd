@@ -28,6 +28,7 @@ const COL_SKY := Color(0.48, 0.74, 0.96)
 const COL_GOLD := Color(1.0, 0.78, 0.30)
 const COL_MINT := Color(0.42, 0.84, 0.70)
 
+const RUSH_SCENE := "res://assets/maps/route_levels/capybara_rush/capybara_rush.tscn"
 const UI_DIR := "res://assets/maps/route_levels/capybara_rush/ui/"
 const ICON_COIN := UI_DIR + "icon_coin.png"
 const ICON_STACK := UI_DIR + "icon_stack.png"
@@ -53,6 +54,7 @@ var pause_ui: CanvasLayer
 var _cdn_loading_ui: CanvasLayer
 var hud_layer: CanvasLayer
 var select_spin_pivots: Array[Node3D] = []
+var _pending_select_previews: Array = []
 var _host: Node
 var _paused := false
 var _steer_left := false
@@ -98,32 +100,61 @@ func steer_dir() -> float:
 
 func dismiss_character_select() -> void:
 	select_spin_pivots.clear()
-	if select_ui:
-		select_ui.queue_free()
-		select_ui = null
+	_pending_select_previews.clear()
+	select_ui = _free_overlay(select_ui, "CapybaraCharacterSelect")
 
 
 func dismiss_mode_select() -> void:
-	if mode_ui:
-		mode_ui.queue_free()
-		mode_ui = null
+	mode_ui = _free_overlay(mode_ui, "CapybaraModeSelect")
 
 
 func dismiss_level_select() -> void:
-	if level_ui:
-		level_ui.queue_free()
-		level_ui = null
+	level_ui = _free_overlay(level_ui, "CapybaraLevelSelect")
+
+
+func dismiss_result() -> void:
+	result_ui = _free_overlay(result_ui, "CapybaraResult")
+
+
+func dismiss_all_menus() -> void:
+	dismiss_character_select()
+	dismiss_mode_select()
+	dismiss_level_select()
+	dismiss_result()
+	dismiss_pause()
+	hide_cdn_loading()
 
 
 func dismiss_pause() -> void:
 	_paused = false
 	_steer_left = false
 	_steer_right = false
-	if pause_ui:
-		pause_ui.queue_free()
-		pause_ui = null
+	pause_ui = _free_overlay(pause_ui, "CapybaraPause")
 	if _pause_btn:
 		_pause_btn.visible = true
+
+
+func _free_overlay(layer: CanvasLayer, node_name: String) -> CanvasLayer:
+	if layer != null and is_instance_valid(layer):
+		layer.hide()
+		layer.process_mode = Node.PROCESS_MODE_DISABLED
+		layer.queue_free()
+	if _host != null and is_instance_valid(_host):
+		var leaked := _host.get_node_or_null(node_name)
+		if leaked != null and leaked != layer and is_instance_valid(leaked):
+			leaked.hide()
+			leaked.queue_free()
+	return null
+
+
+func reload_rush_scene() -> void:
+	var tree := _host.get_tree()
+	var path := _host.scene_file_path
+	if path.is_empty():
+		path = RUSH_SCENE
+	var err := tree.change_scene_to_file(path)
+	if err != OK:
+		tree.reload_current_scene()
 
 
 func setup_hud() -> void:
@@ -210,11 +241,19 @@ func update_play_hud() -> void:
 	if _hud_progress_text:
 		_hud_progress_text.text = "%d%%" % pct
 	if _host._waiting_to_start:
-		_host._hud_label.text = "Lv.%d  %s" % [_host._level_id, String(_host._level_cfg.get("name", ""))]
+		_host._hud_label.text = "Lv.%d %s  %s" % [
+			_host._level_id,
+			CapybaraLevelCatalog.difficulty_stars(_host._level_cfg),
+			String(_host._level_cfg.get("name", "")),
+		]
 	elif _host._finished:
 		pass
 	else:
-		_host._hud_label.text = "Lv.%d  %s" % [_host._level_id, String(_host._level_cfg.get("name", ""))]
+		_host._hud_label.text = "Lv.%d %s  %s" % [
+			_host._level_id,
+			CapybaraLevelCatalog.difficulty_stars(_host._level_cfg),
+			String(_host._level_cfg.get("name", "")),
+		]
 
 
 func toggle_pause() -> void:
@@ -251,14 +290,15 @@ func request_character_select() -> void:
 	CapybaraUi.pending_character_id = ""
 	CapybaraUi.pending_custom_level_id = ""
 	CapybaraUi.pending_open_level_select = false
-	_host.get_tree().reload_current_scene()
+	reload_rush_scene()
 
 
 func request_level_select() -> void:
 	CapybaraUi.pending_level_id = 0
 	CapybaraUi.pending_character_id = _host._character_id
+	CapybaraUi.pending_custom_level_id = ""
 	CapybaraUi.pending_open_level_select = true
-	_host.get_tree().reload_current_scene()
+	reload_rush_scene()
 
 
 func _setup_hud() -> void:
@@ -310,7 +350,7 @@ func _setup_hud() -> void:
 	prog_panel.add_child(prog_inner)
 
 	_host._hud_label = Label.new()
-	_host._hud_label.text = "卡皮冲冲冲"
+	_host._hud_label.text = "Capybara Rush"
 	_host._hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_host._hud_label.add_theme_font_size_override("font_size", 14)
 	_host._hud_label.add_theme_color_override("font_color", COL_MUTED)
@@ -450,21 +490,23 @@ func _show_start_overlay() -> void:
 	v.add_child(play_icon)
 
 	var title := Label.new()
-	title.text = "点屏幕出发"
+	title.text = "Tap to start"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", COL_INK)
 	v.add_child(title)
 
 	var sub := Label.new()
-	sub.text = "左右换道 · 跳跃躲障 · 叠得越高越好"
+	sub.text = "Swipe lanes · Tap jump · Stack higher"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 15)
 	sub.add_theme_color_override("font_color", COL_MUTED)
 	v.add_child(sub)
 
 	card.pivot_offset = Vector2(210, 46)
-	var tw := _host.create_tween()
+	if not is_instance_valid(card):
+		return
+	var tw := card.create_tween()
 	tw.set_loops()
 	tw.set_trans(Tween.TRANS_SINE)
 	tw.tween_property(card, "scale", Vector2(1.04, 1.04), 0.7)
@@ -481,6 +523,7 @@ func _show_pause_menu() -> void:
 	if pause_ui != null:
 		pause_ui.queue_free()
 	pause_ui = CanvasLayer.new()
+	pause_ui.name = "CapybaraPause"
 	pause_ui.layer = 40
 	_host.add_child(pause_ui)
 
@@ -501,22 +544,23 @@ func _show_pause_menu() -> void:
 	card.get_child(0).add_child(v)
 
 	var title := Label.new()
-	title.text = "暂停一下"
+	title.text = "Paused"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", COL_INK)
 	v.add_child(title)
 
-	v.add_child(_make_text_button("继续跑", COL_PINK, func() -> void: resume_game()))
-	v.add_child(_make_text_button("重开本关", COL_SKY, func() -> void: reload_same_level()))
-	v.add_child(_make_text_button("换关卡", Color(0.95, 0.72, 0.45), func() -> void: request_level_select()))
-	v.add_child(_make_text_button("换角色", Color(0.78, 0.62, 0.92), func() -> void: request_character_select()))
+	v.add_child(_make_text_button("Resume", COL_PINK, func() -> void: resume_game()))
+	v.add_child(_make_text_button("Restart", COL_SKY, func() -> void: reload_same_level()))
+	v.add_child(_make_text_button("Levels", Color(0.95, 0.72, 0.45), func() -> void: request_level_select()))
+	v.add_child(_make_text_button("Characters", Color(0.78, 0.62, 0.92), func() -> void: request_character_select()))
 	_pop_in(card, Vector2(280, 250))
 
 
-func show_cdn_loading(text: String = "正在下载关卡资源…") -> void:
+func show_cdn_loading(text: String = "Downloading level assets…") -> void:
 	hide_cdn_loading()
 	_cdn_loading_ui = CanvasLayer.new()
+	_cdn_loading_ui.name = "CapybaraCdnLoading"
 	_cdn_loading_ui.layer = 120
 	_host.add_child(_cdn_loading_ui)
 	var dim := ColorRect.new()
@@ -551,13 +595,36 @@ func update_cdn_loading(done: int, total: int, _path: String) -> void:
 	if label == null:
 		return
 	if total <= 0:
-		label.text = "正在下载关卡资源…"
+		label.text = "Downloading level assets…"
+	elif done >= total:
+		label.text = "Loading level…"
 	else:
-		label.text = "正在下载关卡资源… %d / %d" % [done, total]
+		label.text = "Downloading level assets… %d / %d" % [done, total]
 
 
 func on_cdn_preload_progress(done: int, total: int, path: String) -> void:
 	update_cdn_loading(done, total, path)
+
+
+func on_cdn_model_cached(res_path: String) -> void:
+	if select_ui == null:
+		return
+	var still: Array = []
+	for item in _pending_select_previews:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var path := String(item.get("path", ""))
+		if path != res_path:
+			still.append(item)
+			continue
+		var holder: Node3D = item.get("holder") as Node3D
+		var cam: Camera3D = item.get("cam") as Camera3D
+		var pivot: Node3D = item.get("pivot") as Node3D
+		if holder == null or not is_instance_valid(holder):
+			continue
+		_fill_select_preview_model(holder, path)
+		_host.call_deferred("_ui_frame_select_preview", cam, holder, pivot)
+	_pending_select_previews = still
 
 
 func hide_cdn_loading() -> void:
@@ -571,6 +638,7 @@ func _show_fail_screen(reason: String) -> void:
 		return
 	hide_play_chrome()
 	result_ui = CanvasLayer.new()
+	result_ui.name = "CapybaraResult"
 	result_ui.layer = 30
 	_host.add_child(result_ui)
 	_add_menu_wash(result_ui, Color(0.42, 0.28, 0.40, 0.58), Color(0.92, 0.55, 0.62, 0.22))
@@ -582,7 +650,7 @@ func _show_fail_screen(reason: String) -> void:
 	card.get_child(0).add_child(v)
 
 	var badge := Label.new()
-	badge.text = "差一点！"
+	badge.text = "So close!"
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.add_theme_font_size_override("font_size", 18)
 	badge.add_theme_color_override("font_color", COL_PINK_DEEP)
@@ -596,29 +664,31 @@ func _show_fail_screen(reason: String) -> void:
 	title.add_theme_color_override("font_color", COL_INK)
 	v.add_child(title)
 
-	v.add_child(_result_stat_chip("进度", "%d%%" % int((_host._progress / maxf(_host._track_len(), 1.0)) * 100.0), Color(1.0, 0.93, 0.88)))
-	v.add_child(_result_stat_chip("碰撞", "%d 次" % _host._collision_count, Color(1.0, 0.93, 0.88)))
+	v.add_child(_result_stat_chip("Progress", "%d%%" % int((_host._progress / maxf(_host._track_len(), 1.0)) * 100.0), Color(1.0, 0.93, 0.88)))
+	v.add_child(_result_stat_chip("Hits", "%d" % _host._collision_count, Color(1.0, 0.93, 0.88)))
 
 	var tip := Label.new()
-	tip.text = "只剩一只时撞障会失败"
+	tip.text = "Crash with 1 left = game over"
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tip.add_theme_font_size_override("font_size", 15)
 	tip.add_theme_color_override("font_color", COL_MUTED)
 	v.add_child(tip)
 
-	v.add_child(_make_text_button("再试一次", COL_PINK, func() -> void: reload_same_level()))
+	v.add_child(_make_text_button("Try again", COL_PINK, func() -> void: reload_same_level()))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
 	v.add_child(row)
-	row.add_child(_make_text_button("换关卡", COL_SKY, func() -> void: request_level_select(), Vector2(140, 48)))
-	row.add_child(_make_text_button("换角色", Color(0.78, 0.62, 0.92), func() -> void: request_character_select(), Vector2(140, 48)))
+	row.add_child(_make_text_button("Levels", COL_SKY, func() -> void: request_level_select(), Vector2(140, 48)))
+	row.add_child(_make_text_button("Characters", Color(0.78, 0.62, 0.92), func() -> void: request_character_select(), Vector2(140, 48)))
 	_pop_in(card, Vector2(250, 220))
 
 
 func _setup_character_select() -> void:
+	dismiss_character_select()
 	select_spin_pivots.clear()
 	select_ui = CanvasLayer.new()
+	select_ui.name = "CapybaraCharacterSelect"
 	select_ui.layer = 20
 	_host.add_child(select_ui)
 	_set_hud_layer_visible(false)
@@ -634,7 +704,7 @@ func _setup_character_select() -> void:
 	select_ui.add_child(header)
 
 	var game_title := Label.new()
-	game_title.text = "卡皮冲冲冲"
+	game_title.text = "Capybara Rush"
 	game_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	game_title.add_theme_font_size_override("font_size", 42)
 	game_title.add_theme_color_override("font_color", COL_INK)
@@ -643,7 +713,7 @@ func _setup_character_select() -> void:
 	header.add_child(game_title)
 
 	var sub := Label.new()
-	sub.text = "选一只一起去叠高高"
+	sub.text = "Pick a buddy and stack up"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 18)
 	sub.add_theme_color_override("font_color", COL_MUTED)
@@ -672,18 +742,18 @@ func _setup_character_select() -> void:
 
 	var capy_preview: String = CapybaraRushPaths.CAPYBARA_BASE_RIGGED
 	var cards: Array = [
-		["卡皮巴拉", CHAR_CAPYBARA, capy_preview, Color(1.0, 0.93, 0.88)],
+		["Capybara", CHAR_CAPYBARA, capy_preview, Color(1.0, 0.93, 0.88)],
 	]
 	var extras: Array = [
-		["小怪兽", CHAR_LITTLE_MONSTER, CapybaraRushPaths.LITTLE_MONSTER_RIGGED, CapybaraRushPaths.LITTLE_MONSTER, Color(0.88, 0.98, 0.98)],
-		["小兔子", CHAR_LITTLE_RABBIT, CapybaraRushPaths.LITTLE_RABBIT_RIGGED, CapybaraRushPaths.LITTLE_RABBIT, Color(1.0, 0.94, 0.96)],
-		["柴犬", CHAR_SHIBA, CapybaraRushPaths.SHIBA_RIGGED, CapybaraRushPaths.SHIBA, Color(0.98, 0.92, 0.84)],
-		["小鸟", CHAR_BIRD, CapybaraRushPaths.BIRD_RIGGED, CapybaraRushPaths.BIRD, Color(0.90, 0.96, 1.0)],
-		["小老鼠", CHAR_MOUSE, CapybaraRushPaths.MOUSE_RIGGED, CapybaraRushPaths.MOUSE, Color(0.94, 0.94, 0.90)],
-		["树懒", CHAR_SLOTH, CapybaraRushPaths.SLOTH_RIGGED, CapybaraRushPaths.SLOTH, Color(0.93, 0.90, 0.84)],
-		["小行星", CHAR_TINY_PLANET, CapybaraRushPaths.TINY_PLANET_RIGGED, CapybaraRushPaths.TINY_PLANET, Color(0.90, 0.94, 0.98)],
-		["小熊", CHAR_BEAR, CapybaraRushPaths.BEAR_RIGGED, CapybaraRushPaths.BEAR, Color(0.96, 0.90, 0.84)],
-		["牛来", CHAR_COW, CapybaraRushPaths.COW_RIGGED, CapybaraRushPaths.COW, Color(0.92, 0.88, 0.82)],
+		["Little Monster", CHAR_LITTLE_MONSTER, CapybaraRushPaths.LITTLE_MONSTER_RIGGED, CapybaraRushPaths.LITTLE_MONSTER, Color(0.88, 0.98, 0.98)],
+		["Bunny", CHAR_LITTLE_RABBIT, CapybaraRushPaths.LITTLE_RABBIT_RIGGED, CapybaraRushPaths.LITTLE_RABBIT, Color(1.0, 0.94, 0.96)],
+		["Shiba", CHAR_SHIBA, CapybaraRushPaths.SHIBA_RIGGED, CapybaraRushPaths.SHIBA, Color(0.98, 0.92, 0.84)],
+		["Birdie", CHAR_BIRD, CapybaraRushPaths.BIRD_RIGGED, CapybaraRushPaths.BIRD, Color(0.90, 0.96, 1.0)],
+		["Mouse", CHAR_MOUSE, CapybaraRushPaths.MOUSE_RIGGED, CapybaraRushPaths.MOUSE, Color(0.94, 0.94, 0.90)],
+		["Sloth", CHAR_SLOTH, CapybaraRushPaths.SLOTH_RIGGED, CapybaraRushPaths.SLOTH, Color(0.93, 0.90, 0.84)],
+		["Tiny Planet", CHAR_TINY_PLANET, CapybaraRushPaths.TINY_PLANET_RIGGED, CapybaraRushPaths.TINY_PLANET, Color(0.90, 0.94, 0.98)],
+		["Bear", CHAR_BEAR, CapybaraRushPaths.BEAR_RIGGED, CapybaraRushPaths.BEAR, Color(0.96, 0.90, 0.84)],
+		["Cow", CHAR_COW, CapybaraRushPaths.COW_RIGGED, CapybaraRushPaths.COW, Color(0.92, 0.88, 0.82)],
 	]
 	for e in extras:
 		var preview: String = _host._pick_rigged_or_base(String(e[2]), String(e[3]))
@@ -702,7 +772,8 @@ func _make_character_card(label_text: String, char_id: String, model_path: Strin
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _cartoon_panel_style(COL_CREAM, Color(1.0, 0.72, 0.82), 24.0, 4.0))
 	panel.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		if _is_choose_tap(ev):
+			_host.get_viewport().set_input_as_handled()
 			_host._on_character_chosen(char_id)
 	)
 
@@ -732,7 +803,7 @@ func _make_character_card(label_text: String, char_id: String, model_path: Strin
 	name_l.add_theme_color_override("font_color", COL_INK)
 	v.add_child(name_l)
 
-	var btn := _make_text_button("选我", COL_PINK, func() -> void: _host._on_character_chosen(char_id), Vector2(0, 44))
+	var btn := _make_text_button("Pick me", COL_PINK, func() -> void: _host._on_character_chosen(char_id), Vector2(0, 44))
 	btn.add_theme_font_size_override("font_size", 20)
 	v.add_child(btn)
 	return panel
@@ -788,6 +859,36 @@ func _make_model_preview(model_path: String) -> Control:
 	root.add_child(pivot)
 	var holder := Node3D.new()
 	pivot.add_child(holder)
+	var had_model := _fill_select_preview_model(holder, model_path)
+	if not had_model:
+		_pending_select_previews.append({
+			"holder": holder,
+			"path": model_path,
+			"cam": null,
+			"pivot": pivot,
+		})
+
+	var cam := Camera3D.new()
+	cam.fov = 28.0
+	root.add_child(cam)
+	cam.current = true
+	cam.position = Vector3(0.0, 0.4, 2.4)
+	cam.look_at_from_position(cam.position, Vector3(0.0, 0.3, 0.0), Vector3.UP)
+	if not had_model and not _pending_select_previews.is_empty():
+		_pending_select_previews[_pending_select_previews.size() - 1]["cam"] = cam
+
+	select_spin_pivots.append(pivot)
+	_host.call_deferred("_ui_frame_select_preview", cam, holder, pivot)
+	_host.call_deferred("_ui_deferred_reframe_select_preview", cam, holder, pivot)
+	return host
+
+
+func _fill_select_preview_model(holder: Node3D, model_path: String) -> bool:
+	if holder == null or not is_instance_valid(holder):
+		return false
+	for c in holder.get_children():
+		holder.remove_child(c)
+		c.free()
 	var model: Node3D = _host._instance_fitted(model_path, 0.85, 0.0)
 	if model:
 		_host._mute_animation_players(model)
@@ -795,26 +896,15 @@ func _make_model_preview(model_path: String) -> Control:
 		if skel != null:
 			skel.reset_bone_poses()
 		holder.add_child(model)
-	else:
-		var stub := MeshInstance3D.new()
-		var sph := SphereMesh.new()
-		sph.radius = 0.45
-		sph.height = 0.9
-		stub.mesh = sph
-		stub.position.y = 0.45
-		holder.add_child(stub)
-
-	var cam := Camera3D.new()
-	cam.fov = 28.0
-	root.add_child(cam)
-	cam.current = true
-	cam.position = Vector3(0.0, 0.4, 2.4)
-	cam.look_at(Vector3(0.0, 0.3, 0.0), Vector3.UP)
-
-	select_spin_pivots.append(pivot)
-	_host.call_deferred("_ui_frame_select_preview", cam, holder, pivot)
-	_host.call_deferred("_ui_deferred_reframe_select_preview", cam, holder, pivot)
-	return host
+		return true
+	var stub := MeshInstance3D.new()
+	var sph := SphereMesh.new()
+	sph.radius = 0.45
+	sph.height = 0.9
+	stub.mesh = sph
+	stub.position.y = 0.45
+	holder.add_child(stub)
+	return false
 
 
 func _deferred_reframe_select_preview(cam: Camera3D, holder: Node3D, pivot: Node3D) -> void:
@@ -847,7 +937,7 @@ func _frame_select_preview(cam: Camera3D, holder: Node3D, pivot: Node3D) -> void
 	var half_fov := deg_to_rad(cam.fov * 0.5)
 	var dist := radius / maxf(tan(half_fov), 0.01) * 2.05
 	cam.position = Vector3(radius * 0.12, center.y + aabb.size.y * 0.02, dist)
-	cam.look_at(Vector3(0.0, center.y, 0.0), Vector3.UP)
+	cam.look_at_from_position(cam.position, Vector3(0.0, center.y, 0.0), Vector3.UP)
 
 
 func _spin_select_previews(delta: float) -> void:
@@ -869,71 +959,82 @@ func _show_result_screen() -> void:
 	var unit: String = _host._character_display_name()
 
 	result_ui = CanvasLayer.new()
+	result_ui.name = "CapybaraResult"
 	result_ui.layer = 30
 	_host.add_child(result_ui)
 	_add_menu_wash(result_ui, Color(0.58, 0.70, 0.92, 0.55), Color(1.0, 0.78, 0.88, 0.22))
 
-	var card := _make_dialog_card(Vector2(270, 340), Color(1.0, 0.97, 0.98), Color(1.0, 0.72, 0.82))
+	var half := _finish_card_half()
+	var card := _make_dialog_card(half, Color(1.0, 0.97, 0.98), Color(1.0, 0.72, 0.82), 36, 5, 6.0)
 	result_ui.add_child(card)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	card.get_child(0).add_child(v)
+	v.add_theme_constant_override("separation", 14)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	card.get_child(0).add_child(scroll)
+	scroll.add_child(v)
 
 	var badge := Label.new()
-	badge.text = "通关啦"
+	badge.text = "Cleared!"
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	badge.add_theme_font_size_override("font_size", 18)
+	badge.add_theme_font_size_override("font_size", 24)
 	badge.add_theme_color_override("font_color", COL_PINK_DEEP)
 	v.add_child(badge)
 
 	var title := Label.new()
-	title.text = "到达终点！"
+	title.text = "Finish!"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 38)
+	title.add_theme_font_size_override("font_size", 56)
 	title.add_theme_color_override("font_color", COL_INK)
+	title.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.9))
+	title.add_theme_constant_override("outline_size", 10)
 	v.add_child(title)
 
 	var sub := Label.new()
-	sub.text = "本次 · %s" % unit
+	sub.text = "Run · %s" % unit
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_font_size_override("font_size", 18)
+	sub.add_theme_font_size_override("font_size", 22)
 	sub.add_theme_color_override("font_color", COL_MUTED)
 	v.add_child(sub)
 
 	var hero_row := HBoxContainer.new()
 	hero_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	hero_row.add_theme_constant_override("separation", 8)
+	hero_row.add_theme_constant_override("separation", 12)
 	v.add_child(hero_row)
 	var coin_icon := TextureRect.new()
 	coin_icon.texture = _tex(ICON_COIN)
-	coin_icon.custom_minimum_size = Vector2(42, 42)
+	coin_icon.custom_minimum_size = Vector2(56, 56)
 	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hero_row.add_child(coin_icon)
 	var hero := Label.new()
 	hero.text = str(_host._coin_score)
-	hero.add_theme_font_size_override("font_size", 56)
+	hero.add_theme_font_size_override("font_size", 84)
 	hero.add_theme_color_override("font_color", COL_PINK_DEEP)
+	hero.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.85))
+	hero.add_theme_constant_override("outline_size", 8)
 	hero_row.add_child(hero)
 
 	var hero_cap := Label.new()
-	hero_cap.text = "金币 · %d 只%s抵达" % [arrived, unit]
+	hero_cap.text = "Coins · %d %s arrived" % [arrived, unit]
 	hero_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hero_cap.add_theme_font_size_override("font_size", 18)
+	hero_cap.add_theme_font_size_override("font_size", 22)
 	hero_cap.add_theme_color_override("font_color", COL_INK)
 	v.add_child(hero_cap)
 
-	v.add_child(_result_stat_chip("碰撞", "%d 次" % _host._collision_count, Color(1.0, 0.93, 0.88)))
-	v.add_child(_result_stat_chip("掉落", "%d 只" % _host._drop_count, Color(0.90, 0.96, 0.92)))
-	v.add_child(_result_stat_chip("拾取", "%d 只" % _host._picked_count, Color(0.92, 0.93, 1.0)))
+	v.add_child(_result_stat_chip("Hits", "%d" % _host._collision_count, Color(1.0, 0.93, 0.88)))
+	v.add_child(_result_stat_chip("Dropped", "%d" % _host._drop_count, Color(0.90, 0.96, 0.92)))
+	v.add_child(_result_stat_chip("Picked up", "%d" % _host._picked_count, Color(0.92, 0.93, 1.0)))
 	if _host._is_frost_theme() or _host._fruit_icecream > 0 or _host._fruit_crystal > 0:
-		v.add_child(_result_stat_chip("雪糕", "%d · +%d" % [_host._fruit_icecream, _host._fruit_icecream * 10], Color(0.92, 0.97, 1.0)))
-		v.add_child(_result_stat_chip("水晶", "%d · +%d" % [_host._fruit_crystal, _host._fruit_crystal * 22], Color(0.85, 0.95, 1.0)))
+		v.add_child(_result_stat_chip("Ice cream", "%d · +%d" % [_host._fruit_icecream, _host._fruit_icecream * 10], Color(0.92, 0.97, 1.0)))
+		v.add_child(_result_stat_chip("Crystal", "%d · +%d" % [_host._fruit_crystal, _host._fruit_crystal * 22], Color(0.85, 0.95, 1.0)))
 	else:
-		v.add_child(_result_stat_chip("水果", "橙%d 苹%d 蕉%d" % [_host._fruit_orange, _host._fruit_apple, _host._fruit_banana], Color(1.0, 0.96, 0.82)))
+		v.add_child(_result_stat_chip("Fruit", "Orange %d  Apple %d  Banana %d" % [_host._fruit_orange, _host._fruit_apple, _host._fruit_banana], Color(1.0, 0.96, 0.82)))
 		if _host._fruit_pineapple > 0 or _host._fruit_durian > 0:
-			v.add_child(_result_stat_chip("珍果", "菠萝%d 榴莲%d" % [_host._fruit_pineapple, _host._fruit_durian], Color(1.0, 0.94, 0.75)))
-	v.add_child(_result_stat_chip("西瓜", "%d · +%d" % [_host._watermelon_count, _host._watermelon_count * 20], Color(1.0, 0.90, 0.92)))
+			v.add_child(_result_stat_chip("Rare fruit", "Pineapple %d  Durian %d" % [_host._fruit_pineapple, _host._fruit_durian], Color(1.0, 0.94, 0.75)))
+	v.add_child(_result_stat_chip("Watermelon", "%d · +%d" % [_host._watermelon_count, _host._watermelon_count * 20], Color(1.0, 0.90, 0.92)))
 
 	CapybaraLevelCatalog.mark_cleared(_host._level_id)
 
@@ -941,17 +1042,23 @@ func _show_result_screen() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 12)
 	v.add_child(row)
-	row.add_child(_make_text_button("再来一局", COL_PINK, func() -> void: reload_same_level(), Vector2(150, 54)))
+	var again := _make_text_button("Play again", COL_PINK, func() -> void: reload_same_level(), Vector2(220, 68))
+	again.add_theme_font_size_override("font_size", 26)
+	row.add_child(again)
 	if _host._level_id < CapybaraLevelCatalog.LEVEL_COUNT:
-		row.add_child(_make_text_button("下一关", COL_SKY, func() -> void: reload_next_level(), Vector2(150, 54)))
-	v.add_child(_make_text_button("选关卡", Color(0.95, 0.72, 0.45), func() -> void: request_level_select(), Vector2(0, 48)))
-	_pop_in(card, Vector2(270, 340))
+		var nxt := _make_text_button("Next level", COL_SKY, func() -> void: reload_next_level(), Vector2(220, 68))
+		nxt.add_theme_font_size_override("font_size", 26)
+		row.add_child(nxt)
+	var levels := _make_text_button("Select level", Color(0.95, 0.72, 0.45), func() -> void: request_level_select(), Vector2(0, 64))
+	levels.add_theme_font_size_override("font_size", 26)
+	v.add_child(levels)
+	_pop_in(card, half)
 
 
 func _setup_level_select() -> void:
-	if level_ui != null:
-		level_ui.queue_free()
+	dismiss_level_select()
 	level_ui = CanvasLayer.new()
+	level_ui.name = "CapybaraLevelSelect"
 	level_ui.layer = 25
 	_host.add_child(level_ui)
 	_set_hud_layer_visible(false)
@@ -961,7 +1068,7 @@ func _setup_level_select() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	level_ui.add_child(root)
 
-	var back := _make_text_button("← 角色", Color(0.78, 0.62, 0.92), func() -> void:
+	var back := _make_text_button("← Characters", Color(0.78, 0.62, 0.92), func() -> void:
 		dismiss_level_select()
 		setup_character_select()
 	, Vector2(120, 48))
@@ -973,7 +1080,7 @@ func _setup_level_select() -> void:
 	root.add_child(back)
 
 	var title := Label.new()
-	title.text = "选择关卡"
+	title.text = "Select Level"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	title.offset_left = -200
@@ -1006,7 +1113,7 @@ func _setup_level_select() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_child(scroll)
 	var grid := GridContainer.new()
-	grid.columns = 4 if _vp_size().x >= 780 else 3
+	grid.columns = 5 if _vp_size().x >= 780 else 2
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1026,7 +1133,7 @@ func _make_level_button(level_id: int, unlocked: int) -> Control:
 	var cleared := CapybaraLevelCatalog.is_cleared(level_id)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(96, 108)
+	panel.custom_minimum_size = Vector2(96, 124)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var border := Color(0.75, 0.78, 0.86) if locked else (COL_GOLD if cleared else Color(1.0, 0.72, 0.82))
 	panel.add_theme_stylebox_override("panel", _cartoon_panel_style(tint if not locked else Color(0.90, 0.90, 0.93), border, 20.0, 3.0, 6))
@@ -1062,16 +1169,24 @@ func _make_level_button(level_id: int, unlocked: int) -> Control:
 	v.add_child(num)
 
 	var name_l := Label.new()
-	name_l.text = "锁定" if locked else String(cfg.get("name", ""))
+	name_l.text = "Locked" if locked else String(cfg.get("name", ""))
 	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	name_l.add_theme_font_size_override("font_size", 14)
 	name_l.add_theme_color_override("font_color", COL_MUTED)
 	v.add_child(name_l)
+	if not locked:
+		var stars := Label.new()
+		stars.text = CapybaraLevelCatalog.difficulty_stars(cfg)
+		stars.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stars.add_theme_font_size_override("font_size", 13)
+		stars.add_theme_color_override("font_color", COL_GOLD)
+		v.add_child(stars)
 
 	if not locked:
 		panel.gui_input.connect(func(ev: InputEvent) -> void:
-			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			if _is_choose_tap(ev):
+				_host.get_viewport().set_input_as_handled()
 				_host._on_level_chosen(level_id)
 		)
 		panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -1098,18 +1213,19 @@ func _cartoon_panel_style(bg: Color, border: Color, radius: float, border_w: flo
 
 func _result_stat_chip(stat_name: String, value: String, bg: Color) -> Control:
 	var row := PanelContainer.new()
-	row.add_theme_stylebox_override("panel", _cartoon_panel_style(bg, Color(1, 1, 1, 0.65), 16.0, 2.0, 4))
+	row.custom_minimum_size = Vector2(0, 56)
+	row.add_theme_stylebox_override("panel", _cartoon_panel_style(bg, Color(1, 1, 1, 0.65), 18.0, 2.0, 2))
 	var inner := HBoxContainer.new()
 	row.add_child(inner)
 	var left := Label.new()
 	left.text = stat_name
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_font_size_override("font_size", 18)
+	left.add_theme_font_size_override("font_size", 24)
 	left.add_theme_color_override("font_color", Color(0.42, 0.32, 0.45))
 	var right := Label.new()
 	right.text = value
 	right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	right.add_theme_font_size_override("font_size", 20)
+	right.add_theme_font_size_override("font_size", 26)
 	right.add_theme_color_override("font_color", COL_PINK_DEEP)
 	inner.add_child(left)
 	inner.add_child(right)
@@ -1119,13 +1235,23 @@ func _result_stat_chip(stat_name: String, value: String, bg: Color) -> Control:
 func _reload_same_level() -> void:
 	CapybaraUi.pending_level_id = _host._level_id
 	CapybaraUi.pending_character_id = _host._character_id
-	_host.get_tree().reload_current_scene()
+	CapybaraUi.pending_open_level_select = false
+	CapybaraUi.pending_custom_level_id = ""
+	reload_rush_scene()
 
 
 func _reload_next_level() -> void:
 	CapybaraUi.pending_level_id = mini(_host._level_id + 1, CapybaraLevelCatalog.LEVEL_COUNT)
 	CapybaraUi.pending_character_id = _host._character_id
-	_host.get_tree().reload_current_scene()
+	CapybaraUi.pending_open_level_select = false
+	CapybaraUi.pending_custom_level_id = ""
+	reload_rush_scene()
+
+
+func _is_choose_tap(ev: InputEvent) -> bool:
+	if ev is InputEventMouseButton:
+		return ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT
+	return false
 
 
 func _make_stat_chip(icon_path: String) -> Dictionary:
@@ -1189,20 +1315,27 @@ func _make_text_button(text: String, fill: Color, on_press: Callable, min_size: 
 	return btn
 
 
-func _make_dialog_card(half: Vector2, bg: Color, border: Color) -> PanelContainer:
+func _finish_card_half() -> Vector2:
+	var vp := _vp_size()
+	var w := clampf(vp.x * 0.86, 760.0, maxf(vp.x - 48.0, 640.0))
+	var h := clampf(vp.y * 0.76, 1180.0, maxf(vp.y - 72.0, 900.0))
+	return Vector2(w * 0.5, h * 0.5)
+
+
+func _make_dialog_card(half: Vector2, bg: Color, border: Color, margin: int = 24, shadow: int = 12, border_w: float = 5.0) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.set_anchors_preset(Control.PRESET_CENTER)
 	card.offset_left = -half.x
 	card.offset_right = half.x
 	card.offset_top = -half.y
 	card.offset_bottom = half.y
-	card.add_theme_stylebox_override("panel", _cartoon_panel_style(bg, border, 28.0, 5.0))
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_right", 24)
-	margin.add_theme_constant_override("margin_top", 22)
-	margin.add_theme_constant_override("margin_bottom", 22)
-	card.add_child(margin)
+	card.add_theme_stylebox_override("panel", _cartoon_panel_style(bg, border, 32.0, border_w, shadow))
+	var box := MarginContainer.new()
+	box.add_theme_constant_override("margin_left", margin)
+	box.add_theme_constant_override("margin_right", margin)
+	box.add_theme_constant_override("margin_top", margin)
+	box.add_theme_constant_override("margin_bottom", margin)
+	card.add_child(box)
 	return card
 
 
@@ -1247,9 +1380,11 @@ func _add_menu_wash(layer: CanvasLayer, dim_col: Color, blob_col: Color) -> void
 
 
 func _pop_in(card: Control, half: Vector2) -> void:
+	if card == null or not is_instance_valid(card):
+		return
 	card.scale = Vector2(0.82, 0.82)
 	card.pivot_offset = half
-	var tw := _host.create_tween()
+	var tw := card.create_tween()
 	tw.set_ease(Tween.EASE_OUT)
 	tw.set_trans(Tween.TRANS_BACK)
 	tw.tween_property(card, "scale", Vector2.ONE, 0.4)

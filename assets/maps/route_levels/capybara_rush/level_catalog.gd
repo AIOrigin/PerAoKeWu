@@ -6,7 +6,7 @@ extends RefCounted
 const LEVELS_DIR := "res://assets/maps/route_levels/capybara_rush/levels/"
 const THEMES_DIR := LEVELS_DIR + "themes/"
 const PROGRESS_PATH := "user://capybara_rush_progress.cfg"
-const LEVEL_COUNT := 18
+const LEVEL_COUNT := 10
 
 
 static func level_path(level_id: int) -> String:
@@ -36,7 +36,7 @@ static func load_level(level_id: int) -> Dictionary:
 	if cfg.is_empty():
 		cfg = {
 			"id": id,
-			"name": "关卡 %d" % id,
+			"name": "Level %d" % id,
 			"theme_id": "lake_clear",
 			"track_length": 288.0,
 			"run_speed": 12.0,
@@ -62,6 +62,14 @@ static func load_theme(theme_id: String) -> Dictionary:
 
 static func load_theme_for_level(level_cfg: Dictionary) -> Dictionary:
 	return load_theme(String(level_cfg.get("theme_id", "lake_clear")))
+
+
+static func difficulty_stars(level_cfg: Dictionary) -> String:
+	var d := clampi(int(level_cfg.get("difficulty", 1)), 1, 5)
+	var s := ""
+	for _i in d:
+		s += "★"
+	return s
 
 
 static func color3(arr: Variant, fallback: Color) -> Color:

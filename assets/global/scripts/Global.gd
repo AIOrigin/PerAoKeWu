@@ -7,7 +7,6 @@ signal sky_limit_ready
 
 const explod_max_speed: float = 100.0 ## m
 const default_gravity: float = 9.8
-const Hl = preload("res://assets/global/scripts/HL.gd")
 const MOBILE_PROGRESS_SAVE_PATH := "user://mobile_progress.json"
 const MOBILE_PROGRESS_VERSION := 6
 const CharacterProgression = preload("res://assets/maps/route_levels/character_progression.gd")
@@ -2192,10 +2191,10 @@ func get_random_resource(folder_path: String, allowed_types: Array = []) -> Reso
 					if allowed_types.is_empty():
 						valid_resources.append(full_path)
 					else:
-						var rfl := ResourceFormatLoader.new()
-						var resource_type := rfl._get_resource_type(full_path) # buggggggg
-						if resource_type in allowed_types:
-							valid_resources.append(full_path)
+						for allowed_type in allowed_types:
+							if ResourceLoader.exists(full_path, str(allowed_type)):
+								valid_resources.append(full_path)
+								break
 			file_name = dir.get_next()
 	else:
 		push_error("Failed to open directory: " + folder_path)

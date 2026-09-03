@@ -17,9 +17,9 @@ const BOOST_MAX_TIME := 12.0
 const SPEED_ORB_MUL := 1.18
 const SPEED_LANE_MUL := 1.48
 const TRAMPOLINE_AIR_SPEED_MUL := 1.45
-const TARGET_CAPY_HEIGHT := 0.92
+const TARGET_CAPY_HEIGHT := 1.24
 const TARGET_PILOT_HEIGHT := 1.55
-const STACK_STEP_Y := 0.88
+const STACK_STEP_Y := 1.18
 const SPACESHIP_FORWARD_YAW := 0.0
 const MODE_RACE := "race"
 const MODE_STACK := "stack"
@@ -28,12 +28,12 @@ const MIN_STACK_TO_DROP := 3
 const HIGH_STACK_THRESHOLD := 8
 const PILOT_FORWARD_YAW := 0.0
 ## 叠高时相机缓拉远/抬高，避免塔顶视角过高
-const CAM_STACK_DIST_BASE := 9.0
-const CAM_STACK_DIST_SCALE := 0.58
-const CAM_STACK_DIST_MAX := 14.8
-const CAM_STACK_Y_BASE := 3.35
-const CAM_STACK_Y_SCALE := 0.26
-const CAM_STACK_Y_MAX := 5.6
+const CAM_STACK_DIST_BASE := 7.4
+const CAM_STACK_DIST_SCALE := 0.48
+const CAM_STACK_DIST_MAX := 12.0
+const CAM_STACK_Y_BASE := 2.85
+const CAM_STACK_Y_SCALE := 0.22
+const CAM_STACK_Y_MAX := 4.8
 const CAM_LOOK_LIFT_BASE := TARGET_CAPY_HEIGHT * 0.26
 const CAM_LOOK_LIFT_SCALE := 0.34
 const CAM_LOOK_LIFT_MAX := 4.8
@@ -180,7 +180,7 @@ func _load_audio_stream(path: String) -> AudioStream:
 		var ogg_res: Resource = load(ogg_path)
 		if ogg_res is AudioStream:
 			return ogg_res as AudioStream
-	push_warning("Audio missing: %s（放到 audio/ 目录即可）" % path)
+	push_warning("Audio missing: %s (put files in audio/)" % path)
 	return null
 
 
@@ -525,7 +525,7 @@ func _setup_camera() -> void:
 	if _host._tower:
 		var base: Vector3 = _host._tower.global_position + Vector3(0.0, TARGET_CAPY_HEIGHT * 0.4, 0.0)
 		var ang := deg_to_rad(15.0)
-		var back := 8.0
+		var back := 7.4
 		# 角色朝 +Z 时，其右侧为 -X
 		_host._cam.global_position = base + Vector3(-sin(ang) * back, 3.2, -cos(ang) * back)
 	_update_camera()
@@ -563,7 +563,7 @@ func _update_camera() -> void:
 		desired = base + Vector3(-sin(ang) * dist, cam_y, -cos(ang) * dist)
 		look = base + Vector3(0.0, look_lift, 8.0)
 	_host._cam.global_position = _host._cam.global_position.lerp(desired, 0.14)
-	_host._cam.look_at(look, Vector3.UP)
+	_host._cam.look_at_from_position(_host._cam.global_position, look, Vector3.UP)
 	if _is_race():
 		_host._cam.fov = lerpf(52.0, 66.0, 1.0 if _host._boosting else 0.0)
 	else:
@@ -580,7 +580,7 @@ func _update_hud() -> void:
 	if _host._hud_label == null or _host._finished:
 		return
 	if _host._speed_buff_left > 0.0 and _host._hud_tip:
-		_host._hud_tip.text = "加速中 %.1fs" % _host._speed_buff_left
+		_host._hud_tip.text = "Boost %.1fs" % _host._speed_buff_left
 	_host._ui_sys.update_play_hud()
 
 

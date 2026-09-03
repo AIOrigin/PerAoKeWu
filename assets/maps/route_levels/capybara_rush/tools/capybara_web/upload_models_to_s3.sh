@@ -22,17 +22,17 @@ MODELS_DIR="$ROOT/assets/maps/route_levels/capybara_rush/models"
 DRY_RUN="${DRY_RUN:-0}"
 
 if [[ ! -d "$MODELS_DIR" ]]; then
-	echo "找不到 models 目录：$MODELS_DIR" >&2
+	echo "models dir not found: $MODELS_DIR" >&2
 	exit 1
 fi
 
 if ! command -v aws >/dev/null 2>&1; then
-	echo "未找到 aws CLI" >&2
+	echo "aws CLI not found" >&2
 	exit 1
 fi
 
 if ! aws sts get-caller-identity --region "$CAPYBARA_S3_REGION" >/dev/null 2>&1; then
-	echo "AWS 凭证无效或已过期。请刷新后再跑（不要把密钥写进仓库）。" >&2
+	echo "Invalid or expired AWS credentials. Refresh and retry (do not commit secrets)." >&2
 	echo "  aws sts get-caller-identity" >&2
 	exit 1
 fi
@@ -74,15 +74,15 @@ PY
 )"
 
 if [[ -z "$LIST" ]]; then
-	echo "没有可上传的 GLB" >&2
+	echo "No GLB files to upload" >&2
 	exit 1
 fi
 
 DEST="s3://${CAPYBARA_S3_BUCKET}/${CAPYBARA_S3_PREFIX}"
-echo "同步正式 GLB -> ${DEST}"
+echo "Syncing GLBs -> ${DEST}"
 echo "$LIST" | sed 's/^/  /'
 BYTES="$(echo "$LIST" | while read -r rel; do stat -f%z "$MODELS_DIR/$rel"; done | python3 -c 'import sys; print("%.1f" % (sum(int(x) for x in sys.stdin)/1024/1024))')"
-echo "合计约 ${BYTES} MB"
+echo "About ${BYTES} MB total"
 
 SYNC_ARGS=(s3 sync "$MODELS_DIR" "$DEST"
 	--region "$CAPYBARA_S3_REGION"
@@ -102,7 +102,7 @@ fi
 aws "${SYNC_ARGS[@]}"
 
 echo ""
-echo "完成。CloudFront："
+echo "Done. CloudFront:"
 echo "  https://de0csn75w3vhy.cloudfront.net/games/capybara-rush/capybara/models"
-echo "若网页跨域失败："
+echo "If CORS fails in browser:"
 echo "  aws s3api put-bucket-cors --bucket ${CAPYBARA_S3_BUCKET} --cors-configuration file://${SCRIPT_DIR}/s3-cors.json"

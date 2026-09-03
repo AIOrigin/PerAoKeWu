@@ -1,0 +1,8 @@
+{
+  "gameId": "capybara-rush",
+  "target": "games",
+  "env": "prod",
+  "title": "Capybara Rush",
+  "sourceDir": "build/capybara_rush_web",
+  "entryUrl": "https://assets.elseland.elser.ai/games/capybara-rush/index.html"
+}

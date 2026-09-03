@@ -9,9 +9,9 @@ const CapybaraLevelLayout := preload("res://assets/maps/route_levels/capybara_ru
 const CapybaraCustomLevels := preload("res://assets/maps/route_levels/capybara_rush/level_editor/capybara_custom_levels.gd")
 const CapybaraEditorVisual := preload("res://assets/maps/route_levels/capybara_rush/level_editor/capybara_editor_visual.gd")
 
-const LANE_WIDTH := 1.08
+const LANE_WIDTH := 1.52
 const LANE_COUNT := 3
-const ROAD_HALF_W := 2.05
+const ROAD_HALF_W := LANE_WIDTH * 1.5
 const ROAD_THICKNESS := 0.18
 const ROAD_SURFACE_Y := ROAD_THICKNESS * 0.5
 
@@ -259,7 +259,7 @@ func _build_ui() -> void:
 	scroll.add_child(v)
 
 	var title := Label.new()
-	title.text = "卡皮巴拉关卡编辑器"
+	title.text = "Capybara Level Editor"
 	title.add_theme_font_size_override("font_size", 26)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	v.add_child(title)
@@ -271,8 +271,8 @@ func _build_ui() -> void:
 	v.add_child(_status)
 
 	_mode_tabs = TabBar.new()
-	_mode_tabs.add_tab("① 赛道设置")
-	_mode_tabs.add_tab("② 摆障碍")
+	_mode_tabs.add_tab("1. Track Setup")
+	_mode_tabs.add_tab("2. Place Obstacles")
 	_mode_tabs.tab_changed.connect(func(i: int) -> void:
 		_set_edit_mode(EDIT_MODE_TRACK if i == 0 else EDIT_MODE_OBSTACLES)
 	)
@@ -293,12 +293,12 @@ func _build_ui() -> void:
 	v.add_child(_obstacle_panel)
 
 	# —— 赛道设置 ——
-	_track_panel.add_child(_make_label("关卡名称"))
+	_track_panel.add_child(_make_label("Level Name"))
 	_level_name_edit = LineEdit.new()
-	_level_name_edit.placeholder_text = "自定义关卡名"
+	_level_name_edit.placeholder_text = "Custom level name"
 	_track_panel.add_child(_level_name_edit)
 
-	_track_panel.add_child(_make_label("主题"))
+	_track_panel.add_child(_make_label("Theme"))
 	_theme_option = OptionButton.new()
 	for tid in CapybaraLevelLayout.THEME_IDS:
 		_theme_option.add_item(tid)
@@ -315,7 +315,7 @@ func _build_ui() -> void:
 	params.add_theme_constant_override("h_separation", 8)
 	params.add_theme_constant_override("v_separation", 6)
 	_track_panel.add_child(params)
-	params.add_child(_make_label("跑道长度"))
+	params.add_child(_make_label("Track Length"))
 	_track_len_spin = _make_spin(120.0, 900.0, 288.0, "m")
 	_track_len_spin.value_changed.connect(func(vv: float) -> void:
 		_track_length = vv
@@ -323,20 +323,20 @@ func _build_ui() -> void:
 		_rebuild_path()
 	)
 	params.add_child(_track_len_spin)
-	params.add_child(_make_label("跑速"))
+	params.add_child(_make_label("Run Speed"))
 	_run_speed_spin = _make_spin(6.0, 16.0, 12.0, "")
 	_run_speed_spin.step = 0.5
 	params.add_child(_run_speed_spin)
-	params.add_child(_make_label("断崖数"))
+	params.add_child(_make_label("Cliffs"))
 	_cliffs_spin = _make_spin(0.0, 2.0, 0.0, "")
 	_cliffs_spin.step = 1.0
 	params.add_child(_cliffs_spin)
-	params.add_child(_make_label("阶梯最高层"))
+	params.add_child(_make_label("Max Stair Rows"))
 	_max_rows_spin = _make_spin(1.0, 6.0, 3.0, "")
 	_max_rows_spin.step = 1.0
 	params.add_child(_max_rows_spin)
 
-	_track_panel.add_child(_make_label("从官方关卡载入模板"))
+	_track_panel.add_child(_make_label("Load Official Template"))
 	_template_option = OptionButton.new()
 	for i in range(1, LevelCatalogScript.LEVEL_COUNT + 1):
 		var cfg := LevelCatalogScript.load_level(i)
@@ -345,10 +345,10 @@ func _build_ui() -> void:
 		_template_level_id = i + 1
 	)
 	_track_panel.add_child(_template_option)
-	_track_panel.add_child(_make_button("载入模板（覆盖当前）", _load_template_level))
+	_track_panel.add_child(_make_button("Load Template (overwrite)", _load_template_level))
 
 	var track_dist_row := HBoxContainer.new()
-	_track_panel.add_child(_make_label("游标距离"))
+	_track_panel.add_child(_make_label("Cursor Distance"))
 	_track_panel.add_child(track_dist_row)
 	var track_dist_spin := SpinBox.new()
 	track_dist_spin.min_value = 0.0
@@ -361,12 +361,12 @@ func _build_ui() -> void:
 	track_dist_row.add_child(track_dist_spin)
 	_track_panel.set_meta("track_dist_spin", track_dist_spin)
 
-	_track_panel.add_child(_make_button("赛道好了 → 去摆障碍", func() -> void:
+	_track_panel.add_child(_make_button("Track Ready → Place Obstacles", func() -> void:
 		_set_edit_mode(EDIT_MODE_OBSTACLES)
 	))
 
 	# —— 摆障碍 ——
-	_obstacle_panel.add_child(_make_label("障碍类型（1-9 快捷键）"))
+	_obstacle_panel.add_child(_make_label("Obstacle Type (keys 1-9)"))
 	_type_option = OptionButton.new()
 	for t in CapybaraLevelLayout.PLACE_TYPES:
 		_type_option.add_item(CapybaraLevelLayout.place_type_label(t))
@@ -375,18 +375,18 @@ func _build_ui() -> void:
 	)
 	_obstacle_panel.add_child(_type_option)
 
-	_obstacle_panel.add_child(_make_label("车道（Q/E）"))
+	_obstacle_panel.add_child(_make_label("Lane (Q/E)"))
 	_lane_option = OptionButton.new()
-	_lane_option.add_item("左道 (0)", 0)
-	_lane_option.add_item("中道 (1)", 1)
-	_lane_option.add_item("右道 (2)", 2)
+	_lane_option.add_item("Left (0)", 0)
+	_lane_option.add_item("Center (1)", 1)
+	_lane_option.add_item("Right (2)", 2)
 	_lane_option.select(1)
 	_lane_option.item_selected.connect(func(i: int) -> void:
 		_set_lane_index(i)
 	)
 	_obstacle_panel.add_child(_lane_option)
 
-	_obstacle_panel.add_child(_make_label("当前距离"))
+	_obstacle_panel.add_child(_make_label("Current Distance"))
 	var dist_row := HBoxContainer.new()
 	_obstacle_panel.add_child(dist_row)
 	_dist_spin = SpinBox.new()
@@ -411,21 +411,21 @@ func _build_ui() -> void:
 	_obstacle_panel.add_child(_dist_slider)
 
 	var btn_row := HBoxContainer.new()
-	btn_row.add_child(_make_button("放置 (Space)", _place_at_cursor))
-	btn_row.add_child(_make_button("删除选中", _delete_selected))
+	btn_row.add_child(_make_button("Place (Space)", _place_at_cursor))
+	btn_row.add_child(_make_button("Delete Selected", _delete_selected))
 	_obstacle_panel.add_child(btn_row)
 
-	_obstacle_panel.add_child(_make_label("水池三连跳"))
+	_obstacle_panel.add_child(_make_label("Triple Jump Pool"))
 	var jump_row := HBoxContainer.new()
-	_jump_spacing_spin = _make_spin(6.0, 14.0, 8.8, "间距")
-	_jump_pads_spin = _make_spin(2.0, 5.0, 3.0, "块数")
+	_jump_spacing_spin = _make_spin(6.0, 14.0, 8.8, "Spacing")
+	_jump_pads_spin = _make_spin(2.0, 5.0, 3.0, "Pads")
 	_jump_pads_spin.step = 1.0
 	jump_row.add_child(_jump_spacing_spin)
 	jump_row.add_child(_jump_pads_spin)
 	_obstacle_panel.add_child(jump_row)
 	var jump_btns := HBoxContainer.new()
-	jump_btns.add_child(_make_button("添加三连跳", _add_jump_at_cursor))
-	jump_btns.add_child(_make_button("删三连跳", _delete_selected_jump))
+	jump_btns.add_child(_make_button("Add Triple Jump", _add_jump_at_cursor))
+	jump_btns.add_child(_make_button("Delete Triple Jump", _delete_selected_jump))
 	_obstacle_panel.add_child(jump_btns)
 	_jump_list = ItemList.new()
 	_jump_list.custom_minimum_size = Vector2(0, 72)
@@ -441,7 +441,7 @@ func _build_ui() -> void:
 	)
 	_obstacle_panel.add_child(_jump_list)
 
-	_obstacle_panel.add_child(_make_label("障碍列表"))
+	_obstacle_panel.add_child(_make_label("Obstacle List"))
 	_list = ItemList.new()
 	_list.custom_minimum_size = Vector2(0, 140)
 	_list.item_selected.connect(func(i: int) -> void:
@@ -460,17 +460,17 @@ func _build_ui() -> void:
 	)
 	_obstacle_panel.add_child(_list)
 
-	_obstacle_panel.add_child(_make_button("← 返回赛道设置", func() -> void:
+	_obstacle_panel.add_child(_make_button("← Back to Track Setup", func() -> void:
 		_set_edit_mode(EDIT_MODE_TRACK)
 	))
 
 	var btn_row2 := HBoxContainer.new()
-	btn_row2.add_child(_make_button("▶ 试玩", _playtest_layout))
-	btn_row2.add_child(_make_button("保存为关卡", _save_layout))
-	btn_row2.add_child(_make_button("新建", func() -> void: _reset_new_level(true)))
+	btn_row2.add_child(_make_button("▶ Playtest", _playtest_layout))
+	btn_row2.add_child(_make_button("Save Level", _save_layout))
+	btn_row2.add_child(_make_button("New", func() -> void: _reset_new_level(true)))
 	v.add_child(btn_row2)
 
-	v.add_child(_make_label("已保存自定义关卡"))
+	v.add_child(_make_label("Saved Custom Levels"))
 	_custom_list = ItemList.new()
 	_custom_list.custom_minimum_size = Vector2(0, 90)
 	_custom_list.item_selected.connect(_load_custom_by_list_index)
@@ -480,7 +480,7 @@ func _build_ui() -> void:
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_theme_font_size_override("font_size", 13)
 	help.modulate = Color(0.95, 0.95, 0.8)
-	help.text = "① 设跑道 → ② 摆障碍 → Ctrl+P 试玩 · Ctrl+S 保存 · Tab 切换 · F 俯视"
+	help.text = "1. Track → 2. Obstacles → Ctrl+P playtest · Ctrl+S save · Tab switch · F top view"
 	v.add_child(help)
 
 
@@ -524,10 +524,10 @@ func _set_edit_mode(mode: String) -> void:
 	_jump_root.visible = not is_track
 	if _phase_hint:
 		if is_track:
-			_phase_hint.text = "① 设置跑道长度、主题、断崖。弯道由程序自动生成。"
+			_phase_hint.text = "1. Set track length, theme, cliffs. Curves are auto-generated."
 			_phase_hint.add_theme_color_override("font_color", Color(1.0, 0.95, 0.45))
 		else:
-			_phase_hint.text = "② 在弯道上放置 setpiece。左键放置/拖拽，右键删除。"
+			_phase_hint.text = "2. Place setpieces on the track. LMB place/drag, RMB delete."
 			_phase_hint.add_theme_color_override("font_color", Color(0.55, 0.9, 1.0))
 	_dragging_marker = false
 	_drag_index = -1
@@ -545,12 +545,12 @@ func _reset_new_level(flash: bool) -> void:
 	_sync_ui_from_cfg()
 	_rebuild_path()
 	if flash:
-		_flash_status("已新建空白关卡")
+		_flash_status("Created blank level")
 
 
 func _sync_ui_from_cfg() -> void:
 	if _level_name_edit:
-		_level_name_edit.text = String(_level_cfg.get("name", "新关卡"))
+		_level_name_edit.text = String(_level_cfg.get("name", "New Level"))
 	if _track_len_spin:
 		_track_len_spin.set_value_no_signal(_track_length)
 	if _run_speed_spin:
@@ -582,9 +582,9 @@ func _apply_theme_from_ui() -> void:
 
 func _collect_level_cfg() -> Dictionary:
 	var cfg := _level_cfg.duplicate(true)
-	cfg["name"] = _level_name_edit.text.strip_edges() if _level_name_edit else "新关卡"
+	cfg["name"] = _level_name_edit.text.strip_edges() if _level_name_edit else "New Level"
 	if cfg["name"].is_empty():
-		cfg["name"] = "新关卡"
+		cfg["name"] = "New Level"
 	cfg["theme_id"] = _theme_option.get_item_text(_theme_option.selected)
 	cfg["track_length"] = _track_length
 	cfg["run_speed"] = float(_run_speed_spin.value)
@@ -732,7 +732,7 @@ func _refresh_list() -> void:
 		_jump_list.clear()
 		for i in _jump_challenges.size():
 			var j: Dictionary = _jump_challenges[i]
-			_jump_list.add_item("%02d  d=%.0f  间距%.1f  %d块  lane=%d" % [
+			_jump_list.add_item("%02d  d=%.0f  spacing %.1f  %d pads  lane=%d" % [
 				i,
 				float(j.get("dist", 0.0)),
 				float(j.get("spacing", 8.8)),
@@ -748,7 +748,7 @@ func _refresh_custom_list() -> void:
 		return
 	_custom_list.clear()
 	for level in CapybaraCustomLevels.list_levels():
-		_custom_list.add_item("%s · %s · %.0fm · %d障碍" % [
+		_custom_list.add_item("%s · %s · %.0fm · %d obstacles" % [
 			String(level.get("name", "?")),
 			String(level.get("id", "")),
 			float(level.get("track_length", 0.0)),
@@ -817,15 +817,15 @@ func _frame_whole_track() -> void:
 	_camera.global_position = (mid["pos"] as Vector3) + Vector3(0.0, height, 0.0)
 	_camera.look_at(mid["pos"], Vector3.UP)
 	_cam_overview_frames = 90
-	_flash_status("俯视整轨 · Ctrl+滚轮缩放")
+	_flash_status("Top view · Ctrl+scroll zoom")
 
 
 func _update_status() -> void:
 	if _status == null:
 		return
 	var flag := " *" if _dirty else ""
-	var phase := "赛道" if _edit_mode == EDIT_MODE_TRACK else "障碍"
-	_status.text = "[%s]%s d=%.0f/%.0f · 障碍%d · 三连跳%d · 下次保存 %s\n滚轮/A·D · Tab · Ctrl+P试玩 · Ctrl+S保存 · F俯视" % [
+	var phase := "Track" if _edit_mode == EDIT_MODE_TRACK else "Obstacles"
+	_status.text = "[%s]%s d=%.0f/%.0f · Obstacles %d · Triple jumps %d · Next save %s\nScroll/A·D · Tab · Ctrl+P playtest · Ctrl+S save · F top view" % [
 		phase,
 		flag,
 		_cursor_d,
@@ -871,7 +871,7 @@ func _add_jump_at_cursor() -> void:
 	_rebuild_track_mesh()
 	_refresh_markers()
 	_refresh_list()
-	_flash_status("已添加水池三连跳 @ %.0fm" % float(item.get("dist", 0.0)))
+	_flash_status("Added triple jump @ %.0fm" % float(item.get("dist", 0.0)))
 
 
 func _delete_selected() -> void:
@@ -905,34 +905,34 @@ func _save_layout() -> void:
 	_refresh_custom_list()
 	_update_status()
 	if not entry.is_empty():
-		_flash_status("已保存：%s（%s）" % [String(entry.get("name", "")), String(entry.get("id", ""))])
+		_flash_status("Saved: %s (%s)" % [String(entry.get("name", "")), String(entry.get("id", ""))])
 	else:
-		_flash_status("保存失败")
+		_flash_status("Save failed")
 
 
 func _playtest_layout() -> void:
 	var cfg := _collect_level_cfg()
 	var entry := CapybaraCustomLevels.save_playtest(cfg)
 	if entry.is_empty():
-		_flash_status("试玩失败：无法写入草稿")
+		_flash_status("Playtest failed: could not write draft")
 		return
 	var ui_script := load("res://assets/maps/route_levels/capybara_rush/capybara_ui.gd")
 	if ui_script:
 		ui_script.pending_custom_level_id = CapybaraCustomLevels.PLAYTEST_ID
 		ui_script.pending_character_id = "capybara"
 		ui_script.editor_return_scene = CapybaraCustomLevels.EDITOR_SCENE
-	_flash_status("正在进入试玩…")
+	_flash_status("Entering playtest…")
 	Global.change_game_scene(CapybaraCustomLevels.GAME_SCENE)
 
 
 func _load_template_level() -> void:
 	var cfg := LevelCatalogScript.load_level(_template_level_id)
 	if cfg.is_empty():
-		_flash_status("模板载入失败")
+		_flash_status("Template load failed")
 		return
 	cfg["hazard_pattern"] = "manual"
 	cfg["placed_setpieces"] = []
-	cfg["name"] = String(cfg.get("name", "")) + "（编辑副本）"
+	cfg["name"] = String(cfg.get("name", "")) + " (edit copy)"
 	_level_cfg = cfg
 	_track_length = float(cfg.get("track_length", 288.0))
 	_setpieces.clear()
@@ -942,7 +942,7 @@ func _load_template_level() -> void:
 	_dirty = true
 	_sync_ui_from_cfg()
 	_rebuild_path()
-	_flash_status("已载入 Lv.%02d 模板（障碍需手动摆放）" % _template_level_id)
+	_flash_status("Loaded Lv.%02d template (place obstacles manually)" % _template_level_id)
 
 
 func _load_custom_by_list_index(index: int) -> void:
@@ -951,7 +951,7 @@ func _load_custom_by_list_index(index: int) -> void:
 	var level_id := String(_custom_list.get_item_metadata(index))
 	var cfg := CapybaraCustomLevels.load_level_config(level_id)
 	if cfg.is_empty():
-		_flash_status("载入失败")
+		_flash_status("Load failed")
 		return
 	_level_cfg = cfg
 	_track_length = float(cfg.get("track_length", 288.0))
@@ -962,7 +962,7 @@ func _load_custom_by_list_index(index: int) -> void:
 	_dirty = false
 	_sync_ui_from_cfg()
 	_rebuild_path()
-	_flash_status("已载入 %s（再保存会新建下一关）" % String(cfg.get("name", level_id)))
+	_flash_status("Loaded %s (next save creates a new level)" % String(cfg.get("name", level_id)))
 
 
 func _flash_status(msg: String) -> void:
